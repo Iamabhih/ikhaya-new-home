@@ -12,6 +12,7 @@ import { LowStockAlert } from "@/components/admin/LowStockAlert";
 const AdminProducts = () => {
   const { user } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("products");
 
   if (!user) {
     return (
@@ -28,6 +29,21 @@ const AdminProducts = () => {
     );
   }
 
+  const handleEditProduct = (productId: string) => {
+    setSelectedProduct(productId);
+    setActiveTab("add");
+  };
+
+  const handleCreateProduct = () => {
+    setSelectedProduct(null);
+    setActiveTab("add");
+  };
+
+  const handleFormClose = () => {
+    setSelectedProduct(null);
+    setActiveTab("products");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -38,15 +54,17 @@ const AdminProducts = () => {
 
         <LowStockAlert />
 
-        <Tabs defaultValue="products" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="stock">Stock Management</TabsTrigger>
-            <TabsTrigger value="add">Add Product</TabsTrigger>
+            <TabsTrigger value="add">
+              {selectedProduct ? 'Edit Product' : 'Add Product'}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="products">
-            <ProductList onEditProduct={setSelectedProduct} />
+            <ProductList onEditProduct={handleEditProduct} />
           </TabsContent>
 
           <TabsContent value="stock">
@@ -55,8 +73,8 @@ const AdminProducts = () => {
 
           <TabsContent value="add">
             <ProductForm 
-              productId={selectedProduct} 
-              onSuccess={() => setSelectedProduct(null)} 
+              productId={selectedProduct || undefined} 
+              onClose={handleFormClose} 
             />
           </TabsContent>
         </Tabs>

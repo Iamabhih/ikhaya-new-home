@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,10 +10,9 @@ import { toast } from "sonner";
 
 interface ProductListProps {
   onEditProduct: (productId: string) => void;
-  onCreateProduct: () => void;
 }
 
-export const ProductList = ({ onEditProduct, onCreateProduct }: ProductListProps) => {
+export const ProductList = ({ onEditProduct }: ProductListProps) => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -79,10 +77,6 @@ export const ProductList = ({ onEditProduct, onCreateProduct }: ProductListProps
             className="pl-10"
           />
         </div>
-        <Button onClick={onCreateProduct}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Product
-        </Button>
       </div>
 
       <div className="border rounded-lg">
