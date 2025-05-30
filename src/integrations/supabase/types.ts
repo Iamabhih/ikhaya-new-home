@@ -543,6 +543,107 @@ export type Database = {
         }
         Relationships: []
       }
+      return_items: {
+        Row: {
+          condition: string | null
+          created_at: string
+          id: string
+          order_item_id: string
+          quantity: number
+          refund_amount: number
+          return_request_id: string
+        }
+        Insert: {
+          condition?: string | null
+          created_at?: string
+          id?: string
+          order_item_id: string
+          quantity?: number
+          refund_amount: number
+          return_request_id: string
+        }
+        Update: {
+          condition?: string | null
+          created_at?: string
+          id?: string
+          order_item_id?: string
+          quantity?: number
+          refund_amount?: number
+          return_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_items_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_items_return_request_id_fkey"
+            columns: ["return_request_id"]
+            isOneToOne: false
+            referencedRelation: "return_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          email: string
+          id: string
+          order_id: string
+          processed_at: string | null
+          refund_amount: number | null
+          requested_items: Json
+          return_description: string | null
+          return_reason: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          order_id: string
+          processed_at?: string | null
+          refund_amount?: number | null
+          requested_items?: Json
+          return_description?: string | null
+          return_reason: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          order_id?: string
+          processed_at?: string | null
+          refund_amount?: number | null
+          requested_items?: Json
+          return_description?: string | null
+          return_reason?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

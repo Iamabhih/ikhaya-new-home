@@ -17,10 +17,14 @@ import AccountPage from "./pages/AccountPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import OrdersPage from "./pages/OrdersPage";
+import ReturnsPage from "./pages/ReturnsPage";
+import ReturnRequestPage from "./pages/ReturnRequestPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminPayments from "./pages/admin/AdminPayments";
+import AdminReturns from "./pages/admin/AdminReturns";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -44,10 +48,14 @@ const App = () => (
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/returns" element={<ReturnsPage />} />
+          <Route path="/return-request/:orderId" element={<ReturnRequestPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/payments" element={<AdminPayments />} />
+          <Route path="/admin/returns" element={<AdminReturns />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

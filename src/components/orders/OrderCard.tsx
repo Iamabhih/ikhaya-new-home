@@ -2,7 +2,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Eye, Truck, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Package, Eye, Truck, CheckCircle, Clock, XCircle, RotateCcw } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface OrderCardProps {
   order: {
@@ -45,6 +46,15 @@ export const OrderCard = ({ order }: OrderCardProps) => {
     }
   };
 
+  // Check if order can be returned (delivered orders within 30 days)
+  const canRequestReturn = () => {
+    if (order.status !== 'delivered') return false;
+    const deliveryDate = new Date(order.created_at);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return deliveryDate > thirtyDaysAgo;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -75,10 +85,20 @@ export const OrderCard = ({ order }: OrderCardProps) => {
               <span>Total</span>
               <span>R{order.total_amount}</span>
             </div>
-            <Button variant="outline" size="sm" className="w-full">
-              <Eye className="h-4 w-4 mr-2" />
-              View Details
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1">
+                <Eye className="h-4 w-4 mr-2" />
+                View Details
+              </Button>
+              {canRequestReturn() && (
+                <Link to={`/return-request/${order.id}`} className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Request Return
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
