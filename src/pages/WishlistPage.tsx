@@ -3,15 +3,19 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Heart, ShoppingBag } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Heart, ShoppingBag, Info, UserPlus } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 
 const WishlistPage = () => {
   const { wishlistItems } = useWishlist();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['wishlist-products', wishlistItems],
@@ -62,6 +66,25 @@ const WishlistPage = () => {
             }
           </p>
         </div>
+
+        {/* Show guest user notice */}
+        {!user && wishlistItems.length > 0 && (
+          <Alert className="mb-6">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Sign in to save your wishlist permanently and access it from any device.</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/auth')}
+                className="ml-4"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Sign In
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
