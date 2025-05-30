@@ -3,10 +3,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, User, Menu, Search, Heart } from "lucide-react";
+import { ShoppingCart, User, Search, Heart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { useWishlist } from "@/hooks/useWishlist";
+import { MobileNav } from "./MobileNav";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,9 +42,7 @@ export const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" className="md:hidden">
-            <Menu className="h-5 w-5" />
-          </Button>
+          <MobileNav />
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-xl font-bold">Homeware</span>
           </Link>
