@@ -3,71 +3,84 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
+
 import Index from "./pages/Index";
+import AuthPage from "./pages/AuthPage";
 import ProductsPage from "./pages/ProductsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
-import AboutPage from "./pages/AboutPage";
-import ContactPage from "./pages/ContactPage";
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrdersPage from "./pages/OrdersPage";
+import AccountPage from "./pages/AccountPage";
+import WishlistPage from "./pages/WishlistPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import CategoryPage from "./pages/CategoryPage";
-import CartPage from "./pages/CartPage";
-import WishlistPage from "./pages/WishlistPage";
-import AuthPage from "./pages/AuthPage";
-import AccountPage from "./pages/AccountPage";
-import CheckoutPage from "./pages/CheckoutPage";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import OrdersPage from "./pages/OrdersPage";
-import ReturnsPage from "./pages/ReturnsPage";
-import ReturnRequestPage from "./pages/ReturnRequestPage";
-import FAQPage from "./pages/FAQPage";
+import ContactPage from "./pages/ContactPage";
+import AboutPage from "./pages/AboutPage";
 import ShippingPage from "./pages/ShippingPage";
+import ReturnsPage from "./pages/ReturnsPage";
+import FAQPage from "./pages/FAQPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import ReturnRequestPage from "./pages/ReturnRequestPage";
+import NotFound from "./pages/NotFound";
+
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminReturns from "./pages/admin/AdminReturns";
-import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/product/:slug" element={<ProductDetailPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/categories" element={<CategoriesPage />} />
-          <Route path="/category/:slug" element={<CategoryPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/account" element={<AccountPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/returns" element={<ReturnsPage />} />
-          <Route path="/return-request/:orderId" element={<ReturnRequestPage />} />
-          <Route path="/faq" element={<FAQPage />} />
-          <Route path="/shipping" element={<ShippingPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/orders" element={<AdminOrders />} />
-          <Route path="/admin/products" element={<AdminProducts />} />
-          <Route path="/admin/payments" element={<AdminPayments />} />
-          <Route path="/admin/returns" element={<AdminReturns />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <Toaster />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/products/:slug" element={<ProductDetailPage />} />
+              <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/categories/:slug" element={<CategoryPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/account" element={<AccountPage />} />
+              <Route path="/wishlist" element={<WishlistPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/shipping" element={<ShippingPage />} />
+              <Route path="/returns" element={<ReturnsPage />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/return-request" element={<ReturnRequestPage />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
+              <Route path="/admin/orders" element={<AdminOrders />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/payments" element={<AdminPayments />} />
+              <Route path="/admin/returns" element={<AdminReturns />} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
