@@ -4,50 +4,51 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { OrderCard } from "@/components/orders/OrderCard";
 import { Package } from "lucide-react";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 
 const OrdersPage = () => {
   const { user } = useAuth();
 
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ['user-orders', user?.id],
+    queryKey: ['user-orders', user?.email],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.email) return [];
       const { data, error } = await supabase
         .from('orders')
         .select(`
           *,
           order_items(
-            *,
-            products(name, price)
+            id,
+            product_name,
+            quantity,
+            total_price
           )
         `)
-        .eq('user_id', user.id)
+        .eq('email', user.email)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.email,
   });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'default';
-      case 'confirmed': return 'secondary';
-      case 'processing': return 'outline';
-      case 'shipped': return 'default';
-      case 'delivered': return 'default';
-      case 'cancelled': return 'destructive';
-      default: return 'default';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8">
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbPage>My Orders</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <h1 className="text-3xl font-bold mb-8">My Orders</h1>
 
         {isLoading ? (
@@ -65,37 +66,7 @@ const OrdersPage = () => {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">Order #{order.order_number}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Placed on {new Date(order.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Badge variant={getStatusColor(order.status)}>
-                      {order.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {order.order_items?.map((item: any) => (
-                      <div key={item.id} className="flex justify-between">
-                        <span>{item.product_name} x {item.quantity}</span>
-                        <span>R{item.total_price}</span>
-                      </div>
-                    ))}
-                    <div className="border-t pt-2 font-semibold">
-                      <div className="flex justify-between">
-                        <span>Total</span>
-                        <span>R{order.total_amount}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <OrderCard key={order.id} order={order} />
             ))}
           </div>
         )}

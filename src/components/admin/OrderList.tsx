@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Eye, Package, Truck, CheckCircle, Clock, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export const OrderList = () => {
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [], isLoading, refetch } = useQuery({
     queryKey: ['admin-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -29,22 +31,47 @@ export const OrderList = () => {
     },
   });
 
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+      
+      toast.success(`Order status updated to ${newStatus}`);
+      refetch();
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('Failed to update order status');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending':
-        return 'secondary';
-      case 'confirmed':
-        return 'default';
-      case 'processing':
-        return 'default';
-      case 'shipped':
-        return 'default';
-      case 'delivered':
-        return 'default';
-      case 'cancelled':
-        return 'destructive';
-      default:
-        return 'secondary';
+      case 'pending': return 'secondary';
+      case 'confirmed': return 'default';
+      case 'processing': return 'default';
+      case 'shipped': return 'default';
+      case 'delivered': return 'default';
+      case 'cancelled': return 'destructive';
+      default: return 'secondary';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending': return <Clock className="h-4 w-4" />;
+      case 'confirmed': return <CheckCircle className="h-4 w-4" />;
+      case 'processing': return <Package className="h-4 w-4" />;
+      case 'shipped': return <Truck className="h-4 w-4" />;
+      case 'delivered': return <CheckCircle className="h-4 w-4" />;
+      case 'cancelled': return <XCircle className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
     }
   };
 
@@ -83,9 +110,29 @@ export const OrderList = () => {
                   R{order.total_amount}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getStatusColor(order.status)}>
-                    {order.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={order.status}
+                      onValueChange={(value) => updateOrderStatus(order.id, value)}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue>
+                          <div className="flex items-center gap-1">
+                            {getStatusIcon(order.status)}
+                            <span className="text-xs">{order.status}</span>
+                          </div>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="processing">Processing</SelectItem>
+                        <SelectItem value="shipped">Shipped</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </TableCell>
                 <TableCell>
                   {new Date(order.created_at).toLocaleDateString()}

@@ -14,6 +14,9 @@ import CartPage from "./pages/CartPage";
 import WishlistPage from "./pages/WishlistPage";
 import AuthPage from "./pages/AuthPage";
 import AccountPage from "./pages/AccountPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import OrdersPage from "./pages/OrdersPage";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +37,9 @@ const App = () => (
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/orders" element={<OrdersPage />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
