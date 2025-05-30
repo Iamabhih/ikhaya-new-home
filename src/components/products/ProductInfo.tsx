@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Heart, Minus, Plus, ShoppingCart, Share2 } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
+import { StarRating } from "@/components/reviews/StarRating";
 
 interface ProductInfoProps {
   product: {
@@ -16,6 +17,8 @@ interface ProductInfoProps {
     short_description?: string;
     sku?: string;
     stock_quantity?: number;
+    average_rating?: number;
+    review_count?: number;
     categories?: {
       name: string;
     };
@@ -71,6 +74,16 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
 
       {/* Title */}
       <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
+
+      {/* Rating */}
+      {product.average_rating && product.review_count && product.review_count > 0 && (
+        <div className="flex items-center gap-2">
+          <StarRating rating={product.average_rating} readonly />
+          <span className="text-sm text-muted-foreground">
+            {product.average_rating.toFixed(1)} ({product.review_count} review{product.review_count !== 1 ? 's' : ''})
+          </span>
+        </div>
+      )}
 
       {/* Price */}
       <div className="flex items-center gap-3">

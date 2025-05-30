@@ -7,7 +7,9 @@ import { Footer } from "@/components/layout/Footer";
 import { ProductImageGallery } from "@/components/products/ProductImageGallery";
 import { ProductInfo } from "@/components/products/ProductInfo";
 import { ProductCard } from "@/components/products/ProductCard";
+import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 
 const ProductDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -140,21 +142,29 @@ const ProductDetailPage = () => {
           <ProductInfo product={product} />
         </div>
 
+        {/* Reviews Section */}
+        <div className="mb-16">
+          <ReviewsSection productId={product.id} />
+        </div>
+
         {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <section className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold mb-2">Related Products</h2>
-              <p className="text-muted-foreground">
-                You might also like these products
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <ProductCard key={relatedProduct.id} product={relatedProduct} />
-              ))}
-            </div>
-          </section>
+          <>
+            <Separator className="mb-8" />
+            <section className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold mb-2">Related Products</h2>
+                <p className="text-muted-foreground">
+                  You might also like these products
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {relatedProducts.map((relatedProduct) => (
+                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </main>
       <Footer />

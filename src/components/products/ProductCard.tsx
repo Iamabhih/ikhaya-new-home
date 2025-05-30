@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
+import { StarRating } from "@/components/reviews/StarRating";
 
 interface ProductCardProps {
   product: {
@@ -14,6 +15,8 @@ interface ProductCardProps {
     slug: string;
     short_description?: string;
     compare_at_price?: number;
+    average_rating?: number;
+    review_count?: number;
     product_images?: Array<{
       image_url: string;
       alt_text?: string;
@@ -64,6 +67,17 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                     {product.name}
                   </h3>
                 </Link>
+                
+                {/* Rating */}
+                {product.average_rating && product.review_count && product.review_count > 0 && (
+                  <div className="flex items-center gap-1 mb-2">
+                    <StarRating rating={product.average_rating} readonly size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      ({product.review_count})
+                    </span>
+                  </div>
+                )}
+                
                 {product.short_description && (
                   <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
                     {product.short_description}
@@ -151,6 +165,17 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
               {product.name}
             </h3>
           </Link>
+          
+          {/* Rating */}
+          {product.average_rating && product.review_count && product.review_count > 0 && (
+            <div className="flex items-center gap-1 mb-2">
+              <StarRating rating={product.average_rating} readonly size="sm" />
+              <span className="text-xs text-muted-foreground">
+                ({product.review_count})
+              </span>
+            </div>
+          )}
+          
           {product.short_description && (
             <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
               {product.short_description}

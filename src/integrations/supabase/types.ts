@@ -420,6 +420,7 @@ export type Database = {
       }
       products: {
         Row: {
+          average_rating: number | null
           category_id: string | null
           compare_at_price: number | null
           cost_price: number | null
@@ -432,6 +433,7 @@ export type Database = {
           min_stock_level: number | null
           name: string
           price: number
+          review_count: number | null
           seo_description: string | null
           seo_title: string | null
           short_description: string | null
@@ -443,6 +445,7 @@ export type Database = {
           wholesale_price: number | null
         }
         Insert: {
+          average_rating?: number | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -455,6 +458,7 @@ export type Database = {
           min_stock_level?: number | null
           name: string
           price: number
+          review_count?: number | null
           seo_description?: string | null
           seo_title?: string | null
           short_description?: string | null
@@ -466,6 +470,7 @@ export type Database = {
           wholesale_price?: number | null
         }
         Update: {
+          average_rating?: number | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -478,6 +483,7 @@ export type Database = {
           min_stock_level?: number | null
           name?: string
           price?: number
+          review_count?: number | null
           seo_description?: string | null
           seo_title?: string | null
           short_description?: string | null
@@ -640,6 +646,53 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          is_approved: boolean | null
+          is_verified_purchase: boolean | null
+          product_id: string
+          rating: number
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean | null
+          is_verified_purchase?: boolean | null
+          product_id: string
+          rating: number
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean | null
+          is_verified_purchase?: boolean | null
+          product_id?: string
+          rating?: number
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
