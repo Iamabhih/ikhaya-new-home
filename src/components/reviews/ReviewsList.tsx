@@ -38,7 +38,7 @@ export const ReviewsList = ({ productId }: ReviewsListProps) => {
           is_verified_purchase,
           created_at,
           user_id,
-          profiles:user_id(first_name, last_name)
+          profiles(first_name, last_name)
         `)
         .eq('product_id', productId)
         .eq('is_approved', true)
