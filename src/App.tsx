@@ -19,6 +19,10 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import OrdersPage from "./pages/OrdersPage";
 import ReturnsPage from "./pages/ReturnsPage";
 import ReturnRequestPage from "./pages/ReturnRequestPage";
+import FAQPage from "./pages/FAQPage";
+import ShippingPage from "./pages/ShippingPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
@@ -50,6 +54,10 @@ const App = () => (
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/returns" element={<ReturnsPage />} />
           <Route path="/return-request/:orderId" element={<ReturnRequestPage />} />
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/shipping" element={<ShippingPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/products" element={<AdminProducts />} />
