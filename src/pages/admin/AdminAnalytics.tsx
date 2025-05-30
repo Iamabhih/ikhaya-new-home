@@ -1,4 +1,5 @@
 
+
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { Header } from "@/components/layout/Header";
@@ -6,7 +7,13 @@ import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent,
+  ChartConfig 
+} from "@/components/ui/chart";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Area, AreaChart 
 } from "recharts";
 import { 
@@ -39,7 +46,47 @@ const AdminAnalytics = () => {
     );
   }
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+  // Chart configurations using theme-aware colors
+  const revenueChartConfig = {
+    revenue: {
+      label: "Revenue",
+      color: "hsl(var(--primary))",
+    },
+    orders: {
+      label: "Orders", 
+      color: "hsl(var(--secondary))",
+    },
+  } satisfies ChartConfig;
+
+  const customerChartConfig = {
+    customers: {
+      label: "New Customers",
+      color: "hsl(var(--primary))",
+    },
+  } satisfies ChartConfig;
+
+  const eventChartConfig = {
+    page_view: {
+      label: "Page Views",
+      color: "hsl(var(--primary))",
+    },
+    product_view: {
+      label: "Product Views", 
+      color: "hsl(var(--secondary))",
+    },
+    cart: {
+      label: "Cart Additions",
+      color: "hsl(var(--accent))",
+    },
+    purchase: {
+      label: "Purchases",
+      color: "hsl(var(--chart-1))",
+    },
+    search: {
+      label: "Searches",
+      color: "hsl(var(--chart-2))",
+    },
+  } satisfies ChartConfig;
 
   // Process daily metrics for charts with proper type checking
   const revenueData = dailyMetrics?.filter(m => m.metric_name === 'total_revenue').map(m => {
@@ -69,7 +116,7 @@ const AdminAnalytics = () => {
           <Card>
             <CardHeader className="flex flex-row items-center space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 ml-auto" />
+              <DollarSign className="h-4 w-4 ml-auto text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">R{overviewStats?.totalRevenue?.toFixed(2) || '0.00'}</div>
@@ -80,7 +127,7 @@ const AdminAnalytics = () => {
           <Card>
             <CardHeader className="flex flex-row items-center space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-              <ShoppingCart className="h-4 w-4 ml-auto" />
+              <ShoppingCart className="h-4 w-4 ml-auto text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{overviewStats?.totalOrders || 0}</div>
@@ -93,7 +140,7 @@ const AdminAnalytics = () => {
           <Card>
             <CardHeader className="flex flex-row items-center space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-              <Users className="h-4 w-4 ml-auto" />
+              <Users className="h-4 w-4 ml-auto text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{overviewStats?.totalCustomers || 0}</div>
@@ -104,7 +151,7 @@ const AdminAnalytics = () => {
           <Card>
             <CardHeader className="flex flex-row items-center space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
-              <TrendingUp className="h-4 w-4 ml-auto" />
+              <TrendingUp className="h-4 w-4 ml-auto text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -132,15 +179,20 @@ const AdminAnalytics = () => {
                   <CardTitle>Revenue Trend (Last 30 Days)</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ChartContainer config={revenueChartConfig}>
                     <AreaChart data={revenueData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
                       <YAxis />
-                      <Tooltip formatter={(value) => [`R${value}`, 'Revenue']} />
-                      <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Area 
+                        type="monotone" 
+                        dataKey="revenue" 
+                        stroke="var(--color-revenue)" 
+                        fill="var(--color-revenue)" 
+                      />
                     </AreaChart>
-                  </ResponsiveContainer>
+                  </ChartContainer>
                 </CardContent>
               </Card>
 
@@ -150,7 +202,7 @@ const AdminAnalytics = () => {
                   <CardTitle>User Activity (Last 7 Days)</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ChartContainer config={eventChartConfig}>
                     <PieChart>
                       <Pie
                         data={eventAnalytics}
@@ -159,16 +211,19 @@ const AdminAnalytics = () => {
                         labelLine={false}
                         label={({ event_type, count }) => `${event_type}: ${count}`}
                         outerRadius={80}
-                        fill="#8884d8"
+                        fill="var(--color-page_view)"
                         dataKey="count"
                       >
                         {eventAnalytics?.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={`var(--color-${entry.event_type})`} 
+                          />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <ChartTooltip content={<ChartTooltipContent />} />
                     </PieChart>
-                  </ResponsiveContainer>
+                  </ChartContainer>
                 </CardContent>
               </Card>
             </div>
@@ -180,17 +235,27 @@ const AdminAnalytics = () => {
                 <CardTitle>Daily Revenue & Orders</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
+                <ChartContainer config={revenueChartConfig}>
                   <BarChart data={revenueData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis yAxisId="revenue" orientation="left" />
                     <YAxis yAxisId="orders" orientation="right" />
-                    <Tooltip />
-                    <Bar yAxisId="revenue" dataKey="revenue" fill="#8884d8" name="Revenue (R)" />
-                    <Bar yAxisId="orders" dataKey="orders" fill="#82ca9d" name="Orders" />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar 
+                      yAxisId="revenue" 
+                      dataKey="revenue" 
+                      fill="var(--color-revenue)" 
+                      name="Revenue (R)" 
+                    />
+                    <Bar 
+                      yAxisId="orders" 
+                      dataKey="orders" 
+                      fill="var(--color-orders)" 
+                      name="Orders" 
+                    />
                   </BarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </CardContent>
             </Card>
           </TabsContent>
@@ -203,15 +268,19 @@ const AdminAnalytics = () => {
                   <CardTitle>Customer Growth</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ChartContainer config={customerChartConfig}>
                     <LineChart data={customerData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
                       <YAxis />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="customers" stroke="#8884d8" />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="customers" 
+                        stroke="var(--color-customers)" 
+                      />
                     </LineChart>
-                  </ResponsiveContainer>
+                  </ChartContainer>
                 </CardContent>
               </Card>
 
@@ -250,7 +319,7 @@ const AdminAnalytics = () => {
                   {productPerformance?.slice(0, 10).map((product, index) => (
                     <div key={product.id} className="flex items-center justify-between p-4 border rounded">
                       <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold">
+                        <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                           {index + 1}
                         </div>
                         <div>
@@ -274,7 +343,7 @@ const AdminAnalytics = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Page Views</CardTitle>
-                  <Eye className="h-4 w-4 ml-auto" />
+                  <Eye className="h-4 w-4 ml-auto text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -287,7 +356,7 @@ const AdminAnalytics = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Product Views</CardTitle>
-                  <Package className="h-4 w-4 ml-auto" />
+                  <Package className="h-4 w-4 ml-auto text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -300,7 +369,7 @@ const AdminAnalytics = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Cart Additions</CardTitle>
-                  <MousePointerClick className="h-4 w-4 ml-auto" />
+                  <MousePointerClick className="h-4 w-4 ml-auto text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -319,3 +388,4 @@ const AdminAnalytics = () => {
 };
 
 export default AdminAnalytics;
+
