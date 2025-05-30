@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,14 +50,22 @@ export const ReportGenerator = () => {
   // Create report configuration
   const createReportMutation = useMutation({
     mutationFn: async (reportConfig: ReportConfig) => {
+      // Convert dates to ISO strings for JSONB storage
+      const serializedDateRange = {
+        from: dateRange.from?.toISOString(),
+        to: dateRange.to?.toISOString(),
+      };
+
       const { data, error } = await supabase
         .from('report_configurations')
         .insert({
-          ...reportConfig,
+          name: reportConfig.name,
+          report_type: reportConfig.report_type,
+          schedule: reportConfig.schedule,
           user_id: user?.id,
           filters: {
             ...reportConfig.filters,
-            date_range: dateRange,
+            date_range: serializedDateRange,
           },
         })
         .select()

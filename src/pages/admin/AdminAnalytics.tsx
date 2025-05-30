@@ -41,12 +41,15 @@ const AdminAnalytics = () => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-  // Process daily metrics for charts
-  const revenueData = dailyMetrics?.filter(m => m.metric_name === 'total_revenue').map(m => ({
-    date: new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    revenue: Number(m.value),
-    orders: Number(m.metadata?.order_count || 0),
-  })) || [];
+  // Process daily metrics for charts with proper type checking
+  const revenueData = dailyMetrics?.filter(m => m.metric_name === 'total_revenue').map(m => {
+    const metadata = m.metadata as Record<string, any> || {};
+    return {
+      date: new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      revenue: Number(m.value),
+      orders: Number(metadata.order_count || 0),
+    };
+  }) || [];
 
   const customerData = dailyMetrics?.filter(m => m.metric_name === 'new_registrations').map(m => ({
     date: new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
