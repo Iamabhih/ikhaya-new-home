@@ -29,12 +29,12 @@ export const CheckoutButton = ({ customerInfo }: CheckoutButtonProps) => {
     try {
       // Transform cart items for the payment function
       const paymentItems = items.map(item => ({
-        productId: item.productId,
-        name: item.product?.name || `Product ${item.productId}`,
-        description: item.product?.short_description || "",
+        productId: item.product_id,
+        name: item.product?.name || `Product ${item.product_id}`,
+        description: item.product?.short_description || item.product?.name || "",
         price: item.product?.price || 0,
         quantity: item.quantity,
-        sku: item.product?.sku || "",
+        sku: item.product?.sku || item.product_id,
       }));
 
       const { data, error } = await supabase.functions.invoke('create-payment', {

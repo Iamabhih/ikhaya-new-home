@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ProductsPage from "./pages/ProductsPage";
 import CategoryPage from "./pages/CategoryPage";
+import CategoriesPage from "./pages/CategoriesPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
@@ -14,6 +15,8 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import AccountPage from "./pages/AccountPage";
 import OrdersPage from "./pages/OrdersPage";
 import WishlistPage from "./pages/WishlistPage";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
@@ -31,6 +34,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/product/:slug" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
@@ -39,6 +43,8 @@ const App = () => (
           <Route path="/account" element={<AccountPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
