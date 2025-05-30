@@ -2,6 +2,7 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OrderList } from "@/components/admin/OrderList";
 
 const AdminOrders = () => {
   return (
@@ -15,9 +16,7 @@ const AdminOrders = () => {
             <CardTitle>Recent Orders</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Order management interface coming soon</p>
-            </div>
+            <OrderList />
           </CardContent>
         </Card>
       </main>
