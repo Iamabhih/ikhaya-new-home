@@ -338,6 +338,41 @@ export type Database = {
           },
         ]
       }
+      order_status_history: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           billing_address: Json
@@ -345,15 +380,18 @@ export type Database = {
           currency: string | null
           discount_amount: number | null
           email: string
+          estimated_delivery_date: string | null
           id: string
           notes: string | null
           order_number: string
+          payment_method: string | null
           shipping_address: Json | null
           shipping_amount: number | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           tax_amount: number | null
           total_amount: number
+          tracking_number: string | null
           updated_at: string
           user_id: string | null
         }
@@ -363,15 +401,18 @@ export type Database = {
           currency?: string | null
           discount_amount?: number | null
           email: string
+          estimated_delivery_date?: string | null
           id?: string
           notes?: string | null
           order_number: string
+          payment_method?: string | null
           shipping_address?: Json | null
           shipping_amount?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal: number
           tax_amount?: number | null
           total_amount: number
+          tracking_number?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -381,15 +422,18 @@ export type Database = {
           currency?: string | null
           discount_amount?: number | null
           email?: string
+          estimated_delivery_date?: string | null
           id?: string
           notes?: string | null
           order_number?: string
+          payment_method?: string | null
           shipping_address?: Json | null
           shipping_amount?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tax_amount?: number | null
           total_amount?: number
+          tracking_number?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -943,6 +987,67 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          movement_type: string
+          new_quantity: number
+          notes: string | null
+          order_id: string | null
+          previous_quantity: number
+          product_id: string
+          quantity_change: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          movement_type: string
+          new_quantity: number
+          notes?: string | null
+          order_id?: string | null
+          previous_quantity: number
+          product_id: string
+          quantity_change: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          movement_type?: string
+          new_quantity?: number
+          notes?: string | null
+          order_id?: string | null
+          previous_quantity?: number
+          product_id?: string
+          quantity_change?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_performance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1051,6 +1156,16 @@ export type Database = {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      update_product_stock: {
+        Args: {
+          p_product_id: string
+          p_quantity_change: number
+          p_movement_type: string
+          p_order_id?: string
+          p_notes?: string
         }
         Returns: boolean
       }
