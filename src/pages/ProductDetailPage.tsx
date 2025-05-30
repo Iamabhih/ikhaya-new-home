@@ -1,20 +1,18 @@
 
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useCart } from "@/hooks/useCart";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
-import { toast } from "sonner";
+import { ProductImageGallery } from "@/components/products/ProductImageGallery";
+import { ProductInfo } from "@/components/products/ProductInfo";
+import { ProductCard } from "@/components/products/ProductCard";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 const ProductDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { addToCart } = useCart();
 
-  const { data: product, isLoading } = useQuery({
+  const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -22,35 +20,54 @@ const ProductDetailPage = () => {
         .select(`
           *,
           categories:category_id(name, slug),
-          product_images(image_url, alt_text, is_primary, sort_order)
+          product_images(id, image_url, alt_text, is_primary, sort_order)
         `)
         .eq('slug', slug)
         .eq('is_active', true)
         .single();
+      
       if (error) throw error;
       return data;
     },
+    enabled: !!slug,
   });
 
-  const handleAddToCart = () => {
-    if (product) {
-      addToCart({ productId: product.id });
-    }
-  };
+  const { data: relatedProducts = [] } = useQuery({
+    queryKey: ['related-products', product?.category_id],
+    queryFn: async () => {
+      if (!product?.category_id) return [];
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories:category_id(name, slug),
+          product_images(image_url, alt_text, is_primary, sort_order)
+        `)
+        .eq('category_id', product.category_id)
+        .eq('is_active', true)
+        .neq('id', product.id)
+        .limit(4);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!product?.category_id,
+  });
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/4 mb-6" />
+          <div className="animate-pulse space-y-8">
+            <div className="h-6 bg-muted rounded w-64"></div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-96 bg-muted rounded" />
+              <div className="aspect-square bg-muted rounded-lg"></div>
               <div className="space-y-4">
-                <div className="h-8 bg-muted rounded w-3/4" />
-                <div className="h-4 bg-muted rounded w-1/2" />
-                <div className="h-20 bg-muted rounded" />
+                <div className="h-8 bg-muted rounded w-3/4"></div>
+                <div className="h-6 bg-muted rounded w-1/2"></div>
+                <div className="h-20 bg-muted rounded"></div>
               </div>
             </div>
           </div>
@@ -60,13 +77,22 @@ const ProductDetailPage = () => {
     );
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold">Product not found</h1>
+          <div className="text-center py-12">
+            <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+            <p className="text-muted-foreground mb-6">
+              The product you're looking for doesn't exist or has been removed.
+            </p>
+            <Link 
+              to="/products" 
+              className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Browse All Products
+            </Link>
           </div>
         </main>
         <Footer />
@@ -74,112 +100,62 @@ const ProductDetailPage = () => {
     );
   }
 
-  const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8">
+        {/* Breadcrumbs */}
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink href="/">Home</BreadcrumbLink>
             </BreadcrumbItem>
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink href="/products">Products</BreadcrumbLink>
             </BreadcrumbItem>
             {product.categories && (
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/category/${product.categories.slug}`}>
-                  {product.categories.name}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink href={`/category/${product.categories.slug}`}>
+                    {product.categories.name}
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              </>
             )}
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>{product.name}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-              {primaryImage ? (
-                <img
-                  src={primaryImage.image_url}
-                  alt={primaryImage.alt_text || product.name}
-                  className="w-full h-full object-cover rounded-lg"
-                />
-              ) : (
-                <span className="text-muted-foreground">No image available</span>
-              )}
-            </div>
-            
-            {product.product_images && product.product_images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {product.product_images.map((image, index) => (
-                  <div key={index} className="aspect-square bg-muted rounded border">
-                    <img
-                      src={image.image_url}
-                      alt={image.alt_text || `${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover rounded"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-              {product.categories && (
-                <Badge variant="secondary">{product.categories.name}</Badge>
-              )}
-            </div>
-
-            <div className="text-3xl font-bold text-primary">
-              R{product.price}
-              {product.compare_at_price && product.compare_at_price > product.price && (
-                <span className="text-lg text-muted-foreground line-through ml-2">
-                  R{product.compare_at_price}
-                </span>
-              )}
-            </div>
-
-            {product.short_description && (
-              <p className="text-lg text-muted-foreground">{product.short_description}</p>
-            )}
-
-            <div className="space-y-4">
-              <Button onClick={handleAddToCart} size="lg" className="w-full">
-                Add to Cart
-              </Button>
-              
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1">
-                  Add to Wishlist
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  Share
-                </Button>
-              </div>
-            </div>
-
-            {product.description && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Description</h3>
-                <p className="text-muted-foreground">{product.description}</p>
-              </div>
-            )}
-
-            {product.sku && (
-              <div>
-                <span className="text-sm text-muted-foreground">SKU: {product.sku}</span>
-              </div>
-            )}
-          </div>
+        {/* Product Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+          <ProductImageGallery 
+            images={product.product_images || []} 
+            productName={product.name}
+          />
+          <ProductInfo product={product} />
         </div>
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <section className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-2">Related Products</h2>
+              <p className="text-muted-foreground">
+                You might also like these products
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedProducts.map((relatedProduct) => (
+                <ProductCard key={relatedProduct.id} product={relatedProduct} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
       <Footer />
     </div>
