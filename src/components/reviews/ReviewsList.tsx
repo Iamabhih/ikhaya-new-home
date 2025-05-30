@@ -18,10 +18,6 @@ interface Review {
   is_verified_purchase: boolean;
   created_at: string;
   user_id: string;
-  profiles: {
-    first_name: string | null;
-    last_name: string | null;
-  } | null;
 }
 
 export const ReviewsList = ({ productId }: ReviewsListProps) => {
@@ -37,8 +33,7 @@ export const ReviewsList = ({ productId }: ReviewsListProps) => {
           comment,
           is_verified_purchase,
           created_at,
-          user_id,
-          profiles(first_name, last_name)
+          user_id
         `)
         .eq('product_id', productId)
         .eq('is_approved', true)
@@ -95,7 +90,7 @@ export const ReviewsList = ({ productId }: ReviewsListProps) => {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  By {review.profiles?.first_name || 'Anonymous'} • {' '}
+                  By Anonymous • {' '}
                   {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
                 </p>
               </div>
