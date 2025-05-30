@@ -94,6 +94,81 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          created_at: string
+          email_address: string
+          error_message: string | null
+          external_id: string | null
+          id: string
+          metadata: Json | null
+          sent_at: string | null
+          status: string
+          subject: string
+          template_name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_address: string
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_address?: string
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      email_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          marketing_emails: boolean | null
+          newsletter: boolean | null
+          order_confirmations: boolean | null
+          order_updates: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          marketing_emails?: boolean | null
+          newsletter?: boolean | null
+          order_confirmations?: boolean | null
+          order_updates?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          marketing_emails?: boolean | null
+          newsletter?: boolean | null
+          order_confirmations?: boolean | null
+          order_updates?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string

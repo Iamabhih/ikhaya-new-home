@@ -3,21 +3,49 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useEmailService } from "@/hooks/useEmailService";
 
 export const Newsletter = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const { sendAdminNotification } = useEmailService();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    // TODO: Implement newsletter subscription
-    setTimeout(() => {
-      toast.success("Thank you for subscribing!");
+
+    try {
+      // Store newsletter subscription
+      const { error } = await supabase
+        .from('email_logs')
+        .insert({
+          email_address: email,
+          template_name: 'newsletter-signup',
+          subject: 'Newsletter Subscription',
+          status: 'sent',
+          metadata: { source: 'newsletter_form' },
+          sent_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      // Send admin notification about new subscription
+      await sendAdminNotification({
+        type: 'contact-form',
+        subject: 'New Newsletter Subscription',
+        message: `New newsletter subscription from: ${email}`,
+        data: { email, source: 'newsletter_form' },
+      });
+
+      toast.success("Thank you for subscribing to our newsletter!");
       setEmail("");
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      toast.error("Failed to subscribe. Please try again.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -35,6 +63,7 @@ export const Newsletter = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
             className="bg-white text-foreground"
+            disabled={loading}
           />
           <Button type="submit" variant="secondary" disabled={loading}>
             {loading ? "Subscribing..." : "Subscribe"}
