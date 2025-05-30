@@ -17,6 +17,7 @@ interface Review {
   comment: string | null;
   is_verified_purchase: boolean;
   created_at: string;
+  user_id: string;
   profiles: {
     first_name: string | null;
     last_name: string | null;
@@ -36,7 +37,8 @@ export const ReviewsList = ({ productId }: ReviewsListProps) => {
           comment,
           is_verified_purchase,
           created_at,
-          profiles!inner(first_name, last_name)
+          user_id,
+          profiles:user_id(first_name, last_name)
         `)
         .eq('product_id', productId)
         .eq('is_approved', true)
