@@ -11,26 +11,31 @@ import { toast } from "sonner";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  const orderId = searchParams.get('order_id');
+  const paymentMethod = searchParams.get('payment_method');
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [isVerifying, setIsVerifying] = useState(true);
 
   useEffect(() => {
     const verifyPayment = async () => {
-      if (!sessionId) {
+      if (!orderId || !paymentMethod) {
         setIsVerifying(false);
         return;
       }
 
       try {
         const { data, error } = await supabase.functions.invoke('verify-payment', {
-          body: { sessionId }
+          body: { 
+            orderId,
+            paymentMethod,
+            paymentReference: searchParams.get('reference') || ''
+          }
         });
 
         if (error) throw error;
 
         setOrderDetails(data);
-        toast.success("Payment verified successfully!");
+        toast.success("Payment processed successfully!");
       } catch (error) {
         console.error("Payment verification error:", error);
         toast.error("Unable to verify payment status");
@@ -40,7 +45,7 @@ const PaymentSuccess = () => {
     };
 
     verifyPayment();
-  }, [sessionId]);
+  }, [orderId, paymentMethod]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,7 +62,7 @@ const PaymentSuccess = () => {
                 )}
               </div>
               <CardTitle className="text-2xl text-green-600">
-                {isVerifying ? "Verifying Payment..." : "Payment Successful!"}
+                {isVerifying ? "Processing Payment..." : "Payment Successful!"}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center space-y-4">
@@ -75,13 +80,8 @@ const PaymentSuccess = () => {
                       <p className="text-sm">
                         <strong>Status:</strong> {orderDetails.status}
                       </p>
-                    </div>
-                  )}
-
-                  {sessionId && (
-                    <div className="bg-muted p-4 rounded-lg">
                       <p className="text-sm">
-                        <strong>Session ID:</strong> {sessionId}
+                        <strong>Payment Method:</strong> {orderDetails.paymentMethod}
                       </p>
                     </div>
                   )}

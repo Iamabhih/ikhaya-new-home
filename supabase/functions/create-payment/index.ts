@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@14.21.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,11 +18,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
-      apiVersion: '2023-10-16',
-    })
-
-    const { items, customerInfo, shippingAddress } = await req.json()
+    const { items, customerInfo, shippingAddress, paymentMethod } = await req.json()
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error('No items provided')
@@ -33,25 +28,15 @@ serve(async (req) => {
       throw new Error('Customer information is required')
     }
 
+    if (!paymentMethod) {
+      throw new Error('Payment method is required')
+    }
+
     // Calculate totals
     let subtotal = 0
-    const lineItems = []
-
     for (const item of items) {
       const itemTotal = item.price * item.quantity
       subtotal += itemTotal
-
-      lineItems.push({
-        price_data: {
-          currency: 'zar',
-          product_data: {
-            name: item.name,
-            description: item.description || '',
-          },
-          unit_amount: Math.round(item.price * 100), // Convert to cents
-        },
-        quantity: item.quantity,
-      })
     }
 
     const taxAmount = subtotal * 0.15 // 15% VAT
@@ -61,7 +46,7 @@ serve(async (req) => {
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
 
-    // Create order in database first
+    // Create order in database
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .insert({
@@ -72,7 +57,7 @@ serve(async (req) => {
         shipping_amount: shippingAmount,
         total_amount: totalAmount,
         status: 'pending',
-        payment_method: 'stripe',
+        payment_method: paymentMethod,
         billing_address: {
           email: customerInfo.email,
           firstName: customerInfo.firstName,
@@ -122,66 +107,84 @@ serve(async (req) => {
       throw new Error('Failed to create order items')
     }
 
-    // Add shipping as line item if applicable
-    if (shippingAmount > 0) {
-      lineItems.push({
-        price_data: {
-          currency: 'zar',
-          product_data: {
-            name: 'Shipping',
-            description: 'Standard delivery',
+    // Handle different payment methods
+    let paymentResponse = {}
+
+    switch (paymentMethod) {
+      case 'payfast':
+        // For now, return order details - Payfast integration to be implemented
+        paymentResponse = {
+          type: 'payfast',
+          orderId: order.id,
+          orderNumber: orderNumber,
+          amount: totalAmount,
+          message: 'Payfast integration to be implemented'
+        }
+        break
+
+      case 'payflex':
+        // For now, return order details - Payflex integration to be implemented
+        paymentResponse = {
+          type: 'payflex',
+          orderId: order.id,
+          orderNumber: orderNumber,
+          amount: totalAmount,
+          message: 'Payflex integration to be implemented'
+        }
+        break
+
+      case 'instant_eft':
+        // For now, return order details - Instant EFT integration to be implemented
+        paymentResponse = {
+          type: 'instant_eft',
+          orderId: order.id,
+          orderNumber: orderNumber,
+          amount: totalAmount,
+          message: 'Instant EFT integration to be implemented'
+        }
+        break
+
+      case 'bank_transfer':
+      case 'eft':
+        // Return banking details for manual transfer
+        paymentResponse = {
+          type: 'bank_transfer',
+          orderId: order.id,
+          orderNumber: orderNumber,
+          amount: totalAmount,
+          bankingDetails: {
+            bankName: 'Your Bank Name',
+            accountNumber: 'XXXX-XXXX-XXXX',
+            branchCode: 'XXXXX',
+            accountType: 'Current',
+            reference: orderNumber
           },
-          unit_amount: Math.round(shippingAmount * 100),
-        },
-        quantity: 1,
-      })
+          instructions: 'Please use the order number as your payment reference and email proof of payment to orders@yourstore.com'
+        }
+        break
+
+      case 'cod':
+        // Cash on delivery
+        await supabaseClient
+          .from('orders')
+          .update({ status: 'confirmed' })
+          .eq('id', order.id)
+
+        paymentResponse = {
+          type: 'cod',
+          orderId: order.id,
+          orderNumber: orderNumber,
+          amount: totalAmount,
+          message: 'Your order has been confirmed. Payment will be collected on delivery.'
+        }
+        break
+
+      default:
+        throw new Error('Unsupported payment method')
     }
 
-    // Add tax as line item
-    lineItems.push({
-      price_data: {
-        currency: 'zar',
-        product_data: {
-          name: 'VAT (15%)',
-          description: 'Value Added Tax',
-        },
-        unit_amount: Math.round(taxAmount * 100),
-      },
-      quantity: 1,
-    })
-
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      customer_email: customerInfo.email,
-      success_url: `${req.headers.get('origin')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/checkout`,
-      metadata: {
-        order_id: order.id,
-        order_number: orderNumber,
-      },
-      billing_address_collection: 'required',
-      shipping_address_collection: {
-        allowed_countries: ['ZA'],
-      },
-    })
-
-    // Update order with Stripe session ID
-    await supabaseClient
-      .from('orders')
-      .update({ 
-        notes: `Stripe session: ${session.id}` 
-      })
-      .eq('id', order.id)
-
     return new Response(
-      JSON.stringify({ 
-        url: session.url,
-        orderId: order.id,
-        orderNumber: orderNumber
-      }),
+      JSON.stringify(paymentResponse),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,

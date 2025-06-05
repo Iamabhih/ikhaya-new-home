@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PaymentMethods } from "./PaymentMethods";
+import { PaymentSuccess } from "./PaymentSuccess";
 
 interface CheckoutFormProps {
   user: any;
@@ -16,6 +18,9 @@ interface CheckoutFormProps {
 export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
   const { items, clearCart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentStep, setCurrentStep] = useState('billing'); // billing, payment, success
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [paymentResult, setPaymentResult] = useState(null);
   const [formData, setFormData] = useState({
     email: user?.email || "",
     firstName: "",
@@ -27,8 +32,13 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
     province: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleBillingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setCurrentStep('payment');
+  };
+
+  const handlePaymentMethodSelect = async (method: string) => {
+    setSelectedPaymentMethod(method);
     
     if (items.length === 0) {
       toast.error("Your cart is empty");
@@ -52,20 +62,30 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
         body: {
           items: paymentItems,
           customerInfo: formData,
-          shippingAddress: formData, // Same as billing for now
+          shippingAddress: formData,
+          paymentMethod: method,
         },
       });
 
       if (error) throw error;
 
-      if (data.url) {
-        // Clear cart before redirecting
-        clearCart();
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
+      setPaymentResult(data);
+      
+      // Clear cart after successful order creation
+      clearCart();
+      
+      // Handle different payment method responses
+      if (method === 'bank_transfer' || method === 'eft') {
+        setCurrentStep('success');
+        toast.success("Order created! Banking details provided for payment.");
+      } else if (method === 'cod') {
+        setCurrentStep('success');
+        toast.success("Order confirmed! Payment will be collected on delivery.");
       } else {
-        throw new Error("No checkout URL received");
+        setCurrentStep('success');
+        toast.success("Order created successfully!");
       }
+      
     } catch (error) {
       console.error("Checkout error:", error);
       toast.error("Failed to process checkout. Please try again.");
@@ -74,13 +94,26 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
     }
   };
 
+  if (currentStep === 'success' && paymentResult) {
+    return <PaymentSuccess paymentResult={paymentResult} />;
+  }
+
+  if (currentStep === 'payment') {
+    return (
+      <PaymentMethods
+        onSelect={handlePaymentMethodSelect}
+        onBack={() => setCurrentStep('billing')}
+      />
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Shipping & Billing Information</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleBillingSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email">Email Address *</Label>
@@ -177,7 +210,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
               size="lg"
               disabled={isProcessing}
             >
-              {isProcessing ? "Processing..." : "Proceed to Payment"}
+              Continue to Payment
             </Button>
           </div>
         </form>

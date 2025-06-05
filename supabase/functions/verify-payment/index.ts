@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@14.21.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,24 +18,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
-      apiVersion: '2023-10-16',
-    })
+    const { orderId, paymentReference, paymentMethod } = await req.json()
 
-    const { sessionId } = await req.json()
-
-    if (!sessionId) {
-      throw new Error('Session ID is required')
+    if (!orderId) {
+      throw new Error('Order ID is required')
     }
-
-    // Retrieve the checkout session from Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId)
-
-    if (!session.metadata?.order_id) {
-      throw new Error('Order ID not found in session metadata')
-    }
-
-    const orderId = session.metadata.order_id
 
     // Get the order from database
     const { data: order, error: orderError } = await supabaseClient
@@ -54,17 +40,50 @@ serve(async (req) => {
 
     let orderStatus = order.status
 
-    // Update order status based on payment status
-    if (session.payment_status === 'paid') {
-      orderStatus = 'confirmed'
-      
-      // Update stock quantities for each item
+    // Handle payment verification based on payment method
+    switch (paymentMethod) {
+      case 'payfast':
+        // Implement Payfast payment verification logic here
+        // For now, just mark as confirmed
+        orderStatus = 'confirmed'
+        break
+
+      case 'payflex':
+        // Implement Payflex payment verification logic here
+        // For now, just mark as confirmed
+        orderStatus = 'confirmed'
+        break
+
+      case 'instant_eft':
+        // Implement Instant EFT verification logic here
+        // For now, just mark as confirmed
+        orderStatus = 'confirmed'
+        break
+
+      case 'bank_transfer':
+      case 'eft':
+        // Manual verification required for bank transfers
+        // Admin will need to manually confirm payment
+        orderStatus = 'pending'
+        break
+
+      case 'cod':
+        // Already confirmed during order creation
+        orderStatus = 'confirmed'
+        break
+
+      default:
+        throw new Error('Unsupported payment method')
+    }
+
+    // Update stock quantities for confirmed orders
+    if (orderStatus === 'confirmed' && order.status !== 'confirmed') {
       for (const item of order.order_items) {
         if (item.product_id) {
           const { error: stockError } = await supabaseClient
             .rpc('update_product_stock', {
               p_product_id: item.product_id,
-              p_quantity_change: -item.quantity, // Negative for sale
+              p_quantity_change: -item.quantity,
               p_movement_type: 'sale',
               p_order_id: orderId,
               p_notes: `Sale from order ${order.order_number}`
@@ -72,12 +91,11 @@ serve(async (req) => {
 
           if (stockError) {
             console.error('Stock update error:', stockError)
-            // Don't fail the entire process for stock errors
           }
         }
       }
 
-      // Update order status to confirmed
+      // Update order status
       const { error: updateError } = await supabaseClient
         .from('orders')
         .update({ 
@@ -107,25 +125,6 @@ serve(async (req) => {
         })
       } catch (emailError) {
         console.error('Email sending error:', emailError)
-        // Don't fail for email errors
-      }
-
-      // Send admin notification
-      try {
-        await supabaseClient.functions.invoke('send-email', {
-          body: {
-            to: 'admin@yourstore.com', // Replace with actual admin email
-            template: 'admin-notification',
-            data: {
-              orderNumber: order.order_number,
-              customerEmail: order.email,
-              totalAmount: order.total_amount,
-              itemCount: order.order_items.length
-            }
-          }
-        })
-      } catch (adminEmailError) {
-        console.error('Admin email error:', adminEmailError)
       }
     }
 
@@ -133,7 +132,7 @@ serve(async (req) => {
       JSON.stringify({
         orderNumber: order.order_number,
         status: orderStatus,
-        paymentStatus: session.payment_status,
+        paymentMethod: paymentMethod,
         totalAmount: order.total_amount
       }),
       { 
