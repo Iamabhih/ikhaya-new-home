@@ -9,11 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface AuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAuthSuccess: () => void;
 }
 
-export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
+export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps) => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,7 +34,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
       toast.error(error.message);
     } else {
       toast.success("Signed in successfully!");
-      onClose();
+      onAuthSuccess();
     }
     setLoading(false);
   };
@@ -57,13 +58,13 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
       toast.error(error.message);
     } else {
       toast.success("Account created successfully!");
-      onClose();
+      onAuthSuccess();
     }
     setLoading(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Welcome to Ikhaya Homeware</DialogTitle>
