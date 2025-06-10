@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateEmail, validatePassword, validateName } from "@/utils/validation";
+import { AlertTriangle } from "lucide-react";
 
 interface AuthModalProps {
   open: boolean;
@@ -20,18 +23,65 @@ export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const validateSignUpForm = (): boolean => {
+    const errors: string[] = [];
+    
+    if (!validateEmail(email)) {
+      errors.push("Please enter a valid email address");
+    }
+    
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      errors.push(...passwordValidation.errors);
+    }
+    
+    if (!validateName(firstName)) {
+      errors.push("First name must contain only letters, spaces, hyphens, and apostrophes (1-50 characters)");
+    }
+    
+    if (!validateName(lastName)) {
+      errors.push("Last name must contain only letters, spaces, hyphens, and apostrophes (1-50 characters)");
+    }
+    
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const validateSignInForm = (): boolean => {
+    const errors: string[] = [];
+    
+    if (!validateEmail(email)) {
+      errors.push("Please enter a valid email address");
+    }
+    
+    if (password.length < 1) {
+      errors.push("Password is required");
+    }
+    
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateSignInForm()) {
+      return;
+    }
+    
     setLoading(true);
+    setValidationErrors([]);
 
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
     if (error) {
-      toast.error(error.message);
+      toast.error("Invalid email or password");
+      setValidationErrors(["Invalid email or password"]);
     } else {
       toast.success("Signed in successfully!");
       onAuthSuccess();
@@ -41,23 +91,30 @@ export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateSignUpForm()) {
+      return;
+    }
+    
     setLoading(true);
+    setValidationErrors([]);
 
     const { error } = await supabase.auth.signUp({
-      email,
+      email: email.trim().toLowerCase(),
       password,
       options: {
         data: {
-          first_name: firstName,
-          last_name: lastName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
         },
       },
     });
 
     if (error) {
       toast.error(error.message);
+      setValidationErrors([error.message]);
     } else {
-      toast.success("Account created successfully!");
+      toast.success("Account created successfully! Please check your email for verification.");
       onAuthSuccess();
     }
     setLoading(false);
@@ -69,6 +126,19 @@ export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
         <DialogHeader>
           <DialogTitle>Welcome to Ikhaya Homeware</DialogTitle>
         </DialogHeader>
+        
+        {validationErrors.length > 0 && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <ul className="list-disc list-inside space-y-1">
+                {validationErrors.map((error, index) => (
+                  <li key={index} className="text-sm">{error}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -85,6 +155,7 @@ export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  maxLength={254}
                   required
                 />
               </div>
@@ -113,6 +184,7 @@ export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                     id="firstName"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
+                    maxLength={50}
                     required
                   />
                 </div>
@@ -122,6 +194,7 @@ export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                     id="lastName"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
+                    maxLength={50}
                     required
                   />
                 </div>
@@ -133,6 +206,7 @@ export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  maxLength={254}
                   required
                 />
               </div>
@@ -145,6 +219,9 @@ export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <div className="text-xs text-muted-foreground">
+                  Password must be at least 8 characters with uppercase, lowercase, number, and special character.
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Creating Account..." : "Create Account"}

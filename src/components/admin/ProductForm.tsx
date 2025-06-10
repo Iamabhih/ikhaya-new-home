@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { validatePrice, validateQuantity, validateSKU, sanitizeContent } from "@/utils/validation";
+import { AlertTriangle } from "lucide-react";
 
 interface ProductFormProps {
   productId?: string;
@@ -18,6 +21,7 @@ interface ProductFormProps {
 
 export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
   const queryClient = useQueryClient();
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -60,8 +64,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
     enabled: !!productId,
   });
 
-  // Update form data when product loads
-  useState(() => {
+  useEffect(() => {
     if (product) {
       setFormData({
         name: product.name || "",
@@ -77,7 +80,53 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
         is_featured: product.is_featured ?? false,
       });
     }
-  });
+  }, [product]);
+
+  const validateForm = (): boolean => {
+    const errors: string[] = [];
+    
+    // Name validation
+    if (!formData.name.trim() || formData.name.length > 255) {
+      errors.push("Product name is required and must be under 255 characters");
+    }
+    
+    // Slug validation
+    if (!formData.slug.trim() || !/^[a-z0-9-]+$/.test(formData.slug)) {
+      errors.push("Slug is required and must contain only lowercase letters, numbers, and hyphens");
+    }
+    
+    // Price validation
+    if (!validatePrice(formData.price)) {
+      errors.push("Price must be a positive number between 0.01 and 1,000,000");
+    }
+    
+    // Compare at price validation (if provided)
+    if (formData.compare_at_price && !validatePrice(formData.compare_at_price)) {
+      errors.push("Compare at price must be a positive number between 0.01 and 1,000,000");
+    }
+    
+    // Stock quantity validation
+    if (!validateQuantity(formData.stock_quantity)) {
+      errors.push("Stock quantity must be a positive integer between 1 and 10,000");
+    }
+    
+    // SKU validation (if provided)
+    if (formData.sku && !validateSKU(formData.sku)) {
+      errors.push("SKU must be 3-20 characters containing only uppercase letters, numbers, hyphens, and underscores");
+    }
+    
+    // Description length validation
+    if (formData.description.length > 5000) {
+      errors.push("Description must be under 5000 characters");
+    }
+    
+    if (formData.short_description.length > 500) {
+      errors.push("Short description must be under 500 characters");
+    }
+    
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
 
   const createProductMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -118,12 +167,22 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!validateForm()) {
+      return;
+    }
+    
     const submitData = {
-      ...formData,
+      name: formData.name.trim(),
+      slug: formData.slug.trim().toLowerCase(),
+      description: sanitizeContent(formData.description),
+      short_description: sanitizeContent(formData.short_description),
       price: parseFloat(formData.price),
       compare_at_price: formData.compare_at_price ? parseFloat(formData.compare_at_price) : null,
       stock_quantity: parseInt(formData.stock_quantity) || 0,
       category_id: formData.category_id || null,
+      sku: formData.sku.trim().toUpperCase() || null,
+      is_active: formData.is_active,
+      is_featured: formData.is_featured,
     };
 
     if (productId) {
@@ -154,6 +213,19 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
         <CardTitle>{productId ? 'Edit Product' : 'Create New Product'}</CardTitle>
       </CardHeader>
       <CardContent>
+        {validationErrors.length > 0 && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <ul className="list-disc list-inside space-y-1">
+                {validationErrors.map((error, index) => (
+                  <li key={index} className="text-sm">{error}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -162,6 +234,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleNameChange(e.target.value)}
+                maxLength={255}
                 required
               />
             </div>
@@ -171,6 +244,8 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                 id="slug"
                 value={formData.slug}
                 onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                maxLength={100}
+                pattern="^[a-z0-9-]+$"
                 required
               />
             </div>
@@ -182,6 +257,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
               id="short_description"
               value={formData.short_description}
               onChange={(e) => setFormData(prev => ({ ...prev, short_description: e.target.value }))}
+              maxLength={500}
             />
           </div>
 
@@ -191,6 +267,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              maxLength={5000}
               rows={4}
             />
           </div>
@@ -202,6 +279,8 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                 id="price"
                 type="number"
                 step="0.01"
+                min="0.01"
+                max="1000000"
                 value={formData.price}
                 onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                 required
@@ -213,6 +292,8 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                 id="compare_at_price"
                 type="number"
                 step="0.01"
+                min="0.01"
+                max="1000000"
                 value={formData.compare_at_price}
                 onChange={(e) => setFormData(prev => ({ ...prev, compare_at_price: e.target.value }))}
               />
@@ -222,6 +303,8 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
               <Input
                 id="stock_quantity"
                 type="number"
+                min="0"
+                max="10000"
                 value={formData.stock_quantity}
                 onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
               />
@@ -252,7 +335,10 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
               <Input
                 id="sku"
                 value={formData.sku}
-                onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value.toUpperCase() }))}
+                pattern="^[A-Z0-9-_]{3,20}$"
+                maxLength={20}
+                placeholder="ABC-123"
               />
             </div>
           </div>
