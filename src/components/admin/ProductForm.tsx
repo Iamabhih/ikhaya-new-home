@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { validatePrice, validateQuantity, validateSKU, sanitizeContent } from "@/utils/validation";
+import { SecureForm } from "@/components/security/SecureForm";
+import { useSecurityContext } from "@/contexts/SecurityContext";
+import { useRateLimit } from "@/hooks/useRateLimit";
 import { AlertTriangle } from "lucide-react";
 
 interface ProductFormProps {
@@ -21,6 +23,8 @@ interface ProductFormProps {
 
 export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
   const queryClient = useQueryClient();
+  const { validateCSRFToken } = useSecurityContext();
+  const { canAttempt, recordAttempt, isBlocked, getRemainingTime } = useRateLimit(5, 60000);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -164,10 +168,24 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSecureSubmit = (e: React.FormEvent, csrfToken: string) => {
+    console.log('Secure form submission with CSRF token:', csrfToken);
+    
+    // Check rate limiting
+    if (!canAttempt) {
+      const remainingTime = getRemainingTime();
+      toast.error(`Too many attempts. Please wait ${remainingTime} seconds.`);
+      return;
+    }
+
+    // Validate CSRF token
+    if (!validateCSRFToken(csrfToken)) {
+      toast.error('Security validation failed. Please refresh and try again.');
+      return;
+    }
     
     if (!validateForm()) {
+      recordAttempt();
       return;
     }
     
@@ -207,6 +225,22 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
     }));
   };
 
+  if (isBlocked) {
+    const remainingTime = getRemainingTime();
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="p-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Too many attempts. Please wait {remainingTime} seconds before trying again.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -226,7 +260,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
           </Alert>
         )}
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <SecureForm onSecureSubmit={handleSecureSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="name">Product Name</Label>
@@ -373,7 +407,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
               {productId ? 'Update' : 'Create'} Product
             </Button>
           </div>
-        </form>
+        </SecureForm>
       </CardContent>
     </Card>
   );
