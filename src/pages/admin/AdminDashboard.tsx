@@ -10,6 +10,7 @@ import { Package, ShoppingCart, Users, CreditCard, TrendingUp, AlertTriangle } f
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import { AdminQuickActions } from "@/components/admin/AdminQuickActions";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -101,6 +102,11 @@ const AdminDashboard = () => {
                 <span className="text-sm">{stats.lowStockProducts} products low in stock</span>
               </div>
             )}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-8">
+            <AdminQuickActions />
           </div>
           
           {/* Statistics Cards */}

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X, Home, Package, Grid3X3, Info, MessageCircle, ShoppingCart, Heart, User } from "lucide-react";
+import { Menu, X, Home, Package, Grid3X3, Info, MessageCircle, ShoppingCart, Heart, User, Settings, BarChart3, Users, CreditCard, RotateCcw } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -30,6 +30,16 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
     { href: "/categories", label: "Categories", icon: Grid3X3 },
     { href: "/about", label: "About", icon: Info },
     { href: "/contact", label: "Contact", icon: MessageCircle },
+  ];
+
+  const adminItems = [
+    { href: "/admin/dashboard", label: "Dashboard", icon: BarChart3 },
+    { href: "/admin/products", label: "Products", icon: Package },
+    { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+    { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/admin/payments", label: "Payments", icon: CreditCard },
+    { href: "/admin/returns", label: "Returns", icon: RotateCcw },
   ];
 
   const isActivePath = (path: string) => {
@@ -69,6 +79,35 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
           })}
         </div>
 
+        {/* Admin Section */}
+        {isAdmin && (
+          <div className="border-t pt-4 mt-4 space-y-2">
+            <div className="px-3 py-2">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Administration
+              </h3>
+            </div>
+            {adminItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={handleLinkClick}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${
+                    isActivePath(item.href)
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         {/* User Actions */}
         <div className="border-t pt-4 mt-4 space-y-2">
           {user ? (
@@ -85,20 +124,6 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
                 <User className="h-5 w-5" />
                 My Account
               </Link>
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  onClick={handleLinkClick}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${
-                    isActivePath("/admin")
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <Package className="h-5 w-5" />
-                  Admin Panel
-                </Link>
-              )}
               <Button
                 onClick={handleSignOut}
                 variant="ghost"

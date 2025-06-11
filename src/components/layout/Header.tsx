@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingCart, User, Search, Menu, X, Package, Settings, BarChart3 } from "lucide-react";
+import { ShoppingCart, User, Search, Menu, X, Package, Settings, BarChart3, Users, CreditCard, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -74,13 +74,14 @@ export const Header = () => {
                       Admin
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem asChild>
-                      <Link to="/admin">
+                      <Link to="/admin/dashboard">
                         <BarChart3 className="h-4 w-4 mr-2" />
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/admin/products">
                         <Package className="h-4 w-4 mr-2" />
@@ -94,9 +95,28 @@ export const Header = () => {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link to="/admin/users">
+                        <Users className="h-4 w-4 mr-2" />
+                        Users
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/analytics">
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Analytics
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link to="/admin/payments">
-                        <Settings className="h-4 w-4 mr-2" />
+                        <CreditCard className="h-4 w-4 mr-2" />
                         Payments
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/returns">
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Returns
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
