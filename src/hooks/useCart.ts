@@ -52,9 +52,9 @@ export const useCart = () => {
         `);
 
       if (user) {
-        query.eq('user_id', user.id);
+        query.eq('user_id', user.id).is('session_id', null);
       } else {
-        query.eq('session_id', sessionId);
+        query.eq('session_id', sessionId).is('user_id', null);
       }
 
       const { data, error } = await query;
@@ -69,19 +69,57 @@ export const useCart = () => {
 
   const addToCart = useMutation({
     mutationFn: async ({ productId, quantity = 1 }: { productId: string; quantity?: number }) => {
-      const { data, error } = await supabase
+      console.log('Adding to cart:', { productId, quantity, userId: user?.id, sessionId });
+
+      // Check if item already exists in cart
+      const existingQuery = supabase
         .from('cart_items')
-        .upsert({
+        .select('id, quantity')
+        .eq('product_id', productId);
+
+      if (user) {
+        existingQuery.eq('user_id', user.id).is('session_id', null);
+      } else {
+        existingQuery.eq('session_id', sessionId).is('user_id', null);
+      }
+
+      const { data: existingItems, error: fetchError } = await existingQuery;
+      if (fetchError) throw fetchError;
+
+      if (existingItems && existingItems.length > 0) {
+        // Update existing item
+        const existingItem = existingItems[0];
+        const newQuantity = existingItem.quantity + quantity;
+        
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ quantity: newQuantity })
+          .eq('id', existingItem.id);
+
+        if (error) throw error;
+        console.log('Updated existing cart item:', existingItem.id, 'new quantity:', newQuantity);
+      } else {
+        // Insert new item
+        const insertData: any = {
           product_id: productId,
           quantity,
-          user_id: user?.id || null,
-          session_id: user ? null : sessionId,
-        }, {
-          onConflict: user ? 'user_id,product_id' : 'session_id,product_id'
-        });
+        };
 
-      if (error) throw error;
-      return data;
+        if (user) {
+          insertData.user_id = user.id;
+          insertData.session_id = null;
+        } else {
+          insertData.session_id = sessionId;
+          insertData.user_id = null;
+        }
+
+        const { error } = await supabase
+          .from('cart_items')
+          .insert(insertData);
+
+        if (error) throw error;
+        console.log('Inserted new cart item');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
@@ -95,18 +133,22 @@ export const useCart = () => {
 
   const updateQuantity = useMutation({
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
+      console.log('Updating quantity:', { itemId, quantity });
+      
       if (quantity <= 0) {
         const { error } = await supabase
           .from('cart_items')
           .delete()
           .eq('id', itemId);
         if (error) throw error;
+        console.log('Deleted cart item:', itemId);
       } else {
         const { error } = await supabase
           .from('cart_items')
           .update({ quantity })
           .eq('id', itemId);
         if (error) throw error;
+        console.log('Updated cart item quantity:', itemId, quantity);
       }
     },
     onSuccess: () => {
@@ -120,11 +162,13 @@ export const useCart = () => {
 
   const removeItem = useMutation({
     mutationFn: async (itemId: string) => {
+      console.log('Removing cart item:', itemId);
       const { error } = await supabase
         .from('cart_items')
         .delete()
         .eq('id', itemId);
       if (error) throw error;
+      console.log('Successfully removed cart item:', itemId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
@@ -138,19 +182,25 @@ export const useCart = () => {
 
   const clearCart = useMutation({
     mutationFn: async () => {
+      console.log('Clearing cart for user:', user?.id, 'session:', sessionId);
       const query = supabase.from('cart_items').delete();
       
       if (user) {
-        query.eq('user_id', user.id);
+        query.eq('user_id', user.id).is('session_id', null);
       } else {
-        query.eq('session_id', sessionId);
+        query.eq('session_id', sessionId).is('user_id', null);
       }
 
       const { error } = await query;
       if (error) throw error;
+      console.log('Successfully cleared cart');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+    onError: (error) => {
+      console.error("Error clearing cart:", error);
+      toast.error("Failed to clear cart");
     },
   });
 
