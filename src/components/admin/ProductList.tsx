@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +18,7 @@ export const ProductList = ({ onEditProduct }: ProductListProps) => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const selectAllRef = useRef<HTMLInputElement>(null);
+  const selectAllRef = useRef<HTMLButtonElement>(null);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['admin-products', searchQuery],
