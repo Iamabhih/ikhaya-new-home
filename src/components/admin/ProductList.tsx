@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export const ProductList = ({ onEditProduct }: ProductListProps) => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['admin-products', searchQuery],
@@ -93,6 +94,11 @@ export const ProductList = ({ onEditProduct }: ProductListProps) => {
   const isAllSelected = selectedProducts.length === products.length && products.length > 0;
   const isPartiallySelected = selectedProducts.length > 0 && selectedProducts.length < products.length;
 
+  // Update the indeterminate state when it changes
+  if (selectAllRef.current) {
+    selectAllRef.current.indeterminate = isPartiallySelected;
+  }
+
   return (
     <div className="space-y-4">
       {/* Search and Actions */}
@@ -127,10 +133,8 @@ export const ProductList = ({ onEditProduct }: ProductListProps) => {
             <TableRow>
               <TableHead className="w-12">
                 <Checkbox
+                  ref={selectAllRef}
                   checked={isAllSelected}
-                  ref={(el) => {
-                    if (el) el.indeterminate = isPartiallySelected;
-                  }}
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>

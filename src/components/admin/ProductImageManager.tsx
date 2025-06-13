@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,10 +91,19 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
 
   const updateImageOrderMutation = useMutation({
     mutationFn: async (updates: { id: string; sort_order: number }[]) => {
-      const { error } = await supabase
-        .from('product_images')
-        .upsert(updates, { onConflict: 'id' });
-      if (error) throw error;
+      // Update each image individually since we only need to update sort_order
+      const promises = updates.map(({ id, sort_order }) =>
+        supabase
+          .from('product_images')
+          .update({ sort_order })
+          .eq('id', id)
+      );
+      
+      const results = await Promise.all(promises);
+      const errors = results.filter(result => result.error);
+      if (errors.length > 0) {
+        throw new Error('Failed to update image order');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-images', productId] });
