@@ -2,12 +2,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, ShoppingCart, Users, Plus, BarChart3, Settings } from "lucide-react";
+import { Package, ShoppingCart, Users, Plus, BarChart3, Settings, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useRoles } from "@/hooks/useRoles";
 
 export const AdminQuickActions = () => {
+  const { user } = useAuth();
+  const { isSuperAdmin } = useRoles(user);
+
   const { data: quickStats } = useQuery({
     queryKey: ['admin-quick-stats'],
     queryFn: async () => {
@@ -63,6 +68,17 @@ export const AdminQuickActions = () => {
       color: "bg-gray-500",
     },
   ];
+
+  // Add admin setup action for superadmins
+  if (isSuperAdmin()) {
+    quickActions.push({
+      title: "Admin Setup",
+      description: "Promote users & manage roles",
+      icon: Shield,
+      href: "/admin/setup",
+      color: "bg-red-500",
+    });
+  }
 
   return (
     <Card>

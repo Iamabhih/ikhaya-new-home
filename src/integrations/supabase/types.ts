@@ -1152,6 +1152,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_admin_user: {
+        Args: { user_email: string }
+        Returns: boolean
+      }
+      create_superadmin_user: {
+        Args: { user_email: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _user_id: string
