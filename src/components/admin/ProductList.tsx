@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,8 +128,8 @@ export const ProductList = ({ onEditProduct }: ProductListProps) => {
               <TableHead className="w-12">
                 <Checkbox
                   checked={isAllSelected}
-                  indeterminate={isPartiallySelected}
                   onCheckedChange={handleSelectAll}
+                  className={isPartiallySelected ? "data-[state=checked]:bg-primary/50" : ""}
                 />
               </TableHead>
               <TableHead>Product</TableHead>
