@@ -17,7 +17,7 @@ const AdminProducts = () => {
     setActiveTab("form");
   };
 
-  const handleProductSaved = () => {
+  const handleFormClose = () => {
     setEditingProductId(null);
     setActiveTab("list");
   };
@@ -62,7 +62,7 @@ const AdminProducts = () => {
         <TabsContent value="form">
           <ProductForm
             productId={editingProductId}
-            onProductSaved={handleProductSaved}
+            onClose={handleFormClose}
           />
         </TabsContent>
 
