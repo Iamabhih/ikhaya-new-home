@@ -662,6 +662,86 @@ export type Database = {
           },
         ]
       }
+      product_import_errors: {
+        Row: {
+          created_at: string
+          error_message: string
+          id: string
+          import_id: string | null
+          row_data: Json
+          row_number: number
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          id?: string
+          import_id?: string | null
+          row_data: Json
+          row_number: number
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          id?: string
+          import_id?: string | null
+          row_data?: Json
+          row_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_import_errors_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "product_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_imports: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          failed_rows: number
+          filename: string
+          id: string
+          import_data: Json | null
+          processed_rows: number
+          status: string
+          successful_rows: number
+          total_rows: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          failed_rows?: number
+          filename: string
+          id?: string
+          import_data?: Json | null
+          processed_rows?: number
+          status?: string
+          successful_rows?: number
+          total_rows?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          failed_rows?: number
+          filename?: string
+          id?: string
+          import_data?: Json | null
+          processed_rows?: number
+          status?: string
+          successful_rows?: number
+          total_rows?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           average_rating: number | null
@@ -1152,6 +1232,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      bulk_insert_products: {
+        Args: { products_data: Json; import_id_param: string }
+        Returns: Json
+      }
       create_admin_user: {
         Args: { user_email: string }
         Returns: boolean
@@ -1159,6 +1243,10 @@ export type Database = {
       create_superadmin_user: {
         Args: { user_email: string }
         Returns: boolean
+      }
+      generate_unique_sku: {
+        Args: { base_name: string }
+        Returns: string
       }
       has_role: {
         Args: {
