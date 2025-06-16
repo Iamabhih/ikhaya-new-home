@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +26,7 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
   const queryClient = useQueryClient();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [altTexts, setAltTexts] = useState<{ [key: string]: string }>({});
+  const [uploading, setUploading] = useState(false);
 
   const { data: images = [], isLoading } = useQuery({
     queryKey: ['product-images', productId],
@@ -44,40 +44,67 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
 
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File) => {
-      // In a real implementation, you would upload to a storage service
-      // For now, we'll use a placeholder URL
-      const imageUrl = `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop`;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${productId}/${Date.now()}.${fileExt}`;
       
-      const { error } = await supabase
+      // Upload file to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+
+      // Save image record to database
+      const { error: dbError } = await supabase
         .from('product_images')
         .insert({
           product_id: productId,
-          image_url: imageUrl,
+          image_url: publicUrl,
           alt_text: altTexts[file.name] || file.name,
           is_primary: images.length === 0,
           sort_order: images.length,
         });
-      
-      if (error) throw error;
-      return imageUrl;
+
+      if (dbError) throw dbError;
+      return publicUrl;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-images', productId] });
-      setSelectedFiles([]);
-      setAltTexts({});
       toast.success('Image uploaded successfully');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Upload error:', error);
       toast.error('Failed to upload image');
     },
   });
 
   const deleteImageMutation = useMutation({
-    mutationFn: async (imageId: string) => {
+    mutationFn: async (image: ProductImage) => {
+      // Extract file path from URL
+      const url = new URL(image.image_url);
+      const filePath = url.pathname.split('/').slice(-2).join('/'); // Get last two segments
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('product-images')
+        .remove([filePath]);
+
+      if (storageError) {
+        console.warn('Storage deletion failed:', storageError);
+        // Continue with database deletion even if storage fails
+      }
+
+      // Delete from database
       const { error } = await supabase
         .from('product_images')
         .delete()
-        .eq('id', imageId);
+        .eq('id', image.id);
+      
       if (error) throw error;
     },
     onSuccess: () => {
@@ -91,7 +118,6 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
 
   const updateImageOrderMutation = useMutation({
     mutationFn: async (updates: { id: string; sort_order: number }[]) => {
-      // Update each image individually since we only need to update sort_order
       const promises = updates.map(({ id, sort_order }) =>
         supabase
           .from('product_images')
@@ -112,13 +138,11 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
 
   const setPrimaryImageMutation = useMutation({
     mutationFn: async (imageId: string) => {
-      // First, set all images to non-primary
       await supabase
         .from('product_images')
         .update({ is_primary: false })
         .eq('product_id', productId);
       
-      // Then set the selected image as primary
       const { error } = await supabase
         .from('product_images')
         .update({ is_primary: true })
@@ -134,20 +158,45 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    setSelectedFiles(files);
+    const validFiles = files.filter(file => {
+      const isValidType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type);
+      const isValidSize = file.size <= 52428800; // 50MB
+      
+      if (!isValidType) {
+        toast.error(`${file.name}: Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.`);
+        return false;
+      }
+      if (!isValidSize) {
+        toast.error(`${file.name}: File too large. Maximum size is 50MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    setSelectedFiles(validFiles);
     
-    // Initialize alt text for each file
     const newAltTexts: { [key: string]: string } = {};
-    files.forEach(file => {
+    validFiles.forEach(file => {
       newAltTexts[file.name] = file.name.replace(/\.[^/.]+$/, "");
     });
     setAltTexts(newAltTexts);
   };
 
-  const handleUpload = () => {
-    selectedFiles.forEach(file => {
-      uploadImageMutation.mutate(file);
-    });
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) return;
+    
+    setUploading(true);
+    try {
+      for (const file of selectedFiles) {
+        await uploadImageMutation.mutateAsync(file);
+      }
+      setSelectedFiles([]);
+      setAltTexts({});
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const onDragEnd = useCallback((result: any) => {
@@ -186,18 +235,24 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
               id="image-upload"
               type="file"
               multiple
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               onChange={handleFileSelect}
               className="mt-1"
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Supported formats: JPEG, PNG, WebP, GIF. Maximum size: 50MB per file.
+            </p>
           </div>
 
           {selectedFiles.length > 0 && (
             <div className="space-y-4">
-              <h4 className="font-medium">Selected Files:</h4>
+              <h4 className="font-medium">Selected Files ({selectedFiles.length}):</h4>
               {selectedFiles.map((file, index) => (
                 <div key={index} className="flex items-center gap-4 p-3 border rounded">
                   <span className="text-sm font-medium">{file.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </span>
                   <div className="flex-1">
                     <Label htmlFor={`alt-${index}`} className="text-xs">Alt Text</Label>
                     <Input
@@ -213,9 +268,13 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                   </div>
                 </div>
               ))}
-              <Button onClick={handleUpload} disabled={uploadImageMutation.isPending}>
+              <Button 
+                onClick={handleUpload} 
+                disabled={uploading}
+                className="w-full"
+              >
                 <Upload className="h-4 w-4 mr-2" />
-                Upload {selectedFiles.length} Image{selectedFiles.length > 1 ? 's' : ''}
+                {uploading ? 'Uploading...' : `Upload ${selectedFiles.length} Image${selectedFiles.length > 1 ? 's' : ''}`}
               </Button>
             </div>
           )}
@@ -248,9 +307,9 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                                 src={image.image_url}
                                 alt={image.alt_text || 'Product image'}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                               />
                               
-                              {/* Drag Handle */}
                               <div
                                 {...provided.dragHandleProps}
                                 className="absolute top-2 left-2 p-1 bg-background/80 rounded cursor-move"
@@ -258,7 +317,6 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                                 <GripVertical className="h-4 w-4" />
                               </div>
 
-                              {/* Primary Badge */}
                               {image.is_primary && (
                                 <Badge className="absolute top-2 right-2 bg-yellow-500">
                                   <Star className="h-3 w-3 mr-1" />
@@ -266,7 +324,6 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                                 </Badge>
                               )}
 
-                              {/* Action Buttons */}
                               <div className="absolute bottom-2 right-2 flex gap-1">
                                 {!image.is_primary && (
                                   <Button
@@ -281,7 +338,7 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => deleteImageMutation.mutate(image.id)}
+                                  onClick={() => deleteImageMutation.mutate(image)}
                                   disabled={deleteImageMutation.isPending}
                                 >
                                   <X className="h-3 w-3" />
@@ -289,7 +346,6 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                               </div>
                             </div>
 
-                            {/* Image Info */}
                             <div className="p-3">
                               <p className="text-sm font-medium truncate">
                                 {image.alt_text || 'No alt text'}
@@ -314,6 +370,7 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
           <div className="text-center py-8 text-muted-foreground">
             <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No images uploaded yet</p>
+            <p className="text-sm">Upload images above to get started</p>
           </div>
         )}
       </CardContent>

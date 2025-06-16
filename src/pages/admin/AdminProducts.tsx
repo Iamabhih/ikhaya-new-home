@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Upload } from "lucide-react";
-import { ProductList } from "@/components/admin/ProductList";
+import { PaginatedProductList } from "@/components/admin/PaginatedProductList";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { ProductImageManager } from "@/components/admin/ProductImageManager";
 import { ProductImport } from "@/components/admin/ProductImport";
@@ -56,7 +56,7 @@ const AdminProducts = () => {
         </TabsList>
 
         <TabsContent value="list">
-          <ProductList onEditProduct={handleEditProduct} />
+          <PaginatedProductList onEditProduct={handleEditProduct} />
         </TabsContent>
 
         <TabsContent value="form">
