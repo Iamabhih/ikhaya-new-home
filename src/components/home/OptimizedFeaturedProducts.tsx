@@ -72,11 +72,6 @@ export const OptimizedFeaturedProducts = () => {
                 slug: product.slug,
                 price: product.price,
                 compare_at_price: product.compare_at_price,
-                stock_quantity: product.stock_quantity,
-                is_active: product.is_active,
-                is_featured: product.is_featured,
-                category_id: product.category_id,
-                created_at: product.created_at,
                 product_images: product.image_url ? [{
                   image_url: product.image_url,
                   alt_text: product.name,
