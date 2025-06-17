@@ -1,12 +1,9 @@
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/home/HeroSection";
-import { FeaturedProducts } from "@/components/home/FeaturedProducts";
-import { CategoryGrid } from "@/components/home/CategoryGrid";
+import { OptimizedFeaturedProducts } from "@/components/home/OptimizedFeaturedProducts";
+import { OptimizedCategoryGrid } from "@/components/home/OptimizedCategoryGrid";
 import { Newsletter } from "@/components/home/Newsletter";
 
 const Index = () => {
@@ -15,8 +12,8 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
-        <CategoryGrid />
-        <FeaturedProducts />
+        <OptimizedCategoryGrid />
+        <OptimizedFeaturedProducts />
         <Newsletter />
       </main>
       <Footer />
