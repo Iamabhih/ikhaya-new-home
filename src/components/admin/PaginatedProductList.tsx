@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Edit, Eye, Package, Search } from "lucide-react";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface Product {
   id: string;
@@ -35,10 +36,21 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // Fetch products with pagination and filters
+  // Debounce search term for better performance
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Use optimized search function for admin panel
   const { data: productsData, isLoading, error } = useQuery({
-    queryKey: ['paginated-products', currentPage, searchTerm, categoryFilter, statusFilter],
+    queryKey: ['admin-paginated-products', currentPage, debouncedSearchTerm, categoryFilter, statusFilter],
     queryFn: async () => {
+      console.log('Fetching admin products with filters:', {
+        searchTerm: debouncedSearchTerm,
+        categoryFilter,
+        statusFilter,
+        page: currentPage
+      });
+
+      // Build base query with joins
       let query = supabase
         .from('products')
         .select(`
@@ -48,8 +60,8 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
         `, { count: 'exact' });
 
       // Apply search filter
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%`);
+      if (debouncedSearchTerm) {
+        query = query.or(`name.ilike.%${debouncedSearchTerm}%,sku.ilike.%${debouncedSearchTerm}%`);
       }
 
       // Apply category filter
@@ -169,8 +181,8 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
       {/* Results summary */}
       <div className="flex justify-between items-center text-sm text-muted-foreground">
         <span>
-          Showing {products.length} of {totalCount} products
-          {searchTerm && ` matching "${searchTerm}"`}
+          Showing {products.length} of {totalCount.toLocaleString()} products
+          {debouncedSearchTerm && ` matching "${debouncedSearchTerm}"`}
         </span>
         <span>Page {currentPage} of {totalPages}</span>
       </div>
@@ -194,7 +206,7 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
             <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-medium mb-2">No products found</h3>
             <p className="text-muted-foreground">
-              {searchTerm || categoryFilter !== "all" || statusFilter !== "all"
+              {debouncedSearchTerm || categoryFilter !== "all" || statusFilter !== "all"
                 ? "Try adjusting your filters"
                 : "Start by adding your first product"}
             </p>

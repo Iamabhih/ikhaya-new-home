@@ -58,6 +58,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "analytics_events_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_product_counts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "analytics_events_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -201,6 +208,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "category_product_counts"
             referencedColumns: ["id"]
           },
         ]
@@ -826,6 +840,13 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_product_counts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -1187,6 +1208,16 @@ export type Database = {
       }
     }
     Views: {
+      category_product_counts: {
+        Row: {
+          id: string | null
+          in_stock_count: number | null
+          name: string | null
+          product_count: number | null
+          slug: string | null
+        }
+        Relationships: []
+      }
       customer_analytics: {
         Row: {
           avg_order_value: number | null
@@ -1224,6 +1255,13 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_product_counts"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -1254,6 +1292,36 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      refresh_category_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      search_products: {
+        Args: {
+          search_query: string
+          category_filter?: string
+          min_price?: number
+          max_price?: number
+          in_stock_only?: boolean
+          limit_count?: number
+          offset_count?: number
+        }
+        Returns: {
+          id: string
+          name: string
+          slug: string
+          price: number
+          compare_at_price: number
+          stock_quantity: number
+          is_active: boolean
+          is_featured: boolean
+          category_id: string
+          created_at: string
+          category_name: string
+          image_url: string
+          search_rank: number
+        }[]
       }
       update_product_stock: {
         Args: {
