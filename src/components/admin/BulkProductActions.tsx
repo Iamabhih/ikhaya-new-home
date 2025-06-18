@@ -40,8 +40,11 @@ export const BulkProductActions = ({ selectedProducts, onClearSelection }: BulkP
 
       if (error) throw error;
 
+      // Invalidate all relevant queries
       await queryClient.invalidateQueries({ queryKey: ['optimized-products'] });
       await queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-paginated-products'] });
+      await queryClient.invalidateQueries({ queryKey: ['featured-products-optimized'] });
       
       toast({
         title: "Bulk update successful",

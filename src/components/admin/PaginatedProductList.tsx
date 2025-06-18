@@ -7,9 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronLeft, ChevronRight, Edit, Eye, Package, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
+import { BulkProductActions } from "./BulkProductActions";
 
 interface Product {
   id: string;
@@ -35,6 +37,7 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   // Debounce search term for better performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -121,22 +124,48 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1); // Reset to first page when searching
+    setSelectedProducts([]); // Clear selection when searching
   };
 
   const handleCategoryFilter = (value: string) => {
     setCategoryFilter(value);
     setCurrentPage(1);
+    setSelectedProducts([]); // Clear selection when filtering
   };
 
   const handleStatusFilter = (value: string) => {
     setStatusFilter(value);
     setCurrentPage(1);
+    setSelectedProducts([]); // Clear selection when filtering
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(products.map(p => p.id));
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
+  const handleSelectProduct = (productId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(prev => [...prev, productId]);
+    } else {
+      setSelectedProducts(prev => prev.filter(id => id !== productId));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedProducts([]);
   };
 
   if (error) {
     toast.error('Failed to load products');
     return <div className="text-center py-8 text-red-500">Failed to load products</div>;
   }
+
+  const isAllSelected = selectedProducts.length === products.length && products.length > 0;
+  const isPartiallySelected = selectedProducts.length > 0 && selectedProducts.length < products.length;
 
   return (
     <div className="space-y-4">
@@ -178,14 +207,34 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
         </Select>
       </div>
 
-      {/* Results summary */}
+      {/* Results summary and bulk select */}
       <div className="flex justify-between items-center text-sm text-muted-foreground">
-        <span>
-          Showing {products.length} of {totalCount.toLocaleString()} products
-          {debouncedSearchTerm && ` matching "${debouncedSearchTerm}"`}
-        </span>
+        <div className="flex items-center gap-4">
+          <span>
+            Showing {products.length} of {totalCount.toLocaleString()} products
+            {debouncedSearchTerm && ` matching "${debouncedSearchTerm}"`}
+          </span>
+          {products.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={isAllSelected}
+                onCheckedChange={handleSelectAll}
+                className={isPartiallySelected ? "data-[state=checked]:bg-primary/50" : ""}
+              />
+              <label className="text-sm cursor-pointer" onClick={() => handleSelectAll(!isAllSelected)}>
+                Select all on page
+              </label>
+            </div>
+          )}
+        </div>
         <span>Page {currentPage} of {totalPages}</span>
       </div>
+
+      {/* Bulk Actions */}
+      <BulkProductActions 
+        selectedProducts={selectedProducts}
+        onClearSelection={handleClearSelection}
+      />
 
       {/* Product List */}
       {isLoading ? (
@@ -217,19 +266,28 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
           {products.map((product) => (
             <Card key={product.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium truncate pr-2">{product.name}</h3>
-                  <div className="flex gap-1">
-                    {product.is_featured && (
-                      <Badge variant="secondary" className="text-xs">Featured</Badge>
-                    )}
-                    <Badge variant={product.is_active ? "default" : "secondary"} className="text-xs">
-                      {product.is_active ? "Active" : "Inactive"}
-                    </Badge>
+                <div className="flex items-start gap-3 mb-2">
+                  <Checkbox
+                    checked={selectedProducts.includes(product.id)}
+                    onCheckedChange={(checked) => handleSelectProduct(product.id, checked as boolean)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium truncate pr-2">{product.name}</h3>
+                      <div className="flex gap-1">
+                        {product.is_featured && (
+                          <Badge variant="secondary" className="text-xs">Featured</Badge>
+                        )}
+                        <Badge variant={product.is_active ? "default" : "secondary"} className="text-xs">
+                          {product.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="space-y-1 text-sm text-muted-foreground mb-3">
+                <div className="space-y-1 text-sm text-muted-foreground mb-3 ml-8">
                   <p>SKU: {product.sku || "N/A"}</p>
                   <p>Price: R{product.price.toFixed(2)}</p>
                   <p>Stock: {product.stock_quantity}</p>
@@ -238,7 +296,7 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
                   )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 ml-8">
                   <Button 
                     size="sm" 
                     variant="outline" 
