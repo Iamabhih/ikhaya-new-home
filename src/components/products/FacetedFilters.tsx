@@ -32,14 +32,27 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
     availability: false
   });
 
-  // Fetch categories with product counts
+  // Fetch categories with product counts using a direct query instead of RPC
   const { data: categories = [] } = useQuery({
     queryKey: ['faceted-categories'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .rpc('get_category_counts');
+        .from('categories')
+        .select(`
+          id,
+          name,
+          products(count)
+        `)
+        .eq('is_active', true);
+      
       if (error) throw error;
-      return data || [];
+      
+      // Transform the data to include product count
+      return data.map(category => ({
+        id: category.id,
+        name: category.name,
+        product_count: Array.isArray(category.products) ? category.products.length : 0
+      }));
     },
     staleTime: 300000, // 5 minutes
   });
@@ -141,7 +154,7 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-2 mt-2">
-            {categories.map((category: any) => (
+            {categories.map((category) => (
               <div key={category.id} className="flex items-center space-x-2">
                 <Checkbox
                   id={`category-${category.id}`}

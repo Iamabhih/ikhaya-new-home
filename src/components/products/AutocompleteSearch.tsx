@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,9 +68,13 @@ export const AutocompleteSearch = ({
       // Extract search queries and count frequency
       const queries: Record<string, number> = {};
       data.forEach(event => {
-        const query = event.metadata?.query;
-        if (query && typeof query === 'string') {
-          queries[query] = (queries[query] || 0) + 1;
+        // Type-safe access to metadata
+        if (event.metadata && typeof event.metadata === 'object' && !Array.isArray(event.metadata)) {
+          const metadata = event.metadata as { query?: string };
+          const query = metadata.query;
+          if (query && typeof query === 'string') {
+            queries[query] = (queries[query] || 0) + 1;
+          }
         }
       });
       
