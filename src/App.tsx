@@ -51,6 +51,7 @@ function App() {
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/products" element={<ProductsPage />} />
+                <Route path="/product/:slug" element={<ProductDetailPage />} />
                 <Route path="/products/:slug" element={<ProductDetailPage />} />
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/categories/:slug" element={<CategoryPage />} />
