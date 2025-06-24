@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 export const OptimizedCategoryGrid = () => {
-  const { data: categories, isLoading } = useQuery({
+  const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories-optimized-home'],
     queryFn: async () => {
       console.log('Fetching optimized categories for homepage');
@@ -22,11 +24,25 @@ export const OptimizedCategoryGrid = () => {
         throw error;
       }
       
-      return data;
+      return data || [];
     },
     staleTime: 600000, // Cache for 10 minutes
     gcTime: 1200000, // Keep in cache for 20 minutes
   });
+
+  if (error) {
+    console.error('Category grid error:', error);
+    return (
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Unable to load categories. Please try again later.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -49,32 +65,47 @@ export const OptimizedCategoryGrid = () => {
     );
   }
 
-  return (
-    <section className="py-16">
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {categories?.map((category) => (
-            <Link key={category.id} to={`/category/${category.slug}`}>
-              <Card className="hover:shadow-lg transition-shadow duration-300 group">
-                <CardContent className="p-6 text-center">
-                  <div className="bg-primary/10 h-16 w-16 rounded-full mx-auto mb-4 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <span className="text-2xl font-bold text-primary">
-                      {category.name.charAt(0)}
-                    </span>
-                  </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                    {category.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {category.product_count} products
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+  if (!categories || categories.length === 0) {
+    return (
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No categories available at the moment.</p>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {categories.map((category) => (
+              <Link key={category.id} to={`/category/${category.slug}`}>
+                <Card className="hover:shadow-lg transition-shadow duration-300 group">
+                  <CardContent className="p-6 text-center">
+                    <div className="bg-primary/10 h-16 w-16 rounded-full mx-auto mb-4 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <span className="text-2xl font-bold text-primary">
+                        {category.name.charAt(0)}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {category.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {category.product_count} products
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+    </ErrorBoundary>
   );
 };
