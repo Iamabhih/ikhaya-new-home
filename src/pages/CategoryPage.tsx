@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -66,9 +66,11 @@ const CategoryPage = () => {
             <BreadcrumbItem>
               <BreadcrumbLink href="/">Home</BreadcrumbLink>
             </BreadcrumbItem>
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href="/products">Products</BreadcrumbLink>
+              <BreadcrumbLink href="/categories">Categories</BreadcrumbLink>
             </BreadcrumbItem>
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>{category.name}</BreadcrumbPage>
             </BreadcrumbItem>

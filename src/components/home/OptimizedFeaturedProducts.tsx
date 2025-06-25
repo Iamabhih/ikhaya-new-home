@@ -12,15 +12,17 @@ export const OptimizedFeaturedProducts = () => {
     queryFn: async () => {
       console.log('Fetching optimized featured products');
       
-      const { data, error } = await supabase.rpc('search_products', {
-        search_query: null,
-        category_filter: null,
-        min_price: null,
-        max_price: null,
-        in_stock_only: true,
-        limit_count: 8,
-        offset_count: 0
-      }).eq('is_featured', true);
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories:category_id(name, slug),
+          product_images(image_url, alt_text, is_primary, sort_order)
+        `)
+        .eq('is_active', true)
+        .eq('is_featured', true)
+        .limit(8)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching featured products:', error);
@@ -66,18 +68,7 @@ export const OptimizedFeaturedProducts = () => {
           {products.map((product) => (
             <ProductCard 
               key={product.id} 
-              product={{
-                id: product.id,
-                name: product.name,
-                slug: product.slug,
-                price: product.price,
-                compare_at_price: product.compare_at_price,
-                product_images: product.image_url ? [{
-                  image_url: product.image_url,
-                  alt_text: product.name,
-                  is_primary: true
-                }] : []
-              }} 
+              product={product}
             />
           ))}
         </div>

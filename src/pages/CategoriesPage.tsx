@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 const CategoriesPage = () => {
   const { data: categories = [], isLoading } = useQuery({
@@ -30,6 +30,7 @@ const CategoriesPage = () => {
             <BreadcrumbItem>
               <BreadcrumbLink href="/">Home</BreadcrumbLink>
             </BreadcrumbItem>
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>Categories</BreadcrumbPage>
             </BreadcrumbItem>
@@ -50,7 +51,7 @@ const CategoriesPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {categories.map((category) => (
-              <Link key={category.id} to={`/category/${category.slug}`}>
+              <Link key={category.id} to={`/categories/${category.slug}`}>
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow h-64">
                   <div className="h-40 bg-muted flex items-center justify-center">
                     {category.image_url ? (
