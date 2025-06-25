@@ -21,7 +21,7 @@ const ProductDetailPage = () => {
         .from('products')
         .select(`
           *,
-          categories:category_id(name, slug),
+          categories:category_id(id, name, slug),
           product_images(id, image_url, alt_text, is_primary, sort_order)
         `)
         .eq('slug', slug)
@@ -43,7 +43,7 @@ const ProductDetailPage = () => {
         .from('products')
         .select(`
           *,
-          categories:category_id(name, slug),
+          categories:category_id(id, name, slug),
           product_images(image_url, alt_text, is_primary, sort_order)
         `)
         .eq('category_id', product.category_id)

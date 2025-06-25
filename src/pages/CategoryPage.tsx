@@ -31,7 +31,7 @@ const CategoryPage = () => {
         .from('products')
         .select(`
           *,
-          categories:category_id(name, slug),
+          categories:category_id(id, name, slug),
           product_images(image_url, alt_text, is_primary, sort_order)
         `)
         .eq('category_id', category.id)
