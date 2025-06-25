@@ -19,9 +19,6 @@ import { useOptimizedProducts } from "@/hooks/useOptimizedProducts";
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
-  const [priceRange, setPriceRange] = useState<{ min?: number; max?: number }>({});
-  const [inStockOnly, setInStockOnly] = useState<boolean | undefined>(undefined);
   const [sortBy, setSortBy] = useState("name");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,57 +40,150 @@ const ProductsPage = () => {
   }, [searchParams]);
 
   // Parse price ranges from faceted filters
-  useEffect(() => {
-    if (facetedFilters.priceRanges?.length) {
-      let minPrice: number | undefined;
-      let maxPrice: number | undefined;
-      
-      facetedFilters.priceRanges.forEach(range => {
-        if (range === "0-100") {
-          minPrice = Math.min(minPrice || Infinity, 0);
-          maxPrice = Math.max(maxPrice || 0, 100);
-        } else if (range === "100-500") {
-          minPrice = Math.min(minPrice || Infinity, 100);
-          maxPrice = Math.max(maxPrice || 0, 500);
-        } else if (range === "500-1000") {
-          minPrice = Math.min(minPrice || Infinity, 500);
-          maxPrice = Math.max(maxPrice || 0, 1000);
-        } else if (range === "1000-2000") {
-          minPrice = Math.min(minPrice || Infinity, 1000);
-          maxPrice = Math.max(maxPrice || 0, 2000);
-        } else if (range === "2000+") {
-          minPrice = Math.min(minPrice || Infinity, 2000);
-        }
-      });
-      
-      setPriceRange({ min: minPrice, max: maxPrice });
-    } else {
-      setPriceRange({});
-    }
-  }, [facetedFilters.priceRanges]);
+  const priceRange = (() => {
+    if (!facetedFilters.priceRanges?.length) return {};
+    
+    let minPrice: number | undefined;
+    let maxPrice: number | undefined;
+    
+    facetedFilters.priceRanges.forEach(range => {
+      if (range === "0-100") {
+        minPrice = Math.min(minPrice || Infinity, 0);
+        maxPrice = Math.max(maxPrice || 0, 100);
+      } else if (range === "100-500") {
+        minPrice = Math.min(minPrice || Infinity, 100);
+        maxPrice = Math.max(maxPrice || 0, 500);
+      } else if (range === "500-1000") {
+        minPrice = Math.min(minPrice || Infinity, 500);
+        maxPrice = Math.max(maxPrice || 0, 1000);
+      } else if (range === "1000-2000") {
+        minPrice = Math.min(minPrice || Infinity, 1000);
+        maxPrice = Math.max(maxPrice || 0, 2000);
+      } else if (range === "2000+") {
+        minPrice = Math.min(minPrice || Infinity, 2000);
+      }
+    });
+    
+    return { min: minPrice, max: maxPrice };
+  })();
 
-  const { data: productsData, isLoading } = useOptimizedProducts({
-    searchQuery,
-    categoryId: facetedFilters.categories?.[0] || selectedCategory,
-    minPrice: priceRange.min,
-    maxPrice: priceRange.max,
-    inStockOnly: facetedFilters.inStock || inStockOnly,
-    page: currentPage,
-    pageSize: itemsPerPage
+  // Enhanced query with proper sorting and filtering
+  const { data: productsData, isLoading } = useQuery({
+    queryKey: [
+      'products-filtered',
+      searchQuery,
+      facetedFilters.categories,
+      priceRange.min,
+      priceRange.max,
+      facetedFilters.inStock,
+      sortBy,
+      currentPage,
+      itemsPerPage
+    ],
+    queryFn: async () => {
+      console.log('Fetching products with filters:', {
+        searchQuery,
+        categories: facetedFilters.categories,
+        priceRange,
+        inStock: facetedFilters.inStock,
+        sortBy,
+        page: currentPage
+      });
+
+      let query = supabase
+        .from('products')
+        .select(`
+          *,
+          categories:category_id(id, name, slug),
+          product_images(id, image_url, alt_text, is_primary, sort_order)
+        `)
+        .eq('is_active', true);
+
+      // Apply search filter
+      if (searchQuery.trim()) {
+        query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,sku.ilike.%${searchQuery}%`);
+      }
+
+      // Apply category filter
+      if (facetedFilters.categories?.length) {
+        query = query.in('category_id', facetedFilters.categories);
+      }
+
+      // Apply price filter
+      if (priceRange.min !== undefined) {
+        query = query.gte('price', priceRange.min);
+      }
+      if (priceRange.max !== undefined) {
+        query = query.lte('price', priceRange.max);
+      }
+
+      // Apply stock filter
+      if (facetedFilters.inStock) {
+        query = query.gt('stock_quantity', 0);
+      }
+
+      // Apply sorting
+      switch (sortBy) {
+        case 'price-asc':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'price-desc':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'newest':
+          query = query.order('created_at', { ascending: false });
+          break;
+        case 'featured':
+          query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
+          break;
+        default:
+          query = query.order('name', { ascending: true });
+      }
+
+      // Apply pagination
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+      
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
+
+      return {
+        products: data || [],
+        totalCount: count || 0,
+        hasNextPage: (currentPage * itemsPerPage) < (count || 0)
+      };
+    },
+    staleTime: 30000,
+    gcTime: 300000,
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ['categories-optimized'],
+    queryKey: ['categories-with-counts'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('categories')
-        .select('id, name, slug')
+        .select(`
+          id, 
+          name, 
+          slug,
+          products(count)
+        `)
         .eq('is_active', true)
         .order('sort_order');
+      
       if (error) throw error;
-      return data;
+      
+      return data.map(category => ({
+        ...category,
+        product_count: Array.isArray(category.products) ? category.products.length : 0
+      }));
     },
-    staleTime: 600000, // 10 minutes
+    staleTime: 600000,
   });
 
   const products = productsData?.products || [];
@@ -120,11 +210,8 @@ const ProductsPage = () => {
 
   const clearSearch = () => {
     setSearchQuery("");
-    setSelectedCategory(undefined);
-    setPriceRange({});
-    setInStockOnly(undefined);
-    setSortBy("name");
     setFacetedFilters({});
+    setSortBy("name");
     setSearchParams({});
     setCurrentPage(1);
   };
@@ -240,7 +327,17 @@ const ProductsPage = () => {
             </div>
 
             {/* Product Grid */}
-            {useVirtualization && viewMode === "grid" ? (
+            {isLoading ? (
+              <div className={`grid gap-6 ${
+                viewMode === "grid" 
+                  ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+                  : "grid-cols-1"
+              }`}>
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="h-64 bg-muted animate-pulse rounded-lg" />
+                ))}
+              </div>
+            ) : useVirtualization && viewMode === "grid" ? (
               <VirtualizedProductGrid
                 products={products}
                 isLoading={isLoading}

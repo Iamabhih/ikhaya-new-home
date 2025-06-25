@@ -32,60 +32,96 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
     availability: false
   });
 
-  // Fetch categories with product counts using a direct query instead of RPC
+  // Fetch categories with accurate product counts
   const { data: categories = [] } = useQuery({
-    queryKey: ['faceted-categories'],
+    queryKey: ['faceted-categories-with-counts'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get categories with product counts using aggregation
+      const { data: categoriesData, error: categoriesError } = await supabase
         .from('categories')
-        .select(`
-          id,
-          name,
-          products(count)
-        `)
-        .eq('is_active', true);
+        .select('id, name, slug')
+        .eq('is_active', true)
+        .order('name');
       
-      if (error) throw error;
+      if (categoriesError) throw categoriesError;
       
-      // Transform the data to include product count
-      return data.map(category => ({
-        id: category.id,
-        name: category.name,
-        product_count: Array.isArray(category.products) ? category.products.length : 0
-      }));
+      // Get product counts for each category
+      const categoriesWithCounts = await Promise.all(
+        categoriesData.map(async (category) => {
+          const { count, error } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('category_id', category.id)
+            .eq('is_active', true);
+          
+          if (error) {
+            console.error(`Error counting products for category ${category.name}:`, error);
+            return { ...category, product_count: 0 };
+          }
+          
+          return { ...category, product_count: count || 0 };
+        })
+      );
+      
+      // Only return categories that have products
+      return categoriesWithCounts.filter(cat => cat.product_count > 0);
     },
     staleTime: 300000, // 5 minutes
   });
 
-  // Fetch rating distribution
+  // Fetch rating distribution with accurate counts
   const { data: ratingStats = [] } = useQuery({
-    queryKey: ['rating-distribution'],
+    queryKey: ['rating-distribution-accurate'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
         .select('average_rating')
         .eq('is_active', true)
-        .not('average_rating', 'is', null);
+        .not('average_rating', 'is', null)
+        .gt('average_rating', 0);
       
       if (error) throw error;
       
-      // Group by rating ranges
+      // Group by rating ranges (4+ stars, 3+ stars, etc.)
       const ratings = [5, 4, 3, 2, 1];
       return ratings.map(rating => ({
         rating,
-        count: data.filter(p => Math.floor(p.average_rating || 0) === rating).length
+        count: data.filter(p => Math.floor(p.average_rating || 0) >= rating && 
+                              (rating === 1 || Math.floor(p.average_rating || 0) < rating + 1)).length
       })).filter(r => r.count > 0);
     },
     staleTime: 300000,
   });
 
-  const priceRanges = [
-    { label: "Under R100", value: "0-100", count: 0 },
-    { label: "R100 - R500", value: "100-500", count: 0 },
-    { label: "R500 - R1000", value: "500-1000", count: 0 },
-    { label: "R1000 - R2000", value: "1000-2000", count: 0 },
-    { label: "Over R2000", value: "2000+", count: 0 },
-  ];
+  // Get accurate price range distribution
+  const { data: priceRanges = [] } = useQuery({
+    queryKey: ['price-range-distribution'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('price')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      
+      const ranges = [
+        { label: "Under R100", value: "0-100", min: 0, max: 100 },
+        { label: "R100 - R500", value: "100-500", min: 100, max: 500 },
+        { label: "R500 - R1000", value: "500-1000", min: 500, max: 1000 },
+        { label: "R1000 - R2000", value: "1000-2000", min: 1000, max: 2000 },
+        { label: "Over R2000", value: "2000+", min: 2000, max: Infinity },
+      ];
+      
+      return ranges.map(range => ({
+        ...range,
+        count: data.filter(p => {
+          const price = Number(p.price);
+          return price >= range.min && (range.max === Infinity || price <= range.max);
+        }).length
+      })).filter(r => r.count > 0);
+    },
+    staleTime: 300000,
+  });
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -166,7 +202,7 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
                   className="text-sm flex-1 cursor-pointer flex justify-between"
                 >
                   <span>{category.name}</span>
-                  <span className="text-muted-foreground">({category.product_count || 0})</span>
+                  <span className="text-muted-foreground">({category.product_count})</span>
                 </label>
               </div>
             ))}
@@ -174,64 +210,69 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
         </Collapsible>
 
         {/* Ratings */}
-        <Collapsible open={openSections.ratings} onOpenChange={() => toggleSection('ratings')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Customer Rating</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${openSections.ratings ? 'rotate-180' : ''}`} />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 mt-2">
-            {ratingStats.map(({ rating, count }) => (
-              <div key={rating} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`rating-${rating}`}
-                  checked={selectedFilters.ratings?.includes(rating) || false}
-                  onCheckedChange={(checked) => handleRatingChange(rating, checked as boolean)}
-                />
-                <label
-                  htmlFor={`rating-${rating}`}
-                  className="text-sm flex-1 cursor-pointer flex items-center justify-between"
-                >
-                  <div className="flex items-center">
-                    {Array.from({ length: rating }, (_, i) => (
-                      <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    ))}
-                    <span className="ml-1">& up</span>
-                  </div>
-                  <span className="text-muted-foreground">({count})</span>
-                </label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
+        {ratingStats.length > 0 && (
+          <Collapsible open={openSections.ratings} onOpenChange={() => toggleSection('ratings')}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                <span className="font-medium">Customer Rating</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${openSections.ratings ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 mt-2">
+              {ratingStats.map(({ rating, count }) => (
+                <div key={rating} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`rating-${rating}`}
+                    checked={selectedFilters.ratings?.includes(rating) || false}
+                    onCheckedChange={(checked) => handleRatingChange(rating, checked as boolean)}
+                  />
+                  <label
+                    htmlFor={`rating-${rating}`}
+                    className="text-sm flex-1 cursor-pointer flex items-center justify-between"
+                  >
+                    <div className="flex items-center">
+                      {Array.from({ length: rating }, (_, i) => (
+                        <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      ))}
+                      <span className="ml-1">& up</span>
+                    </div>
+                    <span className="text-muted-foreground">({count})</span>
+                  </label>
+                </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
 
         {/* Price Ranges */}
-        <Collapsible open={openSections.price} onOpenChange={() => toggleSection('price')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Price Range</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${openSections.price ? 'rotate-180' : ''}`} />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 mt-2">
-            {priceRanges.map((range) => (
-              <div key={range.value} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`price-${range.value}`}
-                  checked={selectedFilters.priceRanges?.includes(range.value) || false}
-                  onCheckedChange={(checked) => handlePriceRangeChange(range.value, checked as boolean)}
-                />
-                <label
-                  htmlFor={`price-${range.value}`}
-                  className="text-sm flex-1 cursor-pointer"
-                >
-                  {range.label}
-                </label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
+        {priceRanges.length > 0 && (
+          <Collapsible open={openSections.price} onOpenChange={() => toggleSection('price')}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                <span className="font-medium">Price Range</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${openSections.price ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 mt-2">
+              {priceRanges.map((range) => (
+                <div key={range.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`price-${range.value}`}
+                    checked={selectedFilters.priceRanges?.includes(range.value) || false}
+                    onCheckedChange={(checked) => handlePriceRangeChange(range.value, checked as boolean)}
+                  />
+                  <label
+                    htmlFor={`price-${range.value}`}
+                    className="text-sm flex-1 cursor-pointer flex justify-between"
+                  >
+                    <span>{range.label}</span>
+                    <span className="text-muted-foreground">({range.count})</span>
+                  </label>
+                </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
 
         {/* Availability */}
         <Collapsible open={openSections.availability} onOpenChange={() => toggleSection('availability')}>
