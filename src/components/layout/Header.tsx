@@ -43,7 +43,7 @@ export const Header = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
               <Package className="h-6 w-6" />
-              <span className="font-bold text-xl">Ikhaya Homeware</span>
+              <span className="font-bold text-xl">IKHAYA Homeware</span>
             </Link>
 
             {/* Desktop Navigation */}

@@ -1,10 +1,7 @@
-
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react";
-
 export const Footer = () => {
-  return (
-    <footer className="bg-secondary/30 border-t">
+  return <footer className="bg-secondary/30 border-t">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
@@ -13,7 +10,7 @@ export const Footer = () => {
               <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
                 <span className="text-white font-bold text-sm">IH</span>
               </div>
-              <span className="font-bold text-lg text-primary">Ikhaya Homeware</span>
+              <span className="font-bold text-lg text-primary">IKHAYA Homeware</span>
             </div>
             <p className="text-muted-foreground text-sm">
               Your home is your sanctuary. We provide quality homeware to make it beautiful, functional, and uniquely yours.
@@ -93,6 +90,5 @@ export const Footer = () => {
           <p>&copy; 2024 Ikhaya Homeware. All rights reserved.</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
