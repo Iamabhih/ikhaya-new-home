@@ -87,7 +87,7 @@ export const Footer = () => {
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; 2024 Ikhaya Homeware. All rights reserved.</p>
+          <p>© 2024 IKHAYAHomeware. All rights reserved.</p>
         </div>
       </div>
     </footer>;
