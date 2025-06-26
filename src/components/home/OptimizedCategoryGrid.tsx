@@ -85,7 +85,7 @@ export const OptimizedCategoryGrid = () => {
           <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {categories.map((category) => (
-              <Link key={category.id} to={`/category/${category.slug}`}>
+              <Link key={category.id} to={`/categories/${category.slug}`}>
                 <Card className="hover:shadow-lg transition-shadow duration-300 group">
                   <CardContent className="p-6 text-center">
                     <div className="bg-primary/10 h-16 w-16 rounded-full mx-auto mb-4 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
