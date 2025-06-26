@@ -5,18 +5,26 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 export const OptimizedCategoryGrid = () => {
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories-optimized-home'],
     queryFn: async () => {
-      console.log('Fetching optimized categories for homepage');
+      console.log('Fetching categories for homepage');
       
+      // Fetch from actual categories table with product counts
       const { data, error } = await supabase
-        .from('category_product_counts')
-        .select('*')
-        .order('product_count', { ascending: false })
+        .from('categories')
+        .select(`
+          id,
+          name,
+          slug,
+          description,
+          image_url,
+          sort_order
+        `)
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
         .limit(8);
       
       if (error) {
@@ -24,7 +32,24 @@ export const OptimizedCategoryGrid = () => {
         throw error;
       }
       
-      return data || [];
+      // Get product counts for each category
+      const categoriesWithCounts = await Promise.all(
+        (data || []).map(async (category) => {
+          const { count } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('category_id', category.id)
+            .eq('is_active', true);
+          
+          return {
+            ...category,
+            product_count: count || 0
+          };
+        })
+      );
+      
+      // Filter out categories with no products for a cleaner homepage
+      return categoriesWithCounts.filter(category => category.product_count > 0);
     },
     staleTime: 600000, // Cache for 10 minutes
     gcTime: 1200000, // Keep in cache for 20 minutes
