@@ -1,4 +1,5 @@
 
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -48,8 +49,8 @@ export const OptimizedCategoryGrid = () => {
         })
       );
       
-      // Filter out categories with no products for a cleaner homepage
-      return categoriesWithCounts.filter(category => category.product_count > 0);
+      // Return all categories, even if they have no products (for a complete category grid)
+      return categoriesWithCounts;
     },
     staleTime: 600000, // Cache for 10 minutes
     gcTime: 1200000, // Keep in cache for 20 minutes
@@ -134,3 +135,4 @@ export const OptimizedCategoryGrid = () => {
     </ErrorBoundary>
   );
 };
+

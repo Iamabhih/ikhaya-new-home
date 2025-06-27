@@ -1,4 +1,5 @@
 
+
 -- First, let's see what's in our categories table and materialized view
 -- Check actual categories
 SELECT id, name, slug, is_active FROM categories WHERE is_active = true ORDER BY name;
@@ -47,3 +48,4 @@ WHERE category_id IS NULL AND is_active = true;
 
 -- Refresh the materialized view again after updates
 REFRESH MATERIALIZED VIEW category_product_counts;
+
