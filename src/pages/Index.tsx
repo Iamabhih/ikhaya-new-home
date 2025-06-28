@@ -6,23 +6,36 @@ import { OptimizedFeaturedProducts } from "@/components/home/OptimizedFeaturedPr
 import { OptimizedCategoryGrid } from "@/components/home/OptimizedCategoryGrid";
 import { Newsletter } from "@/components/home/Newsletter";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Suspense } from "react";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 const Index = () => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main>
+      <main className={`${isMobile ? 'mobile-optimized' : ''}`}>
         <ErrorBoundary>
-          <HeroSection />
+          <Suspense fallback={<LoadingSpinner />}>
+            <HeroSection />
+          </Suspense>
         </ErrorBoundary>
         <ErrorBoundary>
-          <OptimizedCategoryGrid />
+          <Suspense fallback={<LoadingSpinner />}>
+            <OptimizedCategoryGrid />
+          </Suspense>
         </ErrorBoundary>
         <ErrorBoundary>
-          <OptimizedFeaturedProducts />
+          <Suspense fallback={<LoadingSpinner />}>
+            <OptimizedFeaturedProducts />
+          </Suspense>
         </ErrorBoundary>
         <ErrorBoundary>
-          <Newsletter />
+          <Suspense fallback={<LoadingSpinner />}>
+            <Newsletter />
+          </Suspense>
         </ErrorBoundary>
       </main>
       <Footer />

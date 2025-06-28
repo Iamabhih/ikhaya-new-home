@@ -105,5 +105,37 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
+  }
+
+  /* Mobile-specific optimizations */
+  .mobile-optimized {
+    @apply w-full overflow-x-hidden;
+  }
+
+  /* Improve touch targets on mobile */
+  @media (max-width: 768px) {
+    button, a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Prevent zoom on input focus on iOS */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="search"],
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+
+  /* Loading states for mobile */
+  @media (max-width: 768px) {
+    .loading-spinner {
+      @apply scale-75;
+    }
   }
 }

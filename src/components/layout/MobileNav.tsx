@@ -32,8 +32,9 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
     { href: "/contact", label: "Contact", icon: MessageCircle },
   ];
 
+  // Fixed admin routes to match actual routes in App.tsx
   const adminItems = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: BarChart3 },
+    { href: "/admin", label: "Dashboard", icon: BarChart3 },
     { href: "/admin/products", label: "Products", icon: Package },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { href: "/admin/users", label: "Users", icon: Users },
@@ -51,8 +52,13 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
   };
 
   const handleSignOut = async () => {
-    await onSignOut();
-    onClose();
+    try {
+      await onSignOut();
+      onClose();
+    } catch (error) {
+      console.error('Sign out error:', error);
+      onClose();
+    }
   };
 
   return (
@@ -72,7 +78,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-5 w-5 flex-shrink-0" />
                 {item.label}
               </Link>
             );
@@ -100,7 +106,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5 flex-shrink-0" />
                   {item.label}
                 </Link>
               );
@@ -121,7 +127,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
-                <User className="h-5 w-5" />
+                <User className="h-5 w-5 flex-shrink-0" />
                 My Account
               </Link>
               <Button
@@ -141,7 +147,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
               variant="ghost"
               className="w-full justify-start px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
             >
-              <User className="h-5 w-5 mr-3" />
+              <User className="h-5 w-5 mr-3 flex-shrink-0" />
               Sign In
             </Button>
           )}
@@ -155,10 +161,10 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            <Heart className="h-5 w-5" />
+            <Heart className="h-5 w-5 flex-shrink-0" />
             Wishlist
             {wishlistCount > 0 && (
-              <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">
                 {wishlistCount}
               </span>
             )}
@@ -173,10 +179,10 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            <ShoppingCart className="h-5 w-5" />
+            <ShoppingCart className="h-5 w-5 flex-shrink-0" />
             Cart
             {itemCount > 0 && (
-              <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">
                 {itemCount}
               </span>
             )}
