@@ -35,7 +35,7 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminReturns from "./pages/admin/AdminReturns";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminSetupPage from "./pages/admin/AdminSetupPage";
-import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
+import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import "./App.css";
 
 const queryClient = new QueryClient({
@@ -48,12 +48,6 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { initialize } = useAuth();
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
