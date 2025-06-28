@@ -47,10 +47,10 @@ export const VirtualizedProductGrid = ({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="space-y-3">
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="aspect-square w-full" />
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
           </div>
@@ -75,7 +75,7 @@ export const VirtualizedProductGrid = ({
       onScroll={handleScroll}
     >
       <div style={{ height: totalHeight, position: 'relative' }}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 absolute top-0 left-0 right-0">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 absolute top-0 left-0 right-0">
           {virtualItems.map((virtualItem) => {
             const product = products[virtualItem.index];
             if (!product) return null;

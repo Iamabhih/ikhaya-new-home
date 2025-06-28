@@ -114,9 +114,32 @@
     @apply w-full overflow-x-hidden;
   }
 
-  /* Improve touch targets on mobile */
+  /* Responsive typography using clamp() for fluid scaling */
+  h1 { font-size: clamp(1.5rem, 4vw, 2.25rem); }
+  h2 { font-size: clamp(1.25rem, 3.5vw, 1.875rem); }
+  h3 { font-size: clamp(1.125rem, 3vw, 1.5rem); }
+  h4 { font-size: clamp(1rem, 2.5vw, 1.25rem); }
+  
+  /* Fluid spacing system */
+  .container {
+    @apply mx-auto px-4 sm:px-6 lg:px-8;
+    max-width: min(90rem, calc(100vw - 2rem));
+  }
+
+  /* Responsive grid system */
+  .responsive-grid {
+    @apply grid gap-4 sm:gap-6 lg:gap-8;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  }
+
+  .responsive-grid-sm {
+    @apply grid gap-3 sm:gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  }
+
+  /* Touch-friendly interactive elements */
   @media (max-width: 768px) {
-    button, a {
+    button, a, [role="button"] {
       min-height: 44px;
       min-width: 44px;
     }
@@ -126,9 +149,49 @@
     input[type="email"],
     input[type="password"],
     input[type="search"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="number"],
     textarea,
     select {
       font-size: 16px;
+    }
+
+    /* Optimize form layouts for mobile */
+    .form-grid {
+      @apply grid-cols-1 gap-3;
+    }
+
+    /* Mobile-specific card layouts */
+    .card-mobile {
+      @apply p-3 rounded-lg;
+    }
+
+    /* Responsive text truncation */
+    .line-clamp-mobile {
+      @apply line-clamp-2;
+    }
+  }
+
+  /* Tablet specific optimizations */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .form-grid {
+      @apply grid-cols-2 gap-4;
+    }
+
+    .card-tablet {
+      @apply p-4;
+    }
+  }
+
+  /* Desktop optimizations */
+  @media (min-width: 1024px) {
+    .form-grid {
+      @apply grid-cols-3 gap-6;
+    }
+
+    .card-desktop {
+      @apply p-6;
     }
   }
 
@@ -137,5 +200,77 @@
     .loading-spinner {
       @apply scale-75;
     }
+  }
+
+  /* High contrast improvements for accessibility */
+  @media (prefers-contrast: high) {
+    .hover\:bg-muted\/50:hover {
+      @apply bg-muted;
+    }
+  }
+
+  /* Reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Focus management for better accessibility */
+  .focus-visible\:ring-2:focus-visible {
+    @apply ring-2 ring-primary ring-offset-2;
+  }
+
+  /* Responsive image optimization */
+  img {
+    height: auto;
+    max-width: 100%;
+  }
+
+  /* Better text rendering */
+  .text-rendering-optimized {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Responsive tables */
+  .table-responsive {
+    @apply overflow-x-auto;
+  }
+  
+  .table-responsive table {
+    @apply min-w-full;
+  }
+
+  /* Mobile-first container queries support */
+  @supports (container-type: inline-size) {
+    .container-query {
+      container-type: inline-size;
+    }
+  }
+}
+
+/* Custom breakpoints for extra small devices */
+@media (max-width: 480px) {
+  .xs\:text-xs { font-size: 0.75rem; }
+  .xs\:p-2 { padding: 0.5rem; }
+  .xs\:gap-2 { gap: 0.5rem; }
+  .xs\:grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+  .xs\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Print styles for better printing */
+@media print {
+  .no-print { display: none !important; }
+  .print-break { page-break-before: always; }
+  
+  * {
+    color: black !important;
+    background: white !important;
   }
 }
