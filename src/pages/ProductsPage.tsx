@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -14,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Grid, List, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useOptimizedProducts } from "@/hooks/useOptimizedProducts";
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,7 +20,6 @@ const ProductsPage = () => {
   const [sortBy, setSortBy] = useState("name");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
-  const [useVirtualization, setUseVirtualization] = useState(false);
   const [facetedFilters, setFacetedFilters] = useState<{
     categories?: string[];
     ratings?: number[];
@@ -67,6 +64,17 @@ const ProductsPage = () => {
     return { min: minPrice, max: maxPrice };
   })();
 
+  // Check if filters are active to determine loading strategy
+  const hasActiveFilters = searchQuery.trim() || 
+    facetedFilters.categories?.length || 
+    priceRange.min !== undefined || 
+    priceRange.max !== undefined || 
+    facetedFilters.inStock;
+
+  // For filtered results, load all matching products
+  // For unfiltered results, use pagination
+  const shouldLoadAll = hasActiveFilters;
+
   // Enhanced query with proper sorting and filtering
   const { data: productsData, isLoading } = useQuery({
     queryKey: [
@@ -77,8 +85,8 @@ const ProductsPage = () => {
       priceRange.max,
       facetedFilters.inStock,
       sortBy,
-      currentPage,
-      itemsPerPage
+      shouldLoadAll ? 'all' : currentPage,
+      shouldLoadAll ? 'all' : itemsPerPage
     ],
     queryFn: async () => {
       console.log('Fetching products with filters:', {
@@ -87,7 +95,8 @@ const ProductsPage = () => {
         priceRange,
         inStock: facetedFilters.inStock,
         sortBy,
-        page: currentPage
+        page: shouldLoadAll ? 'all' : currentPage,
+        loadAll: shouldLoadAll
       });
 
       let query = supabase
@@ -96,7 +105,7 @@ const ProductsPage = () => {
           *,
           categories:category_id(id, name, slug),
           product_images(id, image_url, alt_text, is_primary, sort_order)
-        `)
+        `, { count: 'exact' })
         .eq('is_active', true);
 
       // Apply search filter
@@ -140,10 +149,12 @@ const ProductsPage = () => {
           query = query.order('name', { ascending: true });
       }
 
-      // Apply pagination
-      const from = (currentPage - 1) * itemsPerPage;
-      const to = from + itemsPerPage - 1;
-      query = query.range(from, to);
+      // Apply pagination only if not loading all
+      if (!shouldLoadAll) {
+        const from = (currentPage - 1) * itemsPerPage;
+        const to = from + itemsPerPage - 1;
+        query = query.range(from, to);
+      }
 
       const { data, error, count } = await query;
       
@@ -155,7 +166,7 @@ const ProductsPage = () => {
       return {
         products: data || [],
         totalCount: count || 0,
-        hasNextPage: (currentPage * itemsPerPage) < (count || 0)
+        hasNextPage: shouldLoadAll ? false : (currentPage * itemsPerPage) < (count || 0)
       };
     },
     staleTime: 30000,
@@ -189,6 +200,7 @@ const ProductsPage = () => {
   const products = productsData?.products || [];
   const totalCount = productsData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const useVirtualization = shouldLoadAll && totalCount > 50;
 
   const handleSearch = (query: string) => {
     console.log('Search query:', query);
@@ -215,11 +227,6 @@ const ProductsPage = () => {
     setSearchParams({});
     setCurrentPage(1);
   };
-
-  // Enable virtualization for large result sets
-  useEffect(() => {
-    setUseVirtualization(totalCount > 100);
-  }, [totalCount]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -264,6 +271,11 @@ const ProductsPage = () => {
                 </h1>
                 <p className="text-muted-foreground">
                   {totalCount.toLocaleString()} product{totalCount !== 1 ? 's' : ''} found
+                  {hasActiveFilters && products.length !== totalCount && !useVirtualization && (
+                    <span className="ml-2 text-sm">
+                      (showing {products.length})
+                    </span>
+                  )}
                   {useVirtualization && (
                     <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                       Optimized View
@@ -330,7 +342,7 @@ const ProductsPage = () => {
             {isLoading ? (
               <div className={`grid gap-6 ${
                 viewMode === "grid" 
-                  ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+                  ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
                   : "grid-cols-1"
               }`}>
                 {Array.from({ length: 12 }).map((_, i) => (
@@ -347,7 +359,7 @@ const ProductsPage = () => {
             ) : (
               <div className={`grid gap-6 ${
                 viewMode === "grid" 
-                  ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+                  ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
                   : "grid-cols-1"
               }`}>
                 {products.map((product) => (
@@ -372,7 +384,7 @@ const ProductsPage = () => {
               </div>
             )}
 
-            {/* Pagination */}
+            {/* Pagination - only show when not using virtualization */}
             {!useVirtualization && totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-8">
                 <Button

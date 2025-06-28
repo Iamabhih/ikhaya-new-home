@@ -46,13 +46,16 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   const inWishlist = isInWishlist(product.id);
   const isInStock = (product.stock_quantity || 0) > 0;
   
+  // Use consistent routing pattern - "/product/" for individual product pages
+  const productUrl = `/product/${product.slug}`;
+  
   if (viewMode === "list") {
     return (
       <Card className="group hover:shadow-lg transition-all duration-300">
         <CardContent className="p-0">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4">
             <div className="relative overflow-hidden rounded-lg w-full sm:w-24 md:w-32 h-48 sm:h-24 md:h-32 flex-shrink-0">
-              <Link to={`/product/${product.slug}`}>
+              <Link to={productUrl}>
                 <div className="w-full h-full bg-secondary/20 flex items-center justify-center">
                   {primaryImage ? (
                     <img
@@ -83,7 +86,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             
             <div className="flex-1 flex flex-col justify-between space-y-2 sm:space-y-0">
               <div className="space-y-1 sm:space-y-2">
-                <Link to={`/product/${product.slug}`}>
+                <Link to={productUrl}>
                   <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors line-clamp-2">
                     {product.name}
                   </h3>
@@ -164,7 +167,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
     <Card className="group hover:shadow-lg transition-all duration-300 h-full flex flex-col">
       <CardContent className="p-0 flex-1">
         <div className="relative overflow-hidden rounded-t-lg">
-          <Link to={`/product/${product.slug}`}>
+          <Link to={productUrl}>
             <div className="aspect-square bg-secondary/20 flex items-center justify-center">
               {primaryImage ? (
                 <img
@@ -205,7 +208,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
         </div>
         
         <div className="p-3 sm:p-4 flex-1 flex flex-col">
-          <Link to={`/product/${product.slug}`}>
+          <Link to={productUrl}>
             <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors mb-1 sm:mb-2 line-clamp-2">
               {product.name}
             </h3>
