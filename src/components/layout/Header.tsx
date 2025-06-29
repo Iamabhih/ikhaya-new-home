@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart, User, Search, Menu, X, Package, Settings, BarChart3, Users, CreditCard, RotateCcw } from "lucide-react";
@@ -11,18 +10,22 @@ import { useRoles } from "@/hooks/useRoles";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { MobileNav } from "./MobileNav";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
 export const Header = () => {
-  const { items } = useCart();
-  const { user, signOut } = useAuth();
-  const { isAdmin } = useRoles(user);
+  const {
+    items
+  } = useCart();
+  const {
+    user,
+    signOut
+  } = useAuth();
+  const {
+    isAdmin
+  } = useRoles(user);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
-  
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
-  
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -30,19 +33,16 @@ export const Header = () => {
       setSearchQuery("");
     }
   };
-  
   const handleAuthSuccess = () => {
     setAuthModalOpen(false);
   };
-  
-  return (
-    <>
+  return <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-2 sm:px-4">
           <div className="flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
             {/* Logo - Responsive sizing */}
             <Link to="/" className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-              <Package className="h-5 w-5 sm:h-6 sm:w-6" />
+              
               <span className="font-bold text-sm sm:text-xl lg:text-xl">
                 <span className="hidden sm:inline">IKHAYA Homeware</span>
                 <span className="sm:hidden">IKHAYA</span>
@@ -63,8 +63,7 @@ export const Header = () => {
               <Link to="/contact" className="text-sm font-medium hover:text-primary transition-colors">
                 Contact
               </Link>
-              {isAdmin() && (
-                <DropdownMenu>
+              {isAdmin() && <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8">
                       <Settings className="h-4 w-4 mr-2" />
@@ -117,32 +116,21 @@ export const Header = () => {
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                </DropdownMenu>}
             </nav>
 
             {/* Search Bar - Responsive design */}
             <form onSubmit={handleSearch} className="hidden sm:flex items-center flex-1 max-w-sm lg:max-w-md mx-2 lg:mx-4">
               <div className="relative w-full">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search products..." 
-                  value={searchQuery} 
-                  onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-8 h-9 text-sm"
-                />
+                <Input placeholder="Search products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-8 h-9 text-sm" />
               </div>
             </form>
 
             {/* Right Side Actions */}
             <div className="flex items-center space-x-1 sm:space-x-2">
               {/* Mobile Search Button */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="sm:hidden h-9 w-9"
-                onClick={() => navigate('/products')}
-              >
+              <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9" onClick={() => navigate('/products')}>
                 <Search className="h-4 w-4" />
               </Button>
 
@@ -150,20 +138,14 @@ export const Header = () => {
               <Link to="/cart">
                 <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10">
                   <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
-                  {itemCount > 0 && (
-                    <Badge 
-                      variant="destructive" 
-                      className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-xs px-0"
-                    >
+                  {itemCount > 0 && <Badge variant="destructive" className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-xs px-0">
                       {itemCount > 99 ? '99+' : itemCount}
-                    </Badge>
-                  )}
+                    </Badge>}
                 </Button>
               </Link>
 
               {/* User Account - Desktop */}
-              {user ? (
-                <DropdownMenu>
+              {user ? <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="hidden sm:flex h-10 w-10">
                       <User className="h-5 w-5" />
@@ -184,25 +166,12 @@ export const Header = () => {
                       Sign Out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setAuthModalOpen(true)}
-                  className="hidden sm:flex h-9 px-3 text-sm"
-                >
+                </DropdownMenu> : <Button variant="ghost" size="sm" onClick={() => setAuthModalOpen(true)} className="hidden sm:flex h-9 px-3 text-sm">
                   Sign In
-                </Button>
-              )}
+                </Button>}
 
               {/* Mobile Menu Toggle */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="sm:hidden h-9 w-9" 
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
+              <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
               </Button>
             </div>
@@ -213,35 +182,17 @@ export const Header = () => {
             <form onSubmit={handleSearch} className="w-full">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search products..." 
-                  value={searchQuery} 
-                  onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-8 h-9 w-full"
-                />
+                <Input placeholder="Search products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-8 h-9 w-full" />
               </div>
             </form>
           </div>
         </div>
 
         {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <MobileNav 
-            user={user} 
-            isAdmin={isAdmin()} 
-            onAuthClick={() => setAuthModalOpen(true)} 
-            onSignOut={signOut} 
-            onClose={() => setMobileMenuOpen(false)} 
-          />
-        )}
+        {mobileMenuOpen && <MobileNav user={user} isAdmin={isAdmin()} onAuthClick={() => setAuthModalOpen(true)} onSignOut={signOut} onClose={() => setMobileMenuOpen(false)} />}
       </header>
 
       {/* Auth Modal */}
-      <AuthModal 
-        open={authModalOpen} 
-        onOpenChange={setAuthModalOpen} 
-        onAuthSuccess={handleAuthSuccess} 
-      />
-    </>
-  );
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} onAuthSuccess={handleAuthSuccess} />
+    </>;
 };
