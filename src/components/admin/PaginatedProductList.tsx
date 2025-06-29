@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, Edit, Eye, Package, Search } from "lucide-re
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { BulkProductActions } from "./BulkProductActions";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 interface Product {
   id: string;
@@ -42,7 +43,7 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
   // Debounce search term for better performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // Use optimized search function for admin panel
+  // Optimized query with consistent caching
   const { data: productsData, isLoading, error } = useQuery({
     queryKey: ['admin-paginated-products', currentPage, debouncedSearchTerm, categoryFilter, statusFilter],
     queryFn: async () => {
@@ -53,7 +54,6 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
         page: currentPage
       });
 
-      // Build base query with joins
       let query = supabase
         .from('products')
         .select(`
@@ -62,17 +62,15 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
           categories:category_id(name)
         `, { count: 'exact' });
 
-      // Apply search filter
+      // Apply filters
       if (debouncedSearchTerm) {
         query = query.or(`name.ilike.%${debouncedSearchTerm}%,sku.ilike.%${debouncedSearchTerm}%`);
       }
 
-      // Apply category filter
       if (categoryFilter !== "all") {
         query = query.eq('category_id', categoryFilter);
       }
 
-      // Apply status filter
       if (statusFilter === "active") {
         query = query.eq('is_active', true);
       } else if (statusFilter === "inactive") {
@@ -83,7 +81,6 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
         query = query.lte('stock_quantity', 5);
       }
 
-      // Apply pagination
       const from = (currentPage - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
       
@@ -99,10 +96,10 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
         totalCount: count || 0
       };
     },
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
   });
 
-  // Fetch categories for filter dropdown
+  // Categories query with proper caching
   const { data: categories = [] } = useQuery({
     queryKey: ['categories-filter'],
     queryFn: async () => {
@@ -114,29 +111,30 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
       if (error) throw error;
       return data;
     },
-    staleTime: 300000, // Cache for 5 minutes
+    staleTime: 300000,
   });
 
   const products = productsData?.products || [];
   const totalCount = productsData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
+  // Event handlers
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page when searching
-    setSelectedProducts([]); // Clear selection when searching
+    setCurrentPage(1);
+    setSelectedProducts([]);
   };
 
   const handleCategoryFilter = (value: string) => {
     setCategoryFilter(value);
     setCurrentPage(1);
-    setSelectedProducts([]); // Clear selection when filtering
+    setSelectedProducts([]);
   };
 
   const handleStatusFilter = (value: string) => {
     setStatusFilter(value);
     setCurrentPage(1);
-    setSelectedProducts([]); // Clear selection when filtering
+    setSelectedProducts([]);
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -231,10 +229,12 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
       </div>
 
       {/* Bulk Actions */}
-      <BulkProductActions 
-        selectedProducts={selectedProducts}
-        onClearSelection={handleClearSelection}
-      />
+      <ErrorBoundary>
+        <BulkProductActions 
+          selectedProducts={selectedProducts}
+          onClearSelection={handleClearSelection}
+        />
+      </ErrorBoundary>
 
       {/* Product List */}
       {isLoading ? (
