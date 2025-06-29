@@ -1,0 +1,29 @@
+
+/* High contrast improvements for accessibility */
+@media (prefers-contrast: high) {
+  .hover\:bg-muted\/50:hover {
+    @apply bg-muted;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles for better printing */
+@media print {
+  .no-print { display: none !important; }
+  .print-break { page-break-before: always; }
+  
+  * {
+    color: black !important;
+    background: white !important;
+  }
+}
