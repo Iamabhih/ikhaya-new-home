@@ -7,9 +7,7 @@ export const Footer = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-white font-bold text-sm">IH</span>
-              </div>
+              
               <span className="font-bold text-lg text-primary">IKHAYA Homeware</span>
             </div>
             <p className="text-muted-foreground text-sm">
