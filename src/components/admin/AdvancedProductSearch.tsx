@@ -31,6 +31,11 @@ interface SavedSearch {
   createdAt: string;
 }
 
+interface SearchSuggestion {
+  text: string;
+  type: 'name' | 'sku';
+}
+
 interface AdvancedProductSearchProps {
   onSearch: (filters: SearchFilters) => void;
   categories: Array<{ id: string; name: string }>;
@@ -80,7 +85,7 @@ export const AdvancedProductSearch = ({
   // Get search suggestions based on query
   const { data: suggestions = [] } = useQuery({
     queryKey: ['admin-search-suggestions', debouncedQuery],
-    queryFn: async () => {
+    queryFn: async (): Promise<SearchSuggestion[]> => {
       if (!debouncedQuery || debouncedQuery.length < 2) return [];
       
       const { data, error } = await supabase
@@ -91,8 +96,11 @@ export const AdvancedProductSearch = ({
         .limit(5);
         
       if (error) throw error;
-      return data.map(p => ({ text: p.name, type: 'name' as const }))
-        .concat(data.filter(p => p.sku).map(p => ({ text: p.sku!, type: 'sku' as const })));
+      
+      const nameSuggestions: SearchSuggestion[] = data.map(p => ({ text: p.name, type: 'name' as const }));
+      const skuSuggestions: SearchSuggestion[] = data.filter(p => p.sku).map(p => ({ text: p.sku!, type: 'sku' as const }));
+      
+      return [...nameSuggestions, ...skuSuggestions];
     },
     enabled: debouncedQuery.length >= 2,
     staleTime: 300000,
