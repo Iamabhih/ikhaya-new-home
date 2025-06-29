@@ -29,23 +29,30 @@ interface Product {
 
 interface PaginatedProductListProps {
   onEditProduct: (productId: string) => void;
+  onProductSelect: (productId: string, selected: boolean) => void;
+  selectedProducts: string[];
+  refreshTrigger: number;
 }
 
 const ITEMS_PER_PAGE = 20;
 
-export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProps) => {
+export const PaginatedProductList = ({ 
+  onEditProduct, 
+  onProductSelect, 
+  selectedProducts, 
+  refreshTrigger 
+}: PaginatedProductListProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   // Debounce search term for better performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Optimized query with consistent caching
   const { data: productsData, isLoading, error } = useQuery({
-    queryKey: ['admin-paginated-products', currentPage, debouncedSearchTerm, categoryFilter, statusFilter],
+    queryKey: ['admin-paginated-products', currentPage, debouncedSearchTerm, categoryFilter, statusFilter, refreshTrigger],
     queryFn: async () => {
       console.log('Fetching admin products with filters:', {
         searchTerm: debouncedSearchTerm,
@@ -122,39 +129,28 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
-    setSelectedProducts([]);
   };
 
   const handleCategoryFilter = (value: string) => {
     setCategoryFilter(value);
     setCurrentPage(1);
-    setSelectedProducts([]);
   };
 
   const handleStatusFilter = (value: string) => {
     setStatusFilter(value);
     setCurrentPage(1);
-    setSelectedProducts([]);
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedProducts(products.map(p => p.id));
+      products.forEach(product => onProductSelect(product.id, true));
     } else {
-      setSelectedProducts([]);
+      products.forEach(product => onProductSelect(product.id, false));
     }
   };
 
   const handleSelectProduct = (productId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedProducts(prev => [...prev, productId]);
-    } else {
-      setSelectedProducts(prev => prev.filter(id => id !== productId));
-    }
-  };
-
-  const handleClearSelection = () => {
-    setSelectedProducts([]);
+    onProductSelect(productId, checked);
   };
 
   if (error) {
@@ -232,7 +228,7 @@ export const PaginatedProductList = ({ onEditProduct }: PaginatedProductListProp
       <ErrorBoundary>
         <BulkProductActions 
           selectedProducts={selectedProducts}
-          onClearSelection={handleClearSelection}
+          onClearSelection={() => products.forEach(product => onProductSelect(product.id, false))}
         />
       </ErrorBoundary>
 

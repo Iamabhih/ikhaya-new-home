@@ -42,7 +42,12 @@ export const ImportProgressTracker = ({ importId, onComplete, onError }: ImportP
           .single();
 
         if (error) throw error;
-        setImportStatus(data);
+        
+        // Type cast and validate status
+        const validStatuses = ['pending', 'processing', 'completed', 'failed'];
+        const status = validStatuses.includes(data.status) ? data.status as 'pending' | 'processing' | 'completed' | 'failed' : 'pending';
+        
+        setImportStatus({ ...data, status });
 
         // Fetch errors if import failed or has failed rows
         if (data.failed_rows > 0) {

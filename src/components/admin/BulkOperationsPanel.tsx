@@ -421,7 +421,7 @@ export const BulkOperationsPanel = ({
             <div className="flex gap-2 items-center">
               <Checkbox
                 checked={bulkFeatured}
-                onCheckedChange={setBulkFeatured}
+                onCheckedChange={(checked) => setBulkFeatured(checked === true)}
               />
               <Button
                 onClick={() => handleBulkUpdate('is_featured', bulkFeatured)}
