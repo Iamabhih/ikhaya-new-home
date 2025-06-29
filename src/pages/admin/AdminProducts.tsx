@@ -1,21 +1,43 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Upload, Calendar, Settings } from "lucide-react";
+import { Plus, Upload, Calendar, Settings, BarChart3, Table, Grid } from "lucide-react";
 import { PaginatedProductList } from "@/components/admin/PaginatedProductList";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { ProductImageManager } from "@/components/admin/ProductImageManager";
 import { EnhancedProductImport } from "@/components/admin/EnhancedProductImport";
 import { ProductImportScheduler } from "@/components/admin/ProductImportScheduler";
 import { BulkOperationsPanel } from "@/components/admin/BulkOperationsPanel";
+import { AdvancedProductSearch } from "@/components/admin/AdvancedProductSearch";
+import { ProductTableView } from "@/components/admin/ProductTableView";
+import { ProductAnalyticsDashboard } from "@/components/admin/ProductAnalyticsDashboard";
+import { NotificationCenter } from "@/components/admin/NotificationCenter";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminProducts = () => {
   const [activeTab, setActiveTab] = useState("list");
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [searchFilters, setSearchFilters] = useState<any>({});
+
+  // Fetch categories for search filters
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories-for-search'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 300000,
+  });
 
   const handleEditProduct = (productId: string) => {
     setEditingProductId(productId);
@@ -49,12 +71,31 @@ const AdminProducts = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  const handleQuickEdit = async (productId: string, field: string, value: any) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ [field]: value })
+        .eq('id', productId);
+      
+      if (error) throw error;
+      handleRefresh();
+    } catch (error) {
+      console.error('Quick edit failed:', error);
+    }
+  };
+
   return (
     <ErrorBoundary>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Products</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <NotificationCenter />
+            <Button onClick={() => setActiveTab("analytics")} variant="outline">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </Button>
             <Button onClick={() => setActiveTab("scheduler")} variant="outline">
               <Calendar className="h-4 w-4 mr-2" />
               Scheduler
@@ -82,6 +123,7 @@ const AdminProducts = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="list">Products</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="form">
               {editingProductId ? "Edit Product" : "Add Product"}
             </TabsTrigger>
@@ -92,14 +134,57 @@ const AdminProducts = () => {
             )}
           </TabsList>
 
-          <TabsContent value="list">
+          <TabsContent value="list" className="space-y-4">
             <ErrorBoundary>
-              <PaginatedProductList 
-                onEditProduct={handleEditProduct}
-                onProductSelect={handleProductSelect}
-                selectedProducts={selectedProducts}
-                refreshTrigger={refreshTrigger}
+              <AdvancedProductSearch
+                onSearch={setSearchFilters}
+                categories={categories}
+                // These would be passed from the actual product query
+                totalCount={0}
               />
+              
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                >
+                  <Table className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {viewMode === 'grid' ? (
+                <PaginatedProductList 
+                  onEditProduct={handleEditProduct}
+                  onProductSelect={handleProductSelect}
+                  selectedProducts={selectedProducts}
+                  refreshTrigger={refreshTrigger}
+                />
+              ) : (
+                <ProductTableView
+                  products={[]} // This would come from the query
+                  selectedProducts={selectedProducts}
+                  onSelectProduct={handleProductSelect}
+                  onSelectAll={(checked) => {
+                    // Handle select all logic
+                  }}
+                  onEditProduct={handleEditProduct}
+                  onQuickEdit={handleQuickEdit}
+                />
+              )}
+            </ErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <ErrorBoundary>
+              <ProductAnalyticsDashboard />
             </ErrorBoundary>
           </TabsContent>
 
