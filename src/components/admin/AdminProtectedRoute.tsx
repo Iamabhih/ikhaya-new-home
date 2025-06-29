@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, ArrowLeft } from "lucide-react";
+import { Shield, ArrowLeft, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface AdminProtectedRouteProps {
@@ -16,6 +16,7 @@ export const AdminProtectedRoute = ({ children, requireSuperAdmin = false }: Adm
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, isSuperAdmin, loading: rolesLoading } = useRoles(user);
 
+  // Show loading state
   if (authLoading || rolesLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -27,6 +28,7 @@ export const AdminProtectedRoute = ({ children, requireSuperAdmin = false }: Adm
     );
   }
 
+  // Check authentication
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -56,20 +58,28 @@ export const AdminProtectedRoute = ({ children, requireSuperAdmin = false }: Adm
     );
   }
 
-  const hasRequiredPermission = requireSuperAdmin ? isSuperAdmin() : isAdmin();
+  // Check permissions
+  const hasPermission = requireSuperAdmin ? isSuperAdmin() : isAdmin();
 
-  if (!hasRequiredPermission) {
+  if (!hasPermission) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <Shield className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <CardTitle>Access Denied</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              You don't have permission to access this area. 
-              {requireSuperAdmin ? ' Super admin access required.' : ' Admin access required.'}
+              You don't have permission to access this area.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {requireSuperAdmin 
+                ? 'Super admin access required.' 
+                : 'Admin access required.'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Current user: {user.email}
             </p>
             <div className="space-y-2">
               <Button variant="outline" asChild className="w-full">

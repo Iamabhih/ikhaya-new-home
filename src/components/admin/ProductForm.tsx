@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +17,7 @@ import { SecureForm } from "@/components/security/SecureForm";
 import { useSecurityContext } from "@/contexts/SecurityContext";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { ProductImageManager } from "./ProductImageManager";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 interface ProductFormProps {
   productId?: string;
@@ -29,6 +30,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
   const { canAttempt, recordAttempt, isBlocked, getRemainingTime } = useRateLimit(5, 60000);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("details");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -38,34 +40,42 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
     compare_at_price: "",
     category_id: "",
     sku: "",
-    stock_quantity: "",
+    stock_quantity: "0",
     is_active: true,
     is_featured: false,
   });
 
-  const { data: categories } = useQuery({
-    queryKey: ['categories'],
+  const { data: categories, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories-for-form'],
     queryFn: async () => {
+      console.log('Fetching categories for product form');
       const { data, error } = await supabase
         .from('categories')
-        .select('*')
+        .select('id, name')
         .eq('is_active', true)
-        .order('sort_order');
-      if (error) throw error;
+        .order('name');
+      if (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
       return data;
     },
   });
 
-  const { data: product } = useQuery({
-    queryKey: ['product', productId],
+  const { data: product, isLoading: productLoading, error: productError } = useQuery({
+    queryKey: ['product-for-edit', productId],
     queryFn: async () => {
       if (!productId) return null;
+      console.log('Fetching product for editing:', productId);
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('id', productId)
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching product:', error);
+        throw error;
+      }
       return data;
     },
     enabled: !!productId,
@@ -73,6 +83,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
 
   useEffect(() => {
     if (product) {
+      console.log('Setting form data from product:', product);
       setFormData({
         name: product.name || "",
         slug: product.slug || "",
@@ -82,7 +93,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
         compare_at_price: product.compare_at_price?.toString() || "",
         category_id: product.category_id || "",
         sku: product.sku || "",
-        stock_quantity: product.stock_quantity?.toString() || "",
+        stock_quantity: product.stock_quantity?.toString() || "0",
         is_active: product.is_active ?? true,
         is_featured: product.is_featured ?? false,
       });
@@ -109,7 +120,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
     }
     
     if (!validateQuantity(formData.stock_quantity)) {
-      errors.push("Stock quantity must be a positive integer between 1 and 10,000");
+      errors.push("Stock quantity must be a non-negative integer");
     }
     
     if (formData.sku && !validateSKU(formData.sku)) {
@@ -130,43 +141,61 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
 
   const createProductMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('Creating product with data:', data);
       const { error } = await supabase.from('products').insert([data]);
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating product:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
+      console.log('Product created successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-paginated-products'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Product created successfully');
       onClose();
     },
-    onError: (error) => {
-      toast.error('Failed to create product');
-      console.error(error);
+    onError: (error: any) => {
+      console.error('Failed to create product:', error);
+      toast.error(`Failed to create product: ${error.message}`);
     },
   });
 
   const updateProductMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('Updating product with data:', data);
       const { error } = await supabase
         .from('products')
         .update(data)
         .eq('id', productId);
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating product:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
+      console.log('Product updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-paginated-products'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      queryClient.invalidateQueries({ queryKey: ['product-for-edit', productId] });
       toast.success('Product updated successfully');
       onClose();
     },
-    onError: (error) => {
-      toast.error('Failed to update product');
-      console.error(error);
+    onError: (error: any) => {
+      console.error('Failed to update product:', error);
+      toast.error(`Failed to update product: ${error.message}`);
     },
   });
 
-  const handleSecureSubmit = (e: React.FormEvent, csrfToken: string) => {
-    console.log('Secure form submission with CSRF token:', csrfToken);
+  const handleSecureSubmit = async (e: React.FormEvent, csrfToken: string) => {
+    e.preventDefault();
+    console.log('Secure form submission with CSRF token');
     
+    if (isSubmitting) {
+      console.log('Form already submitting, ignoring');
+      return;
+    }
+
     if (!canAttempt) {
       const remainingTime = getRemainingTime();
       toast.error(`Too many attempts. Please wait ${remainingTime} seconds.`);
@@ -175,32 +204,46 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
 
     if (!validateCSRFToken(csrfToken)) {
       toast.error('Security validation failed. Please refresh and try again.');
-      return;
-    }
-    
-    if (!validateForm()) {
       recordAttempt();
       return;
     }
     
-    const submitData = {
-      name: formData.name.trim(),
-      slug: formData.slug.trim().toLowerCase(),
-      description: sanitizeContent(formData.description),
-      short_description: sanitizeContent(formData.short_description),
-      price: parseFloat(formData.price),
-      compare_at_price: formData.compare_at_price ? parseFloat(formData.compare_at_price) : null,
-      stock_quantity: parseInt(formData.stock_quantity) || 0,
-      category_id: formData.category_id || null,
-      sku: formData.sku.trim().toUpperCase() || null,
-      is_active: formData.is_active,
-      is_featured: formData.is_featured,
-    };
+    if (!validateForm()) {
+      console.log('Form validation failed');
+      recordAttempt();
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const submitData = {
+        name: formData.name.trim(),
+        slug: formData.slug.trim().toLowerCase(),
+        description: sanitizeContent(formData.description),
+        short_description: sanitizeContent(formData.short_description),
+        price: parseFloat(formData.price),
+        compare_at_price: formData.compare_at_price ? parseFloat(formData.compare_at_price) : null,
+        stock_quantity: parseInt(formData.stock_quantity) || 0,
+        category_id: formData.category_id || null,
+        sku: formData.sku.trim().toUpperCase() || null,
+        is_active: formData.is_active,
+        is_featured: formData.is_featured,
+        updated_at: new Date().toISOString(),
+      };
 
-    if (productId) {
-      updateProductMutation.mutate(submitData);
-    } else {
-      createProductMutation.mutate(submitData);
+      if (productId) {
+        await updateProductMutation.mutateAsync(submitData);
+      } else {
+        await createProductMutation.mutateAsync({
+          ...submitData,
+          created_at: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error('Error in form submission:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -215,10 +258,42 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
     setFormData(prev => ({
       ...prev,
       name: value,
-      slug: generateSlug(value)
+      slug: prev.slug || generateSlug(value)
     }));
   };
 
+  // Show loading state while fetching data
+  if (productLoading || categoriesLoading) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="p-6 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading product form...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error if product fetch failed
+  if (productError) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="p-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load product data. Please try again.
+            </AlertDescription>
+          </Alert>
+          <Button onClick={onClose} className="mt-4">
+            Back to Products
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show rate limit block
   if (isBlocked) {
     const remainingTime = getRemainingTime();
     return (
@@ -264,17 +339,18 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
             <SecureForm onSecureSubmit={handleSecureSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Product Name</Label>
+                  <Label htmlFor="name">Product Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleNameChange(e.target.value)}
                     maxLength={255}
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="slug">Slug</Label>
+                  <Label htmlFor="slug">Slug *</Label>
                   <Input
                     id="slug"
                     value={formData.slug}
@@ -282,6 +358,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                     maxLength={100}
                     pattern="^[a-z0-9-]+$"
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -293,6 +370,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                   value={formData.short_description}
                   onChange={(e) => setFormData(prev => ({ ...prev, short_description: e.target.value }))}
                   maxLength={500}
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -304,12 +382,13 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   maxLength={5000}
                   rows={4}
+                  disabled={isSubmitting}
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="price">Price (R)</Label>
+                  <Label htmlFor="price">Price (R) *</Label>
                   <Input
                     id="price"
                     type="number"
@@ -319,6 +398,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                     value={formData.price}
                     onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
@@ -331,6 +411,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                     max="1000000"
                     value={formData.compare_at_price}
                     onChange={(e) => setFormData(prev => ({ ...prev, compare_at_price: e.target.value }))}
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
@@ -342,6 +423,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                     max="10000"
                     value={formData.stock_quantity}
                     onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -352,6 +434,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                   <Select
                     value={formData.category_id}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
+                    disabled={isSubmitting}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a category" />
@@ -374,6 +457,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                     pattern="^[A-Z0-9-_]{3,20}$"
                     maxLength={20}
                     placeholder="ABC-123"
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -384,6 +468,7 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                     id="is_active"
                     checked={formData.is_active}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+                    disabled={isSubmitting}
                   />
                   <Label htmlFor="is_active">Active</Label>
                 </div>
@@ -392,19 +477,18 @@ export const ProductForm = ({ productId, onClose }: ProductFormProps) => {
                     id="is_featured"
                     checked={formData.is_featured}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_featured: checked }))}
+                    disabled={isSubmitting}
                   />
                   <Label htmlFor="is_featured">Featured</Label>
                 </div>
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={onClose}>
+                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createProductMutation.isPending || updateProductMutation.isPending}
-                >
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {productId ? 'Update' : 'Create'} Product
                 </Button>
               </div>
