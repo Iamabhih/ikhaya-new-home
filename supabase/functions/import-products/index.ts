@@ -30,6 +30,8 @@ function parseCSV(csvText: string): any[] {
 }
 
 Deno.serve(async (req) => {
+  console.log(`Import function called: ${req.method} ${req.url}`)
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -50,12 +52,25 @@ Deno.serve(async (req) => {
       }
     )
 
-    // Verify user authentication
+    // Verify user authentication and admin role
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
+      console.error('Authentication failed:', authError)
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Check if user has admin role
+    const { data: hasAdminRole, error: roleError } = await supabase
+      .rpc('has_role', { _user_id: user.id, _role: 'admin' })
+    
+    if (roleError || !hasAdminRole) {
+      console.error('Role check failed:', roleError, hasAdminRole)
+      return new Response(
+        JSON.stringify({ error: 'Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -70,6 +85,7 @@ Deno.serve(async (req) => {
       )
     }
 
+    console.log(`Processing ${action} for file: ${file.name} (${file.size} bytes)`)
     const csvText = await file.text()
     
     if (action === 'preview') {
@@ -78,6 +94,7 @@ Deno.serve(async (req) => {
         const data = parseCSV(csvText)
         const preview = data.slice(0, 5) // First 5 rows
         
+        console.log(`Preview generated: ${preview.length} rows`)
         return new Response(
           JSON.stringify({ 
             success: true, 
@@ -88,6 +105,7 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       } catch (error) {
+        console.error('CSV parsing error:', error)
         return new Response(
           JSON.stringify({ error: `CSV parsing error: ${error.message}` }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -101,6 +119,7 @@ Deno.serve(async (req) => {
         console.log('Starting CSV import for user:', user.id)
         
         const data = parseCSV(csvText)
+        console.log(`Parsed ${data.length} rows from CSV`)
         
         // Create import record
         const { data: importRecord, error: importError } = await supabase
@@ -130,6 +149,7 @@ Deno.serve(async (req) => {
 
         for (let i = 0; i < data.length; i += batchSize) {
           const batch = data.slice(i, i + batchSize)
+          console.log(`Processing batch ${Math.floor(i/batchSize) + 1}: ${batch.length} items`)
           
           // Use the database function for bulk insert
           const { data: result, error: processError } = await supabase
@@ -143,6 +163,7 @@ Deno.serve(async (req) => {
             throw new Error(`Failed to process batch: ${processError.message}`)
           }
 
+          console.log('Batch result:', result)
           totalSuccessful += result.successful
           totalFailed += result.failed
           allErrors = allErrors.concat(result.errors || [])

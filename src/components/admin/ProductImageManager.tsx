@@ -6,9 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Upload, X, Star, GripVertical, Image as ImageIcon } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { ImageOptimizer } from "./ImageOptimizer";
+import { BulkImageManager } from "./BulkImageManager";
 
 interface ProductImageManagerProps {
   productId: string;
@@ -27,6 +30,8 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [altTexts, setAltTexts] = useState<{ [key: string]: string }>({});
   const [uploading, setUploading] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [optimizedFiles, setOptimizedFiles] = useState<{ [key: string]: File }>({});
 
   const { data: images = [], isLoading } = useQuery({
     queryKey: ['product-images', productId],
@@ -45,12 +50,15 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File) => {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${productId}/${Date.now()}.${fileExt}`;
+      const fileName = `${productId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('product-images')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
@@ -65,7 +73,7 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
         .insert({
           product_id: productId,
           image_url: publicUrl,
-          alt_text: altTexts[file.name] || file.name,
+          alt_text: altTexts[file.name] || file.name.replace(/\.[^/.]+$/, ""),
           is_primary: images.length === 0,
           sort_order: images.length,
         });
@@ -85,9 +93,15 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
 
   const deleteImageMutation = useMutation({
     mutationFn: async (image: ProductImage) => {
-      // Extract file path from URL
-      const url = new URL(image.image_url);
-      const filePath = url.pathname.split('/').slice(-2).join('/'); // Get last two segments
+      // Extract file path from URL - improved parsing
+      const urlParts = image.image_url.split('/');
+      const bucketIndex = urlParts.findIndex(part => part === 'product-images');
+      
+      if (bucketIndex === -1) {
+        throw new Error('Invalid image URL format');
+      }
+      
+      const filePath = urlParts.slice(bucketIndex + 1).join('/');
 
       // Delete from storage
       const { error: storageError } = await supabase.storage
@@ -113,6 +127,35 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
     },
     onError: () => {
       toast.error('Failed to delete image');
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (imageIds: string[]) => {
+      const imagesToDelete = images.filter(img => imageIds.includes(img.id));
+      
+      // Delete from storage first
+      for (const image of imagesToDelete) {
+        const urlParts = image.image_url.split('/');
+        const bucketIndex = urlParts.findIndex(part => part === 'product-images');
+        
+        if (bucketIndex !== -1) {
+          const filePath = urlParts.slice(bucketIndex + 1).join('/');
+          await supabase.storage.from('product-images').remove([filePath]);
+        }
+      }
+
+      // Delete from database
+      const { error } = await supabase
+        .from('product_images')
+        .delete()
+        .in('id', imageIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product-images', productId] });
+      setSelectedImages([]);
     },
   });
 
@@ -182,20 +225,47 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
     setAltTexts(newAltTexts);
   };
 
+  const handleOptimizedFile = (originalFileName: string, optimizedFile: File) => {
+    setOptimizedFiles(prev => ({
+      ...prev,
+      [originalFileName]: optimizedFile
+    }));
+  };
+
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return;
     
     setUploading(true);
     try {
       for (const file of selectedFiles) {
-        await uploadImageMutation.mutateAsync(file);
+        const fileToUpload = optimizedFiles[file.name] || file;
+        await uploadImageMutation.mutateAsync(fileToUpload);
       }
       setSelectedFiles([]);
       setAltTexts({});
+      setOptimizedFiles({});
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleBulkUpload = async (files: File[]) => {
+    for (const file of files) {
+      await uploadImageMutation.mutateAsync(file);
+    }
+  };
+
+  const handleBulkDelete = async (imageIds: string[]) => {
+    await bulkDeleteMutation.mutateAsync(imageIds);
+  };
+
+  const handleImageSelect = (imageId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedImages(prev => [...prev, imageId]);
+    } else {
+      setSelectedImages(prev => prev.filter(id => id !== imageId));
     }
   };
 
@@ -227,6 +297,14 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Bulk Actions */}
+        <BulkImageManager
+          selectedImages={selectedImages}
+          onBulkDelete={handleBulkDelete}
+          onBulkUpload={handleBulkUpload}
+          onClearSelection={() => setSelectedImages([])}
+        />
+
         {/* Upload Section */}
         <div className="space-y-4">
           <div>
@@ -240,7 +318,7 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
               className="mt-1"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Supported formats: JPEG, PNG, WebP, GIF. Maximum size: 50MB per file.
+              Supported formats: JPEG, PNG, WebP, GIF. Maximum size: 50MB per file. Images will be automatically optimized.
             </p>
           </div>
 
@@ -266,6 +344,10 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                       placeholder="Describe the image..."
                     />
                   </div>
+                  <ImageOptimizer
+                    file={file}
+                    onOptimized={(optimizedFile) => handleOptimizedFile(file.name, optimizedFile)}
+                  />
                 </div>
               ))}
               <Button 
@@ -310,11 +392,18 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                                 loading="lazy"
                               />
                               
-                              <div
-                                {...provided.dragHandleProps}
-                                className="absolute top-2 left-2 p-1 bg-background/80 rounded cursor-move"
-                              >
-                                <GripVertical className="h-4 w-4" />
+                              <div className="absolute top-2 left-2 flex items-center gap-2">
+                                <Checkbox
+                                  checked={selectedImages.includes(image.id)}
+                                  onCheckedChange={(checked) => handleImageSelect(image.id, checked as boolean)}
+                                  className="bg-background/80"
+                                />
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="p-1 bg-background/80 rounded cursor-move"
+                                >
+                                  <GripVertical className="h-4 w-4" />
+                                </div>
                               </div>
 
                               {image.is_primary && (
