@@ -102,8 +102,14 @@ export const AdvancedProductSearch = ({
     setPriceRange([0, 10000]);
   };
 
-  const hasActiveFilters = filters.categoryId || filters.inStockOnly !== undefined || 
-    filters.featuredOnly || filters.minRating || priceRange[0] > 0 || priceRange[1] < 10000;
+  const hasActiveFilters = Boolean(
+    filters.categoryId || 
+    filters.inStockOnly === true || 
+    filters.featuredOnly === true || 
+    filters.minRating || 
+    priceRange[0] > 0 || 
+    priceRange[1] < 10000
+  );
 
   return (
     <Card className="mb-6">
