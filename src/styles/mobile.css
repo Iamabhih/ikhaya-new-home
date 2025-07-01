@@ -1,5 +1,5 @@
 
-/* Mobile-specific optimizations */
+/* Mobile-specific optimizations with better browser compatibility */
 @media (max-width: 768px) {
   /* Larger touch targets for better mobile UX */
   button, a, [role="button"] {
@@ -8,7 +8,7 @@
     touch-action: manipulation;
   }
   
-  /* CRITICAL: Prevent zoom on input focus on iOS - use exactly 16px */
+  /* CRITICAL: Prevent zoom on input focus - use exactly 16px for iOS */
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -21,59 +21,34 @@
     font-size: 16px !important;
     -webkit-appearance: none;
     border-radius: 0;
-    /* Fix for Android browser input issues */
     background-color: transparent;
     -webkit-box-shadow: none;
     box-shadow: none;
   }
 
-  /* Android browser specific fixes */
+  /* Better browser compatibility for user selection */
   * {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
-    -khtml-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
   }
   
   /* Allow text selection for inputs and text content */
-  input, textarea, [contenteditable] {
+  input, textarea, [contenteditable], p, span, div {
     -webkit-user-select: text;
-    -khtml-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
   }
 
-  /* Mobile-optimized layouts */
-  .form-grid {
-    @apply grid-cols-1 gap-3;
-  }
-
-  .card-mobile {
-    @apply p-3 rounded-lg;
-    /* Ensure cards don't break on mobile */
-    min-height: auto;
-    word-wrap: break-word;
-    /* Fix for mobile rendering issues */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-  }
-
-  .line-clamp-mobile {
-    @apply line-clamp-2;
-  }
-
   /* Prevent mobile rendering issues */
   body {
-    /* Disable bounce scroll on iOS */
     -webkit-overflow-scrolling: touch;
-    /* Ensure proper mobile rendering */
     position: relative;
     min-height: 100vh;
-    /* Fix for Android browser rendering */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
@@ -82,25 +57,11 @@
   #root {
     min-height: 100vh;
     position: relative;
-    /* Fix for mobile browsers */
     width: 100%;
     overflow-x: hidden;
   }
 
-  /* Better loading states for mobile */
-  .loading-spinner {
-    @apply scale-75;
-  }
-  
-  /* Ensure Suspense fallbacks work properly on mobile */
-  [data-suspense-fallback] {
-    min-height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Fix for Chrome mobile scrolling issues */
+  /* Fix for Chrome mobile and Android browser */
   html {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
@@ -108,19 +69,8 @@
 
   /* Android browser specific optimizations */
   img {
-    /* Prevent image rendering issues */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    transform: translateZ(0);
-  }
-
-  /* Memory optimization for mobile */
-  .will-change-transform {
-    will-change: transform;
-  }
-  
-  .will-change-scroll {
-    will-change: scroll-position;
   }
 }
 
@@ -137,19 +87,16 @@
 
 /* Android browser specific fixes */
 @media screen and (max-width: 768px) {
-  /* Fix for Android browser font rendering */
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
   
-  /* Fix for Android browser layout shifts */
   * {
     box-sizing: border-box;
   }
   
-  /* Prevent horizontal scroll on mobile */
   html, body {
     overflow-x: hidden;
     width: 100%;

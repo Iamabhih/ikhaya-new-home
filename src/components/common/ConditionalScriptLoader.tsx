@@ -7,30 +7,21 @@ interface ConditionalScriptLoaderProps {
 
 export const ConditionalScriptLoader = ({ children }: ConditionalScriptLoaderProps) => {
   useEffect(() => {
-    const shouldLoadScript = () => {
-      // Don't load script on problematic browsers
-      const userAgent = navigator.userAgent;
-      const isProblematicBrowser = 
-        (userAgent.includes('Android') && !userAgent.includes('Chrome')) ||
-        (userAgent.includes('Chrome') && userAgent.includes('Mobile'));
-      
-      // Don't load in development if it's causing issues
-      const isDevelopment = process.env.NODE_ENV === 'development';
-      
-      return !isProblematicBrowser || !isDevelopment;
-    };
-
     const loadScript = async () => {
-      if (!shouldLoadScript()) {
-        console.log('[Script Loader] Skipping GPTEngineer script for compatibility');
-        return;
-      }
-
       try {
         // Check if script already exists
         const existingScript = document.querySelector('script[src*="gptengineer.js"]');
         if (existingScript) {
           console.log('[Script Loader] GPTEngineer script already loaded');
+          return;
+        }
+
+        // Only load in production or if explicitly enabled
+        const shouldLoad = process.env.NODE_ENV === 'production' || 
+                          window.location.search.includes('loadGPTScript=true');
+
+        if (!shouldLoad) {
+          console.log('[Script Loader] Skipping GPTEngineer script in development');
           return;
         }
 
@@ -44,19 +35,35 @@ export const ConditionalScriptLoader = ({ children }: ConditionalScriptLoaderPro
         };
         
         script.onerror = (error) => {
-          console.warn('[Script Loader] Failed to load GPTEngineer script:', error);
-          // Don't throw error - app should work without it
+          console.warn('[Script Loader] Failed to load GPTEngineer script (non-critical):', error);
+          // Remove failed script element
+          if (script.parentNode) {
+            script.parentNode.removeChild(script);
+          }
+        };
+
+        // Add timeout to prevent hanging
+        const timeout = setTimeout(() => {
+          if (script.parentNode) {
+            console.warn('[Script Loader] GPTEngineer script timeout, removing');
+            script.parentNode.removeChild(script);
+          }
+        }, 10000);
+
+        script.onload = () => {
+          clearTimeout(timeout);
+          console.log('[Script Loader] GPTEngineer script loaded successfully');
         };
 
         document.head.appendChild(script);
       } catch (error) {
-        console.warn('[Script Loader] Error loading script:', error);
+        console.warn('[Script Loader] Error loading script (non-critical):', error);
         // Don't throw error - app should work without it
       }
     };
 
-    // Load script after a small delay to ensure DOM is ready
-    const timer = setTimeout(loadScript, 100);
+    // Load script after a delay to not block initial render
+    const timer = setTimeout(loadScript, 2000);
     
     return () => clearTimeout(timer);
   }, []);

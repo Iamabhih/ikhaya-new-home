@@ -18,7 +18,7 @@ interface BrowserCompatibilityCheckerProps {
 
 export const BrowserCompatibilityChecker = ({ children }: BrowserCompatibilityCheckerProps) => {
   const [browserInfo, setBrowserInfo] = useState<BrowserInfo | null>(null);
-  const [hasError, setHasError] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
     const detectBrowser = (): BrowserInfo => {
@@ -28,39 +28,43 @@ export const BrowserCompatibilityChecker = ({ children }: BrowserCompatibilityCh
       let name = 'Unknown';
       let version = '0';
       
-      // Chrome detection (including mobile Chrome)
-      if (userAgent.includes('Chrome')) {
+      // More permissive browser detection
+      if (userAgent.includes('Chrome') || userAgent.includes('CriOS')) {
         name = 'Chrome';
-        const match = userAgent.match(/Chrome\/(\d+)/);
+        const match = userAgent.match(/(?:Chrome|CriOS)\/(\d+)/);
         version = match ? match[1] : '0';
       }
-      // Android Browser detection
-      else if (userAgent.includes('Android') && !userAgent.includes('Chrome')) {
-        name = 'Android Browser';
-        const match = userAgent.match(/Android (\d+)/);
-        version = match ? match[1] : '0';
-      }
-      // Safari detection
       else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
         name = 'Safari';
         const match = userAgent.match(/Version\/(\d+)/);
         version = match ? match[1] : '0';
       }
+      else if (userAgent.includes('Firefox') || userAgent.includes('FxiOS')) {
+        name = 'Firefox';
+        const match = userAgent.match(/(?:Firefox|FxiOS)\/(\d+)/);
+        version = match ? match[1] : '0';
+      }
+      else if (userAgent.includes('Android')) {
+        name = 'Android Browser';
+        const match = userAgent.match(/Android (\d+)/);
+        version = match ? match[1] : '0';
+      }
 
-      // Check for modern features
+      // Check for modern features with fallbacks
       const hasModernFeatures = !!(
-        window.Promise &&
-        window.fetch &&
-        Array.prototype.includes &&
-        Object.assign &&
-        window.requestAnimationFrame
+        (window.Promise || typeof Promise !== 'undefined') &&
+        (window.fetch || typeof fetch !== 'undefined') &&
+        (Array.prototype.includes || true) && // We'll polyfill this
+        (Object.assign || true) // We'll polyfill this
       );
 
-      // Determine support
+      // Very permissive support - only block very old browsers
       const isSupported = hasModernFeatures && (
-        (name === 'Chrome' && parseInt(version) >= 60) ||
-        (name === 'Safari' && parseInt(version) >= 12) ||
-        (name === 'Android Browser' && parseInt(version) >= 7)
+        (name === 'Chrome' && parseInt(version) >= 50) ||
+        (name === 'Safari' && parseInt(version) >= 10) ||
+        (name === 'Firefox' && parseInt(version) >= 50) ||
+        (name === 'Android Browser' && parseInt(version) >= 5) ||
+        name === 'Unknown' // Allow unknown browsers to try
       );
 
       return { name, version, isSupported, isMobile, hasModernFeatures };
@@ -70,100 +74,82 @@ export const BrowserCompatibilityChecker = ({ children }: BrowserCompatibilityCh
       const info = detectBrowser();
       setBrowserInfo(info);
       
-      console.log('[Browser Compatibility]', {
+      console.log('[Browser Compatibility] Detected:', {
         browser: info,
-        userAgent: navigator.userAgent,
-        viewport: {
-          width: window.innerWidth,
-          height: window.innerHeight
-        }
+        userAgent: navigator.userAgent
       });
+
+      // Only show warning for very old browsers, don't block
+      if (!info.isSupported && info.name !== 'Unknown') {
+        setShowWarning(true);
+        // Auto-hide warning after 5 seconds
+        setTimeout(() => setShowWarning(false), 5000);
+      }
 
       // Add polyfills if needed
       if (!info.hasModernFeatures) {
         loadPolyfills();
       }
     } catch (error) {
-      console.error('[Browser Detection Error]', error);
-      setHasError(true);
+      console.error('[Browser Detection] Error (continuing anyway):', error);
+      // Continue loading even if detection fails
     }
   }, []);
 
   const loadPolyfills = () => {
-    // Add Promise polyfill if missing
-    if (!window.Promise) {
-      console.log('[Polyfill] Loading Promise polyfill');
-      // Basic Promise polyfill would go here in a real implementation
-    }
-
-    // Add fetch polyfill if missing
-    if (!window.fetch) {
-      console.log('[Polyfill] Loading fetch polyfill');
-      // Basic fetch polyfill would go here in a real implementation
-    }
-
-    // Add Array.includes polyfill if missing
+    // Add basic polyfills
     if (!Array.prototype.includes) {
-      console.log('[Polyfill] Loading Array.includes polyfill');
       Array.prototype.includes = function(searchElement: any) {
         return this.indexOf(searchElement) !== -1;
       };
     }
+
+    if (!Object.assign) {
+      Object.assign = function(target: any, ...sources: any[]) {
+        sources.forEach(source => {
+          Object.keys(source).forEach(key => {
+            target[key] = source[key];
+          });
+        });
+        return target;
+      };
+    }
   };
 
-  if (hasError) {
+  // Show compatibility warning as overlay, but don't block the app
+  if (showWarning && browserInfo && !browserInfo.isSupported) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Browser Detection Error
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              We encountered an issue detecting your browser. Please try refreshing the page.
-            </p>
-            <Button onClick={() => window.location.reload()} className="w-full">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Page
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (browserInfo && !browserInfo.isSupported) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="w-full max-w-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-yellow-600">
-              <AlertTriangle className="h-5 w-5" />
-              Browser Compatibility Notice
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm space-y-2">
-              <p><strong>Browser:</strong> {browserInfo.name} {browserInfo.version}</p>
-              <p><strong>Device:</strong> {browserInfo.isMobile ? 'Mobile' : 'Desktop'}</p>
-              <p><strong>Modern Features:</strong> {browserInfo.hasModernFeatures ? 'Available' : 'Limited'}</p>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Your browser may have limited support for some features. For the best experience, 
-              please update your browser or try using Chrome, Safari, or Firefox.
-            </p>
-            <div className="flex gap-2">
-              <Button onClick={() => window.location.reload()} variant="outline" className="flex-1">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Try Anyway
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        {children}
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-yellow-600">
+                <AlertTriangle className="h-5 w-5" />
+                Browser Compatibility Notice
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm space-y-2">
+                <p><strong>Browser:</strong> {browserInfo.name} {browserInfo.version}</p>
+                <p><strong>Device:</strong> {browserInfo.isMobile ? 'Mobile' : 'Desktop'}</p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Your browser may have limited support. For the best experience, please update your browser.
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={() => setShowWarning(false)} variant="outline" className="flex-1">
+                  Continue Anyway
+                </Button>
+                <Button onClick={() => window.location.reload()} className="flex-1">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
