@@ -1,9 +1,11 @@
-
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SecurityProvider } from "@/contexts/SecurityContext";
+import { BrowserCompatibilityChecker } from "@/components/common/BrowserCompatibilityChecker";
+import { ConditionalScriptLoader } from "@/components/common/ConditionalScriptLoader";
+import { MobileSafeComponent } from "@/components/common/MobileSafeComponent";
 import Index from "./pages/Index";
 import ProductsPage from "./pages/ProductsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
@@ -40,61 +42,72 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60 * 1000, // 1 minute
-      retry: 1,
+      retry: (failureCount, error) => {
+        // Reduce retries on mobile to prevent hanging
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        return isMobile ? failureCount < 1 : failureCount < 2;
+      },
+      refetchOnWindowFocus: false, // Disable on mobile to prevent issues
     },
   },
 });
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <SecurityProvider>
-        <TooltipProvider>
-          <Toaster />
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/products" element={<ProductsPage />} />
-              <Route path="/products/:slug" element={<ProductDetailPage />} />
-              <Route path="/categories" element={<CategoriesPage />} />
-              <Route path="/categories/:slug" element={<CategoryPage />} />
-              <Route path="/category/:slug" element={<CategoryPage />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/payment/success" element={<PaymentSuccess />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/faq" element={<FAQPage />} />
-              <Route path="/shipping" element={<ShippingPage />} />
-              <Route path="/returns" element={<ReturnsPage />} />
-              <Route path="/return-request" element={<ReturnRequestPage />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/terms" element={<TermsPage />} />
-              
-              {/* Protected routes */}
-              <Route path="/account" element={<AccountPage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/wishlist" element={<WishlistPage />} />
-              
-              {/* Admin routes */}
-              <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-              <Route path="/admin/products" element={<AdminProtectedRoute><AdminProducts /></AdminProtectedRoute>} />
-              <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
-              <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
-              <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
-              <Route path="/admin/returns" element={<AdminProtectedRoute><AdminReturns /></AdminProtectedRoute>} />
-              <Route path="/admin/payments" element={<AdminProtectedRoute><AdminPayments /></AdminProtectedRoute>} />
-              <Route path="/admin/setup" element={<AdminSetupPage />} />
-              
-              {/* 404 route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </SecurityProvider>
-    </QueryClientProvider>
+    <BrowserCompatibilityChecker>
+      <ConditionalScriptLoader>
+        <QueryClientProvider client={queryClient}>
+          <SecurityProvider>
+            <TooltipProvider>
+              <Toaster />
+              <BrowserRouter>
+                <MobileSafeComponent name="Router">
+                  <Routes>
+                    {/* Public routes */}
+                    <Route path="/" element={<Index />} />
+                    <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/products/:slug" element={<ProductDetailPage />} />
+                    <Route path="/categories" element={<CategoriesPage />} />
+                    <Route path="/categories/:slug" element={<CategoryPage />} />
+                    <Route path="/category/:slug" element={<CategoryPage />} />
+                    <Route path="/cart" element={<CartPage />} />
+                    <Route path="/checkout" element={<CheckoutPage />} />
+                    <Route path="/payment/success" element={<PaymentSuccess />} />
+                    <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/faq" element={<FAQPage />} />
+                    <Route path="/shipping" element={<ShippingPage />} />
+                    <Route path="/returns" element={<ReturnsPage />} />
+                    <Route path="/return-request" element={<ReturnRequestPage />} />
+                    <Route path="/privacy" element={<PrivacyPage />} />
+                    <Route path="/terms" element={<TermsPage />} />
+                    
+                    {/* Protected routes */}
+                    <Route path="/account" element={<AccountPage />} />
+                    <Route path="/orders" element={<OrdersPage />} />
+                    <Route path="/wishlist" element={<WishlistPage />} />
+                    
+                    {/* Admin routes */}
+                    <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+                    <Route path="/admin/products" element={<AdminProtectedRoute><AdminProducts /></AdminProtectedRoute>} />
+                    <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
+                    <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
+                    <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
+                    <Route path="/admin/returns" element={<AdminProtectedRoute><AdminReturns /></AdminProtectedRoute>} />
+                    <Route path="/admin/payments" element={<AdminProtectedRoute><AdminPayments /></AdminProtectedRoute>} />
+                    <Route path="/admin/setup" element={<AdminSetupPage />} />
+                    
+                    {/* 404 route */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </MobileSafeComponent>
+              </BrowserRouter>
+            </TooltipProvider>
+          </SecurityProvider>
+        </QueryClientProvider>
+      </ConditionalScriptLoader>
+    </BrowserCompatibilityChecker>
   );
 }
 

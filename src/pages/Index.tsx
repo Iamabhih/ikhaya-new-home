@@ -6,10 +6,8 @@ import { OptimizedFeaturedProducts } from "@/components/home/OptimizedFeaturedPr
 import { OptimizedCategoryGrid } from "@/components/home/OptimizedCategoryGrid";
 import { Newsletter } from "@/components/home/Newsletter";
 import { MobileErrorBoundary } from "@/components/common/MobileErrorBoundary";
-import { MobileSafeLoader } from "@/components/common/MobileSafeLoader";
+import { MobileSafeComponent } from "@/components/common/MobileSafeComponent";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Suspense } from "react";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -21,53 +19,21 @@ const Index = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className={`${isMobile ? 'mobile-optimized' : ''}`}>
-          <MobileErrorBoundary>
-            <Suspense fallback={
-              <div className="h-96 flex items-center justify-center">
-                <LoadingSpinner />
-              </div>
-            }>
-              <MobileSafeLoader>
-                <HeroSection />
-              </MobileSafeLoader>
-            </Suspense>
-          </MobileErrorBoundary>
+          <MobileSafeComponent name="Hero Section">
+            <HeroSection />
+          </MobileSafeComponent>
           
-          <MobileErrorBoundary>
-            <Suspense fallback={
-              <div className="h-64 flex items-center justify-center">
-                <LoadingSpinner />
-              </div>
-            }>
-              <MobileSafeLoader>
-                <OptimizedCategoryGrid />
-              </MobileSafeLoader>
-            </Suspense>
-          </MobileErrorBoundary>
+          <MobileSafeComponent name="Category Grid">
+            <OptimizedCategoryGrid />
+          </MobileSafeComponent>
           
-          <MobileErrorBoundary>
-            <Suspense fallback={
-              <div className="h-64 flex items-center justify-center">
-                <LoadingSpinner />
-              </div>
-            }>
-              <MobileSafeLoader>
-                <OptimizedFeaturedProducts />
-              </MobileSafeLoader>
-            </Suspense>
-          </MobileErrorBoundary>
+          <MobileSafeComponent name="Featured Products">
+            <OptimizedFeaturedProducts />
+          </MobileSafeComponent>
           
-          <MobileErrorBoundary>
-            <Suspense fallback={
-              <div className="h-32 flex items-center justify-center">
-                <LoadingSpinner />
-              </div>
-            }>
-              <MobileSafeLoader>
-                <Newsletter />
-              </MobileSafeLoader>
-            </Suspense>
-          </MobileErrorBoundary>
+          <MobileSafeComponent name="Newsletter">
+            <Newsletter />
+          </MobileSafeComponent>
         </main>
         <Footer />
       </div>
