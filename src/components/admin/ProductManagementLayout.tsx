@@ -49,7 +49,7 @@ interface ProductManagementLayoutProps {
   products: Product[];
   totalCount: number;
   isLoading: boolean;
-  onEditProduct: (productId: string) => void;
+  onEditProduct?: (productId: string) => void;
   onSelectProduct: (productId: string, selected: boolean) => void;
   selectedProducts: string[];
   onSearch: (filters: any) => void;
@@ -68,6 +68,8 @@ export const ProductManagementLayout = ({
 }: ProductManagementLayoutProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showQuickEdit, setShowQuickEdit] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,6 +78,11 @@ export const ProductManagementLayout = ({
     setSearchQuery(value);
     onSearch({ query: value, sortBy: 'name' });
   }, [onSearch]);
+
+  const handleEditProduct = (productId: string) => {
+    setEditingProductId(productId);
+    setShowQuickEdit(true);
+  };
 
   const ProductCard = ({ product }: { product: Product }) => (
     <Card className="group hover:shadow-lg transition-all duration-200 border hover:border-primary/20">
@@ -96,7 +103,7 @@ export const ProductManagementLayout = ({
                 <Eye className="h-4 w-4 mr-2" />
                 View Details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEditProduct(product.id)}>
+              <DropdownMenuItem onClick={() => handleEditProduct(product.id)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Product
               </DropdownMenuItem>
@@ -144,7 +151,7 @@ export const ProductManagementLayout = ({
           </Button>
           <Button 
             size="sm" 
-            onClick={() => onEditProduct(product.id)}
+            onClick={() => handleEditProduct(product.id)}
             className="flex-1"
           >
             <Edit className="h-3 w-3 mr-1" />
@@ -189,7 +196,7 @@ export const ProductManagementLayout = ({
             </Button>
             <Button 
               size="sm" 
-              onClick={() => onEditProduct(product.id)}
+              onClick={() => handleEditProduct(product.id)}
             >
               <Edit className="h-3 w-3 mr-1" />
               Edit
@@ -355,6 +362,19 @@ export const ProductManagementLayout = ({
         </div>
       )}
 
+      {/* Product Edit Sheet */}
+      <Sheet open={showQuickEdit} onOpenChange={setShowQuickEdit}>
+        <SheetContent side="right" className="w-full sm:w-96">
+          <ProductQuickForm 
+            productId={editingProductId} 
+            onClose={() => {
+              setShowQuickEdit(false);
+              setEditingProductId(null);
+            }} 
+          />
+        </SheetContent>
+      </Sheet>
+
       {/* Product Detail Modal */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
         <DialogContent className="max-w-2xl">
@@ -362,7 +382,7 @@ export const ProductManagementLayout = ({
             <ProductDetailView 
               product={selectedProduct} 
               onEdit={() => {
-                onEditProduct(selectedProduct.id);
+                handleEditProduct(selectedProduct.id);
                 setSelectedProduct(null);
               }}
               onClose={() => setSelectedProduct(null)}

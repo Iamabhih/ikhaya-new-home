@@ -1,7 +1,5 @@
 import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProductForm } from "@/components/admin/ProductForm";
-import { ProductImageManager } from "@/components/admin/ProductImageManager";
 import { EnhancedProductImport } from "@/components/admin/EnhancedProductImport";
 import { ProductImportScheduler } from "@/components/admin/ProductImportScheduler";
 import { ProductAnalyticsDashboard } from "@/components/admin/ProductAnalyticsDashboard";
@@ -12,7 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 const AdminProducts = () => {
   const [activeTab, setActiveTab] = useState("products");
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchFilters, setSearchFilters] = useState<any>({
@@ -105,16 +102,6 @@ const AdminProducts = () => {
     staleTime: 30000,
   });
 
-  const handleEditProduct = (productId: string) => {
-    setEditingProductId(productId);
-    setActiveTab("form");
-  };
-
-  const handleFormClose = () => {
-    setEditingProductId(null);
-    setActiveTab("products");
-    setRefreshTrigger(prev => prev + 1);
-  };
 
   const handleProductSelect = (productId: string, selected: boolean) => {
     setSelectedProducts(prev => 
@@ -162,7 +149,6 @@ const AdminProducts = () => {
               products={productsData?.products || []}
               totalCount={productsData?.totalCount || 0}
               isLoading={productsLoading}
-              onEditProduct={handleEditProduct}
               onSelectProduct={handleProductSelect}
               selectedProducts={selectedProducts}
               onSearch={handleSearchFilters}
@@ -189,17 +175,6 @@ const AdminProducts = () => {
           </ErrorBoundary>
         </TabsContent>
 
-        {/* Product Form Modal/Dialog will be handled within ProductManagementLayout */}
-        {editingProductId && (
-          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-            <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg">
-              <ProductForm
-                productId={editingProductId}
-                onClose={handleFormClose}
-              />
-            </div>
-          </div>
-        )}
       </Tabs>
     </ErrorBoundary>
   );
