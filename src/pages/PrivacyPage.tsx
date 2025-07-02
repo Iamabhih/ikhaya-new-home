@@ -208,9 +208,9 @@ const PrivacyPage = () => {
                 please contact us:
               </p>
               <div className="space-y-2 text-sm">
-                <p><strong>Email:</strong> privacy@ikhayahomeware.co.za</p>
-                <p><strong>Phone:</strong> +27 21 123 4567</p>
-                <p><strong>Address:</strong> 123 Home Street, Cape Town, South Africa</p>
+                <p><strong>Email:</strong> privacy@ikhaya.shop</p>
+                <p><strong>Phone:</strong> +27 31 332 7192</p>
+                <p><strong>Address:</strong>40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa</p>
               </div>
             </CardContent>
           </Card>
