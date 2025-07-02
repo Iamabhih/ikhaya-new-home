@@ -70,22 +70,22 @@ export const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                <span>123 Home Street, Cape Town, South Africa</span>
+                <span>40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <Phone className="h-4 w-4" />
-                <span>+27 21 123 4567</span>
+                <span>+27 31 332 7192</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4" />
-                <span>hello@ikhayahomeware.co.za</span>
+                <span>info@ikhaya.shop</span>
               </div>
             </div>
           </div>
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>© 2024 IKHAYAHomeware. All rights reserved.</p>
+          <p>© 2024 IKHAYA Homeware. All rights reserved.</p>
         </div>
       </div>
     </footer>;
