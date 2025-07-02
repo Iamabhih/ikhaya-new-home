@@ -1,27 +1,20 @@
 import { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Upload, Calendar, Settings, BarChart3, Table, Grid } from "lucide-react";
-import { PaginatedProductList } from "@/components/admin/PaginatedProductList";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { ProductImageManager } from "@/components/admin/ProductImageManager";
 import { EnhancedProductImport } from "@/components/admin/EnhancedProductImport";
 import { ProductImportScheduler } from "@/components/admin/ProductImportScheduler";
-import { BulkOperationsPanel } from "@/components/admin/BulkOperationsPanel";
-import { AdvancedProductSearch } from "@/components/admin/AdvancedProductSearch";
-import { ProductTableView } from "@/components/admin/ProductTableView";
 import { ProductAnalyticsDashboard } from "@/components/admin/ProductAnalyticsDashboard";
-import { NotificationCenter } from "@/components/admin/NotificationCenter";
+import { ProductManagementLayout } from "@/components/admin/ProductManagementLayout";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const AdminProducts = () => {
-  const [activeTab, setActiveTab] = useState("list");
+  const [activeTab, setActiveTab] = useState("products");
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchFilters, setSearchFilters] = useState<any>({
     query: '',
     sortBy: 'name'
@@ -119,13 +112,8 @@ const AdminProducts = () => {
 
   const handleFormClose = () => {
     setEditingProductId(null);
-    setActiveTab("list");
+    setActiveTab("products");
     setRefreshTrigger(prev => prev + 1);
-  };
-
-  const handleAddProduct = () => {
-    setEditingProductId(null);
-    setActiveTab("form");
   };
 
   const handleProductSelect = (productId: string, selected: boolean) => {
@@ -164,143 +152,59 @@ const AdminProducts = () => {
 
   return (
     <ErrorBoundary>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Products</h1>
-          <div className="flex gap-2 items-center">
-            <NotificationCenter />
-            <Button onClick={() => setActiveTab("analytics")} variant="outline">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </Button>
-            <Button onClick={() => setActiveTab("scheduler")} variant="outline">
-              <Calendar className="h-4 w-4 mr-2" />
-              Scheduler
-            </Button>
-            <Button onClick={() => setActiveTab("import")} variant="outline">
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
-            </Button>
-            <Button onClick={handleAddProduct}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
-          </div>
-        </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="import">Import</TabsTrigger>
+          <TabsTrigger value="scheduler">Scheduler</TabsTrigger>
+        </TabsList>
 
-        {/* Bulk Operations Panel */}
-        {selectedProducts.length > 0 && (
-          <BulkOperationsPanel
-            selectedProducts={selectedProducts}
-            onClearSelection={handleClearSelection}
-            onRefresh={handleRefresh}
-          />
-        )}
+        <TabsContent value="products" className="space-y-6">
+          <ErrorBoundary>
+            <ProductManagementLayout
+              products={productsData?.products || []}
+              totalCount={productsData?.totalCount || 0}
+              isLoading={productsLoading}
+              onEditProduct={handleEditProduct}
+              onSelectProduct={handleProductSelect}
+              selectedProducts={selectedProducts}
+              onSearch={handleSearchFilters}
+              categories={categories}
+            />
+          </ErrorBoundary>
+        </TabsContent>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="list">Products</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="form">
-              {editingProductId ? "Edit Product" : "Add Product"}
-            </TabsTrigger>
-            <TabsTrigger value="import">Import CSV</TabsTrigger>
-            <TabsTrigger value="scheduler">Scheduler</TabsTrigger>
-            {editingProductId && (
-              <TabsTrigger value="images">Manage Images</TabsTrigger>
-            )}
-          </TabsList>
+        <TabsContent value="analytics">
+          <ErrorBoundary>
+            <ProductAnalyticsDashboard />
+          </ErrorBoundary>
+        </TabsContent>
 
-          <TabsContent value="list" className="space-y-4">
-            <ErrorBoundary>
-              <AdvancedProductSearch
-                onSearch={handleSearchFilters}
-                categories={categories}
-                totalCount={productsData?.totalCount}
-                isLoading={productsLoading}
-              />
-              
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('table')}
-                >
-                  <Table className="h-4 w-4" />
-                </Button>
-              </div>
+        <TabsContent value="import">
+          <ErrorBoundary>
+            <EnhancedProductImport />
+          </ErrorBoundary>
+        </TabsContent>
 
-              {viewMode === 'grid' ? (
-                <PaginatedProductList 
-                  onEditProduct={handleEditProduct}
-                  onProductSelect={handleProductSelect}
-                  selectedProducts={selectedProducts}
-                  refreshTrigger={refreshTrigger}
-                  searchFilters={searchFilters}
-                />
-              ) : (
-                <ProductTableView
-                  products={productsData?.products || []}
-                  selectedProducts={selectedProducts}
-                  onSelectProduct={handleProductSelect}
-                  onSelectAll={(checked) => {
-                    const products = productsData?.products || [];
-                    if (checked) {
-                      products.forEach(product => handleProductSelect(product.id, true));
-                    } else {
-                      products.forEach(product => handleProductSelect(product.id, false));
-                    }
-                  }}
-                  onEditProduct={handleEditProduct}
-                  onQuickEdit={handleQuickEdit}
-                />
-              )}
-            </ErrorBoundary>
-          </TabsContent>
+        <TabsContent value="scheduler">
+          <ErrorBoundary>
+            <ProductImportScheduler />
+          </ErrorBoundary>
+        </TabsContent>
 
-          <TabsContent value="analytics">
-            <ErrorBoundary>
-              <ProductAnalyticsDashboard />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="form">
-            <ErrorBoundary>
+        {/* Product Form Modal/Dialog will be handled within ProductManagementLayout */}
+        {editingProductId && (
+          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+            <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg">
               <ProductForm
                 productId={editingProductId}
                 onClose={handleFormClose}
               />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="import">
-            <ErrorBoundary>
-              <EnhancedProductImport />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="scheduler">
-            <ErrorBoundary>
-              <ProductImportScheduler />
-            </ErrorBoundary>
-          </TabsContent>
-
-          {editingProductId && (
-            <TabsContent value="images">
-              <ErrorBoundary>
-                <ProductImageManager productId={editingProductId} />
-              </ErrorBoundary>
-            </TabsContent>
-          )}
-        </Tabs>
-      </div>
+            </div>
+          </div>
+        )}
+      </Tabs>
     </ErrorBoundary>
   );
 };
