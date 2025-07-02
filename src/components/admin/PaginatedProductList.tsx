@@ -32,6 +32,7 @@ interface PaginatedProductListProps {
   onProductSelect: (productId: string, selected: boolean) => void;
   selectedProducts: string[];
   refreshTrigger: number;
+  searchFilters?: any;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -40,7 +41,8 @@ export const PaginatedProductList = ({
   onEditProduct, 
   onProductSelect, 
   selectedProducts, 
-  refreshTrigger 
+  refreshTrigger,
+  searchFilters 
 }: PaginatedProductListProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,15 +52,22 @@ export const PaginatedProductList = ({
   // Debounce search term for better performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
+  // Use external search filters if provided, otherwise use internal filters
+  const effectiveSearchTerm = searchFilters?.query ?? debouncedSearchTerm;
+  const effectiveCategoryFilter = searchFilters?.categoryId ?? categoryFilter;
+  const effectiveStatusFilter = searchFilters?.inStockOnly ? 'in-stock' : 
+                               searchFilters?.featuredOnly ? 'featured' : statusFilter;
+
   // Optimized query with consistent caching
   const { data: productsData, isLoading, error } = useQuery({
-    queryKey: ['admin-paginated-products', currentPage, debouncedSearchTerm, categoryFilter, statusFilter, refreshTrigger],
+    queryKey: ['admin-paginated-products', currentPage, effectiveSearchTerm, effectiveCategoryFilter, effectiveStatusFilter, refreshTrigger, searchFilters],
     queryFn: async () => {
       console.log('Fetching admin products with filters:', {
-        searchTerm: debouncedSearchTerm,
-        categoryFilter,
-        statusFilter,
-        page: currentPage
+        searchTerm: effectiveSearchTerm,
+        categoryFilter: effectiveCategoryFilter,
+        statusFilter: effectiveStatusFilter,
+        page: currentPage,
+        externalFilters: searchFilters
       });
 
       let query = supabase
@@ -69,31 +78,60 @@ export const PaginatedProductList = ({
           categories:category_id(name)
         `, { count: 'exact' });
 
-      // Apply filters
-      if (debouncedSearchTerm) {
-        query = query.or(`name.ilike.%${debouncedSearchTerm}%,sku.ilike.%${debouncedSearchTerm}%`);
+      // Apply search filters
+      if (effectiveSearchTerm) {
+        query = query.or(`name.ilike.%${effectiveSearchTerm}%,sku.ilike.%${effectiveSearchTerm}%`);
       }
 
-      if (categoryFilter !== "all") {
-        query = query.eq('category_id', categoryFilter);
+      if (effectiveCategoryFilter && effectiveCategoryFilter !== "all") {
+        query = query.eq('category_id', effectiveCategoryFilter);
       }
 
-      if (statusFilter === "active") {
+      // Apply status filters
+      if (effectiveStatusFilter === "active") {
         query = query.eq('is_active', true);
-      } else if (statusFilter === "inactive") {
+      } else if (effectiveStatusFilter === "inactive") {
         query = query.eq('is_active', false);
-      } else if (statusFilter === "featured") {
+      } else if (effectiveStatusFilter === "featured") {
         query = query.eq('is_featured', true);
-      } else if (statusFilter === "low-stock") {
-        query = query.lte('stock_quantity', 5);
+      } else if (effectiveStatusFilter === "low-stock" || effectiveStatusFilter === "in-stock") {
+        query = query.gt('stock_quantity', 0);
+      }
+
+      // Apply price filters from searchFilters
+      if (searchFilters?.minPrice !== undefined) {
+        query = query.gte('price', searchFilters.minPrice);
+      }
+      if (searchFilters?.maxPrice !== undefined) {
+        query = query.lte('price', searchFilters.maxPrice);
       }
 
       const from = (currentPage - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
       
-      query = query
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      // Apply sorting
+      const sortBy = searchFilters?.sortBy || 'created_at';
+      switch (sortBy) {
+        case 'price-asc':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'price-desc':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'newest':
+          query = query.order('created_at', { ascending: false });
+          break;
+        case 'featured':
+          query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
+          break;
+        case 'name':
+          query = query.order('name', { ascending: true });
+          break;
+        default:
+          query = query.order('created_at', { ascending: false });
+      }
+      
+      query = query.range(from, to);
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -125,20 +163,28 @@ export const PaginatedProductList = ({
   const totalCount = productsData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  // Event handlers
+  // Event handlers - only show internal filters if no external search filters
+  const showInternalFilters = !searchFilters;
+
   const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
+    if (showInternalFilters) {
+      setSearchTerm(value);
+      setCurrentPage(1);
+    }
   };
 
   const handleCategoryFilter = (value: string) => {
-    setCategoryFilter(value);
-    setCurrentPage(1);
+    if (showInternalFilters) {
+      setCategoryFilter(value);
+      setCurrentPage(1);
+    }
   };
 
   const handleStatusFilter = (value: string) => {
-    setStatusFilter(value);
-    setCurrentPage(1);
+    if (showInternalFilters) {
+      setStatusFilter(value);
+      setCurrentPage(1);
+    }
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -163,50 +209,52 @@ export const PaginatedProductList = ({
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search products by name or SKU..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10"
-          />
+      {/* Filters - only show if no external search filters */}
+      {showInternalFilters && (
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products by name or SKU..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={categoryFilter} onValueChange={handleCategoryFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={handleStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="featured">Featured</SelectItem>
+              <SelectItem value="low-stock">Low Stock</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={categoryFilter} onValueChange={handleCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={handleStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-            <SelectItem value="featured">Featured</SelectItem>
-            <SelectItem value="low-stock">Low Stock</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      )}
 
       {/* Results summary and bulk select */}
       <div className="flex justify-between items-center text-sm text-muted-foreground">
         <div className="flex items-center gap-4">
           <span>
             Showing {products.length} of {totalCount.toLocaleString()} products
-            {debouncedSearchTerm && ` matching "${debouncedSearchTerm}"`}
+            {effectiveSearchTerm && ` matching "${effectiveSearchTerm}"`}
           </span>
           {products.length > 0 && (
             <div className="flex items-center gap-2">
@@ -251,7 +299,7 @@ export const PaginatedProductList = ({
             <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-medium mb-2">No products found</h3>
             <p className="text-muted-foreground">
-              {debouncedSearchTerm || categoryFilter !== "all" || statusFilter !== "all"
+              {effectiveSearchTerm || effectiveCategoryFilter !== "all" || effectiveStatusFilter !== "all"
                 ? "Try adjusting your filters"
                 : "Start by adding your first product"}
             </p>

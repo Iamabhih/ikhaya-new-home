@@ -22,7 +22,10 @@ const AdminProducts = () => {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [searchFilters, setSearchFilters] = useState<any>({});
+  const [searchFilters, setSearchFilters] = useState<any>({
+    query: '',
+    sortBy: 'name'
+  });
 
   // Fetch categories for search filters
   const { data: categories = [] } = useQuery({
@@ -37,6 +40,76 @@ const AdminProducts = () => {
       return data;
     },
     staleTime: 300000,
+  });
+
+  // Enhanced products query that respects search filters
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ['admin-products-filtered', searchFilters, refreshTrigger],
+    queryFn: async () => {
+      let query = supabase
+        .from('products')
+        .select(`
+          id, name, sku, price, stock_quantity, is_active, is_featured, 
+          category_id, created_at,
+          categories:category_id(name)
+        `, { count: 'exact' });
+
+      // Apply search filters
+      if (searchFilters.query?.trim()) {
+        query = query.or(`name.ilike.%${searchFilters.query}%,sku.ilike.%${searchFilters.query}%`);
+      }
+
+      if (searchFilters.categoryId) {
+        query = query.eq('category_id', searchFilters.categoryId);
+      }
+
+      if (searchFilters.inStockOnly) {
+        query = query.gt('stock_quantity', 0);
+      }
+
+      if (searchFilters.featuredOnly) {
+        query = query.eq('is_featured', true);
+      }
+
+      if (searchFilters.minPrice !== undefined) {
+        query = query.gte('price', searchFilters.minPrice);
+      }
+
+      if (searchFilters.maxPrice !== undefined) {
+        query = query.lte('price', searchFilters.maxPrice);
+      }
+
+      // Apply sorting
+      switch (searchFilters.sortBy) {
+        case 'price-asc':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'price-desc':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'newest':
+          query = query.order('created_at', { ascending: false });
+          break;
+        case 'featured':
+          query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
+          break;
+        case 'performance':
+          // Order by total sold if available, otherwise by created_at
+          query = query.order('created_at', { ascending: false });
+          break;
+        default:
+          query = query.order('name', { ascending: true });
+      }
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+
+      return {
+        products: data || [],
+        totalCount: count || 0
+      };
+    },
+    staleTime: 30000,
   });
 
   const handleEditProduct = (productId: string) => {
@@ -139,8 +212,8 @@ const AdminProducts = () => {
               <AdvancedProductSearch
                 onSearch={setSearchFilters}
                 categories={categories}
-                // These would be passed from the actual product query
-                totalCount={0}
+                totalCount={productsData?.totalCount}
+                isLoading={productsLoading}
               />
               
               <div className="flex justify-end gap-2">
@@ -166,14 +239,20 @@ const AdminProducts = () => {
                   onProductSelect={handleProductSelect}
                   selectedProducts={selectedProducts}
                   refreshTrigger={refreshTrigger}
+                  searchFilters={searchFilters}
                 />
               ) : (
                 <ProductTableView
-                  products={[]} // This would come from the query
+                  products={productsData?.products || []}
                   selectedProducts={selectedProducts}
                   onSelectProduct={handleProductSelect}
                   onSelectAll={(checked) => {
-                    // Handle select all logic
+                    const products = productsData?.products || [];
+                    if (checked) {
+                      products.forEach(product => handleProductSelect(product.id, true));
+                    } else {
+                      products.forEach(product => handleProductSelect(product.id, false));
+                    }
                   }}
                   onEditProduct={handleEditProduct}
                   onQuickEdit={handleQuickEdit}
