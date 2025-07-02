@@ -10,8 +10,32 @@ export const OptimizedFeaturedProducts = () => {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['featured-products-optimized'],
     queryFn: async () => {
-      console.log('Fetching optimized featured products');
+      console.log('Fetching featured products for homepage');
       
+      // First try to fetch from homepage featured products
+      const { data: featuredData, error: featuredError } = await supabase
+        .from('homepage_featured_products')
+        .select(`
+          products:product_id(
+            *,
+            categories:category_id(id, name, slug),
+            product_images(image_url, alt_text, is_primary, sort_order)
+          )
+        `)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      
+      if (featuredError) {
+        console.error('Error fetching featured products:', featuredError);
+        throw featuredError;
+      }
+      
+      // If we have featured products, use them
+      if (featuredData && featuredData.length > 0) {
+        return featuredData.map(item => item.products).filter(Boolean);
+      }
+      
+      // Fallback to products marked as featured if no manual selection
       const { data, error } = await supabase
         .from('products')
         .select(`

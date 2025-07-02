@@ -211,7 +211,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-6">
             <Link to="/admin/products">
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardHeader>
@@ -236,6 +236,20 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">Process and track customer orders</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/admin/homepage">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Homepage Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Manage featured categories and products</p>
                 </CardContent>
               </Card>
             </Link>

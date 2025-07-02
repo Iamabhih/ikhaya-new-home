@@ -11,9 +11,52 @@ export const OptimizedCategoryGrid = () => {
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories-optimized-home'],
     queryFn: async () => {
-      console.log('Fetching categories for homepage');
+      console.log('Fetching featured categories for homepage');
       
-      // Fetch from actual categories table with product counts
+      // First try to fetch from homepage featured categories
+      const { data: featuredData, error: featuredError } = await supabase
+        .from('homepage_featured_categories')
+        .select(`
+          categories:category_id(
+            id,
+            name,
+            slug,
+            description,
+            image_url
+          )
+        `)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      
+      if (featuredError) {
+        console.error('Error fetching featured categories:', featuredError);
+        throw featuredError;
+      }
+      
+      // If we have featured categories, use them
+      if (featuredData && featuredData.length > 0) {
+        const categoriesWithCounts = await Promise.all(
+          featuredData.map(async (item) => {
+            const category = item.categories;
+            if (!category) return null;
+            
+            const { count } = await supabase
+              .from('products')
+              .select('*', { count: 'exact', head: true })
+              .eq('category_id', category.id)
+              .eq('is_active', true);
+            
+            return {
+              ...category,
+              product_count: count || 0
+            };
+          })
+        );
+        
+        return categoriesWithCounts.filter(Boolean);
+      }
+      
+      // Fallback to regular categories if no featured categories are set
       const { data, error } = await supabase
         .from('categories')
         .select(`
@@ -49,7 +92,6 @@ export const OptimizedCategoryGrid = () => {
         })
       );
       
-      // Return all categories, even if they have no products (for a complete category grid)
       return categoriesWithCounts;
     },
     staleTime: 600000, // Cache for 10 minutes
