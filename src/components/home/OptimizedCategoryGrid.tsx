@@ -33,29 +33,9 @@ export const OptimizedCategoryGrid = () => {
         throw error;
       }
       
-      // Define the specific categories to display in order with mapping for database names
-      const categoryMapping = {
-        'Ikhaya': 'Ikhaya',
-        'Catering': 'Catering', 
-        'Citinova': 'Citinova',
-        'Cadac': 'Cadac',
-        'Glassware': 'Glass ware',
-        'Kitchenware': 'Kitchenware',
-        'Herevin': 'Herevin',
-        'Plasticware': 'Plastic Ware'
-      };
-      
-      const desiredCategories = ['Ikhaya', 'Catering', 'Citinova', 'Cadac', 'Glassware', 'Kitchenware', 'Herevin', 'Plasticware'];
-      
-      // Filter and sort categories to match the desired list using mapping
-      const filteredCategories = desiredCategories.map(categoryName => {
-        const dbName = categoryMapping[categoryName];
-        return data?.find(cat => cat.name.toLowerCase() === dbName.toLowerCase());
-      }).filter(Boolean);
-      
-      // Get product counts for the filtered categories
+      // Get product counts for each category
       const categoriesWithCounts = await Promise.all(
-        filteredCategories.map(async (category) => {
+        (data || []).map(async (category) => {
           const { count } = await supabase
             .from('products')
             .select('*', { count: 'exact', head: true })
@@ -69,6 +49,7 @@ export const OptimizedCategoryGrid = () => {
         })
       );
       
+      // Return all categories, even if they have no products (for a complete category grid)
       return categoriesWithCounts;
     },
     staleTime: 600000, // Cache for 10 minutes
