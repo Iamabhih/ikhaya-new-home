@@ -33,13 +33,25 @@ export const OptimizedCategoryGrid = () => {
         throw error;
       }
       
-      // Define the specific categories to display in order
+      // Define the specific categories to display in order with mapping for database names
+      const categoryMapping = {
+        'Ikhaya': 'Ikhaya',
+        'Catering': 'Catering', 
+        'Citinova': 'Citinova',
+        'Cadac': 'Cadac',
+        'Glassware': 'Glass ware',
+        'Kitchenware': 'Kitchenware',
+        'Herevin': 'Herevin',
+        'Plasticware': 'Plastic Ware'
+      };
+      
       const desiredCategories = ['Ikhaya', 'Catering', 'Citinova', 'Cadac', 'Glassware', 'Kitchenware', 'Herevin', 'Plasticware'];
       
-      // Filter and sort categories to match the desired list
-      const filteredCategories = desiredCategories.map(categoryName => 
-        data?.find(cat => cat.name.toLowerCase() === categoryName.toLowerCase())
-      ).filter(Boolean);
+      // Filter and sort categories to match the desired list using mapping
+      const filteredCategories = desiredCategories.map(categoryName => {
+        const dbName = categoryMapping[categoryName];
+        return data?.find(cat => cat.name.toLowerCase() === dbName.toLowerCase());
+      }).filter(Boolean);
       
       // Get product counts for the filtered categories
       const categoriesWithCounts = await Promise.all(
