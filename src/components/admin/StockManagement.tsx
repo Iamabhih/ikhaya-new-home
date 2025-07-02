@@ -117,7 +117,7 @@ export const StockManagement = () => {
           <CardContent>
             <div className="space-y-2">
               {lowStockProducts.map((product) => (
-                <div key={product.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                <div key={product.id} className="flex items-center justify-between p-2 bg-card rounded border">
                   <div>
                     <span className="font-medium">{product.name}</span>
                     {product.sku && <span className="text-sm text-muted-foreground ml-2">({product.sku})</span>}

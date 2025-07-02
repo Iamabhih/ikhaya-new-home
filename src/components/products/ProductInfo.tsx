@@ -164,7 +164,7 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
           size="lg"
           onClick={() => toggleWishlist(product.id)}
           disabled={loading}
-          className={inWishlist ? 'text-red-500 border-red-500 hover:bg-red-50' : ''}
+          className={inWishlist ? 'text-destructive border-destructive hover:bg-destructive/10' : ''}
         >
           <Heart className={`h-5 w-5 ${inWishlist ? 'fill-current' : ''}`} />
         </Button>

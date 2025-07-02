@@ -164,7 +164,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
             <Heart className="h-5 w-5 flex-shrink-0" />
             Wishlist
             {wishlistCount > 0 && (
-              <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">
+              <span className="ml-auto bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">
                 {wishlistCount}
               </span>
             )}

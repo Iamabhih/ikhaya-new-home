@@ -36,14 +36,14 @@ export const AdminQuickActions = () => {
       description: "Create a new product",
       icon: Plus,
       href: "/admin/products",
-      color: "bg-blue-500",
+      color: "bg-chart-1",
     },
     {
       title: "Manage Orders",
       description: `${quickStats?.pendingOrders || 0} pending orders`,
       icon: ShoppingCart,
       href: "/admin/orders",
-      color: "bg-green-500",
+      color: "bg-chart-2",
       badge: quickStats?.pendingOrders || 0,
     },
     {
@@ -51,21 +51,21 @@ export const AdminQuickActions = () => {
       description: `${quickStats?.totalUsers || 0} total users`,
       icon: Users,
       href: "/admin/users",
-      color: "bg-purple-500",
+      color: "bg-chart-3",
     },
     {
       title: "Analytics",
       description: "View reports and insights",
       icon: BarChart3,
       href: "/admin/analytics",
-      color: "bg-orange-500",
+      color: "bg-chart-4",
     },
     {
       title: "Settings",
       description: "Payment & system settings",
       icon: Settings,
       href: "/admin/payments",
-      color: "bg-gray-500",
+      color: "bg-muted",
     },
   ];
 
@@ -76,7 +76,7 @@ export const AdminQuickActions = () => {
       description: "Promote users & manage roles",
       icon: Shield,
       href: "/admin/setup",
-      color: "bg-red-500",
+      color: "bg-destructive",
     });
   }
 
@@ -99,7 +99,7 @@ export const AdminQuickActions = () => {
                   className="h-auto p-4 flex flex-col items-start space-y-2 w-full hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center justify-between w-full">
-                    <div className={`${action.color} p-2 rounded-md text-white`}>
+                    <div className={`${action.color} p-2 rounded-md text-primary-foreground`}>
                       <Icon className="h-4 w-4" />
                     </div>
                     {action.badge && action.badge > 0 && (

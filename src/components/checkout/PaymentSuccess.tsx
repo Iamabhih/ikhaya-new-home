@@ -26,10 +26,10 @@ Amount: R${paymentResult.amount}
   return (
     <Card>
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-          <CheckCircle className="h-8 w-8 text-green-600" />
+        <div className="mx-auto mb-4 w-16 h-16 bg-chart-2/20 rounded-full flex items-center justify-center">
+          <CheckCircle className="h-8 w-8 text-chart-2" />
         </div>
-        <CardTitle className="text-2xl text-green-600">
+        <CardTitle className="text-2xl text-chart-2">
           Order Created Successfully!
         </CardTitle>
       </CardHeader>
@@ -44,8 +44,8 @@ Amount: R${paymentResult.amount}
         </div>
 
         {paymentResult.type === 'bank_transfer' && paymentResult.bankingDetails && (
-          <div className="bg-blue-50 p-4 rounded-lg space-y-3">
-            <h3 className="font-semibold text-blue-900">Banking Details</h3>
+          <div className="bg-chart-1/10 p-4 rounded-lg space-y-3">
+            <h3 className="font-semibold text-chart-1">Banking Details</h3>
             <div className="text-left space-y-1 text-sm">
               <p><strong>Bank:</strong> {paymentResult.bankingDetails.bankName}</p>
               <p><strong>Account Number:</strong> {paymentResult.bankingDetails.accountNumber}</p>
@@ -62,7 +62,7 @@ Amount: R${paymentResult.amount}
               <Copy className="h-4 w-4 mr-2" />
               Copy Banking Details
             </Button>
-            <p className="text-xs text-blue-700">
+            <p className="text-xs text-chart-1">
               {paymentResult.instructions}
             </p>
           </div>

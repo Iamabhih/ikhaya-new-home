@@ -54,14 +54,14 @@ const PaymentSuccess = () => {
         <div className="max-w-md mx-auto">
           <Card>
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <div className="mx-auto mb-4 w-16 h-16 bg-chart-2/20 rounded-full flex items-center justify-center">
                 {isVerifying ? (
-                  <Loader2 className="h-8 w-8 text-green-600 animate-spin" />
+                  <Loader2 className="h-8 w-8 text-chart-2 animate-spin" />
                 ) : (
-                  <CheckCircle className="h-8 w-8 text-green-600" />
+                  <CheckCircle className="h-8 w-8 text-chart-2" />
                 )}
               </div>
-              <CardTitle className="text-2xl text-green-600">
+              <CardTitle className="text-2xl text-chart-2">
                 {isVerifying ? "Processing Payment..." : "Payment Successful!"}
               </CardTitle>
             </CardHeader>

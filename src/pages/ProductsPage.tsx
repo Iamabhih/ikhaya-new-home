@@ -277,7 +277,7 @@ const ProductsPage = () => {
                     </span>
                   )}
                   {useVirtualization && (
-                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    <span className="ml-2 text-xs bg-chart-1/20 text-chart-1 px-2 py-1 rounded">
                       Optimized View
                     </span>
                   )}

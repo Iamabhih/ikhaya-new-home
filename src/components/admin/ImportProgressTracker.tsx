@@ -241,7 +241,7 @@ export const ImportProgressTracker = ({ importId, onComplete, onError }: ImportP
             </div>
             <div className="max-h-32 overflow-y-auto space-y-1">
               {errors.slice(0, 5).map((error, index) => (
-                <div key={index} className="text-sm p-2 bg-red-50 rounded">
+                <div key={index} className="text-sm p-2 bg-destructive/10 rounded">
                   <strong>Row {error.row_number}:</strong> {error.error_message}
                 </div>
               ))}

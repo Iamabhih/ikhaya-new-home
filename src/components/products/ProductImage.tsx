@@ -77,7 +77,7 @@ export const ProductImage = ({
       )}
       
       {hasDiscount && (
-        <div className={`absolute ${viewMode === "list" ? "top-1 sm:top-2 left-1 sm:left-2" : "top-2 left-2"} bg-destructive text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium`}>
+        <div className={`absolute ${viewMode === "list" ? "top-1 sm:top-2 left-1 sm:left-2" : "top-2 left-2"} bg-destructive text-destructive-foreground px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium`}>
           Sale
         </div>
       )}
