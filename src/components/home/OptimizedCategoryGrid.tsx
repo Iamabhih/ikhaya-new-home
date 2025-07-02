@@ -49,8 +49,10 @@ export const OptimizedCategoryGrid = () => {
         })
       );
       
-      // Return all categories, even if they have no products (for a complete category grid)
-      return categoriesWithCounts;
+      // Sort by product count (descending) and return top 8 categories with most products
+      return categoriesWithCounts
+        .sort((a, b) => b.product_count - a.product_count)
+        .slice(0, 8);
     },
     staleTime: 600000, // Cache for 10 minutes
     gcTime: 1200000, // Keep in cache for 20 minutes
