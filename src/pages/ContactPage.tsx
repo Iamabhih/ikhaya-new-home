@@ -74,7 +74,7 @@ const ContactPage = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Mail className="h-5 w-5 text-primary" />
-                  <span>info@ikhayahomeware.co.za</span>
+                  <span>info@ikhaya.shop</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Phone className="h-5 w-5 text-primary" />
@@ -82,7 +82,7 @@ const ContactPage = () => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <MapPin className="h-5 w-5 text-primary" />
-                  <span>123 Main Street, Johannesburg, 2000</span>
+                  <span>40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa</span>
                 </div>
               </CardContent>
             </Card>
@@ -113,7 +113,7 @@ const ContactPage = () => {
                   your orders, products, or general inquiries.
                 </p>
                 <p><strong>Response Time:</strong> Within 24 hours</p>
-                <p><strong>Support Email:</strong> support@ikhayahomeware.co.za</p>
+                <p><strong>Support Email:</strong> support@ikhaya.shop</p>
               </CardContent>
             </Card>
           </div>
