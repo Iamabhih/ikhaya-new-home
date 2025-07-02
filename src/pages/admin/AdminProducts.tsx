@@ -124,10 +124,6 @@ const AdminProducts = () => {
     );
   };
 
-  const handleClearSelection = () => {
-    setSelectedProducts([]);
-  };
-
   const handleRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
   };

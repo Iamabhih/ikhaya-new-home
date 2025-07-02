@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export const ProductQuickForm = ({ onClose, productId }: ProductQuickFormProps) 
   });
 
   // Populate form with existing product data
-  useState(() => {
+  useEffect(() => {
     if (product) {
       setFormData({
         name: product.name || "",
@@ -74,7 +74,7 @@ export const ProductQuickForm = ({ onClose, productId }: ProductQuickFormProps) 
         short_description: product.short_description || "",
       });
     }
-  });
+  }, [product]);
 
   const generateSlug = (name: string) => {
     return name
