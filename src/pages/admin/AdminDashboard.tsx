@@ -91,7 +91,9 @@ const AdminDashboard = () => {
         <main className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              <h1 className="text-3xl font-bold">
+                {roles.includes('superadmin') ? 'SuperAdmin Dashboard' : 'Admin Dashboard'}
+              </h1>
               <p className="text-muted-foreground">
                 Welcome back! Current roles: {roles.join(', ')}
               </p>
@@ -281,6 +283,39 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </Link>
+
+            {/* SuperAdmin Only Actions */}
+            {roles.includes('superadmin') && (
+              <>
+                <Link to="/admin/users">
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer border-destructive">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-destructive">
+                        <Users className="h-5 w-5" />
+                        User Management
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">Manage user roles and permissions</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link to="/admin/setup">
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer border-destructive">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-destructive">
+                        <AlertTriangle className="h-5 w-5" />
+                        Admin Setup
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">Configure admin roles and system settings</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </>
+            )}
           </div>
         </main>
         <Footer />
