@@ -33,9 +33,17 @@ export const OptimizedCategoryGrid = () => {
         throw error;
       }
       
-      // Get product counts for each category
+      // Define the specific categories to display in order
+      const desiredCategories = ['Ikhaya', 'Catering', 'Citinova', 'Cadac', 'Glassware', 'Kitchenware', 'Herevin', 'Plasticware'];
+      
+      // Filter and sort categories to match the desired list
+      const filteredCategories = desiredCategories.map(categoryName => 
+        data?.find(cat => cat.name.toLowerCase() === categoryName.toLowerCase())
+      ).filter(Boolean);
+      
+      // Get product counts for the filtered categories
       const categoriesWithCounts = await Promise.all(
-        (data || []).map(async (category) => {
+        filteredCategories.map(async (category) => {
           const { count } = await supabase
             .from('products')
             .select('*', { count: 'exact', head: true })
@@ -49,10 +57,7 @@ export const OptimizedCategoryGrid = () => {
         })
       );
       
-      // Sort by product count (descending) and return top 8 categories with most products
-      return categoriesWithCounts
-        .sort((a, b) => b.product_count - a.product_count)
-        .slice(0, 8);
+      return categoriesWithCounts;
     },
     staleTime: 600000, // Cache for 10 minutes
     gcTime: 1200000, // Keep in cache for 20 minutes
