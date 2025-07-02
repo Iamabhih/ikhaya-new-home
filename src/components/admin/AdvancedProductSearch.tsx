@@ -49,7 +49,7 @@ export const AdvancedProductSearch = ({
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
 
-  // Auto-search with debounced query
+  // Auto-search with debounced query - removed onSearch from deps to prevent infinite loop
   useEffect(() => {
     const searchFilters = {
       ...filters,
@@ -58,7 +58,7 @@ export const AdvancedProductSearch = ({
     };
     
     onSearch(searchFilters);
-  }, [filters, priceRange, onSearch]);
+  }, [filters, priceRange]); // Removed onSearch from dependencies
 
   // Load saved searches from localStorage
   useEffect(() => {

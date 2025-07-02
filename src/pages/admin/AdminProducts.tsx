@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Upload, Calendar, Settings, BarChart3, Table, Grid } from "lucide-react";
@@ -144,7 +144,7 @@ const AdminProducts = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleQuickEdit = async (productId: string, field: string, value: any) => {
+  const handleQuickEdit = useCallback(async (productId: string, field: string, value: any) => {
     try {
       const { error } = await supabase
         .from('products')
@@ -156,7 +156,11 @@ const AdminProducts = () => {
     } catch (error) {
       console.error('Quick edit failed:', error);
     }
-  };
+  }, []);
+
+  const handleSearchFilters = useCallback((filters: any) => {
+    setSearchFilters(filters);
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -210,7 +214,7 @@ const AdminProducts = () => {
           <TabsContent value="list" className="space-y-4">
             <ErrorBoundary>
               <AdvancedProductSearch
-                onSearch={setSearchFilters}
+                onSearch={handleSearchFilters}
                 categories={categories}
                 totalCount={productsData?.totalCount}
                 isLoading={productsLoading}
