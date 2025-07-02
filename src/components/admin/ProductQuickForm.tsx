@@ -30,6 +30,8 @@ export const ProductQuickForm = ({ onClose, productId }: ProductQuickFormProps) 
     is_active: true,
     is_featured: false,
     short_description: "",
+    description: "",
+    compare_at_price: "",
   });
 
   const { data: categories } = useQuery({
@@ -72,6 +74,8 @@ export const ProductQuickForm = ({ onClose, productId }: ProductQuickFormProps) 
         is_active: product.is_active ?? true,
         is_featured: product.is_featured ?? false,
         short_description: product.short_description || "",
+        description: product.description || "",
+        compare_at_price: product.compare_at_price?.toString() || "",
       });
     }
   }, [product]);
@@ -124,12 +128,14 @@ export const ProductQuickForm = ({ onClose, productId }: ProductQuickFormProps) 
         name: formData.name.trim(),
         slug: generateSlug(formData.name),
         price: parseFloat(formData.price),
+        compare_at_price: formData.compare_at_price ? parseFloat(formData.compare_at_price) : null,
         stock_quantity: parseInt(formData.stock_quantity) || 0,
         category_id: formData.category_id || null,
         sku: formData.sku.trim().toUpperCase() || null,
         is_active: formData.is_active,
         is_featured: formData.is_featured,
         short_description: formData.short_description.trim() || null,
+        description: formData.description.trim() || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -183,17 +189,31 @@ export const ProductQuickForm = ({ onClose, productId }: ProductQuickFormProps) 
             />
           </div>
           <div>
-            <Label htmlFor="stock">Stock Quantity</Label>
+            <Label htmlFor="compare_price">Compare At Price (R)</Label>
             <Input
-              id="stock"
+              id="compare_price"
               type="number"
-              min="0"
-              value={formData.stock_quantity}
-              onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
-              placeholder="0"
+              step="0.01"
+              min="0.01"
+              value={formData.compare_at_price}
+              onChange={(e) => setFormData(prev => ({ ...prev, compare_at_price: e.target.value }))}
+              placeholder="0.00"
               disabled={isSubmitting}
             />
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="stock">Stock Quantity</Label>
+          <Input
+            id="stock"
+            type="number"
+            min="0"
+            value={formData.stock_quantity}
+            onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
+            placeholder="0"
+            disabled={isSubmitting}
+          />
         </div>
 
         <div>
@@ -229,14 +249,27 @@ export const ProductQuickForm = ({ onClose, productId }: ProductQuickFormProps) 
         </div>
 
         <div>
-          <Label htmlFor="description">Short Description</Label>
+          <Label htmlFor="short_description">Short Description</Label>
           <Textarea
-            id="description"
+            id="short_description"
             value={formData.short_description}
             onChange={(e) => setFormData(prev => ({ ...prev, short_description: e.target.value }))}
             placeholder="Brief product description..."
-            rows={3}
+            rows={2}
             maxLength={500}
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="description">Full Description</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="Detailed product description..."
+            rows={4}
+            maxLength={5000}
             disabled={isSubmitting}
           />
         </div>

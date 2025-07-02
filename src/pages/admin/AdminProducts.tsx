@@ -61,12 +61,23 @@ const AdminProducts = () => {
         query = query.eq('is_featured', true);
       }
 
+      // On sale filter - products with compare_at_price higher than current price
+      if (searchFilters.onSaleOnly) {
+        query = query.not('compare_at_price', 'is', null)
+                     .gte('compare_at_price', 'price');
+      }
+
       if (searchFilters.minPrice !== undefined) {
         query = query.gte('price', searchFilters.minPrice);
       }
 
       if (searchFilters.maxPrice !== undefined) {
         query = query.lte('price', searchFilters.maxPrice);
+      }
+
+      // Add rating filter if provided
+      if (searchFilters.minRating !== undefined) {
+        query = query.gte('average_rating', searchFilters.minRating);
       }
 
       // Apply sorting

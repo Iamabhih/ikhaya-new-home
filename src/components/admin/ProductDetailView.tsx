@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Edit, Package, Clock, Tag, Archive, Copy } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Edit, Package, Clock, Tag, Archive, Copy, Image } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { ProductImageManager } from "./ProductImageManager";
 
 interface Product {
   id: string;
@@ -27,6 +30,8 @@ interface ProductDetailViewProps {
 }
 
 export const ProductDetailView = ({ product, onEdit, onClose }: ProductDetailViewProps) => {
+  const [showImageManager, setShowImageManager] = useState(false);
+  
   const formatCurrency = (amount: number) => `R${amount.toFixed(2)}`;
   
   const getStockStatus = (quantity: number) => {
@@ -124,6 +129,19 @@ export const ProductDetailView = ({ product, onEdit, onClose }: ProductDetailVie
           <Edit className="h-4 w-4 mr-2" />
           Edit Product
         </Button>
+        
+        <Sheet open={showImageManager} onOpenChange={setShowImageManager}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="flex-1">
+              <Image className="h-4 w-4 mr-2" />
+              Manage Images
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-full sm:w-96">
+            <ProductImageManager productId={product.id} />
+          </SheetContent>
+        </Sheet>
+        
         <Button variant="outline" className="flex-1">
           <Copy className="h-4 w-4 mr-2" />
           Duplicate
