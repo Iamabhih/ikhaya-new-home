@@ -201,7 +201,7 @@ export const PaginatedProductList = ({
 
   if (error) {
     toast.error('Failed to load products');
-    return <div className="text-center py-8 text-red-500">Failed to load products</div>;
+    return <div className="text-center py-8 text-destructive">Failed to load products</div>;
   }
 
   const isAllSelected = selectedProducts.length === products.length && products.length > 0;

@@ -85,8 +85,8 @@ export const ProductManagementLayout = ({
   };
 
   const ProductCard = ({ product }: { product: Product }) => (
-    <Card className="group hover:shadow-lg transition-all duration-200 border hover:border-primary/20">
-      <CardContent className="p-4">
+    <Card className="group hover:shadow-lg transition-all duration-200 border hover:border-primary/20 h-full">
+      <CardContent className="p-4 flex flex-col h-full">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm truncate mb-1">{product.name}</h3>
@@ -94,11 +94,11 @@ export const ProductManagementLayout = ({
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="bg-popover">
               <DropdownMenuItem onClick={() => setSelectedProduct(product)}>
                 <Eye className="h-4 w-4 mr-2" />
                 View Details
@@ -112,7 +112,7 @@ export const ProductManagementLayout = ({
                 Duplicate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem className="text-destructive">
                 <Archive className="h-4 w-4 mr-2" />
                 Archive
               </DropdownMenuItem>
@@ -121,8 +121,8 @@ export const ProductManagementLayout = ({
         </div>
 
         <div className="flex items-center justify-between mb-3">
-          <div className="text-lg font-semibold">R{product.price.toFixed(2)}</div>
-          <div className="flex gap-1">
+          <div className="text-lg font-semibold text-primary">R{product.price.toFixed(2)}</div>
+          <div className="flex gap-1 flex-wrap">
             {product.is_featured && (
               <Badge variant="secondary" className="text-xs">Featured</Badge>
             )}
@@ -132,14 +132,14 @@ export const ProductManagementLayout = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
           <span>Stock: {product.stock_quantity}</span>
-          <span>{product.categories?.name || "Uncategorized"}</span>
+          <span className="truncate ml-2">{product.categories?.name || "Uncategorized"}</span>
         </div>
 
         <Separator className="my-3" />
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-auto">
           <Button 
             size="sm" 
             variant="outline" 
@@ -319,13 +319,17 @@ export const ProductManagementLayout = ({
 
       {/* Product List */}
       {isLoading ? (
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "space-y-3"}>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4">
-                <div className="h-4 bg-muted rounded mb-2"></div>
-                <div className="h-3 bg-muted rounded mb-2"></div>
-                <div className="h-3 bg-muted rounded"></div>
+        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4" : "space-y-3"}>
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Card key={i} className="animate-pulse h-48">
+              <CardContent className="p-4 space-y-3">
+                <div className="h-4 bg-muted rounded"></div>
+                <div className="h-3 bg-muted rounded w-3/4"></div>
+                <div className="h-6 bg-muted rounded w-1/2"></div>
+                <div className="flex gap-2 mt-auto">
+                  <div className="h-8 bg-muted rounded flex-1"></div>
+                  <div className="h-8 bg-muted rounded flex-1"></div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -349,7 +353,7 @@ export const ProductManagementLayout = ({
       ) : (
         <div className={
           viewMode === 'grid' 
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" 
+            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4" 
             : "space-y-3"
         }>
           {products.map((product) => 

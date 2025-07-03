@@ -167,7 +167,7 @@ export const ProductBulkActions = ({ selectedProducts, onClearSelection }: Produ
                     Export Selected
                   </div>
                 </SelectItem>
-                <SelectItem value="delete" className="text-red-600">
+                <SelectItem value="delete" className="text-destructive">
                   <div className="flex items-center gap-2">
                     <Trash2 className="h-4 w-4" />
                     Delete Products
@@ -211,7 +211,7 @@ export const ProductBulkActions = ({ selectedProducts, onClearSelection }: Produ
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleBulkAction('delete')}
-                          className="bg-red-600 hover:bg-red-700"
+                          className="bg-destructive hover:bg-destructive/90"
                         >
                           Delete Products
                         </AlertDialogAction>

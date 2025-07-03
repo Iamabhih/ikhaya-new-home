@@ -150,7 +150,7 @@ export const ProductDetailView = ({ product, onEdit, onClose }: ProductDetailVie
           <Tag className="h-4 w-4 mr-2" />
           Manage Tags
         </Button>
-        <Button variant="outline" className="flex-1 text-red-600 hover:text-red-700">
+        <Button variant="outline" className="flex-1 text-destructive hover:text-destructive/90">
           <Archive className="h-4 w-4 mr-2" />
           Archive
         </Button>
