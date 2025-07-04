@@ -41,7 +41,9 @@ interface Product {
   is_active: boolean;
   is_featured: boolean;
   category_id: string;
+  brand_id: string;
   categories?: { name: string };
+  brands?: { name: string };
   created_at: string;
 }
 
@@ -54,6 +56,7 @@ interface ProductManagementLayoutProps {
   selectedProducts: string[];
   onSearch: (filters: any) => void;
   categories: Array<{ id: string; name: string }>;
+  brands: Array<{ id: string; name: string }>;
 }
 
 export const ProductManagementLayout = ({
@@ -65,6 +68,7 @@ export const ProductManagementLayout = ({
   selectedProducts,
   onSearch,
   categories,
+  brands,
 }: ProductManagementLayoutProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -132,9 +136,16 @@ export const ProductManagementLayout = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-          <span>Stock: {product.stock_quantity}</span>
-          <span className="truncate ml-2">{product.categories?.name || "Uncategorized"}</span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Stock: {product.stock_quantity}</span>
+            <span className="truncate ml-2">{product.categories?.name || "Uncategorized"}</span>
+          </div>
+          {product.brands?.name && (
+            <div className="text-xs font-medium text-primary/80">
+              {product.brands.name}
+            </div>
+          )}
         </div>
 
         <Separator className="my-3" />
@@ -183,6 +194,9 @@ export const ProductManagementLayout = ({
               <span>R{product.price.toFixed(2)}</span>
               <span>Stock: {product.stock_quantity}</span>
               <span>{product.categories?.name || "Uncategorized"}</span>
+              {product.brands?.name && (
+                <span className="text-primary/80 font-medium">{product.brands.name}</span>
+              )}
             </div>
           </div>
           <div className="flex gap-2">
@@ -275,6 +289,7 @@ export const ProductManagementLayout = ({
                   <AdvancedProductSearch
                     onSearch={onSearch}
                     categories={categories}
+                    brands={brands}
                     totalCount={totalCount}
                     isLoading={isLoading}
                   />

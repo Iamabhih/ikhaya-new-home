@@ -25,7 +25,22 @@ const AdminProducts = () => {
         .from('categories')
         .select('id, name')
         .eq('is_active', true)
-        .order('name');
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 300000,
+  });
+
+  // Fetch brands for search filters
+  const { data: brands = [] } = useQuery({
+    queryKey: ['brands-for-search'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('brands')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -40,8 +55,9 @@ const AdminProducts = () => {
         .from('products')
         .select(`
           id, name, sku, price, stock_quantity, is_active, is_featured, 
-          category_id, created_at,
-          categories:category_id(name)
+          category_id, brand_id, created_at,
+          categories:category_id(name),
+          brands:brand_id(name)
         `, { count: 'exact' });
 
       // Apply search filters
@@ -51,6 +67,10 @@ const AdminProducts = () => {
 
       if (searchFilters.categoryId) {
         query = query.eq('category_id', searchFilters.categoryId);
+      }
+
+      if (searchFilters.brandId) {
+        query = query.eq('brand_id', searchFilters.brandId);
       }
 
       if (searchFilters.inStockOnly) {
@@ -164,6 +184,7 @@ const AdminProducts = () => {
               selectedProducts={selectedProducts}
               onSearch={handleSearchFilters}
               categories={categories}
+              brands={brands}
             />
           </ErrorBoundary>
         </TabsContent>

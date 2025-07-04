@@ -17,7 +17,9 @@ interface Product {
   is_active: boolean;
   is_featured: boolean;
   category_id: string;
+  brand_id?: string;
   categories?: { name: string };
+  brands?: { name: string };
   created_at: string;
   description?: string;
   short_description?: string;

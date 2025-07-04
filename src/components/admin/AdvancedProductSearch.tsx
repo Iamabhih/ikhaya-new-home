@@ -14,6 +14,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 interface SearchFilters {
   query: string;
   categoryId?: string;
+  brandId?: string;
   minPrice?: number;
   maxPrice?: number;
   sortBy: 'name' | 'price-asc' | 'price-desc' | 'newest' | 'featured' | 'performance';
@@ -33,13 +34,15 @@ interface SavedSearch {
 interface AdvancedProductSearchProps {
   onSearch: (filters: SearchFilters) => void;
   categories: Array<{ id: string; name: string }>;
+  brands: Array<{ id: string; name: string }>;
   isLoading?: boolean;
   totalCount?: number;
 }
 
 export const AdvancedProductSearch = ({ 
   onSearch, 
-  categories, 
+  categories,
+  brands, 
   isLoading,
   totalCount 
 }: AdvancedProductSearchProps) => {
@@ -113,6 +116,7 @@ export const AdvancedProductSearch = ({
 
   const hasActiveFilters = Boolean(
     filters.categoryId || 
+    filters.brandId ||
     filters.inStockOnly === true || 
     filters.featuredOnly === true || 
     filters.onSaleOnly === true ||
@@ -198,7 +202,7 @@ export const AdvancedProductSearch = ({
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Category Filter */}
                   <div>
                     <Label>Category</Label>
@@ -214,6 +218,27 @@ export const AdvancedProductSearch = ({
                         {categories?.map((category) => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Brand Filter */}
+                  <div>
+                    <Label>Brand</Label>
+                    <Select
+                      value={filters.brandId || ""}
+                      onValueChange={(value) => handleFilterChange('brandId', value || undefined)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All brands" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All brands</SelectItem>
+                        {brands?.map((brand) => (
+                          <SelectItem key={brand.id} value={brand.id}>
+                            {brand.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

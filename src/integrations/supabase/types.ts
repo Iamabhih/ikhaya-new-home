@@ -155,6 +155,42 @@ export type Database = {
           },
         ]
       }
+      brands: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          slug: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          slug: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -994,6 +1030,7 @@ export type Database = {
       products: {
         Row: {
           average_rating: number | null
+          brand_id: string | null
           category_id: string | null
           compare_at_price: number | null
           cost_price: number | null
@@ -1021,6 +1058,7 @@ export type Database = {
         }
         Insert: {
           average_rating?: number | null
+          brand_id?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -1048,6 +1086,7 @@ export type Database = {
         }
         Update: {
           average_rating?: number | null
+          brand_id?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           cost_price?: number | null
@@ -1074,6 +1113,13 @@ export type Database = {
           wholesale_price?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_category_id_fkey"
             columns: ["category_id"]
