@@ -22,6 +22,7 @@ const ProductsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [facetedFilters, setFacetedFilters] = useState<{
     categories?: string[];
+    brands?: string[];
     ratings?: number[];
     priceRanges?: string[];
     inStock?: boolean;
@@ -67,6 +68,7 @@ const ProductsPage = () => {
   // Check if filters are active to determine loading strategy
   const hasActiveFilters = searchQuery.trim() || 
     facetedFilters.categories?.length || 
+    facetedFilters.brands?.length ||
     priceRange.min !== undefined || 
     priceRange.max !== undefined || 
     facetedFilters.inStock;
@@ -81,6 +83,7 @@ const ProductsPage = () => {
       'products-filtered',
       searchQuery,
       facetedFilters.categories,
+      facetedFilters.brands,
       priceRange.min,
       priceRange.max,
       facetedFilters.inStock,
@@ -92,6 +95,7 @@ const ProductsPage = () => {
       console.log('Fetching products with filters:', {
         searchQuery,
         categories: facetedFilters.categories,
+        brands: facetedFilters.brands,
         priceRange,
         inStock: facetedFilters.inStock,
         sortBy,
@@ -116,6 +120,11 @@ const ProductsPage = () => {
       // Apply category filter
       if (facetedFilters.categories?.length) {
         query = query.in('category_id', facetedFilters.categories);
+      }
+
+      // Apply brand filter
+      if (facetedFilters.brands?.length) {
+        query = query.in('brand_id', facetedFilters.brands);
       }
 
       // Apply price filter

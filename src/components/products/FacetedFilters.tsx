@@ -12,12 +12,14 @@ import { ChevronDown, X, Star } from "lucide-react";
 interface FacetedFiltersProps {
   onFiltersChange: (filters: {
     categories?: string[];
+    brands?: string[];
     ratings?: number[];
     priceRanges?: string[];
     inStock?: boolean;
   }) => void;
   selectedFilters: {
     categories?: string[];
+    brands?: string[];
     ratings?: number[];
     priceRanges?: string[];
     inStock?: boolean;
@@ -27,6 +29,7 @@ interface FacetedFiltersProps {
 export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFiltersProps) => {
   const [openSections, setOpenSections] = useState({
     categories: true,
+    brands: true,
     ratings: false,
     price: false,
     availability: false
@@ -41,7 +44,7 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
         .from('categories')
         .select('id, name, slug')
         .eq('is_active', true)
-        .order('name');
+        .order('sort_order', { ascending: true });
       
       if (categoriesError) throw categoriesError;
       
@@ -65,6 +68,43 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
       
       // Only return categories that have products
       return categoriesWithCounts.filter(cat => cat.product_count > 0);
+    },
+    staleTime: 300000, // 5 minutes
+  });
+
+  // Fetch brands with accurate product counts
+  const { data: brands = [] } = useQuery({
+    queryKey: ['faceted-brands-with-counts'],
+    queryFn: async () => {
+      // Get brands with product counts using aggregation
+      const { data: brandsData, error: brandsError } = await supabase
+        .from('brands')
+        .select('id, name, slug')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      
+      if (brandsError) throw brandsError;
+      
+      // Get product counts for each brand
+      const brandsWithCounts = await Promise.all(
+        brandsData.map(async (brand) => {
+          const { count, error } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('brand_id', brand.id)
+            .eq('is_active', true);
+          
+          if (error) {
+            console.error(`Error counting products for brand ${brand.name}:`, error);
+            return { ...brand, product_count: 0 };
+          }
+          
+          return { ...brand, product_count: count || 0 };
+        })
+      );
+      
+      // Only return brands that have products
+      return brandsWithCounts.filter(brand => brand.product_count > 0);
     },
     staleTime: 300000, // 5 minutes
   });
@@ -136,6 +176,15 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
     onFiltersChange({ ...selectedFilters, categories: updated });
   };
 
+  const handleBrandChange = (brandId: string, checked: boolean) => {
+    const current = selectedFilters.brands || [];
+    const updated = checked 
+      ? [...current, brandId]
+      : current.filter(id => id !== brandId);
+    
+    onFiltersChange({ ...selectedFilters, brands: updated });
+  };
+
   const handleRatingChange = (rating: number, checked: boolean) => {
     const current = selectedFilters.ratings || [];
     const updated = checked 
@@ -160,6 +209,7 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
 
   const activeFilterCount = 
     (selectedFilters.categories?.length || 0) +
+    (selectedFilters.brands?.length || 0) +
     (selectedFilters.ratings?.length || 0) +
     (selectedFilters.priceRanges?.length || 0) +
     (selectedFilters.inStock ? 1 : 0);
@@ -203,6 +253,34 @@ export const FacetedFilters = ({ onFiltersChange, selectedFilters }: FacetedFilt
                 >
                   <span>{category.name}</span>
                   <span className="text-muted-foreground">({category.product_count})</span>
+                </label>
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Brands */}
+        <Collapsible open={openSections.brands} onOpenChange={() => toggleSection('brands')}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+              <span className="font-medium">Brands</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${openSections.brands ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-2 mt-2">
+            {brands.map((brand) => (
+              <div key={brand.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`brand-${brand.id}`}
+                  checked={selectedFilters.brands?.includes(brand.id) || false}
+                  onCheckedChange={(checked) => handleBrandChange(brand.id, checked as boolean)}
+                />
+                <label
+                  htmlFor={`brand-${brand.id}`}
+                  className="text-sm flex-1 cursor-pointer flex justify-between"
+                >
+                  <span>{brand.name}</span>
+                  <span className="text-muted-foreground">({brand.product_count})</span>
                 </label>
               </div>
             ))}
