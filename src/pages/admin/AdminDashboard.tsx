@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, ShoppingCart, Users, CreditCard, TrendingUp, AlertTriangle } from "lucide-react";
+import { Package, ShoppingCart, Users, CreditCard, TrendingUp, AlertTriangle, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
@@ -287,6 +287,20 @@ const AdminDashboard = () => {
             {/* SuperAdmin Only Actions */}
             {roles.includes('superadmin') && (
               <>
+                <Link to="/superadmin/settings">
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer border-destructive">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-destructive">
+                        <Settings className="h-5 w-5" />
+                        SuperAdmin Settings
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">Manage categories, brands, and system configuration</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
                 <Link to="/admin/users">
                   <Card className="hover:shadow-md transition-shadow cursor-pointer border-destructive">
                     <CardHeader>
