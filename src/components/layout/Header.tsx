@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/useCart";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/hooks/useRoles";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { MobileNav } from "./MobileNav";

@@ -6,7 +6,7 @@ import { Package, ShoppingCart, Users, Plus, BarChart3, Settings, Shield } from 
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/hooks/useRoles";
 
 export const AdminQuickActions = () => {

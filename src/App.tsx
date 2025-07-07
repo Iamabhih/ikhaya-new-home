@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SecurityProvider } from "@/contexts/SecurityContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { BrowserCompatibilityChecker } from "@/components/common/BrowserCompatibilityChecker";
 import { ConditionalScriptLoader } from "@/components/common/ConditionalScriptLoader";
 import { EmergencyLoader } from "@/components/common/EmergencyLoader";
@@ -61,9 +62,10 @@ function App() {
         <ConditionalScriptLoader>
           <QueryClientProvider client={queryClient}>
             <SecurityProvider>
-              <TooltipProvider>
-                <Toaster />
-                <BrowserRouter>
+              <AuthProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <BrowserRouter>
                   <MobileSafeComponent name="Router">
                     <Routes>
                       {/* Public routes */}
@@ -105,7 +107,7 @@ function App() {
                         <Route path="/admin/setup" element={<AdminSetupPage />} />
                         <Route path="/superadmin" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminDashboard /></AdminProtectedRoute>} />
                         <Route path="/superadmin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminUsers /></AdminProtectedRoute>} />
-                        <Route path="/superadmin/settings" element={<SuperAdminSettings />} />
+                        <Route path="/superadmin/settings" element={<AdminProtectedRoute requireSuperAdmin={true}><SuperAdminSettings /></AdminProtectedRoute>} />
                         <Route path="/superadmin/setup" element={<AdminSetupPage />} />
                       
                       {/* 404 route */}
@@ -114,9 +116,10 @@ function App() {
                   </MobileSafeComponent>
                 </BrowserRouter>
               </TooltipProvider>
-            </SecurityProvider>
-          </QueryClientProvider>
-        </ConditionalScriptLoader>
+            </AuthProvider>
+          </SecurityProvider>
+        </QueryClientProvider>
+      </ConditionalScriptLoader>
       </BrowserCompatibilityChecker>
     </EmergencyLoader>
   );
