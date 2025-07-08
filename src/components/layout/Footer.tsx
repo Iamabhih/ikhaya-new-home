@@ -82,7 +82,7 @@ export const Footer = () => {
                 <MapPin className="h-4 w-4 mt-0.5" />
                 <div>
                   <div className="font-medium">IKHAYA HOMESTORE</div>
-                  <span>Block D, Shop 88 China City, Springfield Park</span>
+                  <span>Block D, Shop 88 China City, Springfield Park, Durban, Kwa-Zulu Natal, South Africa</span>
                 </div>
               </div>
               
