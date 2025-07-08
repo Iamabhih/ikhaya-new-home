@@ -24,6 +24,15 @@ export const Footer = () => {
                 <Twitter className="h-5 w-5" />
               </a>
             </div>
+            
+            {/* OZZ Cash & Carry Logo */}
+            <div className="pt-4">
+              <img 
+                src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png" 
+                alt="OZZ Cash & Carry" 
+                className="h-16 w-auto"
+              />
+            </div>
           </div>
 
           {/* Quick Links */}
