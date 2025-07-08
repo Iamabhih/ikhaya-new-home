@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,9 +107,8 @@ const AdminReturns = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
+    <AdminProtectedRoute>
+      <AdminLayout>
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">Return Management</h1>
@@ -285,9 +284,8 @@ const AdminReturns = () => {
             </CardContent>
           </Card>
         </div>
-      </main>
-      <Footer />
-    </div>
+      </AdminLayout>
+    </AdminProtectedRoute>
   );
 };
 

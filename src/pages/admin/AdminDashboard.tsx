@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { AdminQuickActions } from "@/components/admin/AdminQuickActions";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -86,9 +87,7 @@ const AdminDashboard = () => {
 
   return (
     <AdminProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
+      <AdminLayout>
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold">
@@ -331,9 +330,7 @@ const AdminDashboard = () => {
               </>
             )}
           </div>
-        </main>
-        <Footer />
-      </div>
+      </AdminLayout>
     </AdminProtectedRoute>
   );
 };

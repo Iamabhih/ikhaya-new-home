@@ -1,6 +1,5 @@
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { CategoryManagement } from "@/components/admin/CategoryManagement";
 import { BrandManagement } from "@/components/admin/BrandManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,9 +9,7 @@ import { Settings, Tags, Building2 } from "lucide-react";
 const SuperAdminSettings = () => {
   return (
     <AdminProtectedRoute requireSuperAdmin={true}>
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
+      <AdminLayout>
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <Settings className="h-8 w-8 text-primary" />
@@ -65,9 +62,7 @@ const SuperAdminSettings = () => {
               </TabsContent>
             </Tabs>
           </div>
-        </main>
-        <Footer />
-      </div>
+      </AdminLayout>
     </AdminProtectedRoute>
   );
 };

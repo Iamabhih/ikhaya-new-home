@@ -5,6 +5,8 @@ import { ProductImportScheduler } from "@/components/admin/ProductImportSchedule
 import { ProductAnalyticsDashboard } from "@/components/admin/ProductAnalyticsDashboard";
 import { ProductManagementLayout } from "@/components/admin/ProductManagementLayout";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -165,7 +167,9 @@ const AdminProducts = () => {
   }, []);
 
   return (
-    <ErrorBoundary>
+    <AdminProtectedRoute>
+      <AdminLayout>
+        <ErrorBoundary>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="products">Products</TabsTrigger>
@@ -208,7 +212,9 @@ const AdminProducts = () => {
         </TabsContent>
 
       </Tabs>
-    </ErrorBoundary>
+        </ErrorBoundary>
+      </AdminLayout>
+    </AdminProtectedRoute>
   );
 };
 

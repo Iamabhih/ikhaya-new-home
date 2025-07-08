@@ -2,8 +2,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "sonner";
 
 const AdminPayments = () => {
@@ -56,23 +55,17 @@ const AdminPayments = () => {
   if (isLoading) {
     return (
       <AdminProtectedRoute>
-        <div className="min-h-screen bg-background">
-          <Header />
-          <main className="container mx-auto px-4 py-8">
-            <div className="text-center py-8">Loading payment methods...</div>
-          </main>
-          <Footer />
-        </div>
+        <AdminLayout>
+          <div className="text-center py-8">Loading payment methods...</div>
+        </AdminLayout>
       </AdminProtectedRoute>
     );
   }
 
   return (
-    <AdminProtectedRoute requireSuperAdmin>
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-8">Payment Settings</h1>
+    <AdminProtectedRoute>
+      <AdminLayout>
+        <h1 className="text-3xl font-bold mb-8">Payment Settings</h1>
 
           <div className="space-y-6">
             {paymentMethods.map((method) => (
@@ -172,9 +165,7 @@ const AdminPayments = () => {
               </Card>
             ))}
           </div>
-        </main>
-        <Footer />
-      </div>
+      </AdminLayout>
     </AdminProtectedRoute>
   );
 };
