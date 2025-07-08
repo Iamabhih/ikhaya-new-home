@@ -11,7 +11,7 @@ const ShippingPage = () => {
     {
       name: "Standard Delivery",
       duration: "3-5 Business Days",
-      cost: "R149",
+      cost: "R99",
       description: "Our standard shipping option for most areas in South Africa",
       icon: Truck
     },
@@ -24,7 +24,7 @@ const ShippingPage = () => {
     },
     {
       name: "Free Shipping",
-      duration: "5-7 Business Days",
+      duration: "3-5 Business Days",
       cost: "Free",
       description: "Free standard shipping on orders over R1000",
       icon: Star
@@ -34,12 +34,12 @@ const ShippingPage = () => {
   const deliveryAreas = [
     {
       area: "Cape Town Metro",
-      duration: "1-2 days",
+      duration: "5-7 days",
       coverage: "All areas including suburbs"
     },
     {
       area: "Johannesburg Metro",
-      duration: "2-3 days",
+      duration: "3-5 days",
       coverage: "Johannesburg, Sandton, Pretoria"
     },
     {
@@ -49,7 +49,7 @@ const ShippingPage = () => {
     },
     {
       area: "Other Major Cities",
-      duration: "3-5 days",
+      duration: "5-7 days",
       coverage: "Port Elizabeth, Bloemfontein, East London"
     },
     {
