@@ -69,7 +69,7 @@ export const Footer = () => {
             <h3 className="font-semibold text-foreground">Contact Us</h3>
             <div className="space-y-3">
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <MapPin className="h-10 w-10" />
+                <MapPin className="h-12 w-12" />
                 <span> OZZ CASH & CARRY - 40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa
                   
                        IKHAYA HOMESTORE - Block D, Shop 88 China City, Springfield Park</span>
