@@ -71,6 +71,7 @@ export const Footer = () => {
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <MapPin className="h-12 w-12" />
                 <span> OZZ CASH & CARRY - 40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa
+                  
                        IKHAYA HOMESTORE - Block D, Shop 88 China City, Springfield Park</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
