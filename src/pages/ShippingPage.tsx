@@ -11,7 +11,7 @@ const ShippingPage = () => {
     {
       name: "Standard Delivery",
       duration: "3-5 Business Days",
-      cost: "R99",
+      cost: "R149",
       description: "Our standard shipping option for most areas in South Africa",
       icon: Truck
     },
@@ -24,7 +24,7 @@ const ShippingPage = () => {
     },
     {
       name: "Free Shipping",
-      duration: "3-5 Business Days",
+      duration: "5-7 Business Days",
       cost: "Free",
       description: "Free standard shipping on orders over R1000",
       icon: Star
