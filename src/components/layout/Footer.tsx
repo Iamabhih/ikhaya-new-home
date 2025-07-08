@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react";
-
 export const Footer = () => {
   return <footer className="bg-secondary/30 border-t">
       <div className="container mx-auto px-4 py-12">
@@ -8,6 +7,7 @@ export const Footer = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
+              
               <span className="font-bold text-lg text-primary">IKHAYA Homeware</span>
             </div>
             <p className="text-muted-foreground text-sm">
@@ -68,24 +68,12 @@ export const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground">Contact Us</h3>
             <div className="space-y-3">
-              {/* First Address - OZZ CASH & CARRY */}
-              <div className="flex items-start space-x-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 mt-0.5" />
-                <div>
-                  <div className="font-medium">OZZ CASH & CARRY</div>
-                  <span>40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa</span>
-                </div>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span> OZZ CASH & CARRY - 40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa
+                  
+                       IKHAYA HOMESTORE - Block D, Shop 88 China City, Springfield Park</span>
               </div>
-              
-              {/* Second Address - IKHAYA HOMESTORE */}
-              <div className="flex items-start space-x-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 mt-0.5" />
-                <div>
-                  <div className="font-medium">IKHAYA HOMESTORE</div>
-                  <span>Block D, Shop 88 China City, Springfield Park</span>
-                </div>
-              </div>
-              
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <Phone className="h-4 w-4" />
                 <span>+27 31 332 7192</span>
