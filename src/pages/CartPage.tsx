@@ -6,21 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { useState } from "react";
 
 const CartPage = () => {
   const { items, updateQuantity, removeItem, total, isLoading } = useCart();
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   // Safe image URL getter
-  const getProductImageUrl = (product) => {
+  const getProductImageUrl = (product: any) => {
     if (!product) return null;
-    
-    // Check product_images array first
-    if (product.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
-      return product.product_images[0]?.image_url || null;
-    }
-    
-    // Fallback to direct image_url
     return product.image_url || null;
+  };
+
+  // Handle image load errors
+  const handleImageError = (itemId: string) => {
+    setFailedImages(prev => new Set([...prev, itemId]));
   };
 
   // Safe quantity update handler
@@ -72,7 +72,6 @@ const CartPage = () => {
             {items[0]?.product && (
               <>
                 <p className="text-sm mt-1">Has image_url: {items[0].product.image_url ? 'YES' : 'NO'}</p>
-                <p className="text-sm mt-1">Has product_images: {items[0].product.product_images ? 'YES' : 'NO'}</p>
                 <p className="text-sm mt-1">Image URL: {getProductImageUrl(items[0].product) || 'None'}</p>
               </>
             )}
@@ -102,23 +101,18 @@ const CartPage = () => {
                 return (
                   <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
                     <div className="h-20 w-20 bg-muted rounded-md flex-shrink-0 overflow-hidden">
-                      {imageUrl ? (
+                      {imageUrl && !failedImages.has(item.id) ? (
                         <img 
                           src={imageUrl} 
                           alt={item.product.name || 'Product'}
                           className="h-full w-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
+                          onError={() => handleImageError(item.id)}
                         />
-                      ) : null}
-                      <div 
-                        className="h-full w-full bg-muted flex items-center justify-center"
-                        style={{ display: imageUrl ? 'none' : 'flex' }}
-                      >
-                        <ShoppingBag className="h-8 w-8 text-muted-foreground" />
-                      </div>
+                      ) : (
+                        <div className="h-full w-full bg-muted flex items-center justify-center">
+                          <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex-1">
