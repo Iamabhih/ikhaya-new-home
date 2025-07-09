@@ -38,6 +38,9 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
   };
 
   const handlePaymentMethodSelect = async (method: string) => {
+    // Prevent multiple submissions
+    if (isProcessing) return;
+    
     setSelectedPaymentMethod(method);
     
     if (items.length === 0) {
@@ -71,14 +74,18 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
 
       setPaymentResult(data);
       
-      // Clear cart after successful order creation
-      clearCart();
+      // Don't clear cart here - wait for payment confirmation
       
       // Handle different payment method responses
       if (method === 'payfast') {
         // Redirect to PayFast
         if (data.url && data.formData) {
-          // Create and submit form for PayFast
+          // Create and submit form for PayFast - ensure single submission
+          const existingForm = document.querySelector('form[action*="payfast"]');
+          if (existingForm) {
+            existingForm.remove();
+          }
+          
           const form = document.createElement('form');
           form.method = 'POST';
           form.action = data.url;
@@ -110,9 +117,12 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
           return;
         }
       } else if (method === 'bank_transfer' || method === 'eft') {
+        // Don't clear cart for manual payment methods
         setCurrentStep('success');
         toast.success("Order created! Banking details provided for payment.");
       } else if (method === 'cod') {
+        // Clear cart only for COD as it's immediately confirmed
+        clearCart();
         setCurrentStep('success');
         toast.success("Order confirmed! Payment will be collected on delivery.");
       } else {

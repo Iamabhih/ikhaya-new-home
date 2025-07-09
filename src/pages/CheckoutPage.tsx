@@ -9,6 +9,7 @@ import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 const CheckoutPage = () => {
   const { items, total } = useCart();
@@ -43,10 +44,14 @@ const CheckoutPage = () => {
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link to="/">Home</Link>
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/cart">Cart</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link to="/cart">Cart</Link>
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbItem>
               <BreadcrumbPage>Checkout</BreadcrumbPage>

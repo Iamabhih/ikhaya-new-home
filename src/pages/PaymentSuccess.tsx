@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Home, Package, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useCart } from "@/hooks/useCart";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
+  const { clearCart } = useCart();
   const orderId = searchParams.get('order_id');
   const paymentMethod = searchParams.get('payment_method');
   const [orderDetails, setOrderDetails] = useState<any>(null);
@@ -45,6 +47,12 @@ const PaymentSuccess = () => {
         if (error) throw error;
 
         setOrderDetails(data);
+        
+        // Clear cart only after successful payment verification
+        if (data.status === 'confirmed') {
+          clearCart();
+        }
+        
         toast.success("Payment processed successfully!");
       } catch (error) {
         console.error("Payment verification error:", error);
