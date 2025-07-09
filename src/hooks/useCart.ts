@@ -1,9 +1,15 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+
+interface ProductImage {
+  id: string;
+  image_url: string;
+  alt_text?: string;
+  display_order?: number;
+}
 
 export interface CartItem {
   id: string;
@@ -17,6 +23,7 @@ export interface CartItem {
     image_url?: string;
     short_description?: string;
     sku?: string;
+    product_images?: ProductImage[];
   };
 }
 
@@ -46,8 +53,15 @@ export const useCart = () => {
             name,
             price,
             slug,
+            image_url,
             short_description,
-            sku
+            sku,
+            product_images (
+              id,
+              image_url,
+              alt_text,
+              display_order
+            )
           )
         `);
 
