@@ -95,8 +95,8 @@ export const OptimizedFeaturedProducts = () => {
     <section className="py-20 bg-gradient-to-b from-background to-secondary/10 relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-40 right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse delay-300" />
-        <div className="absolute bottom-20 left-10 w-48 h-48 bg-secondary/15 rounded-full blur-2xl animate-pulse delay-700" />
+        <div className="absolute top-40 right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 left-10 w-48 h-48 bg-secondary/15 rounded-full blur-2xl animate-pulse" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
@@ -155,22 +155,6 @@ export const OptimizedFeaturedProducts = () => {
           </Card>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
-      `}</style>
     </section>
   );
 };
