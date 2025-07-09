@@ -4,13 +4,13 @@ import { Link } from "react-router-dom";
 
 export const HeroSection = () => {
   return (
-    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-secondary/10 to-accent/5">
+    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-secondary/10 to-primary/5">
       {/* Background Elements */}
       <div className="absolute inset-0">
         {/* Gradient Orbs */}
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/15 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent/10 rounded-full blur-3xl animate-pulse delay-500" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/15 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl animate-pulse" />
       </div>
 
       {/* Content */}
@@ -27,7 +27,7 @@ export const HeroSection = () => {
           {/* Main Heading */}
           <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight">
             Transform Your House Into a 
-            <span className="block bg-gradient-to-r from-primary via-primary/90 to-secondary bg-clip-text text-transparent animate-gradient">
+            <span className="block bg-gradient-to-r from-primary via-primary/90 to-secondary bg-clip-text text-transparent">
               Beautiful Home
             </span>
           </h1>
