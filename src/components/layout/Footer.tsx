@@ -1,219 +1,205 @@
-import { Link } from "react-router-dom";
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, Heart, ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShoppingCart, User, Search, Menu, X, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRoles } from "@/hooks/useRoles";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { MobileNav } from "./MobileNav";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-export const Footer = () => {
+export const Header = () => {
+  const { items } = useCart();
+  const { user, signOut } = useAuth();
+  const { isAdmin } = useRoles(user);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setAuthModalOpen(false);
+  };
+
   return (
-    <footer className="bg-gradient-to-br from-primary/5 via-secondary/10 to-background relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-secondary/15 rounded-full blur-3xl animate-pulse" />
-      </div>
+    <>
+      <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
+            
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-2">
+              <span className="text-2xl font-bold text-primary">IKHAYA</span>
+              <span className="text-sm text-gray-500 hidden sm:block">Homeware</span>
+            </Link>
 
-      <div className="container mx-auto px-4 py-16 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Company Info */}
-          <Card className="border-0 bg-white/10 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center space-x-2">
-                <span className="font-bold text-xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                  IKHAYA Homeware
-                </span>
-              </div>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Your home is your sanctuary. We provide quality homeware to make it beautiful, functional, and uniquely yours.
-              </p>
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-8">
+              <Link to="/products" className="text-gray-700 hover:text-primary transition-colors">
+                Products
+              </Link>
+              <Link to="/categories" className="text-gray-700 hover:text-primary transition-colors">
+                Categories
+              </Link>
+              <Link to="/about" className="text-gray-700 hover:text-primary transition-colors">
+                About
+              </Link>
+              <Link to="/contact" className="text-gray-700 hover:text-primary transition-colors">
+                Contact
+              </Link>
               
-              {/* Social Links */}
-              <div className="flex space-x-3">
-                <a 
-                  href="#" 
-                  className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 transition-all duration-300 hover:scale-110"
-                >
-                  <Facebook className="h-4 w-4" />
-                </a>
-                <a 
-                  href="#" 
-                  className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 transition-all duration-300 hover:scale-110"
-                >
-                  <Instagram className="h-4 w-4" />
-                </a>
-                <a 
-                  href="#" 
-                  className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 transition-all duration-300 hover:scale-110"
-                >
-                  <Twitter className="h-4 w-4" />
-                </a>
-              </div>
-              
-              {/* OZZ Cash & Carry Logo */}
-              <div className="pt-4">
-                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 hover:bg-white/30 transition-all duration-300">
-                  <img 
-                    src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png" 
-                    alt="OZZ Cash & Carry" 
-                    className="h-20 w-auto mx-auto hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              {isAdmin() && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Admin
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/products">Products</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/orders">Orders</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </nav>
 
-          {/* Quick Links */}
-          <Card className="border-0 bg-white/10 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <ArrowRight className="w-4 h-4 text-primary" />
-                Quick Links
-              </h3>
-              <nav className="flex flex-col space-y-3">
-                <Link 
-                  to="/products" 
-                  className="text-muted-foreground hover:text-primary transition-all duration-200 text-sm group flex items-center gap-2"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  All Products
-                </Link>
-                <Link 
-                  to="/categories" 
-                  className="text-muted-foreground hover:text-primary transition-all duration-200 text-sm group flex items-center gap-2"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  Categories
-                </Link>
-                <Link 
-                  to="/about" 
-                  className="text-muted-foreground hover:text-primary transition-all duration-200 text-sm group flex items-center gap-2"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  About Us
-                </Link>
-                <Link 
-                  to="/contact" 
-                  className="text-muted-foreground hover:text-primary transition-all duration-200 text-sm group flex items-center gap-2"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  Contact
-                </Link>
-              </nav>
-            </CardContent>
-          </Card>
-
-          {/* Customer Service */}
-          <Card className="border-0 bg-white/10 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <Heart className="w-4 h-4 text-primary" />
-                Customer Service
-              </h3>
-              <nav className="flex flex-col space-y-3">
-                <Link 
-                  to="/shipping" 
-                  className="text-muted-foreground hover:text-primary transition-all duration-200 text-sm group flex items-center gap-2"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  Shipping Info
-                </Link>
-                <Link 
-                  to="/returns" 
-                  className="text-muted-foreground hover:text-primary transition-all duration-200 text-sm group flex items-center gap-2"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  Returns & Exchanges
-                </Link>
-                <Link 
-                  to="/faq" 
-                  className="text-muted-foreground hover:text-primary transition-all duration-200 text-sm group flex items-center gap-2"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  FAQ
-                </Link>
-                <Link 
-                  to="/privacy" 
-                  className="text-muted-foreground hover:text-primary transition-all duration-200 text-sm group flex items-center gap-2"
-                >
-                  <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
-                  Privacy Policy
-                </Link>
-              </nav>
-            </CardContent>
-          </Card>
-
-          {/* Contact Info */}
-          <Card className="border-0 bg-white/10 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                Contact Us
-              </h3>
-              <div className="space-y-4">
-                {/* First Address - OZZ CASH & CARRY */}
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 hover:bg-white/30 transition-all duration-300">
-                  <div className="flex items-start space-x-2 text-sm">
-                    <MapPin className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
-                    <div>
-                      <div className="font-semibold text-foreground">OZZ CASH & CARRY</div>
-                      <span className="text-muted-foreground text-xs leading-relaxed">
-                        40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Second Address - IKHAYA HOMESTORE */}
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 hover:bg-white/30 transition-all duration-300">
-                  <div className="flex items-start space-x-2 text-sm">
-                    <MapPin className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
-                    <div>
-                      <div className="font-semibold text-foreground">IKHAYA HOMESTORE</div>
-                      <span className="text-muted-foreground text-xs leading-relaxed">
-                        Block D, Shop 88 China City, Springfield Park, Durban, Kwa-Zulu Natal, South Africa
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Contact Details */}
-                <div className="space-y-2">
-                  <a 
-                    href="tel:+27313327192"
-                    className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200 group"
-                  >
-                    <Phone className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
-                    <span>+27 31 332 7192</span>
-                  </a>
-                  <a 
-                    href="mailto:info@ikhaya.shop"
-                    className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200 group"
-                  >
-                    <Mail className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
-                    <span>info@ikhaya.shop</span>
-                  </a>
-                </div>
+            {/* Search */}
+            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-md mx-8">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input 
+                  placeholder="Search products..." 
+                  value={searchQuery} 
+                  onChange={(e) => setSearchQuery(e.target.value)} 
+                  className="pl-10"
+                />
               </div>
-            </CardContent>
-          </Card>
+            </form>
+
+            {/* Right Actions */}
+            <div className="flex items-center space-x-4">
+              {/* Mobile Search */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="md:hidden" 
+                onClick={() => navigate('/products')}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+
+              {/* Cart */}
+              <Link to="/cart">
+                <Button variant="ghost" size="icon" className="relative">
+                  <ShoppingCart className="h-5 w-5" />
+                  {itemCount > 0 && (
+                    <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
+                      {itemCount > 99 ? '99+' : itemCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+
+              {/* User Account */}
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="hidden sm:flex">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link to="/account">My Account</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/orders">My Orders</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut}>
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setAuthModalOpen(true)} 
+                  className="hidden sm:flex"
+                >
+                  Sign In
+                </Button>
+              )}
+
+              {/* Mobile Menu */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="lg:hidden" 
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
+          </div>
+
+          {/* Mobile Search */}
+          <div className="md:hidden pb-4">
+            <form onSubmit={handleSearch}>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input 
+                  placeholder="Search products..." 
+                  value={searchQuery} 
+                  onChange={(e) => setSearchQuery(e.target.value)} 
+                  className="pl-10"
+                />
+              </div>
+            </form>
+          </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="mt-12 pt-8 border-t border-white/20">
-          <Card className="border-0 bg-white/10 backdrop-blur-md shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <p className="text-sm text-muted-foreground text-center md:text-left">
-                  © 2025 IKHAYA Homeware. All rights reserved.
-                </p>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>Made with</span>
-                  <Heart className="w-3 h-3 text-red-500 animate-pulse" />
-                  <span>in South Africa</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </footer>
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t">
+            <MobileNav 
+              user={user} 
+              isAdmin={isAdmin()} 
+              onAuthClick={() => setAuthModalOpen(true)} 
+              onSignOut={signOut} 
+              onClose={() => setMobileMenuOpen(false)} 
+            />
+          </div>
+        )}
+      </header>
+
+      <AuthModal 
+        open={authModalOpen} 
+        onOpenChange={setAuthModalOpen} 
+        onAuthSuccess={handleAuthSuccess} 
+      />
+    </>
   );
 };
