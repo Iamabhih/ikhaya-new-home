@@ -28,6 +28,16 @@ const CartPage = () => {
     return null;
   };
 
+  // Get product description - try both fields
+  const getProductDescription = (product: any) => {
+    if (!product) return null;
+    // Try short_description first, then description, and truncate if too long
+    const desc = product.short_description || product.description;
+    if (!desc) return null;
+    // Truncate to ~150 characters for cart display
+    return desc.length > 150 ? desc.substring(0, 150) + '...' : desc;
+  };
+
   // Handle image load errors
   const handleImageError = (itemId: string) => {
     setFailedImages(prev => new Set([...prev, itemId]));
@@ -81,13 +91,15 @@ const CartPage = () => {
             <p className="text-sm">First product keys: {Object.keys(items[0]?.product || {}).join(', ')}</p>
             {items[0]?.product && (
               <>
-                <p className="text-sm mt-1">Has product_images: {items[0].product.product_images ? 'YES' : 'NO'}</p>
-                <p className="text-sm mt-1">Image count: {items[0].product.product_images?.length || 0}</p>
-                <p className="text-sm mt-1">First image URL: {getProductImageUrl(items[0].product) || 'None'}</p>
+                <p className="text-sm mt-1">Short description: "{items[0].product.short_description || 'NULL/EMPTY'}"</p>
+                <p className="text-sm mt-1">Description: "{items[0].product.description || 'NULL/EMPTY'}"</p>
+                <p className="text-sm mt-1">Using description: "{getProductDescription(items[0].product) || 'NONE'}"</p>
               </>
             )}
           </div>
         )}
+
+
 
         {!items || items.length === 0 ? (
           <div className="text-center py-12">
@@ -136,11 +148,14 @@ const CartPage = () => {
                       >
                         <h3 className="font-semibold text-lg leading-tight">{item.product.name || 'Unnamed Product'}</h3>
                       </Link>
-                      {item.product.short_description && (
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {item.product.short_description}
+                      
+                      {/* Show description from either field */}
+                      {getProductDescription(item.product) && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-3 overflow-hidden">
+                          {getProductDescription(item.product)}
                         </p>
                       )}
+                      
                       {item.product.sku && (
                         <p className="text-xs text-muted-foreground mt-1">
                           SKU: {item.product.sku}
