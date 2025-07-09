@@ -45,6 +45,20 @@ const CartPage = () => {
 
         <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
 
+        {/* TEMPORARY DEBUG INFO */}
+        {items.length > 0 && (
+          <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
+            <h3 className="font-bold mb-2">Debug Info (will remove this):</h3>
+            <p className="text-sm">First product keys: {Object.keys(items[0].product || {}).join(', ')}</p>
+            {items[0].product && (
+              <p className="text-sm mt-1">Has image_url: {items[0].product.image_url ? 'YES' : 'NO'}</p>
+            )}
+            {items[0].product && (
+              <p className="text-sm mt-1">Has product_images: {items[0].product.product_images ? 'YES' : 'NO'}</p>
+            )}
+          </div>
+        )}
+
         {items.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingBag className="mx-auto h-24 w-24 text-muted-foreground mb-4" />
@@ -59,7 +73,6 @@ const CartPage = () => {
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => (
                 <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                  {/* ONLY CHANGE: Replace gray box with image */}
                   <div className="h-20 w-20 bg-muted rounded-md flex-shrink-0 overflow-hidden">
                     {item.product.product_images && item.product.product_images.length > 0 ? (
                       <img 
