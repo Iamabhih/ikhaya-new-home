@@ -154,7 +154,7 @@ export const OptimizedCategoryGrid = () => {
               <Link key={category.id} to={`/categories/${category.slug}`}>
                 <Card className="hover:shadow-lg transition-shadow duration-300 group">
                   <CardContent className="p-6 text-center">
-                    <div className="h-24 w-24 rounded-full mx-auto mb-4 overflow-hidden group-hover:scale-105 transition-transform">
+                    <div className="h-28 w-28 rounded-full mx-auto mb-4 overflow-hidden group-hover:scale-105 transition-transform">
                       {category.image_url ? (
                         <img 
                           src={category.image_url} 
