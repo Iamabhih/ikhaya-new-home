@@ -24,11 +24,21 @@ const PaymentSuccess = () => {
       }
 
       try {
+        // Get payment reference from various possible URL parameters
+        const paymentReference = 
+          searchParams.get('reference') || 
+          searchParams.get('pf_payment_id') || // PayFast
+          searchParams.get('payment_token') || // PayFlex
+          searchParams.get('transaction_id') || 
+          '';
+
+        console.log('Verifying payment:', { orderId, paymentMethod, paymentReference });
+
         const { data, error } = await supabase.functions.invoke('verify-payment', {
           body: { 
             orderId,
             paymentMethod,
-            paymentReference: searchParams.get('reference') || ''
+            paymentReference
           }
         });
 
@@ -38,14 +48,14 @@ const PaymentSuccess = () => {
         toast.success("Payment processed successfully!");
       } catch (error) {
         console.error("Payment verification error:", error);
-        toast.error("Unable to verify payment status");
+        toast.error("Unable to verify payment status. Please contact support if payment was completed.");
       } finally {
         setIsVerifying(false);
       }
     };
 
     verifyPayment();
-  }, [orderId, paymentMethod]);
+  }, [orderId, paymentMethod, searchParams]);
 
   return (
     <div className="min-h-screen bg-background">

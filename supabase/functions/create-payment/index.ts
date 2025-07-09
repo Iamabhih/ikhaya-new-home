@@ -112,24 +112,65 @@ serve(async (req) => {
 
     switch (paymentMethod) {
       case 'payfast':
-        // For now, return order details - Payfast integration to be implemented
+        // PayFast sandbox integration
+        const payfastData = {
+          // Sandbox merchant details
+          merchant_id: '10000100',
+          merchant_key: '46f0cd694581a',
+          return_url: `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'vercel.app') || 'http://localhost:3000'}/payment/success?order_id=${order.id}&payment_method=payfast`,
+          cancel_url: `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'vercel.app') || 'http://localhost:3000'}/checkout?cancelled=true`,
+          notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
+          // Order details
+          name_first: customerInfo.firstName,
+          name_last: customerInfo.lastName,
+          email_address: customerInfo.email,
+          cell_number: customerInfo.phone || '',
+          m_payment_id: orderNumber,
+          amount: totalAmount.toFixed(2),
+          item_name: `Order ${orderNumber}`,
+          item_description: `${items.length} items from IKHAYA Homeware`,
+          // Test mode
+          custom_str1: 'test_mode',
+          custom_str2: order.id
+        }
+        
         paymentResponse = {
           type: 'payfast',
           orderId: order.id,
           orderNumber: orderNumber,
           amount: totalAmount,
-          message: 'Payfast integration to be implemented'
+          url: 'https://sandbox.payfast.co.za/eng/process',
+          formData: payfastData,
+          message: 'Redirect to PayFast for payment processing'
         }
         break
 
       case 'payflex':
-        // For now, return order details - Payflex integration to be implemented
+        // PayFlex sandbox integration
+        const payflexData = {
+          amount: Math.round(totalAmount * 100), // Amount in cents
+          currency: 'ZAR',
+          description: `Order ${orderNumber} - IKHAYA Homeware`,
+          merchant_reference: orderNumber,
+          webhook_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
+          success_url: `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'vercel.app') || 'http://localhost:3000'}/payment/success?order_id=${order.id}&payment_method=payflex`,
+          failure_url: `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'vercel.app') || 'http://localhost:3000'}/checkout?failed=true`,
+          customer: {
+            first_name: customerInfo.firstName,
+            last_name: customerInfo.lastName,
+            email: customerInfo.email,
+            mobile_number: customerInfo.phone || ''
+          }
+        }
+        
         paymentResponse = {
           type: 'payflex',
           orderId: order.id,
           orderNumber: orderNumber,
           amount: totalAmount,
-          message: 'Payflex integration to be implemented'
+          url: 'https://sandbox.payflex.co.za/v1/checkouts',
+          paymentData: payflexData,
+          message: 'Redirect to PayFlex for payment processing'
         }
         break
 

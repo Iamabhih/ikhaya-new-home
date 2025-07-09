@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,7 +75,41 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
       clearCart();
       
       // Handle different payment method responses
-      if (method === 'bank_transfer' || method === 'eft') {
+      if (method === 'payfast') {
+        // Redirect to PayFast
+        if (data.url && data.formData) {
+          // Create and submit form for PayFast
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = data.url;
+          form.style.display = 'none';
+          
+          Object.keys(data.formData).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = data.formData[key];
+            form.appendChild(input);
+          });
+          
+          document.body.appendChild(form);
+          form.submit();
+          return;
+        }
+      } else if (method === 'payflex') {
+        // Redirect to PayFlex
+        if (data.url && data.paymentData) {
+          // For PayFlex, we'd typically make an API call to create a checkout session
+          // For now, redirect with payment data
+          const queryParams = new URLSearchParams({
+            orderId: data.orderId,
+            amount: data.amount.toString(),
+            orderNumber: data.orderNumber
+          });
+          window.location.href = `${data.url}?${queryParams.toString()}`;
+          return;
+        }
+      } else if (method === 'bank_transfer' || method === 'eft') {
         setCurrentStep('success');
         toast.success("Order created! Banking details provided for payment.");
       } else if (method === 'cod') {

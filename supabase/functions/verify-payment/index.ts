@@ -43,15 +43,29 @@ serve(async (req) => {
     // Handle payment verification based on payment method
     switch (paymentMethod) {
       case 'payfast':
-        // Implement Payfast payment verification logic here
-        // For now, just mark as confirmed
-        orderStatus = 'confirmed'
+        // PayFast payment verification
+        // In production, verify the payment signature and status
+        // For sandbox testing, we'll mark as confirmed if we have a payment reference
+        if (paymentReference) {
+          orderStatus = 'confirmed'
+          console.log('PayFast payment confirmed:', { orderId, paymentReference })
+        } else {
+          orderStatus = 'pending'
+          console.log('PayFast payment pending verification:', { orderId })
+        }
         break
 
       case 'payflex':
-        // Implement Payflex payment verification logic here
-        // For now, just mark as confirmed
-        orderStatus = 'confirmed'
+        // PayFlex payment verification
+        // In production, verify the webhook signature and payment status
+        // For sandbox testing, we'll mark as confirmed if we have a payment reference
+        if (paymentReference) {
+          orderStatus = 'confirmed'
+          console.log('PayFlex payment confirmed:', { orderId, paymentReference })
+        } else {
+          orderStatus = 'pending'
+          console.log('PayFlex payment pending verification:', { orderId })
+        }
         break
 
       case 'instant_eft':

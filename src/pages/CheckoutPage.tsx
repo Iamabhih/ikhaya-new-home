@@ -8,6 +8,7 @@ import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 const CheckoutPage = () => {
   const { items, total } = useCart();
@@ -17,6 +18,17 @@ const CheckoutPage = () => {
   useEffect(() => {
     if (items.length === 0) {
       navigate("/cart");
+    }
+    
+    // Check for payment status in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('cancelled') === 'true') {
+      toast.error("Payment was cancelled. Please try again.");
+      window.history.replaceState({}, '', '/checkout');
+    }
+    if (urlParams.get('failed') === 'true') {
+      toast.error("Payment failed. Please try again or choose a different payment method.");
+      window.history.replaceState({}, '', '/checkout');
     }
   }, [items.length, navigate]);
 
