@@ -12,10 +12,20 @@ const CartPage = () => {
   const { items, updateQuantity, removeItem, total, isLoading } = useCart();
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
-  // Safe image URL getter
+  // Safe image URL getter for product_images table
   const getProductImageUrl = (product: any) => {
     if (!product) return null;
-    return product.image_url || null;
+    
+    // Check product_images array
+    if (product.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
+      // Sort by sort_order if available, otherwise use first image
+      const sortedImages = product.product_images.sort((a: any, b: any) => 
+        (a.sort_order || 0) - (b.sort_order || 0)
+      );
+      return sortedImages[0]?.image_url || null;
+    }
+    
+    return null;
   };
 
   // Handle image load errors
@@ -71,8 +81,9 @@ const CartPage = () => {
             <p className="text-sm">First product keys: {Object.keys(items[0]?.product || {}).join(', ')}</p>
             {items[0]?.product && (
               <>
-                <p className="text-sm mt-1">Has image_url: {items[0].product.image_url ? 'YES' : 'NO'}</p>
-                <p className="text-sm mt-1">Image URL: {getProductImageUrl(items[0].product) || 'None'}</p>
+                <p className="text-sm mt-1">Has product_images: {items[0].product.product_images ? 'YES' : 'NO'}</p>
+                <p className="text-sm mt-1">Image count: {items[0].product.product_images?.length || 0}</p>
+                <p className="text-sm mt-1">First image URL: {getProductImageUrl(items[0].product) || 'None'}</p>
               </>
             )}
           </div>
