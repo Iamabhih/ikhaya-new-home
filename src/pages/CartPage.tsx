@@ -32,7 +32,7 @@ const CartPage = () => {
   const getProductDescription = (product: any) => {
     if (!product) return null;
     // Try short_description first, then description, and truncate if too long
-    const desc = product.short_description || product.description;
+    const desc = (product as any).short_description || (product as any).description;
     if (!desc) return null;
     // Truncate to ~150 characters for cart display
     return desc.length > 150 ? desc.substring(0, 150) + '...' : desc;
@@ -92,7 +92,7 @@ const CartPage = () => {
             {items[0]?.product && (
               <>
                 <p className="text-sm mt-1">Short description: "{items[0].product.short_description || 'NULL/EMPTY'}"</p>
-                <p className="text-sm mt-1">Description: "{items[0].product.description || 'NULL/EMPTY'}"</p>
+                <p className="text-sm mt-1">Description: "{(items[0].product as any).description || 'NULL/EMPTY'}"</p>
                 <p className="text-sm mt-1">Using description: "{getProductDescription(items[0].product) || 'NONE'}"</p>
               </>
             )}
