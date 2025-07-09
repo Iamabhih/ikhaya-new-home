@@ -11,6 +11,35 @@ import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbP
 const CartPage = () => {
   const { items, updateQuantity, removeItem, total, isLoading } = useCart();
 
+  // Helper function to get product image
+  const getProductImage = (product) => {
+    // Check for product_images array
+    if (product.product_images && product.product_images.length > 0) {
+      // Find primary image first
+      const primaryImage = product.product_images.find(img => img.is_primary);
+      if (primaryImage && primaryImage.image_url) {
+        return primaryImage.image_url;
+      }
+      // If no primary, use first image
+      const firstImage = product.product_images[0];
+      if (firstImage && firstImage.image_url) {
+        return firstImage.image_url;
+      }
+    }
+    
+    // Check for direct image_url on product
+    if (product.image_url) {
+      return product.image_url;
+    }
+    
+    // Check for images array (alternative structure)
+    if (product.images && product.images.length > 0) {
+      return product.images[0];
+    }
+    
+    return null;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -162,96 +191,107 @@ const CartPage = () => {
                   </div>
                   
                   <div className="space-y-4">
-                    {items.map((item, index) => (
-                      <Card 
-                        key={item.id} 
-                        className="border-0 bg-white/30 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex items-center gap-6">
-                            {/* Product Image */}
-                            <div className="h-24 w-24 bg-gradient-to-br from-secondary/20 to-secondary/40 rounded-lg flex-shrink-0 overflow-hidden shadow-md">
-                              {item.product.product_images?.length > 0 ? (
-                                <img 
-                                  src={item.product.product_images[0].image_url} 
-                                  alt={item.product.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center">
+                    {items.map((item, index) => {
+                      const imageUrl = getProductImage(item.product);
+                      
+                      return (
+                        <Card 
+                          key={item.id} 
+                          className="border-0 bg-white/30 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden"
+                          style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                          <CardContent className="p-6">
+                            <div className="flex items-center gap-6">
+                              {/* Product Image */}
+                              <div className="h-24 w-24 rounded-lg flex-shrink-0 overflow-hidden shadow-md bg-gray-100">
+                                {imageUrl ? (
+                                  <img 
+                                    src={imageUrl} 
+                                    alt={item.product.name}
+                                    className="h-full w-full object-cover"
+                                    onError={(e) => {
+                                      // If image fails to load, show placeholder
+                                      e.target.style.display = 'none';
+                                      e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                <div 
+                                  className="h-full w-full flex items-center justify-center bg-gradient-to-br from-secondary/20 to-secondary/40"
+                                  style={{ display: imageUrl ? 'none' : 'flex' }}
+                                >
                                   <Package className="h-8 w-8 text-muted-foreground" />
                                 </div>
-                              )}
-                            </div>
-                            
-                            {/* Product Details */}
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
-                                {item.product.name}
-                              </h3>
-                              <p className="text-primary font-bold text-lg">
-                                R{item.product.price?.toFixed(2)}
-                              </p>
-                              {item.product.description && (
-                                <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
-                                  {item.product.description}
+                              </div>
+                              
+                              {/* Product Details */}
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
+                                  {item.product.name}
+                                </h3>
+                                <p className="text-primary font-bold text-lg">
+                                  R{item.product.price?.toFixed(2)}
                                 </p>
-                              )}
-                            </div>
-                            
-                            {/* Quantity Controls */}
-                            <div className="flex items-center gap-3">
+                                {item.product.description && (
+                                  <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
+                                    {item.product.description}
+                                  </p>
+                                )}
+                              </div>
+                              
+                              {/* Quantity Controls */}
+                              <div className="flex items-center gap-3">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-10 w-10 bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                                  onClick={() => updateQuantity({ itemId: item.id, quantity: Math.max(1, item.quantity - 1) })}
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                                
+                                <Input
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => updateQuantity({ itemId: item.id, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                                  className="w-20 text-center bg-white/70 backdrop-blur-sm border-primary/20 focus:ring-2 focus:ring-primary/20"
+                                  min="1"
+                                />
+                                
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-10 w-10 bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                                  onClick={() => updateQuantity({ itemId: item.id, quantity: item.quantity + 1 })}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              
+                              {/* Remove Button */}
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-10 w-10 bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-                                onClick={() => updateQuantity({ itemId: item.id, quantity: Math.max(1, item.quantity - 1) })}
+                                className="h-10 w-10 bg-white/70 backdrop-blur-sm border-red-200 hover:bg-red-500 hover:text-white transition-all duration-200"
+                                onClick={() => removeItem(item.id)}
                               >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              
-                              <Input
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => updateQuantity({ itemId: item.id, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                                className="w-20 text-center bg-white/70 backdrop-blur-sm border-primary/20 focus:ring-2 focus:ring-primary/20"
-                                min="1"
-                              />
-                              
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-10 w-10 bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-                                onClick={() => updateQuantity({ itemId: item.id, quantity: item.quantity + 1 })}
-                              >
-                                <Plus className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                             
-                            {/* Remove Button */}
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-10 w-10 bg-white/70 backdrop-blur-sm border-red-200 hover:bg-red-500 hover:text-white transition-all duration-200"
-                              onClick={() => removeItem(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          
-                          {/* Item Total */}
-                          <div className="flex justify-end mt-4 pt-4 border-t border-white/30">
-                            <div className="text-right">
-                              <p className="text-sm text-muted-foreground">Item Total</p>
-                              <p className="text-lg font-bold text-primary">
-                                R{(item.product.price * item.quantity).toFixed(2)}
-                              </p>
+                            {/* Item Total */}
+                            <div className="flex justify-end mt-4 pt-4 border-t border-white/30">
+                              <div className="text-right">
+                                <p className="text-sm text-muted-foreground">Item Total</p>
+                                <p className="text-lg font-bold text-primary">
+                                  R{(item.product.price * item.quantity).toFixed(2)}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -272,7 +312,7 @@ const CartPage = () => {
             </div>
 
             {/* Order Summary */}
-            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg h-fit sticky top-8">
+            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg h-fit">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <ShoppingCart className="w-5 h-5 text-primary" />
