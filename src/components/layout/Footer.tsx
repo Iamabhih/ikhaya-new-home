@@ -1,20 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingCart, User, Search, Menu, X, Settings } from "lucide-react";
+import { ShoppingCart, User, Search, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRoles } from "@/hooks/useRoles";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { MobileNav } from "./MobileNav";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const Header = () => {
   const { items } = useCart();
   const { user, signOut } = useAuth();
-  const { isAdmin } = useRoles(user);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,7 +18,7 @@ export const Header = () => {
 
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
@@ -30,125 +26,107 @@ export const Header = () => {
     }
   };
 
-  const handleAuthSuccess = () => {
-    setAuthModalOpen(false);
-  };
-
   return (
-    <>
-      <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
+    <div>
+      <header style={{ 
+        position: 'sticky', 
+        top: 0, 
+        zIndex: 50, 
+        width: '100%', 
+        backgroundColor: 'white', 
+        borderBottom: '1px solid #e5e7eb',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+          <div style={{ 
+            display: 'flex', 
+            height: '64px', 
+            alignItems: 'center', 
+            justifyContent: 'space-between' 
+          }}>
             
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-primary">IKHAYA</span>
-              <span className="text-sm text-gray-500 hidden sm:block">Homeware</span>
+            <Link to="/" style={{ textDecoration: 'none' }}>
+              <span style={{ 
+                fontSize: '24px', 
+                fontWeight: 'bold', 
+                color: '#3b82f6' 
+              }}>
+                IKHAYA Homeware
+              </span>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-8">
-              <Link to="/products" className="text-gray-700 hover:text-primary transition-colors">
+            <nav style={{ display: 'none' }} className="lg:flex lg:items-center lg:space-x-8">
+              <Link to="/products" style={{ color: '#374151', textDecoration: 'none' }}>
                 Products
               </Link>
-              <Link to="/categories" className="text-gray-700 hover:text-primary transition-colors">
+              <Link to="/categories" style={{ color: '#374151', textDecoration: 'none' }}>
                 Categories
               </Link>
-              <Link to="/about" className="text-gray-700 hover:text-primary transition-colors">
+              <Link to="/about" style={{ color: '#374151', textDecoration: 'none' }}>
                 About
               </Link>
-              <Link to="/contact" className="text-gray-700 hover:text-primary transition-colors">
+              <Link to="/contact" style={{ color: '#374151', textDecoration: 'none' }}>
                 Contact
               </Link>
-              
-              {isAdmin() && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Admin
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin">Dashboard</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/products">Products</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/orders">Orders</Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
             </nav>
 
             {/* Search */}
-            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-md mx-8">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <form onSubmit={handleSearch} style={{ display: 'none' }} className="md:block md:flex-1 md:max-w-md md:mx-8">
+              <div style={{ position: 'relative' }}>
                 <Input 
                   placeholder="Search products..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-10"
+                  style={{ paddingLeft: '40px' }}
                 />
+                <Search style={{ 
+                  position: 'absolute', 
+                  left: '12px', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  width: '16px', 
+                  height: '16px', 
+                  color: '#9ca3af' 
+                }} />
               </div>
             </form>
 
             {/* Right Actions */}
-            <div className="flex items-center space-x-4">
-              {/* Mobile Search */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="md:hidden" 
-                onClick={() => navigate('/products')}
-              >
-                <Search className="h-5 w-5" />
-              </Button>
-
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {/* Cart */}
               <Link to="/cart">
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingCart className="h-5 w-5" />
+                <Button variant="ghost" size="icon" style={{ position: 'relative' }}>
+                  <ShoppingCart style={{ width: '20px', height: '20px' }} />
                   {itemCount > 0 && (
-                    <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
+                    <Badge 
+                      variant="destructive" 
+                      style={{ 
+                        position: 'absolute', 
+                        top: '-8px', 
+                        right: '-8px', 
+                        minWidth: '20px', 
+                        height: '20px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        fontSize: '12px' 
+                      }}
+                    >
                       {itemCount > 99 ? '99+' : itemCount}
                     </Badge>
                   )}
                 </Button>
               </Link>
 
-              {/* User Account */}
+              {/* User */}
               {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="hidden sm:flex">
-                      <User className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link to="/account">My Account</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/orders">My Orders</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut}>
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="ghost" onClick={signOut}>
+                  Sign Out
+                </Button>
               ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setAuthModalOpen(true)} 
-                  className="hidden sm:flex"
-                >
+                <Button onClick={() => setAuthModalOpen(true)}>
                   Sign In
                 </Button>
               )}
@@ -160,22 +138,30 @@ export const Header = () => {
                 className="lg:hidden" 
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {mobileMenuOpen ? <X /> : <Menu />}
               </Button>
             </div>
           </div>
 
           {/* Mobile Search */}
-          <div className="md:hidden pb-4">
+          <div className="md:hidden" style={{ paddingBottom: '16px' }}>
             <form onSubmit={handleSearch}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <div style={{ position: 'relative' }}>
                 <Input 
                   placeholder="Search products..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-10"
+                  style={{ paddingLeft: '40px' }}
                 />
+                <Search style={{ 
+                  position: 'absolute', 
+                  left: '12px', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  width: '16px', 
+                  height: '16px', 
+                  color: '#9ca3af' 
+                }} />
               </div>
             </form>
           </div>
@@ -183,14 +169,21 @@ export const Header = () => {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t">
-            <MobileNav 
-              user={user} 
-              isAdmin={isAdmin()} 
-              onAuthClick={() => setAuthModalOpen(true)} 
-              onSignOut={signOut} 
-              onClose={() => setMobileMenuOpen(false)} 
-            />
+          <div className="lg:hidden" style={{ borderTop: '1px solid #e5e7eb', padding: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Link to="/products" style={{ color: '#374151', textDecoration: 'none' }}>
+                Products
+              </Link>
+              <Link to="/categories" style={{ color: '#374151', textDecoration: 'none' }}>
+                Categories
+              </Link>
+              <Link to="/about" style={{ color: '#374151', textDecoration: 'none' }}>
+                About
+              </Link>
+              <Link to="/contact" style={{ color: '#374151', textDecoration: 'none' }}>
+                Contact
+              </Link>
+            </div>
           </div>
         )}
       </header>
@@ -198,8 +191,8 @@ export const Header = () => {
       <AuthModal 
         open={authModalOpen} 
         onOpenChange={setAuthModalOpen} 
-        onAuthSuccess={handleAuthSuccess} 
+        onAuthSuccess={() => setAuthModalOpen(false)} 
       />
-    </>
+    </div>
   );
 };
