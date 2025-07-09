@@ -28,8 +28,6 @@ const CartPage = () => {
     return null;
   };
 
-export default CartPage;
-
   // Get product description - try both fields
   const getProductDescription = (product: any) => {
     if (!product) return null;
@@ -46,8 +44,8 @@ export default CartPage;
   };
 
   // Safe quantity update handler
-  const handleQuantityChange = (itemId, newQuantity) => {
-    const quantity = Math.max(1, parseInt(newQuantity) || 1);
+  const handleQuantityChange = (itemId: string, newQuantity: string | number) => {
+    const quantity = Math.max(1, parseInt(newQuantity.toString()) || 1);
     updateQuantity({ itemId, quantity });
   };
 
@@ -100,8 +98,6 @@ export default CartPage;
             )}
           </div>
         )}
-
-
 
         {!items || items.length === 0 ? (
           <div className="text-center py-12">
