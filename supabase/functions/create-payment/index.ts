@@ -1,10 +1,69 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// PayFlex OAuth2 token helper
+async function getPayflexAccessToken() {
+  const tokenEndpoint = 'https://auth-uat.payflex.co.za/auth/merchant'
+  const audience = 'https://auth-dev.payflex.co.za'
+  
+  const tokenRequest = {
+    client_id: Deno.env.get('PAYFLEX_CLIENT_ID'),
+    client_secret: Deno.env.get('PAYFLEX_CLIENT_SECRET'),
+    audience: audience,
+    grant_type: 'client_credentials'
+  }
+
+  try {
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(tokenRequest)
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to get PayFlex token: ${response.status} ${response.statusText}`)
+    }
+
+    const tokenData = await response.json()
+    return tokenData.access_token
+  } catch (error) {
+    console.error('PayFlex authentication error:', error)
+    throw new Error('Failed to authenticate with PayFlex')
+  }
+}
+
+// Create PayFlex checkout
+async function createPayflexCheckout(orderData: any, accessToken: string) {
+  const checkoutEndpoint = 'https://api.uat.payflex.co.za/v1/checkouts'
+  
+  try {
+    const response = await fetch(checkoutEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(orderData)
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('PayFlex checkout error:', response.status, errorText)
+      throw new Error(`Failed to create PayFlex checkout: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('PayFlex checkout creation error:', error)
+    throw new Error('Failed to create PayFlex checkout')
+  }
 }
 
 serve(async (req) => {
@@ -45,6 +104,9 @@ serve(async (req) => {
 
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+
+    // Get base URL for redirects
+    const baseUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:3000'
 
     // Create order in database
     const { data: order, error: orderError } = await supabaseClient
@@ -117,8 +179,8 @@ serve(async (req) => {
           // Sandbox merchant details
           merchant_id: '10000100',
           merchant_key: '46f0cd694581a',
-          return_url: `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'vercel.app') || 'http://localhost:3000'}/payment/success?order_id=${order.id}&payment_method=payfast`,
-          cancel_url: `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'vercel.app') || 'http://localhost:3000'}/checkout?cancelled=true`,
+          return_url: `${baseUrl}/payment/success?order_id=${order.id}&payment_method=payfast`,
+          cancel_url: `${baseUrl}/checkout?cancelled=true`,
           notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
           // Order details
           name_first: customerInfo.firstName,
@@ -146,31 +208,55 @@ serve(async (req) => {
         break
 
       case 'payflex':
-        // PayFlex sandbox integration
-        const payflexData = {
-          amount: Math.round(totalAmount * 100), // Amount in cents
-          currency: 'ZAR',
-          description: `Order ${orderNumber} - IKHAYA Homeware`,
-          merchant_reference: orderNumber,
-          webhook_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
-          success_url: `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'vercel.app') || 'http://localhost:3000'}/payment/success?order_id=${order.id}&payment_method=payflex`,
-          failure_url: `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'vercel.app') || 'http://localhost:3000'}/checkout?failed=true`,
-          customer: {
-            first_name: customerInfo.firstName,
-            last_name: customerInfo.lastName,
-            email: customerInfo.email,
-            mobile_number: customerInfo.phone || ''
+        try {
+          // Get PayFlex access token
+          const accessToken = await getPayflexAccessToken()
+          
+          // Prepare PayFlex checkout data
+          const payflexCheckoutData = {
+            amount: Math.round(totalAmount * 100), // Amount in cents
+            currency: 'ZAR',
+            description: `Order ${orderNumber} - IKHAYA Homeware`,
+            merchant_reference: orderNumber,
+            webhook_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
+            success_url: `${baseUrl}/payment/success?order_id=${order.id}&payment_method=payflex`,
+            failure_url: `${baseUrl}/checkout?failed=true`,
+            customer: {
+              first_name: customerInfo.firstName,
+              last_name: customerInfo.lastName,
+              email: customerInfo.email,
+              mobile_number: customerInfo.phone || '',
+              address: {
+                line1: customerInfo.address,
+                city: customerInfo.city,
+                state: customerInfo.province,
+                postal_code: customerInfo.postalCode,
+                country: 'ZA'
+              }
+            },
+            items: items.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              amount: Math.round(item.price * 100), // Amount in cents
+              category: 'physical_goods'
+            }))
           }
-        }
-        
-        paymentResponse = {
-          type: 'payflex',
-          orderId: order.id,
-          orderNumber: orderNumber,
-          amount: totalAmount,
-          url: 'https://sandbox.payflex.co.za/v1/checkouts',
-          paymentData: payflexData,
-          message: 'Redirect to PayFlex for payment processing'
+          
+          // Create PayFlex checkout
+          const payflexCheckout = await createPayflexCheckout(payflexCheckoutData, accessToken)
+          
+          paymentResponse = {
+            type: 'payflex',
+            orderId: order.id,
+            orderNumber: orderNumber,
+            amount: totalAmount,
+            checkoutId: payflexCheckout.id,
+            checkoutUrl: payflexCheckout.checkout_url,
+            message: 'Redirect to PayFlex for payment processing'
+          }
+        } catch (error) {
+          console.error('PayFlex integration error:', error)
+          throw new Error(`PayFlex payment setup failed: ${error.message}`)
         }
         break
 
