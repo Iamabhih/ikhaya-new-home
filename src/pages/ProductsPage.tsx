@@ -10,9 +10,10 @@ import { FacetedFilters } from "@/components/products/FacetedFilters";
 import { VirtualizedProductGrid } from "@/components/products/VirtualizedProductGrid";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Grid, List, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { Grid, List, ChevronLeft, ChevronRight, SlidersHorizontal, Search, Filter } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Card } from "@/components/ui/card";
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -240,112 +241,155 @@ const ProductsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>All Products</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      
+      {/* Hero Section */}
+      <section className="bg-gradient-to-b from-secondary/30 to-background py-16">
+        <div className="container mx-auto px-4">
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbPage>All Products</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
-        {/* Enhanced Search */}
-        <div className="mb-6">
-          <AutocompleteSearch
-            onSearch={handleSearch}
-            initialValue={searchQuery}
-            placeholder="Search for products..."
-          />
+          <div className="text-center max-w-4xl mx-auto mb-8">
+            <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              {searchQuery ? `Search Results` : 'All Products'}
+            </h1>
+            <p className="text-muted-foreground text-xl leading-relaxed mb-8">
+              Discover our complete collection of premium homeware. Find exactly what you need with our advanced search and filtering options.
+            </p>
+          </div>
+
+          {/* Modern Search Bar */}
+          <div className="max-w-2xl mx-auto">
+            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
+              <div className="p-6">
+                <AutocompleteSearch
+                  onSearch={handleSearch}
+                  initialValue={searchQuery}
+                  placeholder="Search for products..."
+                />
+              </div>
+            </Card>
+          </div>
         </div>
+      </section>
 
-        <div className="flex gap-6">
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex gap-8">
           {/* Desktop Filters */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
-            <FacetedFilters
-              selectedFilters={facetedFilters}
-              onFiltersChange={handleFiltersChange}
-            />
+          <div className="hidden lg:block w-72 flex-shrink-0">
+            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg sticky top-8">
+              <div className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Filter className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold text-lg">Filters</h3>
+                </div>
+                <FacetedFilters
+                  selectedFilters={facetedFilters}
+                  onFiltersChange={handleFiltersChange}
+                />
+              </div>
+            </Card>
           </div>
 
           {/* Main Content */}
           <div className="flex-1">
             {/* Results Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div>
-                <h1 className="text-2xl font-bold">
-                  {searchQuery ? `Search Results` : 'All Products'}
-                </h1>
-                <p className="text-muted-foreground">
-                  {totalCount.toLocaleString()} product{totalCount !== 1 ? 's' : ''} found
-                  {hasActiveFilters && products.length !== totalCount && !useVirtualization && (
-                    <span className="ml-2 text-sm">
-                      (showing {products.length})
-                    </span>
-                  )}
-                  {useVirtualization && (
-                    <span className="ml-2 text-xs bg-chart-1/20 text-chart-1 px-2 py-1 rounded">
-                      Optimized View
-                    </span>
-                  )}
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {/* Mobile Filter Button */}
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="lg:hidden">
-                      <SlidersHorizontal className="h-4 w-4 mr-2" />
-                      Filters
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-80">
-                    <SheetHeader>
-                      <SheetTitle>Filters</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6">
-                      <FacetedFilters
-                        selectedFilters={facetedFilters}
-                        onFiltersChange={handleFiltersChange}
-                      />
+            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mb-8">
+              <div className="p-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Search className="h-5 w-5 text-primary" />
+                      <span className="text-2xl font-bold">
+                        {totalCount.toLocaleString()} 
+                        <span className="text-lg font-medium text-muted-foreground ml-2">
+                          product{totalCount !== 1 ? 's' : ''} found
+                        </span>
+                      </span>
                     </div>
-                  </SheetContent>
-                </Sheet>
+                    {hasActiveFilters && products.length !== totalCount && !useVirtualization && (
+                      <p className="text-sm text-muted-foreground">
+                        Showing {products.length} results
+                      </p>
+                    )}
+                    {useVirtualization && (
+                      <div className="inline-flex items-center gap-2 mt-2">
+                        <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">
+                          Optimized View
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    {/* Mobile Filter Button */}
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="outline" size="sm" className="lg:hidden bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all duration-200">
+                          <SlidersHorizontal className="h-4 w-4 mr-2" />
+                          Filters
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="left" className="w-80 bg-white/95 backdrop-blur-md">
+                        <SheetHeader>
+                          <SheetTitle className="flex items-center gap-2">
+                            <Filter className="h-5 w-5" />
+                            Filters
+                          </SheetTitle>
+                        </SheetHeader>
+                        <div className="mt-6">
+                          <FacetedFilters
+                            selectedFilters={facetedFilters}
+                            onFiltersChange={handleFiltersChange}
+                          />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
 
-                {/* Sort */}
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name A-Z</SelectItem>
-                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="featured">Featured</SelectItem>
-                  </SelectContent>
-                </Select>
+                    {/* Sort */}
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-48 bg-white/70 backdrop-blur-sm border-primary/20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white/95 backdrop-blur-md">
+                        <SelectItem value="name">Name A-Z</SelectItem>
+                        <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                        <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="featured">Featured</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                {/* View Mode */}
-                <Button
-                  variant={viewMode === "grid" ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => setViewMode("grid")}
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
+                    {/* View Mode */}
+                    <div className="flex rounded-lg overflow-hidden border border-primary/20">
+                      <Button
+                        variant={viewMode === "grid" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setViewMode("grid")}
+                        className="rounded-none"
+                      >
+                        <Grid className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === "list" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setViewMode("list")}
+                        className="rounded-none"
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </Card>
 
             {/* Product Grid */}
             {isLoading ? (
@@ -355,7 +399,14 @@ const ProductsPage = () => {
                   : "grid-cols-1"
               }`}>
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="h-64 bg-muted animate-pulse rounded-lg" />
+                  <Card key={i} className="border-0 bg-white/50 backdrop-blur-sm shadow-lg animate-pulse">
+                    <div className="h-72 bg-gradient-to-br from-secondary/20 to-secondary/40 rounded-t-lg" />
+                    <div className="p-4 space-y-3">
+                      <div className="h-4 bg-secondary/30 rounded animate-pulse" />
+                      <div className="h-3 bg-secondary/20 rounded w-3/4 animate-pulse" />
+                      <div className="h-5 bg-secondary/30 rounded w-1/2 animate-pulse" />
+                    </div>
+                  </Card>
                 ))}
               </div>
             ) : useVirtualization && viewMode === "grid" ? (
@@ -378,75 +429,96 @@ const ProductsPage = () => {
             )}
 
             {products.length === 0 && !isLoading && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">
-                  {searchQuery 
-                    ? `No products found matching "${searchQuery}". Try different keywords or browse our categories.`
-                    : "No products found matching your criteria."
-                  }
-                </p>
-                {searchQuery && (
-                  <Button variant="outline" onClick={clearSearch} className="mt-4">
-                    View All Products
-                  </Button>
-                )}
-              </div>
+              <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <Search className="h-8 w-8 text-primary/60" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">No Products Found</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    {searchQuery 
+                      ? `No products found matching "${searchQuery}". Try different keywords or browse our categories.`
+                      : "No products found matching your criteria. Try adjusting your filters."
+                    }
+                  </p>
+                  {(searchQuery || hasActiveFilters) && (
+                    <Button onClick={clearSearch} className="bg-primary hover:bg-primary/90">
+                      View All Products
+                    </Button>
+                  )}
+                </div>
+              </Card>
             )}
 
-            {/* Pagination - only show when not using virtualization */}
+            {/* Modern Pagination */}
             {!useVirtualization && totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-8">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                
-                <div className="flex gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
+              <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mt-8">
+                <div className="p-6">
+                  <div className="flex justify-center items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className="bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    
+                    <div className="flex gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
 
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(pageNum)}
-                        className="w-8 h-8 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`w-10 h-10 p-0 ${
+                              currentPage === pageNum 
+                                ? "" 
+                                : "bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground"
+                            }`}
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className="bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                  
+                  <div className="text-center mt-4 text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages} • {totalCount} total products
+                  </div>
                 </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+              </Card>
             )}
           </div>
         </div>
       </main>
+      
       <Footer />
     </div>
   );
