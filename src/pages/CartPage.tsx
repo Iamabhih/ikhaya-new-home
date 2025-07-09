@@ -59,7 +59,27 @@ const CartPage = () => {
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => (
                 <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                  <div className="h-20 w-20 bg-muted rounded-md flex-shrink-0" />
+                  {/* ONLY CHANGE: Replace gray box with image */}
+                  <div className="h-20 w-20 bg-muted rounded-md flex-shrink-0 overflow-hidden">
+                    {item.product.product_images && item.product.product_images.length > 0 ? (
+                      <img 
+                        src={item.product.product_images[0].image_url} 
+                        alt={item.product.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : item.product.image_url ? (
+                      <img 
+                        src={item.product.image_url} 
+                        alt={item.product.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-muted flex items-center justify-center">
+                        <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="flex-1">
                     <h3 className="font-semibold">{item.product.name}</h3>
                     <p className="text-muted-foreground">R{item.product.price}</p>
