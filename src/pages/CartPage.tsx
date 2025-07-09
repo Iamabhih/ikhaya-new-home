@@ -4,81 +4,42 @@ import { Footer } from "@/components/layout/Footer";
 import { useCart } from "@/hooks/useCart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Minus, Plus, Trash2, ShoppingBag, ShoppingCart, Heart, ArrowRight, Package } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 
 const CartPage = () => {
   const { items, updateQuantity, removeItem, total, isLoading } = useCart();
 
+  // Safe image URL getter
+  const getProductImageUrl = (product) => {
+    if (!product) return null;
+    
+    // Check product_images array first
+    if (product.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
+      return product.product_images[0]?.image_url || null;
+    }
+    
+    // Fallback to direct image_url
+    return product.image_url || null;
+  };
+
+  // Safe quantity update handler
+  const handleQuantityChange = (itemId, newQuantity) => {
+    const quantity = Math.max(1, parseInt(newQuantity) || 1);
+    updateQuantity({ itemId, quantity });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        
-        {/* Hero Section */}
-        <section className="bg-gradient-to-b from-secondary/30 to-background py-16">
-          <div className="container mx-auto px-4">
-            <Breadcrumb className="mb-6">
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link to="/">Home</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Shopping Cart</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-            
-            <div className="text-center">
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-primary/90 to-secondary bg-clip-text text-transparent mb-6">
-                Shopping Cart
-              </h1>
-            </div>
-          </div>
-        </section>
-
         <main className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Loading Items */}
-            <div className="lg:col-span-2 space-y-6">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="border-0 bg-white/50 backdrop-blur-sm shadow-lg animate-pulse">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-6">
-                      <div className="h-24 w-24 bg-gradient-to-br from-secondary/20 to-secondary/40 rounded-lg" />
-                      <div className="flex-1 space-y-3">
-                        <div className="h-5 bg-secondary/30 rounded animate-pulse" />
-                        <div className="h-4 bg-secondary/20 rounded w-1/2 animate-pulse" />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 bg-secondary/30 rounded animate-pulse" />
-                        <div className="h-10 w-16 bg-secondary/30 rounded animate-pulse" />
-                        <div className="h-10 w-10 bg-secondary/30 rounded animate-pulse" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            
-            {/* Loading Summary */}
-            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg h-fit animate-pulse">
-              <CardContent className="p-6 space-y-4">
-                <div className="h-6 bg-secondary/30 rounded animate-pulse" />
-                <div className="space-y-3">
-                  <div className="h-4 bg-secondary/20 rounded animate-pulse" />
-                  <div className="h-4 bg-secondary/20 rounded animate-pulse" />
-                  <div className="h-5 bg-secondary/30 rounded animate-pulse" />
-                </div>
-                <div className="h-12 bg-secondary/30 rounded animate-pulse" />
-              </CardContent>
-            </Card>
+          <div className="animate-pulse space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-24 bg-muted rounded" />
+            ))}
           </div>
         </main>
-        
         <Footer />
       </div>
     );
@@ -87,249 +48,152 @@ const CartPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-secondary/30 to-background py-16">
-        <div className="container mx-auto px-4">
-          <Breadcrumb className="mb-6">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/">Home</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Shopping Cart</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 rounded-full px-6 py-3 mb-6 shadow-lg">
-              <ShoppingCart className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                {items.length} {items.length === 1 ? 'Item' : 'Items'} in Cart
-              </span>
-            </div>
-            
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-primary/90 to-secondary bg-clip-text text-transparent mb-6">
-              Shopping Cart
-            </h1>
-            <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
-              Review your selected items and proceed to checkout when you're ready
-            </p>
-          </div>
-        </div>
-      </section>
-
       <main className="container mx-auto px-4 py-8">
-        {items.length === 0 ? (
-          <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg max-w-lg mx-auto">
-            <CardContent className="p-12 text-center">
-              <div className="w-24 h-24 bg-primary/10 rounded-full mx-auto mb-6 flex items-center justify-center">
-                <ShoppingBag className="h-12 w-12 text-primary/60" />
-              </div>
-              <h2 className="text-2xl font-bold mb-4">Your Cart is Empty</h2>
-              <p className="text-muted-foreground mb-8 leading-relaxed">
-                Looks like you haven't added any items to your cart yet. Start shopping to discover amazing products for your home!
-              </p>
-              <div className="space-y-4">
-                <Link to="/products">
-                  <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group">
-                    <ShoppingBag className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
-                    Start Shopping
-                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                  </Button>
-                </Link>
-                <Link to="/categories">
-                  <Button variant="outline" className="w-full bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-white/90">
-                    Browse Categories
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Shopping Cart</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
+
+        {/* DEBUG INFO - Remove in production */}
+        {process.env.NODE_ENV === 'development' && items.length > 0 && (
+          <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
+            <h3 className="font-bold mb-2">Debug Info (development only):</h3>
+            <p className="text-sm">First product keys: {Object.keys(items[0]?.product || {}).join(', ')}</p>
+            {items[0]?.product && (
+              <>
+                <p className="text-sm mt-1">Has image_url: {items[0].product.image_url ? 'YES' : 'NO'}</p>
+                <p className="text-sm mt-1">Has product_images: {items[0].product.product_images ? 'YES' : 'NO'}</p>
+                <p className="text-sm mt-1">Image URL: {getProductImageUrl(items[0].product) || 'None'}</p>
+              </>
+            )}
+          </div>
+        )}
+
+        {!items || items.length === 0 ? (
+          <div className="text-center py-12">
+            <ShoppingBag className="mx-auto h-24 w-24 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
+            <p className="text-muted-foreground mb-6">Start shopping to add items to your cart</p>
+            <Link to="/products">
+              <Button>Continue Shopping</Button>
+            </Link>
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Package className="w-5 h-5 text-primary" />
-                    <h2 className="text-xl font-semibold">Cart Items</h2>
-                    <span className="text-sm text-muted-foreground">({items.length} {items.length === 1 ? 'item' : 'items'})</span>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {items.map((item, index) => (
-                      <Card 
-                        key={item.id} 
-                        className="border-0 bg-white/30 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden"
-                        style={{ animationDelay: `${index * 100}ms` }}
+            <div className="lg:col-span-2 space-y-4">
+              {items.map((item) => {
+                if (!item?.product) {
+                  console.warn('Cart item missing product data:', item);
+                  return null;
+                }
+
+                const imageUrl = getProductImageUrl(item.product);
+                
+                return (
+                  <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div className="h-20 w-20 bg-muted rounded-md flex-shrink-0 overflow-hidden">
+                      {imageUrl ? (
+                        <img 
+                          src={imageUrl} 
+                          alt={item.product.name || 'Product'}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className="h-full w-full bg-muted flex items-center justify-center"
+                        style={{ display: imageUrl ? 'none' : 'flex' }}
                       >
-                        <CardContent className="p-6">
-                          <div className="flex items-center gap-6">
-                            {/* Product Image */}
-                            <div className="h-24 w-24 bg-gradient-to-br from-secondary/20 to-secondary/40 rounded-lg flex-shrink-0 overflow-hidden shadow-md">
-                              {item.product.product_images?.length > 0 ? (
-                                <img 
-                                  src={item.product.product_images[0].image_url} 
-                                  alt={item.product.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center">
-                                  <Package className="h-8 w-8 text-muted-foreground" />
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Product Details */}
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
-                                {item.product.name}
-                              </h3>
-                              <p className="text-primary font-bold text-lg">
-                                R{item.product.price?.toFixed(2)}
-                              </p>
-                              {item.product.description && (
-                                <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
-                                  {item.product.description}
-                                </p>
-                              )}
-                            </div>
-                            
-                            {/* Quantity Controls */}
-                            <div className="flex items-center gap-3">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-10 w-10 bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-                                onClick={() => updateQuantity({ itemId: item.id, quantity: Math.max(1, item.quantity - 1) })}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              
-                              <Input
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => updateQuantity({ itemId: item.id, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                                className="w-20 text-center bg-white/70 backdrop-blur-sm border-primary/20 focus:ring-2 focus:ring-primary/20"
-                                min="1"
-                              />
-                              
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-10 w-10 bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-                                onClick={() => updateQuantity({ itemId: item.id, quantity: item.quantity + 1 })}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            
-                            {/* Remove Button */}
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-10 w-10 bg-white/70 backdrop-blur-sm border-red-200 hover:bg-red-500 hover:text-white transition-all duration-200"
-                              onClick={() => removeItem(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          
-                          {/* Item Total */}
-                          <div className="flex justify-end mt-4 pt-4 border-t border-white/30">
-                            <div className="text-right">
-                              <p className="text-sm text-muted-foreground">Item Total</p>
-                              <p className="text-lg font-bold text-primary">
-                                R{(item.product.price * item.quantity).toFixed(2)}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Continue Shopping */}
-              <Card className="border-0 bg-white/30 backdrop-blur-sm shadow-lg">
-                <CardContent className="p-6 text-center">
-                  <Heart className="w-8 h-8 text-primary mx-auto mb-3" />
-                  <h3 className="text-lg font-semibold mb-2">Need More Items?</h3>
-                  <p className="text-muted-foreground mb-4">Continue browsing our amazing collection</p>
-                  <Link to="/products">
-                    <Button variant="outline" className="bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground">
-                      Continue Shopping
+                        <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{item.product.name || 'Unnamed Product'}</h3>
+                      <p className="text-muted-foreground">
+                        R{item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={item.quantity || 1}
+                        onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                        className="w-16 text-center"
+                        min="1"
+                        max="99"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeItem(item.id)}
+                      title="Remove item"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+                  </div>
+                );
+              }).filter(Boolean)}
             </div>
 
-            {/* Order Summary */}
-            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg h-fit sticky top-8">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <ShoppingCart className="w-5 h-5 text-primary" />
-                  <h2 className="text-xl font-semibold">Order Summary</h2>
+            <div className="bg-muted/30 p-6 rounded-lg h-fit">
+              <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>R{(total || 0).toFixed(2)}</span>
                 </div>
-                
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between py-2">
-                    <span className="text-muted-foreground">Subtotal ({items.length} {items.length === 1 ? 'item' : 'items'})</span>
-                    <span className="font-medium">R{total.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between py-2">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span className="font-medium text-green-600">Free</span>
-                  </div>
-                  <div className="flex justify-between py-2">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span className="font-medium">Calculated at checkout</span>
-                  </div>
-                  
-                  <div className="border-t border-white/50 pt-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">Total</span>
-                      <span className="text-2xl font-bold text-primary">R{total.toFixed(2)}</span>
-                    </div>
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span>Free</span>
+                </div>
+                <div className="border-t pt-2">
+                  <div className="flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span>R{(total || 0).toFixed(2)}</span>
                   </div>
                 </div>
-                
-                <div className="space-y-3">
-                  <Link to="/checkout" className="w-full">
-                    <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group h-12">
-                      <ShoppingCart className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
-                      Proceed to Checkout
-                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                    </Button>
-                  </Link>
-                  
-                  <div className="text-center text-sm text-muted-foreground">
-                    <p>🔒 Secure checkout • Free shipping • Easy returns</p>
-                  </div>
-                </div>
-                
-                {/* Trust Badges */}
-                <div className="mt-6 pt-6 border-t border-white/50">
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-3">We Accept</p>
-                    <div className="flex justify-center gap-2 text-2xl">
-                      💳 🏦 💰
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <Link to="/checkout" className="w-full">
+                <Button className="w-full" disabled={!items || items.length === 0}>
+                  Proceed to Checkout
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
       </main>
-      
       <Footer />
     </div>
   );
