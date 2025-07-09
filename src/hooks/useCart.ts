@@ -13,9 +13,14 @@ export interface CartItem {
     name: string;
     price: number;
     slug: string;
-    image_url?: string;
     short_description?: string;
     sku?: string;
+    product_images?: Array<{
+      id: string;
+      image_url: string;
+      alt_text?: string;
+      sort_order?: number;
+    }>;
   };
 }
 
@@ -48,9 +53,14 @@ export const useCart = () => {
             name,
             price,
             slug,
-            image_url,
             short_description,
-            sku
+            sku,
+            product_images (
+              id,
+              image_url,
+              alt_text,
+              sort_order
+            )
           )
         `);
 
