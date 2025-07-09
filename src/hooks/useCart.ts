@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +23,9 @@ export const useCart = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [sessionId] = useState(() => {
+    // Handle SSR/hydration issues
+    if (typeof window === 'undefined') return '';
+    
     let id = localStorage.getItem('cart_session_id');
     if (!id) {
       id = crypto.randomUUID();
@@ -46,6 +48,7 @@ export const useCart = () => {
             name,
             price,
             slug,
+            image_url,
             short_description,
             sku
           )
@@ -60,16 +63,22 @@ export const useCart = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      return data.map(item => ({
+      return data?.map(item => ({
         ...item,
         product: item.products
-      })) as CartItem[];
+      })) as CartItem[] || [];
     },
+    enabled: typeof window !== 'undefined' && (!!user || !!sessionId),
   });
 
   const addToCart = useMutation({
     mutationFn: async ({ productId, quantity = 1 }: { productId: string; quantity?: number }) => {
       console.log('Adding to cart:', { productId, quantity, userId: user?.id, sessionId });
+
+      // Validate quantity
+      if (quantity <= 0) {
+        throw new Error('Quantity must be greater than 0');
+      }
 
       // Check if item already exists in cart
       const existingQuery = supabase
@@ -135,7 +144,13 @@ export const useCart = () => {
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
       console.log('Updating quantity:', { itemId, quantity });
       
+      // Validate inputs
+      if (!itemId) {
+        throw new Error('Item ID is required');
+      }
+      
       if (quantity <= 0) {
+        // Remove item if quantity is 0 or less
         const { error } = await supabase
           .from('cart_items')
           .delete()
@@ -163,6 +178,11 @@ export const useCart = () => {
   const removeItem = useMutation({
     mutationFn: async (itemId: string) => {
       console.log('Removing cart item:', itemId);
+      
+      if (!itemId) {
+        throw new Error('Item ID is required');
+      }
+      
       const { error } = await supabase
         .from('cart_items')
         .delete()
@@ -197,6 +217,7 @@ export const useCart = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+      toast.success("Cart cleared");
     },
     onError: (error) => {
       console.error("Error clearing cart:", error);
@@ -204,15 +225,27 @@ export const useCart = () => {
     },
   });
 
-  const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  // Calculate total with proper null checks
+  const total = items?.reduce((sum, item) => {
+    if (!item?.product?.price || !item?.quantity) return sum;
+    return sum + (item.product.price * item.quantity);
+  }, 0) || 0;
+
+  // Get cart item count
+  const itemCount = items?.reduce((sum, item) => sum + (item?.quantity || 0), 0) || 0;
 
   return {
-    items,
+    items: items || [],
     isLoading,
     addToCart: addToCart.mutate,
     updateQuantity: updateQuantity.mutate,
     removeItem: removeItem.mutate,
     clearCart: clearCart.mutate,
     total,
+    itemCount,
+    isAddingToCart: addToCart.isPending,
+    isUpdating: updateQuantity.isPending,
+    isRemoving: removeItem.isPending,
+    isClearing: clearCart.isPending,
   };
 };
