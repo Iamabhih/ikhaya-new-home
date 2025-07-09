@@ -1,5 +1,3 @@
-
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -156,10 +154,20 @@ export const OptimizedCategoryGrid = () => {
               <Link key={category.id} to={`/categories/${category.slug}`}>
                 <Card className="hover:shadow-lg transition-shadow duration-300 group">
                   <CardContent className="p-6 text-center">
-                    <div className="bg-primary/10 h-16 w-16 rounded-full mx-auto mb-4 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <span className="text-2xl font-bold text-primary">
-                        {category.name.charAt(0)}
-                      </span>
+                    <div className="h-16 w-16 rounded-full mx-auto mb-4 overflow-hidden group-hover:scale-105 transition-transform">
+                      {category.image_url ? (
+                        <img 
+                          src={category.image_url} 
+                          alt={category.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="bg-primary/10 h-full w-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                          <span className="text-2xl font-bold text-primary">
+                            {category.name.charAt(0)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
                       {category.name}
@@ -177,4 +185,3 @@ export const OptimizedCategoryGrid = () => {
     </ErrorBoundary>
   );
 };
-
