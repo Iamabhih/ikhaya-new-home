@@ -110,8 +110,11 @@ const CartPage = () => {
                 const imageUrl = getProductImageUrl(item.product);
                 
                 return (
-                  <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                    <div className="h-20 w-20 bg-muted rounded-md flex-shrink-0 overflow-hidden">
+                  <div key={item.id} className="flex items-start gap-4 p-4 border rounded-lg">
+                    <Link 
+                      to={`/products/${item.product.slug}`}
+                      className="h-20 w-20 bg-muted rounded-md flex-shrink-0 overflow-hidden hover:opacity-80 transition-opacity"
+                    >
                       {imageUrl && !failedImages.has(item.id) ? (
                         <img 
                           src={imageUrl} 
@@ -124,49 +127,72 @@ const CartPage = () => {
                           <ShoppingBag className="h-8 w-8 text-muted-foreground" />
                         </div>
                       )}
-                    </div>
+                    </Link>
                     
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{item.product.name || 'Unnamed Product'}</h3>
-                      <p className="text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <Link 
+                        to={`/products/${item.product.slug}`}
+                        className="block hover:text-primary transition-colors"
+                      >
+                        <h3 className="font-semibold text-lg leading-tight">{item.product.name || 'Unnamed Product'}</h3>
+                      </Link>
+                      {item.product.short_description && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {item.product.short_description}
+                        </p>
+                      )}
+                      {item.product.sku && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          SKU: {item.product.sku}
+                        </p>
+                      )}
+                      <p className="text-lg font-medium mt-2">
                         R{item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}
+                        {item.quantity > 1 && (
+                          <span className="text-sm text-muted-foreground font-normal">
+                            {' '}× {item.quantity} = R{(item.product.price * item.quantity).toFixed(2)}
+                          </span>
+                        )}
                       </p>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-2 items-end">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          type="number"
+                          value={item.quantity || 1}
+                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                          className="w-16 text-center"
+                          min="1"
+                          max="99"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
+                        onClick={() => removeItem(item.id)}
+                        title="Remove item"
+                        className="text-destructive hover:text-destructive"
                       >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        type="number"
-                        value={item.quantity || 1}
-                        onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                        className="w-16 text-center"
-                        min="1"
-                        max="99"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                      >
-                        <Plus className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => removeItem(item.id)}
-                      title="Remove item"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 );
               }).filter(Boolean)}
