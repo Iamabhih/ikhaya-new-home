@@ -11,12 +11,24 @@ async function getPayflexAccessToken() {
   const tokenEndpoint = 'https://auth-uat.payflex.co.za/auth/merchant'
   const audience = 'https://auth-dev.payflex.co.za'
   
+  const clientId = Deno.env.get('PAYFLEX_CLIENT_ID')
+  const clientSecret = Deno.env.get('PAYFLEX_CLIENT_SECRET')
+  
+  console.log('PayFlex Auth - Client ID exists:', !!clientId)
+  console.log('PayFlex Auth - Client Secret exists:', !!clientSecret)
+  
+  if (!clientId || !clientSecret) {
+    throw new Error('PayFlex credentials not configured. Please set PAYFLEX_CLIENT_ID and PAYFLEX_CLIENT_SECRET environment variables.')
+  }
+  
   const tokenRequest = {
-    client_id: Deno.env.get('PAYFLEX_CLIENT_ID'),
-    client_secret: Deno.env.get('PAYFLEX_CLIENT_SECRET'),
+    client_id: clientId,
+    client_secret: clientSecret,
     audience: audience,
     grant_type: 'client_credentials'
   }
+
+  console.log('PayFlex Auth - Making token request to:', tokenEndpoint)
 
   try {
     const response = await fetch(tokenEndpoint, {
@@ -27,21 +39,28 @@ async function getPayflexAccessToken() {
       body: JSON.stringify(tokenRequest)
     })
 
+    console.log('PayFlex Auth - Response status:', response.status)
+
     if (!response.ok) {
-      throw new Error(`Failed to get PayFlex token: ${response.status} ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('PayFlex Auth - Error response:', errorText)
+      throw new Error(`Failed to get PayFlex token: ${response.status} ${response.statusText} - ${errorText}`)
     }
 
     const tokenData = await response.json()
+    console.log('PayFlex Auth - Token received successfully')
     return tokenData.access_token
   } catch (error) {
     console.error('PayFlex authentication error:', error)
-    throw new Error('Failed to authenticate with PayFlex')
+    throw new Error(`Failed to authenticate with PayFlex: ${error.message}`)
   }
 }
 
 // Create PayFlex checkout
 async function createPayflexCheckout(orderData: any, accessToken: string) {
   const checkoutEndpoint = 'https://api.uat.payflex.co.za/v1/checkouts'
+  
+  console.log('PayFlex Checkout - Creating checkout with data:', JSON.stringify(orderData, null, 2))
   
   try {
     const response = await fetch(checkoutEndpoint, {
@@ -53,16 +72,20 @@ async function createPayflexCheckout(orderData: any, accessToken: string) {
       body: JSON.stringify(orderData)
     })
 
+    console.log('PayFlex Checkout - Response status:', response.status)
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('PayFlex checkout error:', response.status, errorText)
-      throw new Error(`Failed to create PayFlex checkout: ${response.status}`)
+      console.error('PayFlex Checkout - Error response:', errorText)
+      throw new Error(`Failed to create PayFlex checkout: ${response.status} ${response.statusText} - ${errorText}`)
     }
 
-    return await response.json()
+    const result = await response.json()
+    console.log('PayFlex Checkout - Success response:', JSON.stringify(result, null, 2))
+    return result
   } catch (error) {
     console.error('PayFlex checkout creation error:', error)
-    throw new Error('Failed to create PayFlex checkout')
+    throw new Error(`Failed to create PayFlex checkout: ${error.message}`)
   }
 }
 
@@ -208,8 +231,10 @@ serve(async (req) => {
         break
 
       case 'payflex':
+        console.log('PayFlex - Starting PayFlex payment flow')
         try {
           // Get PayFlex access token
+          console.log('PayFlex - Getting access token...')
           const accessToken = await getPayflexAccessToken()
           
           // Prepare PayFlex checkout data
@@ -242,9 +267,11 @@ serve(async (req) => {
             }))
           }
           
+          console.log('PayFlex - Creating checkout...')
           // Create PayFlex checkout
           const payflexCheckout = await createPayflexCheckout(payflexCheckoutData, accessToken)
           
+          console.log('PayFlex - Checkout created successfully')
           paymentResponse = {
             type: 'payflex',
             orderId: order.id,
