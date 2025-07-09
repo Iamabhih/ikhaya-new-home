@@ -10,16 +10,6 @@ import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbP
 const CartPage = () => {
   const { items, updateQuantity, removeItem, total, isLoading } = useCart();
 
-  // Debug function to see product structure
-  const debugProduct = (product) => {
-    console.log("Product data structure:", product);
-    console.log("Product keys:", Object.keys(product));
-    if (product.product_images) {
-      console.log("Product images:", product.product_images);
-    }
-    return null;
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -67,223 +57,45 @@ const CartPage = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
-              {items.map((item) => {
-                // Debug the product structure
-                debugProduct(item.product);
-                
-                return (
-                  <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                    {/* Debug Product Data Display */}
-                    <div className="h-20 w-20 bg-muted rounded-md flex-shrink-0 flex flex-col items-center justify-center text-xs p-1">
-                      <div className="text-center">
-                        <p>Check Console</p>
-                        <p>for data</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{item.product.name}</h3>
-                      <p className="text-muted-foreground">R{item.product.price}</p>
-                      {/* Show raw data for debugging */}
-                      <details className="mt-2">
-                        <summary className="text-xs text-blue-600 cursor-pointer">Show Raw Data</summary>
-                        <pre className="text-xs bg-gray-100 p-2 mt-1 rounded overflow-x-auto max-w-md">
-                          {JSON.stringify(item.product, null, 2)}
-                        </pre>
-                      </details>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => updateQuantity({ itemId: item.id, quantity: item.quantity - 1 })}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateQuantity({ itemId: item.id, quantity: parseInt(e.target.value) || 1 })}
-                        className="w-16 text-center"
-                        min="1"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => updateQuantity({ itemId: item.id, quantity: item.quantity + 1 })}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {items.map((item) => (
+                <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <div className="h-20 w-20 bg-muted rounded-md flex-shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{item.product.name}</h3>
+                    <p className="text-muted-foreground">R{item.product.price}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => updateQuantity({ itemId: item.id, quantity: item.quantity - 1 })}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Minus className="h-4 w-4" />
                     </Button>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="bg-muted/30 p-6 rounded-lg h-fit">
-              <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>R{total.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span>Free</span>
-                </div>
-                <div className="border-t pt-2">
-                  <div className="flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span>R{total.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-              <Link to="/checkout" className="w-full">
-                <Button className="w-full">Proceed to Checkout</Button>
-              </Link>
-            </div>
-          </div>
-        )}
-      </main>
-      <Footer />
-    </div>
-  );
-};
-
-export default CartPage;import { Link } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { useCart } from "@/hooks/useCart";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
-
-const CartPage = () => {
-  const { items, updateQuantity, removeItem, total, isLoading } = useCart();
-
-  // Debug function to see product structure
-  const debugProduct = (product) => {
-    console.log("Product data structure:", product);
-    console.log("Product keys:", Object.keys(product));
-    if (product.product_images) {
-      console.log("Product images:", product.product_images);
-    }
-    return null;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-24 bg-muted rounded" />
-            ))}
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/">Home</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Shopping Cart</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
-        <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
-
-        {items.length === 0 ? (
-          <div className="text-center py-12">
-            <ShoppingBag className="mx-auto h-24 w-24 text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
-            <p className="text-muted-foreground mb-6">Start shopping to add items to your cart</p>
-            <Link to="/products">
-              <Button>Continue Shopping</Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
-              {items.map((item) => {
-                // Debug the product structure
-                debugProduct(item.product);
-                
-                return (
-                  <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                    {/* Debug Product Data Display */}
-                    <div className="h-20 w-20 bg-muted rounded-md flex-shrink-0 flex flex-col items-center justify-center text-xs p-1">
-                      <div className="text-center">
-                        <p>Check Console</p>
-                        <p>for data</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{item.product.name}</h3>
-                      <p className="text-muted-foreground">R{item.product.price}</p>
-                      {/* Show raw data for debugging */}
-                      <details className="mt-2">
-                        <summary className="text-xs text-blue-600 cursor-pointer">Show Raw Data</summary>
-                        <pre className="text-xs bg-gray-100 p-2 mt-1 rounded overflow-x-auto max-w-md">
-                          {JSON.stringify(item.product, null, 2)}
-                        </pre>
-                      </details>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => updateQuantity({ itemId: item.id, quantity: item.quantity - 1 })}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateQuantity({ itemId: item.id, quantity: parseInt(e.target.value) || 1 })}
-                        className="w-16 text-center"
-                        min="1"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => updateQuantity({ itemId: item.id, quantity: item.quantity + 1 })}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => updateQuantity({ itemId: item.id, quantity: parseInt(e.target.value) || 1 })}
+                      className="w-16 text-center"
+                      min="1"
+                    />
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => updateQuantity({ itemId: item.id, quantity: item.quantity + 1 })}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                );
-              })}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeItem(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
             <div className="bg-muted/30 p-6 rounded-lg h-fit">
