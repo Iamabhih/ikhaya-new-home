@@ -153,7 +153,7 @@ const CheckoutPage = () => {
           
           {/* Order Summary */}
           <div className="space-y-6">
-            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg sticky top-8">
+            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
               <CardContent className="p-6">
                 <OrderSummary items={items} total={total} />
               </CardContent>
