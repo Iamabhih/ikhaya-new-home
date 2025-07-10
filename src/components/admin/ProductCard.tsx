@@ -24,52 +24,96 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCardProps) => {
+  const stockStatus = product.stock_quantity > 10 ? 'high' : product.stock_quantity > 0 ? 'low' : 'out';
+  
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3 mb-2">
+    <Card className="group bg-white border border-gray-200/60 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200">
+      <CardContent className="p-5">
+        <div className="flex items-start gap-4">
           <Checkbox
             checked={isSelected}
             onCheckedChange={(checked) => onSelect(product.id, checked as boolean)}
-            className="mt-1"
+            className="mt-1 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
           />
-          <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-medium truncate pr-2">{product.name}</h3>
-              <div className="flex gap-1">
+          
+          <div className="flex-1 min-w-0 space-y-3">
+            {/* Header with title and badges */}
+            <div className="flex justify-between items-start gap-3">
+              <h3 className="font-semibold text-gray-900 truncate group-hover:text-indigo-700 transition-colors">
+                {product.name}
+              </h3>
+              <div className="flex gap-1.5 flex-shrink-0">
                 {product.is_featured && (
-                  <Badge variant="secondary" className="text-xs">Featured</Badge>
+                  <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100">
+                    Featured
+                  </Badge>
                 )}
-                <Badge variant={product.is_active ? "default" : "secondary"} className="text-xs">
+                <Badge 
+                  variant={product.is_active ? "default" : "secondary"} 
+                  className={`text-xs ${
+                    product.is_active 
+                      ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' 
+                      : 'bg-gray-100 text-gray-600 border-gray-200'
+                  }`}
+                >
                   {product.is_active ? "Active" : "Inactive"}
                 </Badge>
               </div>
             </div>
-          </div>
-        </div>
-        
-        <div className="space-y-1 text-sm text-muted-foreground mb-3 ml-8">
-          <p>SKU: {product.sku || "N/A"}</p>
-          <p>Price: R{product.price.toFixed(2)}</p>
-          <p>Stock: {product.stock_quantity}</p>
-          {product.categories?.name && (
-            <p>Category: {product.categories.name}</p>
-          )}
-        </div>
+            
+            {/* Product details grid */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <div>
+                  <span className="text-gray-500 text-xs uppercase tracking-wide">SKU</span>
+                  <p className="font-medium text-gray-900">{product.sku || "—"}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-xs uppercase tracking-wide">Price</span>
+                  <p className="font-semibold text-gray-900">R{product.price.toFixed(2)}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div>
+                  <span className="text-gray-500 text-xs uppercase tracking-wide">Stock</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">{product.stock_quantity}</span>
+                    <div className={`w-2 h-2 rounded-full ${
+                      stockStatus === 'high' ? 'bg-green-400' : 
+                      stockStatus === 'low' ? 'bg-amber-400' : 'bg-red-400'
+                    }`} />
+                  </div>
+                </div>
+                {product.categories?.name && (
+                  <div>
+                    <span className="text-gray-500 text-xs uppercase tracking-wide">Category</span>
+                    <p className="font-medium text-gray-900 truncate">{product.categories.name}</p>
+                  </div>
+                )}
+              </div>
+            </div>
 
-        <div className="flex gap-2 ml-8">
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => onEdit(product.id)}
-            className="flex-1"
-          >
-            <Edit className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
-          <Button size="sm" variant="ghost">
-            <Eye className="h-3 w-3" />
-          </Button>
+            {/* Action buttons */}
+            <div className="flex gap-2 pt-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => onEdit(product.id)}
+                className="flex-1 border-gray-200 text-gray-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Product
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="px-3 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

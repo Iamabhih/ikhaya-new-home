@@ -169,50 +169,79 @@ const AdminProducts = () => {
   return (
     <AdminProtectedRoute>
       <AdminLayout>
-        <ErrorBoundary>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="import">Import</TabsTrigger>
-          <TabsTrigger value="scheduler">Scheduler</TabsTrigger>
-        </TabsList>
+        <div className="space-y-8">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Product Management</h1>
+              <p className="text-gray-600 text-base">Manage your inventory, analytics, and product imports</p>
+            </div>
+          </div>
 
-        <TabsContent value="products" className="space-y-6">
           <ErrorBoundary>
-            <ProductManagementLayout
-              products={productsData?.products || []}
-              totalCount={productsData?.totalCount || 0}
-              isLoading={productsLoading}
-              onSelectProduct={handleProductSelect}
-              selectedProducts={selectedProducts}
-              onSearch={handleSearchFilters}
-              categories={categories}
-              brands={brands}
-            />
-          </ErrorBoundary>
-        </TabsContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-xl">
+                <TabsTrigger 
+                  value="products" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                >
+                  Products
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="analytics" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                >
+                  Analytics
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="import" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                >
+                  Import
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="scheduler" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                >
+                  Scheduler
+                </TabsTrigger>
+              </TabsList>
 
-        <TabsContent value="analytics">
-          <ErrorBoundary>
-            <ProductAnalyticsDashboard />
-          </ErrorBoundary>
-        </TabsContent>
+              <TabsContent value="products" className="space-y-6">
+                <ErrorBoundary>
+                  <ProductManagementLayout
+                    products={productsData?.products || []}
+                    totalCount={productsData?.totalCount || 0}
+                    isLoading={productsLoading}
+                    onSelectProduct={handleProductSelect}
+                    selectedProducts={selectedProducts}
+                    onSearch={handleSearchFilters}
+                    categories={categories}
+                    brands={brands}
+                  />
+                </ErrorBoundary>
+              </TabsContent>
 
-        <TabsContent value="import">
-          <ErrorBoundary>
-            <EnhancedProductImport />
-          </ErrorBoundary>
-        </TabsContent>
+              <TabsContent value="analytics" className="space-y-6">
+                <ErrorBoundary>
+                  <ProductAnalyticsDashboard />
+                </ErrorBoundary>
+              </TabsContent>
 
-        <TabsContent value="scheduler">
-          <ErrorBoundary>
-            <ProductImportScheduler />
-          </ErrorBoundary>
-        </TabsContent>
+              <TabsContent value="import" className="space-y-6">
+                <ErrorBoundary>
+                  <EnhancedProductImport />
+                </ErrorBoundary>
+              </TabsContent>
 
-      </Tabs>
-        </ErrorBoundary>
+              <TabsContent value="scheduler" className="space-y-6">
+                <ErrorBoundary>
+                  <ProductImportScheduler />
+                </ErrorBoundary>
+              </TabsContent>
+            </Tabs>
+          </ErrorBoundary>
+        </div>
       </AdminLayout>
     </AdminProtectedRoute>
   );
