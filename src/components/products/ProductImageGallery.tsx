@@ -45,46 +45,51 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative aspect-square overflow-hidden rounded-lg bg-secondary/20">
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-secondary/10 shadow-xl">
         <img
           src={currentImage.image_url}
           alt={currentImage.alt_text || productName}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
         />
         
         {sortedImages.length > 1 && (
           <>
             <Button
-              variant="outline"
+              variant="secondary"
               size="icon"
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-background/80 hover:bg-background"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg"
               onClick={goToPrevious}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             </Button>
             <Button
-              variant="outline"
+              variant="secondary"
               size="icon"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-background/80 hover:bg-background"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg"
               onClick={goToNext}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-5 w-5" />
             </Button>
+            
+            {/* Image Counter */}
+            <div className="absolute bottom-4 right-4 bg-background/90 px-3 py-1 rounded-full text-sm font-medium">
+              {currentImageIndex + 1} / {sortedImages.length}
+            </div>
           </>
         )}
       </div>
 
       {/* Thumbnail Gallery */}
       {sortedImages.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-3 overflow-x-auto pb-2">
           {sortedImages.map((image, index) => (
             <button
               key={image.id}
               onClick={() => setCurrentImageIndex(index)}
-              className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${
+              className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-3 transition-all duration-200 ${
                 index === currentImageIndex 
-                  ? 'border-primary' 
-                  : 'border-transparent hover:border-border'
+                  ? 'border-primary shadow-lg scale-105' 
+                  : 'border-transparent hover:border-border/50 hover:scale-102'
               }`}
             >
               <img

@@ -136,12 +136,14 @@ const ProductDetailPage = () => {
         </Breadcrumb>
 
         {/* Product Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16 mb-20">
           <ProductImageGallery 
             images={product.product_images || []} 
             productName={product.name}
           />
-          <ProductInfo product={product} />
+          <div className="lg:pl-8">
+            <ProductInfo product={product} />
+          </div>
         </div>
 
         {/* Reviews Section */}

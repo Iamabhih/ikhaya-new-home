@@ -66,112 +66,133 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sticky top-8">
       {/* Category */}
       {product.categories && (
-        <Badge variant="outline">{product.categories.name}</Badge>
+        <Badge variant="outline" className="text-xs font-medium px-3 py-1">
+          {product.categories.name}
+        </Badge>
       )}
 
       {/* Title */}
-      <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
-
-      {/* Rating */}
-      {product.average_rating && product.review_count && product.review_count > 0 && (
-        <div className="flex items-center gap-2">
-          <StarRating rating={product.average_rating} readonly />
-          <span className="text-sm text-muted-foreground">
-            {product.average_rating.toFixed(1)} ({product.review_count} review{product.review_count !== 1 ? 's' : ''})
-          </span>
-        </div>
-      )}
+      <div className="space-y-3">
+        <h1 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight tracking-tight">
+          {product.name}
+        </h1>
+        
+        {/* Rating */}
+        {product.average_rating && product.review_count && product.review_count > 0 && (
+          <div className="flex items-center gap-3">
+            <StarRating rating={product.average_rating} readonly />
+            <span className="text-sm text-muted-foreground">
+              {product.average_rating.toFixed(1)} ({product.review_count} review{product.review_count !== 1 ? 's' : ''})
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Price */}
-      <div className="flex items-center gap-3">
-        <span className="text-3xl font-bold text-foreground">
-          R{product.price.toFixed(2)}
-        </span>
-        {hasDiscount && (
-          <>
-            <span className="text-xl text-muted-foreground line-through">
+      <div className="space-y-2">
+        <div className="flex items-baseline gap-4">
+          <span className="text-4xl font-bold text-foreground">
+            R{product.price.toFixed(2)}
+          </span>
+          {hasDiscount && (
+            <span className="text-2xl text-muted-foreground line-through">
               R{product.compare_at_price.toFixed(2)}
             </span>
-            <Badge variant="destructive" className="text-sm">
-              {discountPercentage}% OFF
-            </Badge>
-          </>
+          )}
+        </div>
+        {hasDiscount && (
+          <Badge variant="destructive" className="text-sm font-medium">
+            Save {discountPercentage}% (R{(product.compare_at_price - product.price).toFixed(2)})
+          </Badge>
         )}
       </div>
 
       {/* Short Description */}
       {product.short_description && (
-        <p className="text-lg text-muted-foreground leading-relaxed">
-          {product.short_description}
-        </p>
+        <div className="space-y-2">
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            {product.short_description}
+          </p>
+        </div>
       )}
 
-      {/* Stock Status */}
-      <div className="flex items-center gap-2">
-        <Badge variant={product.stock_quantity && product.stock_quantity > 0 ? "default" : "destructive"}>
+      {/* Stock Status & SKU */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <Badge 
+          variant={product.stock_quantity && product.stock_quantity > 0 ? "default" : "destructive"}
+          className="w-fit text-sm font-medium px-3 py-1"
+        >
           {product.stock_quantity && product.stock_quantity > 0 
-            ? `${product.stock_quantity} in stock` 
-            : 'Out of stock'
+            ? `✓ ${product.stock_quantity} in stock` 
+            : '✗ Out of stock'
           }
         </Badge>
         {product.sku && (
-          <span className="text-sm text-muted-foreground">SKU: {product.sku}</span>
+          <span className="text-sm text-muted-foreground font-mono">SKU: {product.sku}</span>
         )}
       </div>
 
-      {/* Quantity Selector */}
-      <div className="flex items-center gap-4">
-        <span className="font-medium">Quantity:</span>
-        <div className="flex items-center border rounded-lg">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={decrementQuantity}
-            disabled={quantity <= 1}
-            className="h-10 w-10"
-          >
-            <Minus className="h-4 w-4" />
-          </Button>
-          <span className="px-4 py-2 min-w-[3rem] text-center">{quantity}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={incrementQuantity}
-            className="h-10 w-10"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+      {/* Quantity & Actions Section */}
+      <div className="space-y-6 pt-4 border-t border-border/50">
+        {/* Quantity Selector */}
+        <div className="flex items-center gap-6">
+          <span className="font-medium text-base">Quantity</span>
+          <div className="flex items-center border-2 rounded-lg overflow-hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={decrementQuantity}
+              disabled={quantity <= 1}
+              className="h-12 w-12 rounded-none hover:bg-muted"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <span className="px-6 py-3 min-w-[4rem] text-center font-medium bg-muted/50">
+              {quantity}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={incrementQuantity}
+              className="h-12 w-12 rounded-none hover:bg-muted"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3">
-        <Button 
-          size="lg" 
-          className="flex-1"
-          onClick={handleAddToCart}
-          disabled={!product.stock_quantity || product.stock_quantity <= 0}
-        >
-          <ShoppingCart className="h-5 w-5 mr-2" />
-          Add to Cart
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="lg"
-          onClick={() => toggleWishlist(product.id)}
-          disabled={loading}
-          className={inWishlist ? 'text-destructive border-destructive hover:bg-destructive/10' : ''}
-        >
-          <Heart className={`h-5 w-5 ${inWishlist ? 'fill-current' : ''}`} />
-        </Button>
-        
-        <Button variant="outline" size="lg" onClick={handleShare}>
-          <Share2 className="h-5 w-5" />
-        </Button>
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          <Button 
+            size="lg" 
+            className="w-full h-14 text-lg font-medium"
+            onClick={handleAddToCart}
+            disabled={!product.stock_quantity || product.stock_quantity <= 0}
+          >
+            <ShoppingCart className="h-5 w-5 mr-3" />
+            {product.stock_quantity && product.stock_quantity > 0 ? 'Add to Cart' : 'Out of Stock'}
+          </Button>
+          
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              size="lg"
+              className="flex-1 h-12"
+              onClick={() => toggleWishlist(product.id)}
+              disabled={loading}
+            >
+              <Heart className={`h-5 w-5 mr-2 ${inWishlist ? 'fill-current text-destructive' : ''}`} />
+              {inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+            </Button>
+            
+            <Button variant="outline" size="lg" className="h-12 px-4" onClick={handleShare}>
+              <Share2 className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Description */}
