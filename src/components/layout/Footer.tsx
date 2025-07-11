@@ -48,7 +48,7 @@ export const Footer = () => {
               <img 
                 src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png" 
                 alt="OZZ Cash & Carry" 
-                className="h-32 w-auto"
+                className="h-34 w-auto"
               />
             </div>
           </div>
@@ -148,7 +148,7 @@ export const Footer = () => {
         {/* Bottom Section */}
         <div className="border-t border-border/40 mt-12 pt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            © 2025 IKHAYA Homeware by OZZ Cash & Carry. All rights reserved.
+            © 2025 IKHAYA Homeware. All rights reserved.
           </p>
         </div>
       </div>
