@@ -8,7 +8,7 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           
           {/* Brand Section */}
-          <div className="space-y-6 lg:col-span-2">
+          <div className="space-y-6">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">I</span>
@@ -17,7 +17,7 @@ export const Footer = () => {
                 IKHAYA Homeware
               </span>
             </div>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
+            <p className="text-muted-foreground text-sm leading-relaxed">
               Your home is your sanctuary. We provide quality homeware to make it beautiful, functional, and uniquely yours.
             </p>
             
@@ -89,9 +89,44 @@ export const Footer = () => {
                 Privacy Policy
               </Link>
             </div>
+          </div>
+
+          {/* Store Locations & Contact */}
+          <div className="space-y-6">
+            <h3 className="font-semibold text-foreground">Our Locations</h3>
+            
+            {/* OZZ Cash & Carry */}
+            <div className="space-y-2">
+              <div className="flex items-start space-x-2">
+                <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-foreground text-sm">OZZ CASH & CARRY</p>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    40 Mazeppa & Gull Street<br />
+                    Durban, KwaZulu-Natal 4001<br />
+                    South Africa
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* IKHAYA Homestore */}
+            <div className="space-y-2">
+              <div className="flex items-start space-x-2">
+                <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-foreground text-sm">IKHAYA HOMESTORE</p>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    Block D, Shop 88 China City<br />
+                    Springfield Park, Durban<br />
+                    KwaZulu-Natal, South Africa
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Contact Info */}
-            <div className="pt-4 space-y-3">
+            <div className="space-y-3 pt-2">
               <a 
                 href="tel:+27313327192"
                 className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -111,15 +146,10 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Section */}
-        <div className="border-t border-border/40 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+        <div className="border-t border-border/40 mt-12 pt-8 text-center">
           <p className="text-sm text-muted-foreground">
             © 2025 IKHAYA Homeware. All rights reserved.
           </p>
-          
-          {/* Store Locations - Simplified */}
-          <div className="text-xs text-muted-foreground text-center md:text-right">
-            <p>Durban, KwaZulu-Natal • Springfield Park</p>
-          </div>
         </div>
       </div>
     </footer>
