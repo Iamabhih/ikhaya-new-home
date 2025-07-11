@@ -148,7 +148,7 @@ export const Footer = () => {
         {/* Bottom Section */}
         <div className="border-t border-border/40 mt-12 pt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            © 2025 IKHAYA Homeware. All rights reserved.
+            © 2025 IKHAYA Homeware by Ozz Cash & Carry. All rights reserved.
           </p>
         </div>
       </div>
