@@ -36,30 +36,47 @@ export const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-2 sm:px-4">
-          <div className="flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 lg:px-6">
+          <div className="flex h-16 items-center justify-between gap-4">
             
-            {/* Logo - Responsive sizing */}
-            <Link to="/" className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-              <span className="font-bold text-sm sm:text-xl lg:text-xl">
-                <span className="hidden sm:inline">IKHAYA Homeware</span>
-                <span className="sm:hidden">IKHAYA</span>
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">I</span>
+              </div>
+              <span className="font-semibold text-lg text-foreground hidden sm:block">
+                IKHAYA Homeware
+              </span>
+              <span className="font-semibold text-lg text-foreground sm:hidden">
+                IKHAYA
               </span>
             </Link>
 
-            {/* Desktop Navigation - Hidden on mobile/tablet */}
-            <nav className="hidden lg:flex items-center space-x-6">
-              <Link to="/products" className="text-sm font-medium hover:text-primary transition-colors">
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-8">
+              <Link 
+                to="/products" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
                 Products
               </Link>
-              <Link to="/categories" className="text-sm font-medium hover:text-primary transition-colors">
+              <Link 
+                to="/categories" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
                 Categories
               </Link>
-              <Link to="/about" className="text-sm font-medium hover:text-primary transition-colors">
+              <Link 
+                to="/about" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
                 About
               </Link>
-              <Link to="/contact" className="text-sm font-medium hover:text-primary transition-colors">
+              <Link 
+                to="/contact" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
                 Contact
               </Link>
               
@@ -67,12 +84,12 @@ export const Header = () => {
               {isAdmin() && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8">
+                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                       <Settings className="h-4 w-4 mr-2" />
                       Admin
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 bg-background border shadow-lg">
+                  <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="w-full">
                         <BarChart3 className="h-4 w-4 mr-2" />
@@ -98,7 +115,6 @@ export const Header = () => {
                         Users
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/admin/analytics" className="w-full">
                         <BarChart3 className="h-4 w-4 mr-2" />
@@ -122,39 +138,39 @@ export const Header = () => {
               )}
             </nav>
 
-            {/* Search Bar - Responsive design */}
-            <form onSubmit={handleSearch} className="hidden sm:flex items-center flex-1 max-w-sm lg:max-w-md mx-2 lg:mx-4">
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 max-w-sm mx-4">
               <div className="relative w-full">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                   placeholder="Search products..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-8 h-9 text-sm" 
+                  className="pl-10 h-10 border-border/60 bg-background/50 focus:bg-background transition-colors" 
                 />
               </div>
             </form>
 
             {/* Right Side Actions */}
-            <div className="flex items-center space-x-1 sm:space-x-2">
+            <div className="flex items-center space-x-2">
               {/* Mobile Search Button */}
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="sm:hidden h-9 w-9" 
+                className="md:hidden h-10 w-10 text-muted-foreground hover:text-foreground" 
                 onClick={() => navigate('/products')}
               >
-                <Search className="h-4 w-4" />
+                <Search className="h-5 w-5" />
               </Button>
 
               {/* Cart */}
               <Link to="/cart">
-                <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10">
-                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Button variant="ghost" size="icon" className="relative h-10 w-10 text-muted-foreground hover:text-foreground">
+                  <ShoppingCart className="h-5 w-5" />
                   {itemCount > 0 && (
                     <Badge 
                       variant="destructive" 
-                      className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-xs px-0"
+                      className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs px-0 min-w-5"
                     >
                       {itemCount > 99 ? '99+' : itemCount}
                     </Badge>
@@ -162,15 +178,15 @@ export const Header = () => {
                 </Button>
               </Link>
 
-              {/* User Account - Desktop */}
+              {/* User Account */}
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="hidden sm:flex h-10 w-10">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-foreground">
                       <User className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-background border shadow-lg">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem asChild>
                       <Link to="/account" className="w-full">My Account</Link>
                     </DropdownMenuItem>
@@ -188,10 +204,10 @@ export const Header = () => {
                 </DropdownMenu>
               ) : (
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm" 
                   onClick={() => setAuthModalOpen(true)} 
-                  className="hidden sm:flex h-9 px-3 text-sm"
+                  className="hidden sm:flex"
                 >
                   Sign In
                 </Button>
@@ -201,27 +217,12 @@ export const Header = () => {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="sm:hidden h-9 w-9" 
+                className="lg:hidden h-10 w-10 text-muted-foreground hover:text-foreground" 
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
-                {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </div>
-          </div>
-
-          {/* Mobile Search Bar - Full width on mobile */}
-          <div className="sm:hidden pb-2">
-            <form onSubmit={handleSearch} className="w-full">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search products..." 
-                  value={searchQuery} 
-                  onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-8 h-9 w-full" 
-                />
-              </div>
-            </form>
           </div>
         </div>
 

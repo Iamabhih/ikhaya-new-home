@@ -3,127 +3,123 @@ import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react"
 
 export const Footer = () => {
   return (
-    <footer className="bg-gray-50 border-t">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <footer className="bg-muted/30 border-t border-border/40">
+      <div className="container mx-auto px-4 lg:px-6 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           
-          <div className="space-y-4">
-            <div className="text-2xl font-bold text-blue-600">
-              IKHAYA Homeware
+          {/* Brand Section */}
+          <div className="space-y-6 lg:col-span-2">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">I</span>
+              </div>
+              <span className="text-xl font-semibold text-foreground">
+                IKHAYA Homeware
+              </span>
             </div>
-            <p className="text-gray-600 text-sm">
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
               Your home is your sanctuary. We provide quality homeware to make it beautiful, functional, and uniquely yours.
             </p>
             
-            <div className="flex space-x-3">
-              <a href="#" className="text-gray-400 hover:text-blue-600">
-                <Facebook className="h-5 w-5" />
+            {/* Social Links */}
+            <div className="flex space-x-4">
+              <a 
+                href="#" 
+                className="w-10 h-10 bg-background border border-border rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <Facebook className="h-4 w-4" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-blue-600">
-                <Instagram className="h-5 w-5" />
+              <a 
+                href="#" 
+                className="w-10 h-10 bg-background border border-border rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <Instagram className="h-4 w-4" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-blue-600">
-                <Twitter className="h-5 w-5" />
+              <a 
+                href="#" 
+                className="w-10 h-10 bg-background border border-border rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <Twitter className="h-4 w-4" />
               </a>
             </div>
 
+            {/* Partner Logo */}
             <div className="pt-4">
               <img 
                 src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png" 
                 alt="OZZ Cash & Carry" 
-                className="h-32 w-auto"
+                className="h-24 w-auto opacity-70"
               />
             </div>
           </div>
 
+          {/* Quick Links */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">Quick Links</h3>
-            <div className="space-y-2">
-              <Link to="/products" className="block text-gray-600 hover:text-blue-600 text-sm">
+            <h3 className="font-semibold text-foreground">Quick Links</h3>
+            <div className="space-y-3">
+              <Link to="/products" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 All Products
               </Link>
-              <Link to="/categories" className="block text-gray-600 hover:text-blue-600 text-sm">
+              <Link to="/categories" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Categories
               </Link>
-              <Link to="/about" className="block text-gray-600 hover:text-blue-600 text-sm">
+              <Link to="/about" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 About Us
               </Link>
-              <Link to="/contact" className="block text-gray-600 hover:text-blue-600 text-sm">
+              <Link to="/contact" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </Link>
             </div>
           </div>
 
+          {/* Customer Service */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">Customer Service</h3>
-            <div className="space-y-2">
-              <Link to="/shipping" className="block text-gray-600 hover:text-blue-600 text-sm">
+            <h3 className="font-semibold text-foreground">Support</h3>
+            <div className="space-y-3">
+              <Link to="/shipping" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Shipping Info
               </Link>
-              <Link to="/returns" className="block text-gray-600 hover:text-blue-600 text-sm">
+              <Link to="/returns" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Returns & Exchanges
               </Link>
-              <Link to="/faq" className="block text-gray-600 hover:text-blue-600 text-sm">
+              <Link to="/faq" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 FAQ
               </Link>
-              <Link to="/privacy" className="block text-gray-600 hover:text-blue-600 text-sm">
+              <Link to="/privacy" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy
               </Link>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">Contact Us</h3>
-            
-            <div className="space-y-4">
-              <div className="flex space-x-2">
-                <MapPin className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">OZZ CASH & CARRY</p>
-                  <p className="text-gray-600 text-sm">
-                    40 Mazeppa & Gull Street<br />
-                    Durban, KwaZulu-Natal 4001<br />
-                    South Africa
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex space-x-2">
-                <MapPin className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">IKHAYA HOMESTORE</p>
-                  <p className="text-gray-600 text-sm">
-                    Block D, Shop 88 China City<br />
-                    Springfield Park, Durban<br />
-                    KwaZulu-Natal, South Africa
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <a 
-                  href="tel:+27313327192"
-                  className="flex items-center space-x-2 text-gray-600 hover:text-blue-600"
-                >
-                  <Phone className="h-4 w-4" />
-                  <span className="text-sm">+27 31 332 7192</span>
-                </a>
-                <a 
-                  href="mailto:info@ikhaya.shop"
-                  className="flex items-center space-x-2 text-gray-600 hover:text-blue-600"
-                >
-                  <Mail className="h-4 w-4" />
-                  <span className="text-sm">info@ikhaya.shop</span>
-                </a>
-              </div>
+            {/* Contact Info */}
+            <div className="pt-4 space-y-3">
+              <a 
+                href="tel:+27313327192"
+                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Phone className="h-4 w-4" />
+                <span>+27 31 332 7192</span>
+              </a>
+              <a 
+                href="mailto:info@ikhaya.shop"
+                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Mail className="h-4 w-4" />
+                <span>info@ikhaya.shop</span>
+              </a>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-gray-200 mt-8 pt-8 text-center">
-          <p className="text-sm text-gray-500">
+        {/* Bottom Section */}
+        <div className="border-t border-border/40 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+          <p className="text-sm text-muted-foreground">
             © 2025 IKHAYA Homeware. All rights reserved.
           </p>
+          
+          {/* Store Locations - Simplified */}
+          <div className="text-xs text-muted-foreground text-center md:text-right">
+            <p>Durban, KwaZulu-Natal • Springfield Park</p>
+          </div>
         </div>
       </div>
     </footer>
