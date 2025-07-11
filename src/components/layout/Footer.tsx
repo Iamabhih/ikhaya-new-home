@@ -48,7 +48,7 @@ export const Footer = () => {
               <img 
                 src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png" 
                 alt="OZZ Cash & Carry" 
-                className="h-24 w-auto opacity-70"
+                className="h-32 w-auto"
               />
             </div>
           </div>
