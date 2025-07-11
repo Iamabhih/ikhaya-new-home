@@ -10,7 +10,7 @@ import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbP
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
 
-  const { data: category } = useQuery({
+  const { data: category, isLoading: categoryLoading } = useQuery({
     queryKey: ['category', slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -42,6 +42,21 @@ const CategoryPage = () => {
     },
     enabled: !!category?.id,
   });
+
+  if (categoryLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="h-8 w-48 bg-muted animate-pulse rounded mx-auto mb-4" />
+            <div className="h-4 w-32 bg-muted animate-pulse rounded mx-auto" />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!category) {
     return (
