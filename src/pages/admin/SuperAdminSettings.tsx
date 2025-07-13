@@ -2,9 +2,11 @@ import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { CategoryManagement } from "@/components/admin/CategoryManagement";
 import { BrandManagement } from "@/components/admin/BrandManagement";
+import { DeliveryZoneManagement } from "@/components/admin/DeliveryZoneManagement";
+import { PaymentMethodsConfig } from "@/components/admin/PaymentMethodsConfig";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2 } from "lucide-react";
+import { Settings, Tags, Building2, Truck, CreditCard } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -16,13 +18,13 @@ const SuperAdminSettings = () => {
               <div>
                 <h1 className="text-3xl font-bold">SuperAdmin Settings</h1>
                 <p className="text-muted-foreground">
-                  Manage categories, brands, and system configuration
+                  Manage categories, brands, delivery zones, and payment methods
                 </p>
               </div>
             </div>
 
             <Tabs defaultValue="categories" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
                 <TabsTrigger value="categories" className="flex items-center gap-2">
                   <Tags className="h-4 w-4" />
                   Categories
@@ -30,6 +32,14 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="brands" className="flex items-center gap-2">
                   <Building2 className="h-4 w-4" />
                   Brands
+                </TabsTrigger>
+                <TabsTrigger value="delivery" className="flex items-center gap-2">
+                  <Truck className="h-4 w-4" />
+                  Delivery
+                </TabsTrigger>
+                <TabsTrigger value="payments" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payments
                 </TabsTrigger>
               </TabsList>
 
@@ -57,6 +67,34 @@ const SuperAdminSettings = () => {
                   </CardHeader>
                   <CardContent>
                     <BrandManagement />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="delivery">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Delivery Zone Management</CardTitle>
+                    <CardDescription>
+                      Configure delivery zones, fees, and shipping options for different areas and order values.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <DeliveryZoneManagement />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="payments">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Payment Methods Configuration</CardTitle>
+                    <CardDescription>
+                      Configure PayFast and PayFlex payment methods, including merchant details, fees, and availability.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PaymentMethodsConfig />
                   </CardContent>
                 </Card>
               </TabsContent>

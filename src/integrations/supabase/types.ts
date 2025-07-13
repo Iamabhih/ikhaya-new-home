@@ -305,6 +305,51 @@ export type Database = {
           },
         ]
       }
+      delivery_zones: {
+        Row: {
+          created_at: string
+          delivery_fee: number
+          description: string | null
+          estimated_days_max: number | null
+          estimated_days_min: number | null
+          free_delivery_threshold: number | null
+          id: string
+          is_active: boolean
+          min_order_value: number | null
+          name: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_fee?: number
+          description?: string | null
+          estimated_days_max?: number | null
+          estimated_days_min?: number | null
+          free_delivery_threshold?: number | null
+          id?: string
+          is_active?: boolean
+          min_order_value?: number | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_fee?: number
+          description?: string | null
+          estimated_days_max?: number | null
+          estimated_days_min?: number | null
+          free_delivery_threshold?: number | null
+          id?: string
+          is_active?: boolean
+          min_order_value?: number | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           created_at: string
