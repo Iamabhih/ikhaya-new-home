@@ -45,18 +45,26 @@ export const ProductDetailView = ({ product, onEdit, onClose }: ProductDetailVie
   const stockStatus = getStockStatus(product.stock_quantity);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <DialogHeader>
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <DialogTitle className="text-xl">{product.name}</DialogTitle>
+        <div className="flex items-start justify-between flex-wrap gap-2">
+          <div className="space-y-1 flex-1 min-w-0">
+            <DialogTitle className="text-xl font-semibold leading-tight">{product.name}</DialogTitle>
             <p className="text-sm text-muted-foreground">SKU: {product.sku || "N/A"}</p>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-2 flex-shrink-0">
             {product.is_featured && (
-              <Badge variant="secondary">Featured</Badge>
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
+                Featured
+              </Badge>
             )}
-            <Badge variant={product.is_active ? "default" : "secondary"}>
+            <Badge 
+              variant={product.is_active ? "default" : "secondary"}
+              className={product.is_active 
+                ? "bg-slate-900 text-white hover:bg-slate-800" 
+                : "bg-muted text-muted-foreground"
+              }
+            >
               {product.is_active ? "Active" : "Inactive"}
             </Badge>
           </div>
@@ -64,24 +72,33 @@ export const ProductDetailView = ({ product, onEdit, onClose }: ProductDetailVie
       </DialogHeader>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="text-center p-4 bg-muted/50 rounded-lg">
-          <div className="text-2xl font-bold text-primary">{formatCurrency(product.price)}</div>
-          <div className="text-sm text-muted-foreground">Price</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="text-center p-4 bg-background border rounded-lg shadow-sm">
+          <div className="text-2xl font-bold text-foreground">{formatCurrency(product.price)}</div>
+          <div className="text-sm text-muted-foreground mt-1">Price</div>
         </div>
-        <div className="text-center p-4 bg-muted/50 rounded-lg">
-          <div className="text-2xl font-bold">{product.stock_quantity}</div>
-          <div className="text-sm text-muted-foreground">Stock</div>
+        <div className="text-center p-4 bg-background border rounded-lg shadow-sm">
+          <div className="text-2xl font-bold text-foreground">{product.stock_quantity}</div>
+          <div className="text-sm text-muted-foreground mt-1">Stock</div>
         </div>
-        <div className="text-center p-4 bg-muted/50 rounded-lg">
-          <Badge variant={stockStatus.variant} className="text-xs">
-            {stockStatus.label}
-          </Badge>
-          <div className="text-sm text-muted-foreground mt-1">Status</div>
+        <div className="text-center p-4 bg-background border rounded-lg shadow-sm">
+          <div className="mb-2">
+            <Badge 
+              variant={stockStatus.variant} 
+              className={`text-xs ${
+                stockStatus.variant === 'destructive' ? 'bg-red-100 text-red-800 border-red-200' :
+                stockStatus.variant === 'secondary' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                'bg-green-100 text-green-800 border-green-200'
+              }`}
+            >
+              {stockStatus.label}
+            </Badge>
+          </div>
+          <div className="text-sm text-muted-foreground">Status</div>
         </div>
-        <div className="text-center p-4 bg-muted/50 rounded-lg">
-          <div className="text-sm font-medium">{product.categories?.name || "N/A"}</div>
-          <div className="text-sm text-muted-foreground">Category</div>
+        <div className="text-center p-4 bg-background border rounded-lg shadow-sm">
+          <div className="text-sm font-medium text-foreground">{product.categories?.name || "Uncategorized"}</div>
+          <div className="text-sm text-muted-foreground mt-1">Category</div>
         </div>
       </div>
 
@@ -126,15 +143,18 @@ export const ProductDetailView = ({ product, onEdit, onClose }: ProductDetailVie
       <Separator />
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button onClick={onEdit} className="flex-1">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <Button 
+          onClick={onEdit} 
+          className="bg-slate-900 hover:bg-slate-800 text-white"
+        >
           <Edit className="h-4 w-4 mr-2" />
           Edit Product
         </Button>
         
         <Sheet open={showImageManager} onOpenChange={setShowImageManager}>
           <SheetTrigger asChild>
-            <Button variant="outline" className="flex-1">
+            <Button variant="outline" className="border-slate-200 hover:bg-slate-50">
               <Image className="h-4 w-4 mr-2" />
               Manage Images
             </Button>
@@ -144,15 +164,20 @@ export const ProductDetailView = ({ product, onEdit, onClose }: ProductDetailVie
           </SheetContent>
         </Sheet>
         
-        <Button variant="outline" className="flex-1">
+        <Button variant="outline" className="border-slate-200 hover:bg-slate-50">
           <Copy className="h-4 w-4 mr-2" />
           Duplicate
         </Button>
-        <Button variant="outline" className="flex-1">
+        
+        <Button variant="outline" className="border-slate-200 hover:bg-slate-50">
           <Tag className="h-4 w-4 mr-2" />
           Manage Tags
         </Button>
-        <Button variant="outline" className="flex-1 text-destructive hover:text-destructive/90">
+        
+        <Button 
+          variant="outline" 
+          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+        >
           <Archive className="h-4 w-4 mr-2" />
           Archive
         </Button>
