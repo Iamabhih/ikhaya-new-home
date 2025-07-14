@@ -2,6 +2,9 @@
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { EnhancedOrderList } from "@/components/admin/orders/EnhancedOrderList";
+import { OrderTestingPanel } from "@/components/admin/OrderTestingPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ShoppingCart, TestTube } from "lucide-react";
 
 const AdminOrders = () => {
   return (
@@ -16,7 +19,26 @@ const AdminOrders = () => {
             </div>
           </div>
           
-          <EnhancedOrderList />
+          <Tabs defaultValue="orders" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="orders" className="flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4" />
+                Orders
+              </TabsTrigger>
+              <TabsTrigger value="testing" className="flex items-center gap-2">
+                <TestTube className="h-4 w-4" />
+                Testing
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="orders">
+              <EnhancedOrderList />
+            </TabsContent>
+
+            <TabsContent value="testing">
+              <OrderTestingPanel />
+            </TabsContent>
+          </Tabs>
         </div>
       </AdminLayout>
     </AdminProtectedRoute>

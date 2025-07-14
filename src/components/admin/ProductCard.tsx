@@ -8,12 +8,16 @@ import { Edit, Eye } from "lucide-react";
 interface Product {
   id: string;
   name: string;
-  sku: string;
+  sku?: string | null;
   price: number;
-  stock_quantity: number;
+  stock_quantity?: number | null;
   is_active: boolean;
   is_featured: boolean;
-  categories?: { name: string };
+  categories?: { name: string } | null;
+  brands?: { name: string } | null;
+  created_at?: string;
+  description?: string | null;
+  short_description?: string | null;
 }
 
 interface ProductCardProps {
@@ -24,7 +28,8 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCardProps) => {
-  const stockStatus = product.stock_quantity > 10 ? 'high' : product.stock_quantity > 0 ? 'low' : 'out';
+  const stockQuantity = product.stock_quantity || 0;
+  const stockStatus = stockQuantity > 10 ? 'high' : stockQuantity > 0 ? 'low' : 'out';
   
   return (
     <Card className="group bg-white border border-gray-200/60 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200">
@@ -78,7 +83,7 @@ export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCa
                 <div>
                   <span className="text-gray-500 text-xs uppercase tracking-wide">Stock</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{product.stock_quantity}</span>
+                    <span className="font-medium text-gray-900">{stockQuantity}</span>
                     <div className={`w-2 h-2 rounded-full ${
                       stockStatus === 'high' ? 'bg-green-400' : 
                       stockStatus === 'low' ? 'bg-amber-400' : 'bg-red-400'

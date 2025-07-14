@@ -4,9 +4,11 @@ import { CategoryManagement } from "@/components/admin/CategoryManagement";
 import { BrandManagement } from "@/components/admin/BrandManagement";
 import { DeliveryZoneManagement } from "@/components/admin/DeliveryZoneManagement";
 import { PaymentMethodsConfig } from "@/components/admin/PaymentMethodsConfig";
+import { ProductTestingPanel } from "@/components/admin/ProductTestingPanel";
+import { SystemStatusReport } from "@/components/admin/SystemStatusReport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2, Truck, CreditCard } from "lucide-react";
+import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -23,8 +25,12 @@ const SuperAdminSettings = () => {
               </div>
             </div>
 
-            <Tabs defaultValue="categories" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+            <Tabs defaultValue="status" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
+                <TabsTrigger value="status" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Status
+                </TabsTrigger>
                 <TabsTrigger value="categories" className="flex items-center gap-2">
                   <Tags className="h-4 w-4" />
                   Categories
@@ -41,7 +47,25 @@ const SuperAdminSettings = () => {
                   <CreditCard className="h-4 w-4" />
                   Payments
                 </TabsTrigger>
+                <TabsTrigger value="testing" className="flex items-center gap-2">
+                  <TestTube className="h-4 w-4" />
+                  Testing
+                </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="status">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>System Status & Production Readiness</CardTitle>
+                    <CardDescription>
+                      Monitor system health, run comprehensive tests, and verify production readiness.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <SystemStatusReport />
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               <TabsContent value="categories">
                 <Card>
@@ -95,6 +119,20 @@ const SuperAdminSettings = () => {
                   </CardHeader>
                   <CardContent>
                     <PaymentMethodsConfig />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="testing">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>System Testing & Monitoring</CardTitle>
+                    <CardDescription>
+                      Run end-to-end tests for product management, orders, and system functionality.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ProductTestingPanel />
                   </CardContent>
                 </Card>
               </TabsContent>
