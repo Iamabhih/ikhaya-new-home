@@ -5,10 +5,11 @@ import { BrandManagement } from "@/components/admin/BrandManagement";
 import { DeliveryZoneManagement } from "@/components/admin/DeliveryZoneManagement";
 import { PaymentMethodsConfig } from "@/components/admin/PaymentMethodsConfig";
 import { ProductTestingPanel } from "@/components/admin/ProductTestingPanel";
+import { PromotionalBannersManagement } from "@/components/admin/PromotionalBannersManagement";
 import { SystemStatusReport } from "@/components/admin/SystemStatusReport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity } from "lucide-react";
+import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -26,7 +27,7 @@ const SuperAdminSettings = () => {
             </div>
 
             <Tabs defaultValue="status" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7">
                 <TabsTrigger value="status" className="flex items-center gap-2">
                   <Activity className="h-4 w-4" />
                   Status
@@ -38,6 +39,10 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="brands" className="flex items-center gap-2">
                   <Building2 className="h-4 w-4" />
                   Brands
+                </TabsTrigger>
+                <TabsTrigger value="banners" className="flex items-center gap-2">
+                  <Megaphone className="h-4 w-4" />
+                  Banners
                 </TabsTrigger>
                 <TabsTrigger value="delivery" className="flex items-center gap-2">
                   <Truck className="h-4 w-4" />
@@ -91,6 +96,20 @@ const SuperAdminSettings = () => {
                   </CardHeader>
                   <CardContent>
                     <BrandManagement />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="banners">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Promotional Banners</CardTitle>
+                    <CardDescription>
+                      Manage homepage promotional banners and sales advertisements. Create engaging banners to promote sales, deals, and special offers.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PromotionalBannersManagement />
                   </CardContent>
                 </Card>
               </TabsContent>

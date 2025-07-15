@@ -2,6 +2,7 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/home/HeroSection";
+import { PromotionalBanners } from "@/components/home/PromotionalBanners";
 import { OptimizedFeaturedProducts } from "@/components/home/OptimizedFeaturedProducts";
 import { OptimizedCategoryGrid } from "@/components/home/OptimizedCategoryGrid";
 import { Newsletter } from "@/components/home/Newsletter";
@@ -19,6 +20,10 @@ const Index = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className={`${isMobile ? 'mobile-optimized' : ''}`}>
+          <MobileSafeComponent name="Promotional Banners">
+            <PromotionalBanners />
+          </MobileSafeComponent>
+          
           <MobileSafeComponent name="Hero Section">
             <HeroSection />
           </MobileSafeComponent>
