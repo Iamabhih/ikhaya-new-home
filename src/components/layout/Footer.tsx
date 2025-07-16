@@ -11,7 +11,7 @@ export const Footer = () => {
           <div className="space-y-6">
             <div className="flex items-center">
               <img 
-                src="/lovable-uploads/31cb5686-ce2c-42f1-8a7a-fe7a4891b203.png" 
+                src="/lovable-uploads/6fdda264-ce80-44ec-9836-c9c81756c513.png" 
                 alt="IKHAYA Homeware" 
                 className="h-16 w-auto"
               />
