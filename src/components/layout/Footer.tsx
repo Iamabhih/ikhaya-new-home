@@ -13,7 +13,7 @@ export const Footer = () => {
               <img 
                 src="/lovable-uploads/9726249b-723c-40f2-b0be-ceda1783a9bf.png" 
                 alt="IKHAYA Homeware" 
-                className="h-10 w-auto"
+                className="h-14 w-auto"
               />
               <span className="text-xl font-semibold text-foreground">
                 IKHAYA Homeware
@@ -50,7 +50,7 @@ export const Footer = () => {
               <img 
                 src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png" 
                 alt="OZZ Cash & Carry" 
-                className="h-30 w-auto"
+                className="h-28 w-auto"
               />
             </div>
           </div>
