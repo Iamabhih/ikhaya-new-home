@@ -197,11 +197,12 @@ serve(async (req) => {
 
     switch (paymentMethod) {
       case 'payfast':
-        // PayFast sandbox integration
+        // PayFast production integration
         const payfastData = {
-          // Sandbox merchant details
-          merchant_id: '10000100',
-          merchant_key: '46f0cd694581a',
+          // Production merchant details
+          merchant_id: '13644558',
+          merchant_key: 'u6ksewx8j6xzx',
+          passphrase: 'Khalid123@Ozz',
           return_url: `${baseUrl}/payment/success?order_id=${order.id}&payment_method=payfast`,
           cancel_url: `${baseUrl}/checkout?cancelled=true`,
           notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
@@ -213,9 +214,9 @@ serve(async (req) => {
           m_payment_id: orderNumber,
           amount: totalAmount.toFixed(2),
           item_name: `Order ${orderNumber}`,
-          item_description: `${items.length} items from IKHAYA Homeware`,
-          // Test mode
-          custom_str1: 'test_mode',
+          item_description: `${items.length} items from OZZ Cash & Carry`,
+          // Production mode
+          custom_str1: 'production_mode',
           custom_str2: order.id
         }
         
@@ -224,7 +225,7 @@ serve(async (req) => {
           orderId: order.id,
           orderNumber: orderNumber,
           amount: totalAmount,
-          url: 'https://sandbox.payfast.co.za/eng/process',
+          url: 'https://www.payfast.co.za/eng/process',
           formData: payfastData,
           message: 'Redirect to PayFast for payment processing'
         }
