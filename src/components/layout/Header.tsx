@@ -41,18 +41,12 @@ export const Header = () => {
           <div className="flex h-16 items-center justify-between gap-4">
             
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
+            <Link to="/" className="flex items-center flex-shrink-0">
               <img 
-                src="/lovable-uploads/9726249b-723c-40f2-b0be-ceda1783a9bf.png" 
+                src="/lovable-uploads/31cb5686-ce2c-42f1-8a7a-fe7a4891b203.png" 
                 alt="IKHAYA Homeware" 
-                className="h-8 w-auto"
+                className="h-10 w-auto"
               />
-              <span className="font-semibold text-lg text-foreground hidden sm:block">
-                IKHAYA Homeware
-              </span>
-              <span className="font-semibold text-lg text-foreground sm:hidden">
-                IKHAYA
-              </span>
             </Link>
 
             {/* Desktop Navigation */}

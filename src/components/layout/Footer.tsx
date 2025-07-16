@@ -9,15 +9,12 @@ export const Footer = () => {
           
           {/* Brand Section */}
           <div className="space-y-6">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center">
               <img 
-                src="/lovable-uploads/9726249b-723c-40f2-b0be-ceda1783a9bf.png" 
+                src="/lovable-uploads/31cb5686-ce2c-42f1-8a7a-fe7a4891b203.png" 
                 alt="IKHAYA Homeware" 
-                className="h-14 w-auto"
+                className="h-16 w-auto"
               />
-              <span className="text-xl font-semibold text-foreground">
-                IKHAYA Homeware
-              </span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
               Your home is your sanctuary. We provide quality homeware to make it beautiful, functional, and uniquely yours.
