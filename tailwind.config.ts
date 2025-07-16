@@ -84,6 +84,20 @@ export default {
 					5: 'hsl(var(--chart-5))'
 				}
 			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-secondary': 'var(--gradient-secondary)',
+				'gradient-accent': 'var(--gradient-accent)',
+			},
+			boxShadow: {
+				'modern-sm': 'var(--shadow-sm)',
+				'modern-md': 'var(--shadow-md)',
+				'modern-lg': 'var(--shadow-lg)',
+				'modern-xl': 'var(--shadow-xl)',
+			},
+			transitionTimingFunction: {
+				'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
+			},
 			spacing: {
 				'18': '4.5rem',
 				'88': '22rem',
