@@ -214,7 +214,7 @@ serve(async (req) => {
           m_payment_id: orderNumber,
           amount: totalAmount.toFixed(2),
           item_name: `Order ${orderNumber}`,
-          item_description: `${items.length} items from OZZ Cash & Carry`,
+          item_description: `${items.length} items from IKHAYA Homeware`,
           // Production mode
           custom_str1: 'production_mode',
           custom_str2: order.id

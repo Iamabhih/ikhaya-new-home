@@ -42,9 +42,11 @@ export const Header = () => {
             
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">I</span>
-              </div>
+              <img 
+                src="/lovable-uploads/9726249b-723c-40f2-b0be-ceda1783a9bf.png" 
+                alt="IKHAYA Homeware" 
+                className="h-8 w-auto"
+              />
               <span className="font-semibold text-lg text-foreground hidden sm:block">
                 IKHAYA Homeware
               </span>
