@@ -43,7 +43,7 @@ export const Header = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center flex-shrink-0">
               <img 
-                src="/lovable-uploads/9726249b-723c-40f2-b0be-ceda1783a9bf.png" 
+                src="/lovable-uploads/6fdda264-ce80-44ec-9836-c9c81756c513.png" 
                 alt="IKHAYA Homeware" 
                 className="h-14 w-auto"
               />
