@@ -20,7 +20,7 @@ export const PromotionalBanners = () => {
     if (banners.length > 1) {
       const timer = setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % banners.length);
-      }, 5000); // Auto-slide every 5 seconds
+      }, 8000); // Auto-slide every 8 seconds for better UX
       
       return () => clearInterval(timer);
     }
