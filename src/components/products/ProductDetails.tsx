@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { StarRating } from "@/components/reviews/StarRating";
 
@@ -22,16 +21,6 @@ interface ProductDetailsProps {
 
 export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
   const productUrl = `/products/${product.slug}`;
-  
-  // Debug logging to identify the source of the "0"
-  console.log('ProductDetails - product data:', {
-    name: product.name,
-    review_count: product.review_count,
-    average_rating: product.average_rating,
-    categories: product.categories,
-    stock_quantity: (product as any).stock_quantity,
-    allFields: Object.keys(product)
-  });
 
   return (
     <div className={`${viewMode === "list" ? "space-y-1 sm:space-y-2" : "space-y-1 sm:space-y-2 flex-1 flex flex-col"}`}>
@@ -47,15 +36,15 @@ export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
         </p>
       )}
       
-      {/* Rating - temporarily commented out to debug the "0" issue */}
-      {/* {product.average_rating && product.review_count && Number(product.review_count) > 0 && (
+      {/* Rating */}
+      {product.average_rating && product.review_count && Number(product.review_count) > 0 && (
         <div className="flex items-center gap-1 mb-1 sm:mb-2">
           <StarRating rating={product.average_rating} readonly size="sm" />
           <span className="text-xs text-muted-foreground">
             ({product.review_count})
           </span>
         </div>
-      )} */}
+      )}
       
       {product.short_description && (
         <p className={`text-xs sm:text-sm text-muted-foreground ${
