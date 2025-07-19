@@ -1,7 +1,7 @@
 
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { EnhancedOrderList } from "@/components/admin/orders/EnhancedOrderList";
+import { EnhancedOrderManagement } from "@/components/admin/orders/EnhancedOrderManagement";
 import { OrderTestingPanel } from "@/components/admin/OrderTestingPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, TestTube } from "lucide-react";
@@ -32,7 +32,7 @@ const AdminOrders = () => {
             </TabsList>
 
             <TabsContent value="orders">
-              <EnhancedOrderList />
+              <EnhancedOrderManagement />
             </TabsContent>
 
             <TabsContent value="testing">
