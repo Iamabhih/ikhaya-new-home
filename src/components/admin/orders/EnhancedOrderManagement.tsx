@@ -36,15 +36,18 @@ interface Order {
   priority: string;
   total_amount: number;
   created_at: string;
-  customer_name: string;
-  customer_email: string;
+  updated_at: string;
   tags: string[];
   tracking_number?: string;
-  profiles?: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
+  internal_notes?: string;
+  customer_notes?: string;
+  shipped_at?: string;
+  delivered_at?: string;
+  email: string;
+  user_id: string | null;
+  customer_name?: string;
+  customer_email?: string;
+  profiles?: any;
   order_items: Array<{
     id: string;
     product_name: string;
@@ -89,7 +92,8 @@ export const EnhancedOrderManagement = () => {
           customer_notes,
           shipped_at,
           delivered_at,
-          profiles:user_id(first_name, last_name, email),
+          email,
+          user_id,
           order_items(
             id,
             product_name,
@@ -102,7 +106,7 @@ export const EnhancedOrderManagement = () => {
 
       // Apply search filter
       if (searchQuery) {
-        query = query.or(`order_number.ilike.%${searchQuery}%,profiles.email.ilike.%${searchQuery}%,profiles.first_name.ilike.%${searchQuery}%,profiles.last_name.ilike.%${searchQuery}%`);
+        query = query.or(`order_number.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`);
       }
 
       // Apply status filter
@@ -164,7 +168,7 @@ export const EnhancedOrderManagement = () => {
     mutationFn: async ({ orderIds, status, notes }: { orderIds: string[], status: string, notes?: string }) => {
       const { data, error } = await supabase.rpc('bulk_update_order_status', {
         order_ids: orderIds,
-        new_status: status,
+        new_status: status as any,
         notes: notes
       });
       if (error) throw error;
@@ -422,10 +426,7 @@ export const EnhancedOrderManagement = () => {
                         </div>
                         
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>
-                            {order.profiles?.first_name} {order.profiles?.last_name}
-                          </span>
-                          <span>{order.profiles?.email}</span>
+                          <span>{order.email || 'Guest'}</span>
                           <span>R{order.total_amount.toFixed(2)}</span>
                           <span>{new Date(order.created_at).toLocaleDateString()}</span>
                         </div>
@@ -436,7 +437,11 @@ export const EnhancedOrderManagement = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedOrder(order)}
+                        onClick={() => setSelectedOrder({
+                          ...order,
+                          customer_name: order.email || 'Guest',
+                          customer_email: order.email || 'N/A'
+                        })}
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         View

@@ -20,10 +20,7 @@ interface TimelineItem {
   new_value?: string;
   metadata?: any;
   created_at: string;
-  profiles?: {
-    first_name: string;
-    last_name: string;
-  };
+  profiles?: any;
 }
 
 interface OrderTimelineProps {
@@ -112,7 +109,7 @@ export const OrderTimeline = ({ timeline }: OrderTimelineProps) => {
                     </div>
                   )}
                   
-                  {event.profiles && (
+                  {event.profiles && event.profiles.first_name && event.profiles.last_name && (
                     <p className="text-xs text-muted-foreground">
                       by {event.profiles.first_name} {event.profiles.last_name}
                     </p>
