@@ -60,7 +60,7 @@ export const ReviewsSection = ({ productId }: ReviewsSectionProps) => {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Customer Reviews</h2>
         
-        {reviewStats && reviewStats.review_count > 0 ? (
+        {reviewStats && Number(reviewStats.review_count) > 0 ? (
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <StarRating rating={reviewStats.average_rating || 0} readonly />
@@ -77,7 +77,7 @@ export const ReviewsSection = ({ productId }: ReviewsSectionProps) => {
         )}
 
         {/* Rating Distribution */}
-        {ratingDistribution && reviewStats && reviewStats.review_count > 0 && (
+        {ratingDistribution && reviewStats && Number(reviewStats.review_count) > 0 && (
           <div className="space-y-2">
             {[5, 4, 3, 2, 1].map((stars) => (
               <div key={stars} className="flex items-center gap-2 text-sm">
@@ -86,7 +86,7 @@ export const ReviewsSection = ({ productId }: ReviewsSectionProps) => {
                   <div 
                     className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
                     style={{ 
-                      width: `${reviewStats.review_count > 0 ? (ratingDistribution[stars - 1] / reviewStats.review_count) * 100 : 0}%` 
+                      width: `${Number(reviewStats.review_count) > 0 ? (ratingDistribution[stars - 1] / reviewStats.review_count) * 100 : 0}%` 
                     }}
                   />
                 </div>
