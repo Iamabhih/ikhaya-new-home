@@ -122,10 +122,10 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
       {/* Stock Status & SKU */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <Badge 
-          variant={product.stock_quantity && product.stock_quantity > 0 ? "default" : "destructive"}
+          variant={(product.stock_quantity && Number(product.stock_quantity) > 0) ? "default" : "destructive"}
           className="w-fit text-sm font-medium px-3 py-1"
         >
-          {product.stock_quantity && product.stock_quantity > 0 
+          {product.stock_quantity && Number(product.stock_quantity) > 0
             ? `✓ ${product.stock_quantity} in stock` 
             : '✗ Out of stock'
           }
@@ -170,10 +170,10 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
             size="lg" 
             className="w-full h-14 text-lg font-medium"
             onClick={handleAddToCart}
-            disabled={!product.stock_quantity || product.stock_quantity <= 0}
+            disabled={!product.stock_quantity || Number(product.stock_quantity) <= 0}
           >
             <ShoppingCart className="h-5 w-5 mr-3" />
-            {product.stock_quantity && product.stock_quantity > 0 ? 'Add to Cart' : 'Out of Stock'}
+            {product.stock_quantity && Number(product.stock_quantity) > 0 ? 'Add to Cart' : 'Out of Stock'}
           </Button>
           
           <div className="flex gap-3">
