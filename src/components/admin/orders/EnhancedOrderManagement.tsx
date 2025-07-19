@@ -125,7 +125,9 @@ export const EnhancedOrderManagement = () => {
       }
 
       // Apply sorting
-      const [field, direction] = sortBy.split('_');
+      const sortParts = sortBy.split('_');
+      const direction = sortParts.pop(); // Get the last part (asc/desc)
+      const field = sortParts.join('_'); // Join the remaining parts (handles created_at)
       query = query.order(field, { ascending: direction === 'asc' });
 
       const { data, error, count } = await query;
