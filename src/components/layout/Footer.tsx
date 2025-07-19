@@ -13,7 +13,7 @@ export const Footer = () => {
               <img 
                 src="/lovable-uploads/6fdda264-ce80-44ec-9836-c9c81756c513.png" 
                 alt="IKHAYA Homeware" 
-                className="h-24 w-auto"
+                className="h-26 w-auto"
               />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
