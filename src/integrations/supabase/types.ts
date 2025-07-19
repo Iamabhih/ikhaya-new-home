@@ -425,6 +425,107 @@ export type Database = {
         }
         Relationships: []
       }
+      fulfillment_items: {
+        Row: {
+          created_at: string
+          fulfillment_id: string
+          id: string
+          order_item_id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          fulfillment_id: string
+          id?: string
+          order_item_id: string
+          quantity: number
+        }
+        Update: {
+          created_at?: string
+          fulfillment_id?: string
+          id?: string
+          order_item_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fulfillment_items_fulfillment_id_fkey"
+            columns: ["fulfillment_id"]
+            isOneToOne: false
+            referencedRelation: "fulfillments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillment_items_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fulfillments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          estimated_delivery_date: string | null
+          fulfillment_location: string | null
+          fulfillment_number: string
+          id: string
+          notes: string | null
+          order_id: string
+          shipped_at: string | null
+          status: Database["public"]["Enums"]["fulfillment_status"]
+          tracking_company: string | null
+          tracking_number: string | null
+          tracking_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          estimated_delivery_date?: string | null
+          fulfillment_location?: string | null
+          fulfillment_number: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["fulfillment_status"]
+          tracking_company?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          estimated_delivery_date?: string | null
+          fulfillment_location?: string | null
+          fulfillment_number?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["fulfillment_status"]
+          tracking_company?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fulfillments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       homepage_featured_categories: {
         Row: {
           category_id: string
@@ -580,6 +681,47 @@ export type Database = {
           },
         ]
       }
+      order_notes: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          is_important: boolean | null
+          note_type: string
+          order_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_important?: boolean | null
+          note_type?: string
+          order_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_important?: boolean | null
+          note_type?: string
+          order_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_notes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_status_history: {
         Row: {
           created_at: string
@@ -615,22 +757,84 @@ export type Database = {
           },
         ]
       }
+      order_timeline: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_description: string | null
+          event_title: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          new_value: string | null
+          order_id: string
+          previous_value: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_description?: string | null
+          event_title: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          order_id: string
+          previous_value?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_description?: string | null
+          event_title?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          order_id?: string
+          previous_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_timeline_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           billing_address: Json
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          completed_at: string | null
           created_at: string
           currency: string | null
+          customer_notes: string | null
+          delivered_at: string | null
           discount_amount: number | null
           email: string
           estimated_delivery_date: string | null
+          expected_delivery_date: string | null
+          fulfillment_location: string | null
+          fulfillment_status:
+            | Database["public"]["Enums"]["fulfillment_status"]
+            | null
           id: string
+          internal_notes: string | null
           notes: string | null
           order_number: string
           payment_method: string | null
+          priority: Database["public"]["Enums"]["order_priority"] | null
+          shipped_at: string | null
           shipping_address: Json | null
           shipping_amount: number | null
+          source_channel: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
+          tags: string[] | null
           tax_amount: number | null
           total_amount: number
           tracking_number: string | null
@@ -639,19 +843,34 @@ export type Database = {
         }
         Insert: {
           billing_address: Json
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
           created_at?: string
           currency?: string | null
+          customer_notes?: string | null
+          delivered_at?: string | null
           discount_amount?: number | null
           email: string
           estimated_delivery_date?: string | null
+          expected_delivery_date?: string | null
+          fulfillment_location?: string | null
+          fulfillment_status?:
+            | Database["public"]["Enums"]["fulfillment_status"]
+            | null
           id?: string
+          internal_notes?: string | null
           notes?: string | null
           order_number: string
           payment_method?: string | null
+          priority?: Database["public"]["Enums"]["order_priority"] | null
+          shipped_at?: string | null
           shipping_address?: Json | null
           shipping_amount?: number | null
+          source_channel?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal: number
+          tags?: string[] | null
           tax_amount?: number | null
           total_amount: number
           tracking_number?: string | null
@@ -660,19 +879,34 @@ export type Database = {
         }
         Update: {
           billing_address?: Json
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
           created_at?: string
           currency?: string | null
+          customer_notes?: string | null
+          delivered_at?: string | null
           discount_amount?: number | null
           email?: string
           estimated_delivery_date?: string | null
+          expected_delivery_date?: string | null
+          fulfillment_location?: string | null
+          fulfillment_status?:
+            | Database["public"]["Enums"]["fulfillment_status"]
+            | null
           id?: string
+          internal_notes?: string | null
           notes?: string | null
           order_number?: string
           payment_method?: string | null
+          priority?: Database["public"]["Enums"]["order_priority"] | null
+          shipped_at?: string | null
           shipping_address?: Json | null
           shipping_amount?: number | null
+          source_channel?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
+          tags?: string[] | null
           tax_amount?: number | null
           total_amount?: number
           tracking_number?: string | null
@@ -1721,6 +1955,14 @@ export type Database = {
         Args: { products_data: Json; import_id_param: string }
         Returns: Json
       }
+      bulk_update_order_status: {
+        Args: {
+          order_ids: string[]
+          new_status: Database["public"]["Enums"]["order_status"]
+          notes?: string
+        }
+        Returns: number
+      }
       create_admin_user: {
         Args: { user_email: string }
         Returns: boolean
@@ -1783,6 +2025,14 @@ export type Database = {
     }
     Enums: {
       app_role: "customer" | "wholesale" | "admin" | "superadmin"
+      fulfillment_status:
+        | "unfulfilled"
+        | "partially_fulfilled"
+        | "fulfilled"
+        | "shipped"
+        | "delivered"
+        | "returned"
+      order_priority: "low" | "normal" | "high" | "urgent"
       order_status:
         | "pending"
         | "confirmed"
@@ -1790,6 +2040,15 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
+        | "awaiting_payment"
+        | "payment_failed"
+        | "partially_fulfilled"
+        | "fulfilled"
+        | "out_for_delivery"
+        | "completed"
+        | "returned"
+        | "refunded"
+        | "disputed"
       payment_method_type: "stripe" | "payfast" | "payflex" | "eft" | "cod"
       payment_status:
         | "pending"
@@ -1927,6 +2186,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["customer", "wholesale", "admin", "superadmin"],
+      fulfillment_status: [
+        "unfulfilled",
+        "partially_fulfilled",
+        "fulfilled",
+        "shipped",
+        "delivered",
+        "returned",
+      ],
+      order_priority: ["low", "normal", "high", "urgent"],
       order_status: [
         "pending",
         "confirmed",
@@ -1934,6 +2202,15 @@ export const Constants = {
         "shipped",
         "delivered",
         "cancelled",
+        "awaiting_payment",
+        "payment_failed",
+        "partially_fulfilled",
+        "fulfilled",
+        "out_for_delivery",
+        "completed",
+        "returned",
+        "refunded",
+        "disputed",
       ],
       payment_method_type: ["stripe", "payfast", "payflex", "eft", "cod"],
       payment_status: [
