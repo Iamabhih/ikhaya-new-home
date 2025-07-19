@@ -149,6 +149,17 @@ export const Footer = () => {
           <p className="text-sm text-muted-foreground">
             © 2025 IKHAYA Homeware by Ozz Cash & Carry. All rights reserved.
           </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Designed and managed by Black Orchid Consulting{" "}
+            <a 
+              href="https://www.blackorchid.online" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              www.blackorchid.online
+            </a>
+          </p>
         </div>
       </div>
     </footer>
