@@ -37,7 +37,7 @@ export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
       )}
       
       {/* Rating */}
-      {product.average_rating && product.review_count && product.review_count > 0 && (
+      {product.average_rating && product.review_count && Number(product.review_count) > 0 && (
         <div className="flex items-center gap-1 mb-1 sm:mb-2">
           <StarRating rating={product.average_rating} readonly size="sm" />
           <span className="text-xs text-muted-foreground">
