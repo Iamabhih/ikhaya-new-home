@@ -45,7 +45,7 @@ export const Header = () => {
               <img 
                 src="/lovable-uploads/6fdda264-ce80-44ec-9836-c9c81756c513.png" 
                 alt="IKHAYA Homeware" 
-                className="h-14 w-auto"
+                className="h-16 w-auto"
               />
             </Link>
 
