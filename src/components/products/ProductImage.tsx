@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
+import { OptimizedImage } from "@/components/common/OptimizedImage";
 
 interface ProductImageProps {
   product: {
@@ -45,13 +46,15 @@ export const ProductImage = ({
   return (
     <div className={`relative overflow-hidden rounded-lg ${viewMode === "grid" ? "rounded-t-lg" : ""}`}>
       <Link to={productUrl}>
-        <div className={`${imageClasses} bg-secondary/20 flex items-center justify-center`}>
+        <div className={`${imageClasses} bg-secondary/20 flex items-center justify-center overflow-hidden`}>
           {primaryImage ? (
-            <img
+            <OptimizedImage
               src={primaryImage.image_url}
               alt={primaryImage.alt_text || product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
+              lazy={true}
+              quality={85}
+              fallbackSrc="/placeholder.svg"
             />
           ) : (
             <div className="flex flex-col items-center justify-center text-muted-foreground">

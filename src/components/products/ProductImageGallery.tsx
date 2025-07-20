@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProgressiveImage } from "@/components/common/ProgressiveImage";
+import { useImagePreloader } from "@/hooks/useImagePreloader";
 
 interface ProductImage {
   id: string;
@@ -21,6 +23,10 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   
   const sortedImages = images.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const currentImage = sortedImages[currentImageIndex];
+  
+  // Preload all images for smooth gallery experience
+  const imageUrls = sortedImages.map(img => img.image_url);
+  const { isLoading, progress } = useImagePreloader(imageUrls, { priority: true });
 
   const goToPrevious = () => {
     setCurrentImageIndex((prev) => 
@@ -46,11 +52,21 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
     <div className="space-y-4">
       {/* Main Image */}
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-secondary/10 shadow-xl">
-        <img
+        <ProgressiveImage
           src={currentImage.image_url}
           alt={currentImage.alt_text || productName}
           className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
         />
+        
+        {/* Loading progress indicator */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-background/20 flex items-center justify-center">
+            <div className="text-center space-y-2">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="text-sm text-muted-foreground">{Math.round(progress)}%</div>
+            </div>
+          </div>
+        )}
         
         {sortedImages.length > 1 && (
           <>
@@ -92,7 +108,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
                   : 'border-transparent hover:border-border/50 hover:scale-102'
               }`}
             >
-              <img
+              <ProgressiveImage
                 src={image.image_url}
                 alt={image.alt_text || `${productName} thumbnail ${index + 1}`}
                 className="w-full h-full object-cover"
