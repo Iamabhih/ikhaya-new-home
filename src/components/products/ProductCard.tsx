@@ -46,7 +46,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   
   if (viewMode === "list") {
     return (
-      <Card className="group hover:shadow-lg transition-all duration-300">
+      <Card className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
         <CardContent className="p-0">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4">
             <ProductImage
@@ -85,7 +85,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   }
   
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 h-full flex flex-col">
+    <Card className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out h-full flex flex-col">
       <CardContent className="p-0 flex-1">
         <ProductImage
           product={product}
