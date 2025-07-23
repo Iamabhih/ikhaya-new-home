@@ -6,10 +6,11 @@ import { DeliveryZoneManagement } from "@/components/admin/DeliveryZoneManagemen
 import { PaymentMethodsConfig } from "@/components/admin/PaymentMethodsConfig";
 import { ProductTestingPanel } from "@/components/admin/ProductTestingPanel";
 import { PromotionalBannersManagement } from "@/components/admin/PromotionalBannersManagement";
+import { BannerDesignGuide } from "@/components/admin/BannerDesignGuide";
 import { SystemStatusReport } from "@/components/admin/SystemStatusReport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone } from "lucide-react";
+import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -27,7 +28,7 @@ const SuperAdminSettings = () => {
             </div>
 
             <Tabs defaultValue="status" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-8">
                 <TabsTrigger value="status" className="flex items-center gap-2">
                   <Activity className="h-4 w-4" />
                   Status
@@ -43,6 +44,10 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="banners" className="flex items-center gap-2">
                   <Megaphone className="h-4 w-4" />
                   Banners
+                </TabsTrigger>
+                <TabsTrigger value="banner-guide" className="flex items-center gap-2">
+                  <Image className="h-4 w-4" />
+                  Guide
                 </TabsTrigger>
                 <TabsTrigger value="delivery" className="flex items-center gap-2">
                   <Truck className="h-4 w-4" />
@@ -141,6 +146,21 @@ const SuperAdminSettings = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              <TabsContent value="banner-guide">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Banner Design Guide</CardTitle>
+                    <CardDescription>
+                      Guidelines and specifications for creating promotional banners with proper dimensions and formatting.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BannerDesignGuide />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
 
               <TabsContent value="testing">
                 <Card>
