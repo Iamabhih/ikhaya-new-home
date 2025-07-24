@@ -86,7 +86,7 @@ export const PromotionalBanners = () => {
             <img 
               src={currentBanner.image_url}
               alt=""
-              className="w-full h-full object-cover opacity-30"
+              className="w-full h-full object-cover"
             />
             {((currentBanner as any).overlay_opacity ?? 0.2) > 0 && (
               <div 

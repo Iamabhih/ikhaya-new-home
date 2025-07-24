@@ -363,7 +363,7 @@ export const PromotionalBannersManagement = () => {
                           <img 
                             src={formData.image_url} 
                             alt="Preview" 
-                            className="absolute inset-0 w-full h-full object-cover opacity-30"
+                            className="absolute inset-0 w-full h-full object-cover"
                           />
                           {formData.overlay_opacity > 0 && (
                             <div 
@@ -449,7 +449,7 @@ export const PromotionalBannersManagement = () => {
               >
                 {banner.image_url && (
                   <>
-                    <div className="absolute inset-0 opacity-20">
+                    <div className="absolute inset-0">
                       <img 
                         src={banner.image_url} 
                         alt="" 
