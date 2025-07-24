@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2, Plus, Image, Calendar, Eye, EyeOff, ArrowUp, ArrowDown } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
+import { BannerImageUpload } from "./BannerImageUpload";
 
 type PromotionalBanner = Tables<"promotional_banners">;
 
@@ -297,8 +298,14 @@ export const PromotionalBannersManagement = () => {
                 </TabsContent>
 
                 <TabsContent value="design" className="space-y-4">
+                  <BannerImageUpload
+                    currentImageUrl={formData.image_url}
+                    onImageUpload={(imageUrl) => setFormData({ ...formData, image_url: imageUrl })}
+                    onImageRemove={() => setFormData({ ...formData, image_url: "" })}
+                  />
+                  
                   <div>
-                    <Label htmlFor="image_url">Image URL</Label>
+                    <Label htmlFor="image_url">Or enter Image URL</Label>
                     <Input
                       id="image_url"
                       value={formData.image_url}
