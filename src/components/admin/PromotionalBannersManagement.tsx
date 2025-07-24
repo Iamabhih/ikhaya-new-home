@@ -30,6 +30,7 @@ export const PromotionalBannersManagement = () => {
     image_url: "",
     background_color: "#ff4444",
     text_color: "#ffffff",
+    overlay_opacity: 0.2,
     button_text: "",
     button_url: "",
     position: 0,
@@ -71,6 +72,7 @@ export const PromotionalBannersManagement = () => {
       image_url: "",
       background_color: "#ff4444",
       text_color: "#ffffff",
+      overlay_opacity: 0.2,
       button_text: "",
       button_url: "",
       position: 0,
@@ -90,6 +92,7 @@ export const PromotionalBannersManagement = () => {
       image_url: banner.image_url || "",
       background_color: banner.background_color || "#ff4444",
       text_color: banner.text_color || "#ffffff",
+      overlay_opacity: (banner as any).overlay_opacity ?? 0.2,
       button_text: banner.button_text || "",
       button_url: banner.button_url || "",
       position: banner.position,
@@ -334,10 +337,43 @@ export const PromotionalBannersManagement = () => {
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <Label htmlFor="overlay_opacity">Image Overlay Opacity ({Math.round(formData.overlay_opacity * 100)}%)</Label>
+                    <Input
+                      id="overlay_opacity"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={formData.overlay_opacity}
+                      onChange={(e) => setFormData({ ...formData, overlay_opacity: parseFloat(e.target.value) })}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>No overlay</span>
+                      <span>Full overlay</span>
+                    </div>
+                  </div>
                   
                   {formData.background_color && (
-                    <div className="p-4 rounded-lg" style={{ backgroundColor: formData.background_color }}>
-                      <div style={{ color: formData.text_color }}>
+                    <div className="p-4 rounded-lg relative overflow-hidden" style={{ backgroundColor: formData.background_color }}>
+                      {formData.image_url && (
+                        <>
+                          <img 
+                            src={formData.image_url} 
+                            alt="Preview" 
+                            className="absolute inset-0 w-full h-full object-cover opacity-30"
+                          />
+                          {formData.overlay_opacity > 0 && (
+                            <div 
+                              className="absolute inset-0"
+                              style={{ backgroundColor: 'black', opacity: formData.overlay_opacity }}
+                            />
+                          )}
+                        </>
+                      )}
+                      <div className="relative z-10" style={{ color: formData.text_color }}>
                         <h3 className="font-bold text-lg">{formData.title || "Preview Title"}</h3>
                         {formData.subtitle && <p className="text-sm opacity-90">{formData.subtitle}</p>}
                         {formData.description && <p className="text-xs mt-1">{formData.description}</p>}
@@ -412,13 +448,24 @@ export const PromotionalBannersManagement = () => {
                 style={{ backgroundColor: banner.background_color, color: banner.text_color }}
               >
                 {banner.image_url && (
-                  <div className="absolute inset-0 opacity-20">
-                    <img 
-                      src={banner.image_url} 
-                      alt="" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  <>
+                    <div className="absolute inset-0 opacity-20">
+                      <img 
+                        src={banner.image_url} 
+                        alt="" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    {((banner as any).overlay_opacity ?? 0.2) > 0 && (
+                      <div 
+                        className="absolute inset-0"
+                        style={{ 
+                          backgroundColor: 'black', 
+                          opacity: (banner as any).overlay_opacity ?? 0.2 
+                        }}
+                      />
+                    )}
+                  </>
                 )}
                 <div className="relative z-10">
                   <div className="flex justify-between items-start mb-4">

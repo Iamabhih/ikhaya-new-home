@@ -88,7 +88,15 @@ export const PromotionalBanners = () => {
               alt=""
               className="w-full h-full object-cover opacity-30"
             />
-            <div className="absolute inset-0 bg-black/20"></div>
+            {((currentBanner as any).overlay_opacity ?? 0.2) > 0 && (
+              <div 
+                className="absolute inset-0"
+                style={{ 
+                  backgroundColor: 'black', 
+                  opacity: (currentBanner as any).overlay_opacity ?? 0.2 
+                }}
+              />
+            )}
           </div>
         )}
 
