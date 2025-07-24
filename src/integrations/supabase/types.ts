@@ -160,6 +160,33 @@ export type Database = {
           },
         ]
       }
+      auth_rate_limits: {
+        Row: {
+          attempt_count: number
+          blocked_until: string | null
+          created_at: string
+          id: string
+          identifier: string
+          window_start: string
+        }
+        Insert: {
+          attempt_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          identifier: string
+          window_start?: string
+        }
+        Update: {
+          attempt_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          identifier?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           created_at: string
@@ -1716,6 +1743,42 @@ export type Database = {
           },
         ]
       }
+      security_audit_log: {
+        Row: {
+          created_at: string
+          event_description: string
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          risk_level: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_description: string
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          risk_level?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_description?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          risk_level?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -1954,6 +2017,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      assign_user_role: {
+        Args: {
+          target_user_id: string
+          target_role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       bulk_insert_products: {
         Args: { products_data: Json; import_id_param: string }
         Returns: Json
@@ -1988,6 +2058,13 @@ export type Database = {
       refresh_category_counts: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      remove_user_role: {
+        Args: {
+          target_user_id: string
+          target_role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
       }
       search_products: {
         Args: {

@@ -8,6 +8,7 @@ import { BrowserCompatibilityChecker } from "@/components/common/BrowserCompatib
 import { ConditionalScriptLoader } from "@/components/common/ConditionalScriptLoader";
 import { EmergencyLoader } from "@/components/common/EmergencyLoader";
 import { MobileSafeComponent } from "@/components/common/MobileSafeComponent";
+import { SecurityMonitor } from "@/components/security/SecurityMonitor";
 import Index from "./pages/Index";
 import ProductsPage from "./pages/ProductsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
@@ -65,6 +66,7 @@ function App() {
               <AuthProvider>
                 <TooltipProvider>
                   <Toaster />
+                  <SecurityMonitor />
                   <BrowserRouter>
                   <MobileSafeComponent name="Router">
                     <Routes>

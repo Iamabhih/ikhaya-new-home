@@ -108,40 +108,42 @@ export const UserManagement = () => {
   // Assign role mutation
   const assignRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role });
+      const { error } = await supabase.rpc('assign_user_role', {
+        target_user_id: userId,
+        target_role: role
+      });
       
       if (error) throw error;
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       toast.success('Role assigned successfully');
     },
     onError: (error) => {
-      toast.error('Failed to assign role');
-      console.error(error);
+      console.error('Error assigning role:', error);
+      toast.error(`Failed to assign role: ${error.message}`);
     },
   });
 
   // Remove role mutation
   const removeRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role);
+      const { error } = await supabase.rpc('remove_user_role', {
+        target_user_id: userId,
+        target_role: role
+      });
       
       if (error) throw error;
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       toast.success('Role removed successfully');
     },
     onError: (error) => {
-      toast.error('Failed to remove role');
-      console.error(error);
+      console.error('Error removing role:', error);
+      toast.error(`Failed to remove role: ${error.message}`);
     },
   });
 
