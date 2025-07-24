@@ -1476,6 +1476,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          overlay_opacity: number | null
           position: number
           start_date: string | null
           subtitle: string | null
@@ -1493,6 +1494,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          overlay_opacity?: number | null
           position?: number
           start_date?: string | null
           subtitle?: string | null
@@ -1510,6 +1512,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          overlay_opacity?: number | null
           position?: number
           start_date?: string | null
           subtitle?: string | null
