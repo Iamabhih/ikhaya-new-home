@@ -9,17 +9,17 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-modern-sm hover:shadow-modern-md hover:-translate-y-0.5 rounded-lg hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 rounded-lg hover:bg-primary/90",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-modern-sm hover:shadow-modern-md hover:-translate-y-0.5 rounded-lg hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 rounded-lg hover:bg-destructive/90",
         outline:
-          "border border-border bg-background hover:bg-accent hover:text-accent-foreground hover:shadow-modern-sm hover:border-primary/20 rounded-lg",
+          "border border-border bg-background hover:bg-accent hover:text-accent-foreground hover:shadow-sm hover:border-primary/20 rounded-lg",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-modern-sm hover:shadow-modern-md hover:-translate-y-0.5 rounded-lg hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 rounded-lg hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground hover:scale-105 rounded-lg",
         link: "text-primary underline-offset-4 hover:underline hover:text-primary/80 rounded-none",
-        premium: "bg-gradient-primary text-primary-foreground shadow-modern-md hover:shadow-modern-lg hover:-translate-y-1 rounded-lg border border-primary/20",
-        accent: "bg-accent text-accent-foreground shadow-modern-sm hover:shadow-modern-md hover:-translate-y-0.5 rounded-lg hover:bg-accent/80",
+        premium: "brand-gradient text-primary-foreground shadow-lg hover:shadow-xl hover:-translate-y-1 rounded-lg border border-primary/20",
+        accent: "bg-accent text-accent-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 rounded-lg hover:bg-accent/80",
       },
       size: {
         default: "h-10 px-4 py-2",
