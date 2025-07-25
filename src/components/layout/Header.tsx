@@ -36,7 +36,7 @@ export const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 transition-all duration-200">
+      <header className="sticky top-0 z-50 w-full glass-effect border-b border-border/40 premium-shadow">
         <div className="container mx-auto px-4 lg:px-6">
           <div className="flex h-16 items-center justify-between gap-4">
             
@@ -53,25 +53,25 @@ export const Header = () => {
             <nav className="hidden lg:flex items-center space-x-8">
               <Link 
                 to="/products" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
               >
                 Products
               </Link>
               <Link 
                 to="/categories" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
               >
                 Categories
               </Link>
               <Link 
                 to="/about" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
               >
                 About
               </Link>
               <Link 
                 to="/contact" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
               >
                 Contact
               </Link>
@@ -85,7 +85,7 @@ export const Header = () => {
                       Admin
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-56 glass-effect border-border/20">
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="w-full">
                         <BarChart3 className="h-4 w-4 mr-2" />
@@ -142,7 +142,7 @@ export const Header = () => {
                   placeholder="Search products..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-10 h-10 border-border/60 bg-background/50 focus:bg-background transition-colors" 
+                  className="pl-10 h-10 glass-effect focus:ring-2 focus:ring-primary/20 transition-all duration-300" 
                 />
               </div>
             </form>
@@ -182,7 +182,7 @@ export const Header = () => {
                       <User className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuContent align="end" className="w-48 glass-effect border-border/20">
                     <DropdownMenuItem asChild>
                       <Link to="/account" className="w-full">My Account</Link>
                     </DropdownMenuItem>
