@@ -15,13 +15,15 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 9% 12%;
 
-    /* Primary colors - sophisticated dark navy/charcoal inspired by IKHAYA branding */
-    --primary: 220 20% 15%;
+    /* Premium Brand Colors */
+    --primary: 82 59% 25%;          /* #4c7110 - Forest Green */
     --primary-foreground: 0 0% 98%;
+    --primary-glow: 82 59% 35%;     /* Lighter green for effects */
 
-    /* Secondary colors - elegant warm grey */
-    --secondary: 220 8% 94%;
-    --secondary-foreground: 220 15% 20%;
+    /* Secondary colors - warm orange accent */
+    --secondary: 27 100% 42%;       /* #d76e00 - Warm Orange */
+    --secondary-foreground: 0 0% 98%;
+    --secondary-glow: 27 100% 52%;  /* Lighter orange for effects */
 
     /* Muted colors - subtle greys for contrast */
     --muted: 220 6% 96%;
@@ -37,37 +39,47 @@
     /* Borders and inputs - modern subtle greys */
     --border: 220 8% 90%;
     --input: 220 8% 90%;
-    --ring: 220 20% 15%;
+    --ring: 82 59% 25%;             /* Primary for focus rings */
 
     --radius: 0.5rem;
 
     /* Sidebar - modern sleek styling */
     --sidebar-background: 220 6% 98%;
     --sidebar-foreground: 220 12% 25%;
-    --sidebar-primary: 220 20% 15%;
+    --sidebar-primary: 82 59% 25%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 220 8% 94%;
-    --sidebar-accent-foreground: 220 20% 15%;
+    --sidebar-accent-foreground: 82 59% 25%;
     --sidebar-border: 220 8% 88%;
-    --sidebar-ring: 220 20% 15%;
+    --sidebar-ring: 82 59% 25%;
 
-    /* Chart colors - elegant and modern palette */
-    --chart-1: 220 20% 25%;
-    --chart-2: 220 8% 45%;
-    --chart-3: 220 12% 65%;
-    --chart-4: 220 6% 80%;
-    --chart-5: 220 4% 90%;
+    /* Chart colors - premium brand palette */
+    --chart-1: 82 59% 25%;          /* Primary green */
+    --chart-2: 27 100% 42%;         /* Secondary orange */
+    --chart-3: 220 12% 65%;         /* Neutral grey */
+    --chart-4: 82 59% 35%;          /* Primary glow */
+    --chart-5: 27 100% 52%;         /* Secondary glow */
 
-    /* Custom IKHAYA brand gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(220 20% 15%), hsl(220 15% 25%));
-    --gradient-secondary: linear-gradient(180deg, hsl(220 6% 98%), hsl(220 8% 94%));
-    --gradient-accent: linear-gradient(45deg, hsl(220 12% 88%), hsl(220 8% 92%));
+    /* Premium brand gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(82 59% 25%), hsl(82 59% 35%));
+    --gradient-secondary: linear-gradient(135deg, hsl(27 100% 42%), hsl(27 100% 52%));
+    --gradient-hero: linear-gradient(135deg, hsl(82 59% 25%) 0%, hsl(27 100% 42%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(220 6% 96%) 100%);
+    --brand-gradient: linear-gradient(135deg, hsl(82 59% 25%) 0%, hsl(27 100% 42%) 100%);
+    --glass-gradient: linear-gradient(145deg, hsl(0 0% 100% / 0.8) 0%, hsl(220 6% 96% / 0.4) 100%);
 
-    /* Shadows - elegant and modern */
-    --shadow-sm: 0 1px 2px 0 hsl(220 20% 15% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(220 20% 15% / 0.1), 0 2px 4px -1px hsl(220 20% 15% / 0.06);
-    --shadow-lg: 0 10px 15px -3px hsl(220 20% 15% / 0.1), 0 4px 6px -2px hsl(220 20% 15% / 0.05);
-    --shadow-xl: 0 20px 25px -5px hsl(220 20% 15% / 0.1), 0 10px 10px -5px hsl(220 20% 15% / 0.04);
+    /* Premium shadows with brand colors */
+    --shadow-sm: 0 1px 2px 0 hsl(82 59% 25% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(82 59% 25% / 0.1), 0 2px 4px -1px hsl(82 59% 25% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(82 59% 25% / 0.1), 0 4px 6px -2px hsl(82 59% 25% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(82 59% 25% / 0.1), 0 10px 10px -5px hsl(82 59% 25% / 0.04);
+    --shadow-glow: 0 0 20px hsl(82 59% 25% / 0.15);
+    --shadow-glow-secondary: 0 0 20px hsl(27 100% 42% / 0.15);
+    --shadow-premium: 0 10px 30px -10px hsl(82 59% 25% / 0.2), 0 0 40px -10px hsl(82 59% 25% / 0.1);
+    
+    /* Glass morphism effects */
+    --glass-bg: hsl(0 0% 100% / 0.8);
+    --glass-border: hsl(220 8% 90% / 0.2);
 
   /* Transitions and Animations */
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -89,11 +101,13 @@
     --popover: 220 20% 10%;
     --popover-foreground: 220 8% 94%;
 
-    --primary: 220 8% 88%;
+    --primary: 82 59% 35%;          /* Lighter green for dark mode */
     --primary-foreground: 220 25% 8%;
+    --primary-glow: 82 59% 45%;
 
-    --secondary: 220 15% 15%;
-    --secondary-foreground: 220 8% 94%;
+    --secondary: 27 100% 52%;       /* Lighter orange for dark mode */
+    --secondary-foreground: 220 25% 8%;
+    --secondary-glow: 27 100% 62%;
 
     --muted: 220 15% 15%;
     --muted-foreground: 220 8% 60%;
@@ -106,28 +120,30 @@
 
     --border: 220 15% 18%;
     --input: 220 15% 18%;
-    --ring: 220 8% 88%;
+    --ring: 82 59% 35%;
     
     --sidebar-background: 220 25% 6%;
     --sidebar-foreground: 220 8% 88%;
-    --sidebar-primary: 220 8% 88%;
+    --sidebar-primary: 82 59% 35%;
     --sidebar-primary-foreground: 220 25% 8%;
     --sidebar-accent: 220 15% 12%;
-    --sidebar-accent-foreground: 220 8% 88%;
+    --sidebar-accent-foreground: 82 59% 35%;
     --sidebar-border: 220 15% 15%;
-    --sidebar-ring: 220 8% 88%;
+    --sidebar-ring: 82 59% 35%;
 
-    /* Chart colors for dark mode - elegant monochromatic */
-    --chart-1: 220 8% 80%;
-    --chart-2: 220 12% 65%;
+    /* Chart colors for dark mode */
+    --chart-1: 82 59% 35%;
+    --chart-2: 27 100% 52%;
     --chart-3: 220 15% 50%;
-    --chart-4: 220 18% 35%;
-    --chart-5: 220 20% 25%;
+    --chart-4: 82 59% 45%;
+    --chart-5: 27 100% 62%;
 
     /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(220 25% 8%), hsl(220 20% 12%));
-    --gradient-secondary: linear-gradient(180deg, hsl(220 20% 10%), hsl(220 15% 15%));
-    --gradient-accent: linear-gradient(45deg, hsl(220 15% 18%), hsl(220 12% 22%));
+    --gradient-primary: linear-gradient(135deg, hsl(82 59% 35%), hsl(82 59% 45%));
+    --gradient-secondary: linear-gradient(135deg, hsl(27 100% 52%), hsl(27 100% 62%));
+    --gradient-hero: linear-gradient(135deg, hsl(82 59% 35%) 0%, hsl(27 100% 52%) 100%);
+    --brand-gradient: linear-gradient(135deg, hsl(82 59% 35%) 0%, hsl(27 100% 52%) 100%);
+    --glass-gradient: linear-gradient(145deg, hsl(220 25% 8% / 0.8) 0%, hsl(220 20% 10% / 0.4) 100%);
 
     /* Dark shadows */
     --shadow-sm: 0 1px 2px 0 hsl(220 25% 0% / 0.3);

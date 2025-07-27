@@ -40,11 +40,13 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
-					foreground: 'hsl(var(--secondary-foreground))'
+					foreground: 'hsl(var(--secondary-foreground))',
+					glow: 'hsl(var(--secondary-glow))'
 				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
@@ -87,13 +89,21 @@ export default {
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-secondary': 'var(--gradient-secondary)',
-				'gradient-accent': 'var(--gradient-accent)',
+				'gradient-hero': 'var(--gradient-hero)',
+				'gradient-card': 'var(--gradient-card)',
+				'brand-gradient': 'var(--brand-gradient)',
+				'glass-gradient': 'var(--glass-gradient)',
 			},
 			boxShadow: {
 				'modern-sm': 'var(--shadow-sm)',
 				'modern-md': 'var(--shadow-md)',
 				'modern-lg': 'var(--shadow-lg)',
 				'modern-xl': 'var(--shadow-xl)',
+				'glow': 'var(--shadow-glow)',
+				'glow-secondary': 'var(--shadow-glow-secondary)',
+				'premium': 'var(--shadow-premium)',
+				'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+				'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
 			},
 			transitionTimingFunction: {
 				'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
