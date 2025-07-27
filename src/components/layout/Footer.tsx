@@ -3,7 +3,7 @@ import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react"
 
 export const Footer = () => {
   return (
-    <footer className="bg-gradient-secondary border-t border-border/40">
+    <footer className="bg-muted/30 border-t border-border/40">
       <div className="container mx-auto px-4 lg:px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           
@@ -24,19 +24,19 @@ export const Footer = () => {
             <div className="flex space-x-4">
               <a 
                 href="#" 
-                className="w-10 h-10 glass-effect elegant-border flex items-center justify-center text-muted-foreground hover:text-primary hover-lift transition-all duration-300"
+                className="w-10 h-10 bg-background border border-border rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               >
                 <Facebook className="h-4 w-4" />
               </a>
               <a 
                 href="#" 
-                className="w-10 h-10 glass-effect elegant-border flex items-center justify-center text-muted-foreground hover:text-primary hover-lift transition-all duration-300"
+                className="w-10 h-10 bg-background border border-border rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               >
                 <Instagram className="h-4 w-4" />
               </a>
               <a 
                 href="#" 
-                className="w-10 h-10 glass-effect elegant-border flex items-center justify-center text-muted-foreground hover:text-primary hover-lift transition-all duration-300"
+                className="w-10 h-10 bg-background border border-border rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               >
                 <Twitter className="h-4 w-4" />
               </a>
@@ -56,16 +56,16 @@ export const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground">Quick Links</h3>
             <div className="space-y-3">
-              <Link to="/products" className="block text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+              <Link to="/products" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 All Products
               </Link>
-              <Link to="/categories" className="block text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+              <Link to="/categories" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Categories
               </Link>
-              <Link to="/about" className="block text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+              <Link to="/about" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 About Us
               </Link>
-              <Link to="/contact" className="block text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+              <Link to="/contact" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </Link>
             </div>
@@ -75,16 +75,16 @@ export const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground">Support</h3>
             <div className="space-y-3">
-              <Link to="/shipping" className="block text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+              <Link to="/shipping" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Shipping Info
               </Link>
-              <Link to="/returns" className="block text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+              <Link to="/returns" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Returns & Exchanges
               </Link>
-              <Link to="/faq" className="block text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+              <Link to="/faq" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 FAQ
               </Link>
-              <Link to="/privacy" className="block text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+              <Link to="/privacy" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy
               </Link>
             </div>
@@ -128,14 +128,14 @@ export const Footer = () => {
             <div className="space-y-3 pt-2">
               <a 
                 href="tel:+27313327192"
-                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1"
+                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Phone className="h-4 w-4" />
                 <span>+27 31 332 7192</span>
               </a>
               <a 
                 href="mailto:info@ikhaya.shop"
-                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1"
+                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Mail className="h-4 w-4" />
                 <span>info@ikhaya.shop</span>
