@@ -66,23 +66,45 @@ const CartPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background"
+      style={{
+        backgroundImage: 'var(--gradient-card)',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/">Home</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Shopping Cart</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      
+      {/* Hero Section */}
+      <section className="bg-brand-gradient py-16 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-20 right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-10 left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse" />
+        </div>
 
-        <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
+        <div className="container mx-auto px-4 relative z-10">
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/" className="text-white/80 hover:text-white">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-white">Shopping Cart</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
+          <div className="text-center max-w-3xl mx-auto text-white">
+            <h1 className="text-5xl font-bold mb-6">Your Cart</h1>
+            <p className="text-xl text-white/90 leading-relaxed">
+              Review your selected items and proceed to checkout when ready.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <main className="container mx-auto px-4 py-8 -mt-8 relative z-10">
 
         {/* DEBUG INFO - Remove in production */}
         {process.env.NODE_ENV === 'development' && items.length > 0 && (
@@ -120,7 +142,7 @@ const CartPage = () => {
                 const imageUrl = getProductImageUrl(item.product);
                 
                 return (
-                  <div key={item.id} className="flex items-start gap-4 p-4 border rounded-lg">
+                  <div key={item.id} className="glass-card hover-lift flex items-start gap-4 p-6">
                     <Link 
                       to={`/products/${item.product.slug}`}
                       className="h-20 w-20 bg-muted rounded-md flex-shrink-0 overflow-hidden hover:opacity-80 transition-opacity"
@@ -211,7 +233,7 @@ const CartPage = () => {
               }).filter(Boolean)}
             </div>
 
-            <div className="bg-muted/30 p-6 rounded-lg h-fit">
+            <div className="glass-card p-6 h-fit">
               <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between">

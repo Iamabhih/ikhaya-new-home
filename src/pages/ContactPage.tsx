@@ -8,25 +8,47 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 const ContactPage = () => {
-  return <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background"
+      style={{
+        backgroundImage: 'var(--gradient-card)',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Contact</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      {/* Hero Section */}
+      <section className="bg-brand-gradient py-16 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-20 right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-10 left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse" />
+        </div>
 
-        <h1 className="text-4xl font-bold mb-8">Contact Us</h1>
+        <div className="container mx-auto px-4 relative z-10">
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/" className="text-white/80 hover:text-white">Home</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-white">Contact</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
+          <div className="text-center max-w-3xl mx-auto text-white">
+            <h1 className="text-5xl font-bold mb-6">Get in Touch</h1>
+            <p className="text-xl text-white/90 leading-relaxed">
+              We're here to help with any questions about our products, orders, or services. 
+              Reach out to our friendly team today.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <main className="container mx-auto px-4 py-8 -mt-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
-            <Card>
+            <Card className="glass-card hover-lift">
               <CardHeader>
                 <CardTitle>Get in Touch</CardTitle>
               </CardHeader>
@@ -67,7 +89,7 @@ const ContactPage = () => {
           </div>
 
           <div className="space-y-6">
-            <Card>
+            <Card className="glass-card hover-lift">
               <CardHeader>
                 <CardTitle>Contact Information</CardTitle>
               </CardHeader>
@@ -87,7 +109,7 @@ const ContactPage = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="glass-card hover-lift">
               <CardHeader>
                 <CardTitle>Business Hours</CardTitle>
               </CardHeader>
@@ -103,7 +125,7 @@ const ContactPage = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="glass-card hover-lift">
               <CardHeader>
                 <CardTitle>Customer Support</CardTitle>
               </CardHeader>
@@ -120,6 +142,7 @@ const ContactPage = () => {
         </div>
       </main>
       <Footer />
-    </div>;
+    </div>
+  );
 };
 export default ContactPage;
