@@ -102,17 +102,17 @@ export const OptimizedFeaturedProducts = () => {
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-primary/10 backdrop-blur-sm rounded-full px-6 py-3 mb-6 border border-primary/20">
-            <Star className="w-4 h-4 text-primary animate-pulse" />
-            <span className="text-sm font-medium text-primary">
+          <div className="glass-card rounded-full px-6 py-3 mb-6 shadow-glass hover-glow">
+            <Star className="w-4 h-4 text-secondary animate-pulse" />
+            <span className="text-sm font-medium gradient-text-brand">
               Handpicked Selection
             </span>
           </div>
           
-          <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-secondary bg-clip-text text-transparent">
+          <h2 className="text-5xl font-bold mb-6 gradient-text-brand">
             Featured Products
           </h2>
-          <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
+          <p className="text-premium text-xl max-w-2xl mx-auto leading-relaxed">
             Discover our carefully curated selection of premium homeware that combines style, quality, and functionality
           </p>
         </div>
@@ -132,20 +132,21 @@ export const OptimizedFeaturedProducts = () => {
 
         {/* Call to Action */}
         <div className="text-center">
-          <Card className="inline-block border-0 bg-white/20 backdrop-blur-md shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
+          <Card className="glass-card inline-block border-0 shadow-premium hover-lift">
             <div className="p-8">
               <div className="flex items-center justify-center gap-3 mb-4">
-                <Sparkles className="w-6 h-6 text-primary animate-pulse" />
-                <h3 className="text-2xl font-bold">Explore Our Full Collection</h3>
-                <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                <Sparkles className="w-6 h-6 text-secondary animate-pulse" />
+                <h3 className="text-2xl font-bold gradient-text-primary">Explore Our Full Collection</h3>
+                <Sparkles className="w-6 h-6 text-secondary animate-pulse" />
               </div>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              <p className="text-premium-muted mb-6 max-w-md mx-auto">
                 Browse through hundreds of carefully selected products to find exactly what you need for your home
               </p>
               <Link to="/products">
                 <Button 
+                  variant="premium"
                   size="lg" 
-                  className="bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group px-8 py-4"
+                  className="hover-glow group px-8 py-4"
                 >
                   View All Products
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />

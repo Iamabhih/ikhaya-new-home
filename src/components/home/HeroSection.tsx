@@ -25,13 +25,13 @@ export const HeroSection = () => {
           {/* Main Heading */}
           <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight text-foreground">
             Transform Your House Into a 
-            <span className="block gradient-text-brand text-orange-50">
+            <span className="block gradient-text-brand">
               Beautiful Home
             </span>
           </h1>
 
           {/* Subheading */}
-          <p className="text-xl md:text-2xl mb-12 leading-relaxed max-w-4xl mx-auto text-gray-900">
+          <p className="text-xl md:text-2xl mb-12 leading-relaxed max-w-4xl mx-auto text-premium">
             Discover our curated collection of quality homeware, furniture, and decor items that make your space uniquely yours. From kitchen essentials to bedroom comfort, we have everything you need to create your perfect sanctuary.
           </p>
 

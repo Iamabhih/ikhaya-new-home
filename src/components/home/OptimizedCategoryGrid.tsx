@@ -146,13 +146,13 @@ export const OptimizedCategoryGrid = () => {
 
   return (
     <ErrorBoundary>
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
+      <section className="py-16 premium-spacing">
+        <div className="premium-container">
+          <h2 className="text-4xl font-bold text-center mb-12 gradient-text-brand">Shop by Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {categories.map((category) => (
               <Link key={category.id} to={`/categories/${category.slug}`}>
-                <Card className="hover:shadow-lg transition-shadow duration-300 group">
+                <Card className="glass-card hover-lift group border-0 shadow-soft">
                   <CardContent className="p-6 text-center">
                     <div className="h-28 w-28 rounded-full mx-auto mb-4 overflow-hidden group-hover:scale-105 transition-transform">
                       {category.image_url ? (
@@ -169,10 +169,10 @@ export const OptimizedCategoryGrid = () => {
                         </div>
                       )}
                     </div>
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                    <h3 className="font-semibold text-premium group-hover:text-primary transition-colors duration-300">
                       {category.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-2">
+                    <p className="text-sm text-premium-muted mt-2">
                       {category.product_count} products
                     </p>
                   </CardContent>

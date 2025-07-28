@@ -86,12 +86,12 @@ export const PromotionalBanners = () => {
                     {currentBanner.subtitle}
                   </h2>}
                 
-                {currentBanner.description && <p className="text-lg md:text-xl opacity-80 max-w-md text-zinc-50">
+                {currentBanner.description && <p className="text-lg md:text-xl opacity-80 max-w-md text-white/90">
                     {currentBanner.description}
                   </p>}
                 
                 {currentBanner.button_text && currentBanner.button_url && <Link to={currentBanner.button_url}>
-                    <Button size="lg" className="mt-6 px-8 py-4 text-lg bg-white text-black hover:bg-gray-100 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
+                    <Button variant="glass" size="lg" className="mt-6 px-8 py-4 text-lg bg-white text-foreground hover:bg-white/90 shadow-premium hover-lift">
                       {currentBanner.button_text}
                     </Button>
                   </Link>}
