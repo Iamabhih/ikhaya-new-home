@@ -1,10 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Home } from "lucide-react";
 import { Link } from "react-router-dom";
-
 export const HeroSection = () => {
-  return (
-    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden bg-gradient-hero">
+  return <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden bg-gradient-hero">
       {/* Background Elements */}
       <div className="absolute inset-0">
         {/* Gradient Orbs */}
@@ -27,34 +25,27 @@ export const HeroSection = () => {
           {/* Main Heading */}
           <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight text-foreground">
             Transform Your House Into a 
-            <span className="block gradient-text-brand">
+            <span className="block gradient-text-brand text-orange-50">
               Beautiful Home
             </span>
           </h1>
 
           {/* Subheading */}
-          <p className="text-xl md:text-2xl text-muted-foreground mb-12 leading-relaxed max-w-4xl mx-auto">
+          <p className="text-xl md:text-2xl mb-12 leading-relaxed max-w-4xl mx-auto text-gray-900">
             Discover our curated collection of quality homeware, furniture, and decor items that make your space uniquely yours. From kitchen essentials to bedroom comfort, we have everything you need to create your perfect sanctuary.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
             <Link to="/products">
-              <Button 
-                size="lg" 
-                className="w-full sm:w-auto px-8 py-4 text-lg hover-glow group"
-              >
+              <Button size="lg" className="w-full sm:w-auto px-8 py-4 text-lg hover-glow group">
                 <Home className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
                 Shop Now 
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
             </Link>
             <Link to="/categories">
-              <Button 
-                variant="secondary" 
-                size="lg" 
-                className="w-full sm:w-auto px-8 py-4 text-lg hover-glow-secondary"
-              >
+              <Button variant="secondary" size="lg" className="w-full sm:w-auto px-8 py-4 text-lg hover-glow-secondary">
                 Browse Categories
               </Button>
             </Link>
@@ -90,6 +81,5 @@ export const HeroSection = () => {
           <div className="w-1 h-3 bg-primary/60 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
