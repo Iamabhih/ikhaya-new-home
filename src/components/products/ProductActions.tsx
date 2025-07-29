@@ -23,28 +23,31 @@ export const ProductActions = ({
 }: ProductActionsProps) => {
   if (viewMode === "list") {
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
-          className={`h-10 w-10 glass hover:bg-background/90 shadow-soft backdrop-blur-md transition-all duration-300 hover:scale-110 ${
-            inWishlist ? 'text-red-500 hover:text-red-600' : 'text-premium hover:text-primary'
+          className={`h-8 w-8 sm:h-9 sm:w-9 bg-background/80 hover:bg-background ${
+            inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground'
           }`}
           onClick={onToggleWishlist}
           disabled={wishlistLoading}
         >
-          <Heart className={`h-4 w-4 ${inWishlist ? 'fill-current' : ''} transition-transform duration-200`} />
+          <Heart className={`h-3 w-3 sm:h-4 sm:w-4 ${inWishlist ? 'fill-current' : ''}`} />
         </Button>
         <Button 
           onClick={onAddToCart}
           disabled={!isInStock}
           variant={isInStock ? "default" : "secondary"}
           size="sm"
-          className="text-sm px-4 py-2 font-semibold shadow-soft hover:shadow-premium transition-all duration-300 hover:scale-105"
+          className="text-xs sm:text-sm px-2 sm:px-4"
         >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          <span>
+          <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">
             {isInStock ? "Add to Cart" : "Out of Stock"}
+          </span>
+          <span className="sm:hidden">
+            {isInStock ? "Add" : "Out"}
           </span>
         </Button>
       </div>
@@ -53,14 +56,17 @@ export const ProductActions = ({
 
   return (
     <Button 
-      className="w-full text-sm font-semibold h-11 shadow-soft hover:shadow-premium transition-all duration-300 hover:scale-105" 
+      className="w-full text-xs sm:text-sm h-8 sm:h-10" 
       onClick={onAddToCart}
       disabled={!isInStock}
       variant={isInStock ? "default" : "secondary"}
     >
-      <ShoppingCart className="h-4 w-4 mr-2" />
-      <span>
+      <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+      <span className="hidden sm:inline">
         {isInStock ? "Add to Cart" : "Out of Stock"}
+      </span>
+      <span className="sm:hidden">
+        {isInStock ? "Add" : "Out of Stock"}
       </span>
     </Button>
   );

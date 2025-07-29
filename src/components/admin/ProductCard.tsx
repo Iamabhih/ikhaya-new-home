@@ -32,33 +32,33 @@ export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCa
   const stockStatus = stockQuantity > 10 ? 'high' : stockQuantity > 0 ? 'low' : 'out';
   
   return (
-    <Card className="group glass-card hover-glow border-0 shadow-soft hover:shadow-premium transition-all duration-500 ease-out">
+    <Card className="group bg-white border border-gray-200/60 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200">
       <CardContent className="p-5">
         <div className="flex items-start gap-4">
           <Checkbox
             checked={isSelected}
             onCheckedChange={(checked) => onSelect(product.id, checked as boolean)}
-            className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            className="mt-1 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
           />
           
           <div className="flex-1 min-w-0 space-y-3">
             {/* Header with title and badges */}
             <div className="flex justify-between items-start gap-3">
-              <h3 className="font-semibold text-premium truncate group-hover:text-primary transition-colors duration-300">
+              <h3 className="font-semibold text-gray-900 truncate group-hover:text-indigo-700 transition-colors">
                 {product.name}
               </h3>
               <div className="flex gap-1.5 flex-shrink-0">
                 {product.is_featured && (
-                  <Badge className="text-xs bg-accent/20 text-accent border-accent/30 hover:bg-accent/30 backdrop-blur-sm">
+                  <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100">
                     Featured
                   </Badge>
                 )}
                 <Badge 
                   variant={product.is_active ? "default" : "secondary"} 
-                  className={`text-xs backdrop-blur-sm ${
+                  className={`text-xs ${
                     product.is_active 
-                      ? 'bg-green-500/20 text-green-600 border-green-500/30 hover:bg-green-500/30' 
-                      : 'bg-muted/50 text-muted-foreground border-muted/30'
+                      ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' 
+                      : 'bg-gray-100 text-gray-600 border-gray-200'
                   }`}
                 >
                   {product.is_active ? "Active" : "Inactive"}
@@ -70,21 +70,21 @@ export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCa
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
                 <div>
-                  <span className="text-premium/60 text-xs uppercase tracking-wide font-medium">SKU</span>
-                  <p className="font-semibold text-premium">{product.sku || "—"}</p>
+                  <span className="text-gray-500 text-xs uppercase tracking-wide">SKU</span>
+                  <p className="font-medium text-gray-900">{product.sku || "—"}</p>
                 </div>
                 <div>
-                  <span className="text-premium/60 text-xs uppercase tracking-wide font-medium">Price</span>
-                  <p className="font-bold text-primary text-lg">R{product.price.toFixed(2)}</p>
+                  <span className="text-gray-500 text-xs uppercase tracking-wide">Price</span>
+                  <p className="font-semibold text-gray-900">R{product.price.toFixed(2)}</p>
                 </div>
               </div>
               
               <div className="space-y-2">
                 <div>
-                  <span className="text-premium/60 text-xs uppercase tracking-wide font-medium">Stock</span>
+                  <span className="text-gray-500 text-xs uppercase tracking-wide">Stock</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-premium">{stockQuantity}</span>
-                    <div className={`w-3 h-3 rounded-full shadow-soft ${
+                    <span className="font-medium text-gray-900">{stockQuantity}</span>
+                    <div className={`w-2 h-2 rounded-full ${
                       stockStatus === 'high' ? 'bg-green-400' : 
                       stockStatus === 'low' ? 'bg-amber-400' : 'bg-red-400'
                     }`} />
@@ -92,8 +92,8 @@ export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCa
                 </div>
                 {product.categories?.name && (
                   <div>
-                    <span className="text-premium/60 text-xs uppercase tracking-wide font-medium">Category</span>
-                    <p className="font-semibold text-premium truncate">{product.categories.name}</p>
+                    <span className="text-gray-500 text-xs uppercase tracking-wide">Category</span>
+                    <p className="font-medium text-gray-900 truncate">{product.categories.name}</p>
                   </div>
                 )}
               </div>
@@ -105,7 +105,7 @@ export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCa
                 size="sm" 
                 variant="outline" 
                 onClick={() => onEdit(product.id)}
-                className="flex-1 glass hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-300 font-semibold"
+                className="flex-1 border-gray-200 text-gray-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Product
@@ -113,7 +113,7 @@ export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCa
               <Button 
                 size="sm" 
                 variant="ghost" 
-                className="px-3 glass hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                className="px-3 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
               >
                 <Eye className="h-4 w-4" />
               </Button>

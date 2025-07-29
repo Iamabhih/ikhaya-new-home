@@ -44,22 +44,22 @@ export const ProductImage = ({
     : "aspect-square";
 
   return (
-    <div className={`relative overflow-hidden ${viewMode === "grid" ? "rounded-t-lg" : "rounded-lg"}`}>
-      <Link to={productUrl} className="block">
-        <div className={`${imageClasses} bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border border-border/10 flex items-center justify-center overflow-hidden hover-lift group-hover:scale-[1.02] transition-all duration-500`}>
+    <div className={`relative overflow-hidden rounded-lg ${viewMode === "grid" ? "rounded-t-lg" : ""}`}>
+      <Link to={productUrl}>
+        <div className={`${imageClasses} bg-card/50 backdrop-blur-sm border border-border/20 flex items-center justify-center overflow-hidden hover-lift`}>
           {primaryImage ? (
             <OptimizedImage
               src={primaryImage.image_url}
               alt={primaryImage.alt_text || product.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               lazy={true}
-              quality={90}
+              quality={85}
               fallbackSrc="/placeholder.svg"
             />
           ) : (
-            <div className="flex flex-col items-center justify-center text-premium/60">
-              <div className={`${viewMode === "list" ? "w-8 h-8 sm:w-10 sm:h-10" : "w-16 h-16 sm:w-20 sm:h-20"} bg-muted/50 rounded-lg mb-3 shadow-inner`}></div>
-              <span className={`${viewMode === "list" ? "text-xs" : "text-sm"} font-medium`}>No image</span>
+            <div className="flex flex-col items-center justify-center text-muted-foreground">
+              <div className={`${viewMode === "list" ? "w-6 h-6 sm:w-8 sm:h-8" : "w-12 h-12 sm:w-16 sm:h-16"} bg-muted rounded mb-2`}></div>
+              <span className={`${viewMode === "list" ? "text-xs" : "text-sm"}`}>No image</span>
             </div>
           )}
         </div>
@@ -69,25 +69,25 @@ export const ProductImage = ({
         <Button
           variant="ghost"
           size="icon"
-          className={`absolute top-3 right-3 h-9 w-9 sm:h-10 sm:w-10 glass hover:bg-background/90 shadow-soft backdrop-blur-md transition-all duration-300 hover:scale-110 ${
-            inWishlist ? 'text-red-500 hover:text-red-600' : 'text-premium hover:text-primary'
+          className={`absolute top-2 right-2 h-8 w-8 sm:h-9 sm:w-9 bg-background/80 hover:bg-background ${
+            inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground'
           }`}
           onClick={onToggleWishlist}
           disabled={loading}
         >
-          <Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${inWishlist ? 'fill-current' : ''} transition-transform duration-200`} />
+          <Heart className={`h-3 w-3 sm:h-4 sm:w-4 ${inWishlist ? 'fill-current' : ''}`} />
         </Button>
       )}
       
       {hasDiscount && (
-        <div className={`absolute ${viewMode === "list" ? "top-2 left-2" : "top-3 left-3"} bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground px-2.5 py-1 rounded-full text-xs font-semibold shadow-soft backdrop-blur-sm border border-destructive/20`}>
+        <div className={`absolute ${viewMode === "list" ? "top-1 sm:top-2 left-1 sm:left-2" : "top-2 left-2"} bg-destructive text-destructive-foreground px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium`}>
           Sale
         </div>
       )}
       
       {!isInStock && (
-        <div className={`absolute ${viewMode === "list" ? "top-2 right-2" : "bottom-3 left-3"} bg-muted/90 text-muted-foreground px-2.5 py-1 rounded-full text-xs font-semibold shadow-soft backdrop-blur-sm border border-muted/30`}>
-          Out of Stock
+        <div className={`absolute ${viewMode === "list" ? "top-1 sm:top-2 right-1 sm:right-2" : "bottom-2 left-2"} bg-muted text-muted-foreground px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium`}>
+          {viewMode === "list" ? "Out of Stock" : "Out of Stock"}
         </div>
       )}
     </div>
