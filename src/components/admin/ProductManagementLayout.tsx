@@ -89,12 +89,12 @@ export const ProductManagementLayout = ({
   };
 
   const ProductCard = ({ product }: { product: Product }) => (
-    <Card className="group hover:shadow-lg transition-all duration-200 border hover:border-primary/20 h-full">
+    <Card className="group glass-card hover-glow border-0 shadow-soft hover:shadow-premium transition-all duration-500 ease-out h-full">
       <CardContent className="p-4 flex flex-col h-full">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm truncate mb-1">{product.name}</h3>
-            <p className="text-xs text-muted-foreground mb-2">SKU: {product.sku || "N/A"}</p>
+            <h3 className="font-semibold text-sm truncate mb-1 text-premium group-hover:text-primary transition-colors duration-300">{product.name}</h3>
+            <p className="text-xs text-premium/60 mb-2 font-medium">SKU: {product.sku || "N/A"}</p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -125,24 +125,28 @@ export const ProductManagementLayout = ({
         </div>
 
         <div className="flex items-center justify-between mb-3">
-          <div className="text-lg font-semibold text-primary">R{product.price.toFixed(2)}</div>
+          <div className="text-lg font-bold text-primary tracking-tight">R{product.price.toFixed(2)}</div>
           <div className="flex gap-1 flex-wrap">
             {product.is_featured && (
-              <Badge variant="secondary" className="text-xs">Featured</Badge>
+              <Badge className="text-xs bg-accent/20 text-accent border-accent/30 hover:bg-accent/30 backdrop-blur-sm">Featured</Badge>
             )}
-            <Badge variant={product.is_active ? "default" : "secondary"} className="text-xs">
+            <Badge variant={product.is_active ? "default" : "secondary"} className={`text-xs backdrop-blur-sm ${
+              product.is_active 
+                ? 'bg-green-500/20 text-green-600 border-green-500/30 hover:bg-green-500/30' 
+                : 'bg-muted/50 text-muted-foreground border-muted/30'
+            }`}>
               {product.is_active ? "Active" : "Inactive"}
             </Badge>
           </div>
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Stock: {product.stock_quantity}</span>
-            <span className="truncate ml-2">{product.categories?.name || "Uncategorized"}</span>
+          <div className="flex items-center justify-between text-sm text-premium/70">
+            <span className="font-medium">Stock: {product.stock_quantity}</span>
+            <span className="truncate ml-2 font-medium">{product.categories?.name || "Uncategorized"}</span>
           </div>
           {product.brands?.name && (
-            <div className="text-xs font-medium text-primary/80">
+            <div className="text-xs font-semibold text-primary">
               {product.brands.name}
             </div>
           )}
@@ -155,7 +159,7 @@ export const ProductManagementLayout = ({
             size="sm" 
             variant="outline" 
             onClick={() => setSelectedProduct(product)}
-            className="flex-1"
+            className="flex-1 glass hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-300 font-semibold"
           >
             <Eye className="h-3 w-3 mr-1" />
             View
@@ -163,7 +167,7 @@ export const ProductManagementLayout = ({
           <Button 
             size="sm" 
             onClick={() => handleEditProduct(product.id)}
-            className="flex-1"
+            className="flex-1 shadow-soft hover:shadow-premium transition-all duration-300 font-semibold"
           >
             <Edit className="h-3 w-3 mr-1" />
             Edit
@@ -174,7 +178,7 @@ export const ProductManagementLayout = ({
   );
 
   const ProductListItem = ({ product }: { product: Product }) => (
-    <Card className="group hover:shadow-md transition-shadow">
+    <Card className="group glass-card hover-glow border-0 shadow-soft hover:shadow-premium transition-all duration-500 ease-out">
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <div className="flex-1 min-w-0">
