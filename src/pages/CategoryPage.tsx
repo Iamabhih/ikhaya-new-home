@@ -73,29 +73,29 @@ const CategoryPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/10">
+    <div className="min-h-screen bg-background">
       <Header />
-      <main className="premium-container premium-spacing">
+      <main className="container mx-auto px-4 py-8">
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/" className="text-premium hover:text-primary transition-colors">Home</BreadcrumbLink>
+              <BreadcrumbLink href="/">Home</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href="/categories" className="text-premium hover:text-primary transition-colors">Categories</BreadcrumbLink>
+              <BreadcrumbLink href="/categories">Categories</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage className="text-premium">{category.name}</BreadcrumbPage>
+              <BreadcrumbPage>{category.name}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4 gradient-text-brand">{category.name}</h1>
+          <h1 className="text-3xl font-bold mb-4">{category.name}</h1>
           {category.description && (
-            <p className="text-premium text-lg max-w-3xl leading-relaxed">{category.description}</p>
+            <p className="text-muted-foreground text-lg">{category.description}</p>
           )}
         </div>
 
