@@ -105,16 +105,11 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
         }
       } else if (method === 'payflex') {
         // Redirect to PayFlex
-        if (data.url && data.paymentData) {
-          // For PayFlex, we'd typically make an API call to create a checkout session
-          // For now, redirect with payment data
-          const queryParams = new URLSearchParams({
-            orderId: data.orderId,
-            amount: data.amount.toString(),
-            orderNumber: data.orderNumber
-          });
-          window.location.href = `${data.url}?${queryParams.toString()}`;
+        if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl;
           return;
+        } else {
+          toast.error("PayFlex checkout URL not available");
         }
       } else if (method === 'bank_transfer' || method === 'eft') {
         // Don't clear cart for manual payment methods

@@ -197,12 +197,24 @@ serve(async (req) => {
 
     switch (paymentMethod) {
       case 'payfast':
-        // PayFast production integration
+        // PayFast integration with environment configuration
+        const payfastMerchantId = Deno.env.get('PAYFAST_MERCHANT_ID')
+        const payfastMerchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
+        const payfastPassphrase = Deno.env.get('PAYFAST_PASSPHRASE')
+        const payfastMode = Deno.env.get('PAYFAST_MODE') || 'sandbox'
+        
+        if (!payfastMerchantId || !payfastMerchantKey) {
+          throw new Error('PayFast credentials not configured. Please set PAYFAST_MERCHANT_ID and PAYFAST_MERCHANT_KEY environment variables.')
+        }
+        
+        // Use appropriate URLs based on mode
+        const payfastUrl = payfastMode === 'production' 
+          ? 'https://www.payfast.co.za/eng/process'
+          : 'https://sandbox.payfast.co.za/eng/process'
+        
         const payfastData = {
-          // Production merchant details
-          merchant_id: '13644558',
-          merchant_key: 'u6ksewx8j6xzx',
-          passphrase: 'Khalid123@Ozz',
+          merchant_id: payfastMerchantId,
+          merchant_key: payfastMerchantKey,
           return_url: `${baseUrl}/payment/success?order_id=${order.id}&payment_method=payfast`,
           cancel_url: `${baseUrl}/checkout?cancelled=true`,
           notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
@@ -215,9 +227,13 @@ serve(async (req) => {
           amount: totalAmount.toFixed(2),
           item_name: `Order ${orderNumber}`,
           item_description: `${items.length} items from IKHAYA Homeware`,
-          // Production mode
-          custom_str1: 'production_mode',
+          custom_str1: payfastMode,
           custom_str2: order.id
+        }
+        
+        // Add passphrase if provided (required for production)
+        if (payfastPassphrase) {
+          payfastData.passphrase = payfastPassphrase
         }
         
         paymentResponse = {
@@ -225,7 +241,7 @@ serve(async (req) => {
           orderId: order.id,
           orderNumber: orderNumber,
           amount: totalAmount,
-          url: 'https://www.payfast.co.za/eng/process',
+          url: payfastUrl,
           formData: payfastData,
           message: 'Redirect to PayFast for payment processing'
         }
