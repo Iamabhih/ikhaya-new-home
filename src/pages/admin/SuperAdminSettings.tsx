@@ -4,6 +4,7 @@ import { CategoryManagement } from "@/components/admin/CategoryManagement";
 import { BrandManagement } from "@/components/admin/BrandManagement";
 import { DeliveryZoneManagement } from "@/components/admin/DeliveryZoneManagement";
 import { PaymentMethodsConfig } from "@/components/admin/PaymentMethodsConfig";
+import { PayFastConfig } from "@/components/admin/PayFastConfig";
 import { ProductTestingPanel } from "@/components/admin/ProductTestingPanel";
 import { PromotionalBannersManagement } from "@/components/admin/PromotionalBannersManagement";
 import { BannerDesignGuide } from "@/components/admin/BannerDesignGuide";
@@ -28,7 +29,7 @@ const SuperAdminSettings = () => {
             </div>
 
             <Tabs defaultValue="status" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-8">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-9">
                 <TabsTrigger value="status" className="flex items-center gap-2">
                   <Activity className="h-4 w-4" />
                   Status
@@ -56,6 +57,10 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="payments" className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   Payments
+                </TabsTrigger>
+                <TabsTrigger value="payfast" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  PayFast
                 </TabsTrigger>
                 <TabsTrigger value="testing" className="flex items-center gap-2">
                   <TestTube className="h-4 w-4" />
@@ -147,6 +152,20 @@ const SuperAdminSettings = () => {
                 </Card>
               </TabsContent>
 
+              <TabsContent value="payfast">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>PayFast Gateway Configuration</CardTitle>
+                    <CardDescription>
+                      Configure PayFast payment gateway settings, including sandbox/production mode switching and merchant credentials.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PayFastConfig />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               <TabsContent value="banner-guide">
                 <Card>
                   <CardHeader>
@@ -160,7 +179,6 @@ const SuperAdminSettings = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
-
 
               <TabsContent value="testing">
                 <Card>

@@ -198,19 +198,22 @@ serve(async (req) => {
     switch (paymentMethod) {
       case 'payfast':
         // PayFast integration with environment configuration
-        const payfastMerchantId = Deno.env.get('PAYFAST_MERCHANT_ID')
-        const payfastMerchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
+        const payfastMerchantId = Deno.env.get('PAYFAST_MERCHANT_ID') || '10000100' // Default sandbox merchant ID
+        const payfastMerchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY') || '46f0cd694581a' // Default sandbox merchant key
         const payfastPassphrase = Deno.env.get('PAYFAST_PASSPHRASE')
         const payfastMode = Deno.env.get('PAYFAST_MODE') || 'sandbox'
         
-        if (!payfastMerchantId || !payfastMerchantKey) {
-          throw new Error('PayFast credentials not configured. Please set PAYFAST_MERCHANT_ID and PAYFAST_MERCHANT_KEY environment variables.')
-        }
-        
-        // Use appropriate URLs based on mode
+        // Use appropriate URLs based on mode - payfast.io for sandbox testing
         const payfastUrl = payfastMode === 'production' 
           ? 'https://www.payfast.co.za/eng/process'
-          : 'https://sandbox.payfast.co.za/eng/process'
+          : 'https://sandbox.payfast.io/eng/process'
+        
+        console.log('PayFast Configuration:', {
+          mode: payfastMode,
+          url: payfastUrl,
+          merchant_id: payfastMerchantId ? 'Set' : 'Not set',
+          merchant_key: payfastMerchantKey ? 'Set' : 'Not set'
+        })
         
         const payfastData = {
           merchant_id: payfastMerchantId,
