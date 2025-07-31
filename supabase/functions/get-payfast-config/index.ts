@@ -57,7 +57,7 @@ serve(async (req) => {
       merchant_key: Deno.env.get('PAYFAST_MERCHANT_KEY') || '',
       passphrase: Deno.env.get('PAYFAST_PASSPHRASE') || '',
       mode: Deno.env.get('PAYFAST_MODE') || 'sandbox',
-      is_active: Deno.env.get('PAYFAST_ACTIVE') === 'true'
+      is_active: (Deno.env.get('PAYFAST_ACTIVE') || 'true') === 'true'
     }
 
     return new Response(

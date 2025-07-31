@@ -73,14 +73,13 @@ serve(async (req) => {
       is_active
     })
 
-    // Note: In a real implementation, you would store these securely
-    // For now, we'll just log that the update was successful
-    // In practice, these would be stored as Supabase secrets
-
+    // Note: These should be updated as Supabase secrets in production
+    // For now, we'll return success but mention that secrets need manual update
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'PayFast configuration updated successfully',
+        message: 'PayFast configuration received. Please update the corresponding Supabase secrets: PAYFAST_MERCHANT_ID, PAYFAST_MERCHANT_KEY, PAYFAST_PASSPHRASE, PAYFAST_MODE, and PAYFAST_ACTIVE.',
         config: {
           merchant_id: merchant_id ? 'Set' : 'Not set',
           merchant_key: merchant_key ? 'Set' : 'Not set',
