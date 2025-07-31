@@ -198,12 +198,27 @@ serve(async (req) => {
     switch (paymentMethod) {
       case 'payfast':
         // PayFast integration with environment configuration
-        const payfastMerchantId = Deno.env.get('PAYFAST_MERCHANT_ID') || '10000100' // Default sandbox merchant ID
-        const payfastMerchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY') || '46f0cd694581a' // Default sandbox merchant key
+        const payfastMerchantId = Deno.env.get('PAYFAST_MERCHANT_ID')
+        const payfastMerchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
         const payfastPassphrase = Deno.env.get('PAYFAST_PASSPHRASE')
         const payfastMode = Deno.env.get('PAYFAST_MODE') || 'sandbox'
+        const payfastActive = (Deno.env.get('PAYFAST_ACTIVE') || 'false') === 'true'
         
-        // Use appropriate URLs based on mode - payfast.io for sandbox testing
+        // Check if PayFast is properly configured and active
+        if (!payfastActive) {
+          throw new Error('PayFast payment method is not active')
+        }
+        
+        if (!payfastMerchantId || !payfastMerchantKey) {
+          throw new Error('PayFast is not properly configured. Missing merchant credentials.')
+        }
+        
+        // Require passphrase for production mode
+        if (payfastMode === 'production' && !payfastPassphrase) {
+          throw new Error('Passphrase is required for PayFast production mode')
+        }
+        
+        // Use appropriate URLs based on mode
         const payfastUrl = payfastMode === 'production' 
           ? 'https://www.payfast.co.za/eng/process'
           : 'https://sandbox.payfast.io/eng/process'
@@ -220,7 +235,7 @@ serve(async (req) => {
           merchant_key: payfastMerchantKey,
           return_url: `${baseUrl}/payment/success?order_id=${order.id}&payment_method=payfast`,
           cancel_url: `${baseUrl}/checkout?cancelled=true`,
-          notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
+          notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment-secure`,
           // Order details
           name_first: customerInfo.firstName,
           name_last: customerInfo.lastName,

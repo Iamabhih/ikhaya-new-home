@@ -185,7 +185,9 @@ export const PayFastConfig = () => {
               type="password"
             />
             <p className="text-xs text-muted-foreground">
-              Optional passphrase for enhanced security. Required for production mode.
+              {settings.mode === 'production' 
+                ? "Required for production mode for enhanced security"
+                : "Optional passphrase for enhanced security. Required for production mode."}
             </p>
           </div>
 
@@ -240,7 +242,7 @@ export const PayFastConfig = () => {
           <div className="flex justify-end space-x-2">
             <Button
               onClick={handleSave}
-              disabled={saving || !settings.merchant_id || !settings.merchant_key}
+              disabled={saving || !settings.merchant_id || !settings.merchant_key || (settings.mode === 'production' && !settings.passphrase)}
               className="flex items-center gap-2"
             >
               <Save className="h-4 w-4" />
