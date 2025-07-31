@@ -8,6 +8,7 @@ import { ProductManagementLayout } from "@/components/admin/ProductManagementLay
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import { DeleteAllProducts } from "@/components/admin/DeleteAllProducts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -216,6 +217,7 @@ const AdminProducts = () => {
 
               <TabsContent value="products" className="space-y-6">
                 <ErrorBoundary>
+                  <DeleteAllProducts />
                   <ProductManagementLayout
                     products={productsData?.products || []}
                     totalCount={productsData?.totalCount || 0}
