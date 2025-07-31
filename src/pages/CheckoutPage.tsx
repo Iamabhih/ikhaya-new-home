@@ -11,17 +11,20 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { Shield, Lock, CreditCard, Truck, CheckCircle, Clock } from "lucide-react";
-
 const CheckoutPage = () => {
-  const { items, total } = useCart();
-  const { user } = useAuth();
+  const {
+    items,
+    total
+  } = useCart();
+  const {
+    user
+  } = useAuth();
   const navigate = useNavigate();
-
   useEffect(() => {
     if (items.length === 0) {
       navigate("/cart");
     }
-    
+
     // Check for payment status in URL params
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('cancelled') === 'true') {
@@ -33,13 +36,10 @@ const CheckoutPage = () => {
       window.history.replaceState({}, '', '/checkout');
     }
   }, [items.length, navigate]);
-
   if (items.length === 0) {
     return null;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <Header />
       
       {/* Hero Section */}
@@ -106,7 +106,7 @@ const CheckoutPage = () => {
                   <Truck className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">Free Shipping</p>
+                  <p className="font-semibold text-sm">Secure Shipping</p>
                   <p className="text-xs text-muted-foreground">On all orders</p>
                 </div>
               </div>
@@ -143,10 +143,7 @@ const CheckoutPage = () => {
                   <h2 className="text-2xl font-bold">Payment Details</h2>
                 </div>
                 
-                <CheckoutForm
-                  user={user}
-                  onComplete={() => {}}
-                />
+                <CheckoutForm user={user} onComplete={() => {}} />
               </CardContent>
             </Card>
           </div>
@@ -241,8 +238,6 @@ const CheckoutPage = () => {
       </main>
       
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default CheckoutPage;
