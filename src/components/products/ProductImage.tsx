@@ -46,7 +46,7 @@ export const ProductImage = ({
   return (
     <div className={`relative overflow-hidden rounded-lg ${viewMode === "grid" ? "rounded-t-lg" : ""}`}>
       <Link to={productUrl}>
-        <div className={`${imageClasses} bg-secondary/20 flex items-center justify-center overflow-hidden`}>
+        <div className={`${imageClasses} bg-[hsl(var(--product-image-bg))] flex items-center justify-center overflow-hidden`}>
           {primaryImage ? (
             <OptimizedImage
               src={primaryImage.image_url}

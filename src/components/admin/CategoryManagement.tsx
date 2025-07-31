@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Edit, Trash2, Save, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { UnifiedLoading } from "@/components/ui/unified-loading";
 
 interface Category {
   id: string;
@@ -158,7 +159,7 @@ export const CategoryManagement = () => {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center p-8">Loading categories...</div>;
+    return <UnifiedLoading type="spinner" text="Loading categories..." className="p-8" />;
   }
 
   return (
