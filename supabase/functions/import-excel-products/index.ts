@@ -30,7 +30,21 @@ function parseExcelFile(arrayBuffer: ArrayBuffer): SheetData[] {
     const products = jsonData.slice(1).map((row: any[]) => {
       const product: any = {};
       headers.forEach((header, index) => {
-        product[header] = row[index] || '';
+        let value = row[index];
+        
+        // Clean up numeric fields
+        if (header.toLowerCase().includes('price') || 
+            header.toLowerCase().includes('stock') || 
+            header.toLowerCase().includes('quantity')) {
+          if (value === '' || value === null || value === undefined) {
+            value = null;
+          } else {
+            const numValue = parseFloat(String(value));
+            value = isNaN(numValue) ? null : numValue;
+          }
+        }
+        
+        product[header] = value;
       });
       return product;
     }).filter(product => product.name || product.Name || product.product_name);
@@ -50,7 +64,8 @@ function generateSlug(name: string): string {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+    .replace(/(^-|-$)/g, '')
+    .substring(0, 50); // Limit slug length
 }
 
 async function ensureCategory(supabase: any, categoryName: string): Promise<string> {
@@ -67,22 +82,36 @@ async function ensureCategory(supabase: any, categoryName: string): Promise<stri
     return existingCategory.id;
   }
   
-  // Create new category
-  const { data: newCategory, error } = await supabase
-    .from('categories')
-    .insert({
-      name: categoryName,
-      slug,
-      is_active: true
-    })
-    .select('id')
-    .single();
+  // Try to create new category with conflict handling
+  let attempts = 0;
+  let uniqueSlug = slug;
+  
+  while (attempts < 5) {
+    const { data: newCategory, error } = await supabase
+      .from('categories')
+      .insert({
+        name: categoryName,
+        slug: uniqueSlug,
+        is_active: true
+      })
+      .select('id')
+      .single();
+      
+    if (!error) {
+      return newCategory.id;
+    }
     
-  if (error) {
+    if (error.code === '23505') { // Unique constraint violation
+      attempts++;
+      uniqueSlug = `${slug}-${attempts}`;
+      console.log(`Slug conflict, trying: ${uniqueSlug}`);
+      continue;
+    }
+    
     throw new Error(`Failed to create category ${categoryName}: ${error.message}`);
   }
   
-  return newCategory.id;
+  throw new Error(`Failed to create category after multiple attempts: ${categoryName}`);
 }
 
 Deno.serve(async (req) => {
@@ -216,32 +245,63 @@ Deno.serve(async (req) => {
           }));
           
           // Process products in batches
-          const batchSize = 25;
+          const batchSize = 10; // Smaller batches for stability
           for (let i = 0; i < productsWithCategory.length; i += batchSize) {
             const batch = productsWithCategory.slice(i, i + batchSize);
-            console.log(`Processing batch ${Math.floor(i/batchSize) + 1} for sheet ${sheetData.sheetName}`);
+            const batchNum = Math.floor(i/batchSize) + 1;
+            console.log(`Processing batch ${batchNum} for sheet ${sheetData.sheetName}`);
             
-            const { data: result, error: processError } = await supabase
-              .rpc('bulk_insert_products', {
+            try {
+              // Add timeout for batch processing
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Batch timeout')), 30000)
+              );
+              
+              const batchPromise = supabase.rpc('bulk_insert_products', {
                 products_data: batch,
                 import_id_param: importRecord.id
               });
+              
+              const { data: result, error: processError } = await Promise.race([
+                batchPromise,
+                timeoutPromise
+              ]) as any;
 
-            if (processError) {
-              console.error('Error processing batch:', processError);
+              if (processError) {
+                console.error('Error processing batch:', processError);
+                totalFailed += batch.length;
+                allErrors.push({ 
+                  sheet: sheetData.sheetName, 
+                  error: processError.message,
+                  batch: batchNum
+                });
+                continue;
+              }
+
+              console.log('Batch result:', result);
+              totalSuccessful += result.successful || 0;
+              totalFailed += result.failed || 0;
+              allErrors = allErrors.concat(result.errors || []);
+              
+            } catch (error) {
+              console.error('Batch processing failed:', error);
               totalFailed += batch.length;
               allErrors.push({ 
                 sheet: sheetData.sheetName, 
-                error: processError.message,
-                batch: Math.floor(i/batchSize) + 1
+                error: error.message || 'Batch timeout or processing error',
+                batch: batchNum
               });
-              continue;
             }
-
-            console.log('Batch result:', result);
-            totalSuccessful += result.successful;
-            totalFailed += result.failed;
-            allErrors = allErrors.concat(result.errors || []);
+            
+            // Update progress more frequently
+            await supabase
+              .from('product_imports')
+              .update({
+                processed_rows: totalSuccessful + totalFailed,
+                successful_rows: totalSuccessful,
+                failed_rows: totalFailed
+              })
+              .eq('id', importRecord.id);
           }
           
         } catch (error) {

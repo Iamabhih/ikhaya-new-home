@@ -103,8 +103,12 @@ export const ExcelProductImport = () => {
       formData.append('file', file);
       formData.append('action', 'import');
 
+      // Set longer timeout for imports
       const { data, error } = await supabase.functions.invoke('import-excel-products', {
-        body: formData
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+        }
       });
 
       if (error) throw error;
@@ -119,7 +123,8 @@ export const ExcelProductImport = () => {
     },
     onError: (error: any) => {
       console.error('Import error:', error);
-      toast.error(`Import failed: ${error.message}`);
+      setActiveImportId(null);
+      toast.error(`Import failed: ${error.message || 'Unknown error occurred'}`);
     }
   });
 
