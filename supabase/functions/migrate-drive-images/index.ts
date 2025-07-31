@@ -124,7 +124,90 @@ Deno.serve(async (req) => {
 
     await logMessage('info', `Found ${driveFiles.length} files in Google Drive folder`)
 
-    // Step 3: Match products to images
+    // Enhanced helper function to extract product codes from filename
+    function extractProductCodes(filename: string): string[] {
+      const codes: string[] = []
+      const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
+      
+      // Enhanced extraction - changed from 4,6 to 3,6 to catch shorter codes like 206
+      const numericCodes = nameWithoutExt.match(/\b\d{3,6}\b/g)
+      if (numericCodes) {
+        codes.push(...numericCodes)
+      }
+      
+      // Enhanced alphanumeric extraction - changed from 4,8 to 3,8
+      const alphanumericCodes = nameWithoutExt.match(/\b[A-Z0-9]{3,8}\b/gi)
+      if (alphanumericCodes) {
+        codes.push(...alphanumericCodes.map(code => code.toLowerCase()))
+      }
+      
+      // Split by common delimiters and check each part
+      const parts = nameWithoutExt.split(/[-_\s\.]+/)
+      for (const part of parts) {
+        const cleanPart = part.trim()
+        if (/^\d{3,6}$/.test(cleanPart) || /^[A-Z0-9]{3,8}$/i.test(cleanPart)) {
+          codes.push(cleanPart.toLowerCase())
+        }
+      }
+      
+      // Special handling for short codes - add zero-padded versions
+      const originalCodes = [...codes]
+      for (const code of originalCodes) {
+        if (/^\d{3}$/.test(code)) {
+          codes.push('0' + code) // Add zero-padded version
+        }
+      }
+      
+      // Remove duplicates
+      return [...new Set(codes)]
+    }
+
+    // Enhanced image mapping function
+    function findBestMatch(productSku: string, driveFiles: DriveFile[]): DriveFile | null {
+      const normalizedSku = productSku.toLowerCase().trim()
+      
+      // Try exact filename matches first
+      for (const file of driveFiles) {
+        if (!file.mimeType?.includes('image/')) continue
+        
+        const fileName = file.name.toLowerCase()
+        // Direct filename matches
+        if (fileName === `${normalizedSku}.png` || 
+            fileName === `${normalizedSku}.jpg` || 
+            fileName === `${normalizedSku}.jpeg`) {
+          return file
+        }
+      }
+      
+      // Try enhanced code extraction matching
+      for (const file of driveFiles) {
+        if (!file.mimeType?.includes('image/')) continue
+        
+        const extractedCodes = extractProductCodes(file.name)
+        
+        // Check if product SKU matches any extracted code
+        if (extractedCodes.includes(normalizedSku)) {
+          return file
+        }
+        
+        // For 3-digit SKUs, also try zero-padded version
+        if (/^\d{3}$/.test(normalizedSku) && extractedCodes.includes('0' + normalizedSku)) {
+          return file
+        }
+        
+        // For 4-digit SKUs starting with 0, try without leading zero
+        if (/^0\d{3}$/.test(normalizedSku)) {
+          const withoutZero = normalizedSku.substring(1)
+          if (extractedCodes.includes(withoutZero)) {
+            return file
+          }
+        }
+      }
+      
+      return null
+    }
+
+    // Step 3: Match products to images using enhanced matching
     progress.status = 'processing'
     progress.total = products.length
     progress.currentStep = 'Matching products to images'
@@ -134,15 +217,9 @@ Deno.serve(async (req) => {
     for (const product of products) {
       if (!product.sku) continue
 
-      const matchingFiles = driveFiles.filter(file => {
-        const fileName = file.name.toLowerCase()
-        const sku = product.sku.toLowerCase()
-        return (fileName === `${sku}.png` || fileName === `${sku}.jpg` || fileName === `${sku}.jpeg`) &&
-               (file.mimeType === 'image/png' || file.mimeType === 'image/jpeg')
-      })
-
-      if (matchingFiles.length > 0) {
-        matchedProducts.push({ product, imageFile: matchingFiles[0] })
+      const matchingFile = findBestMatch(product.sku, driveFiles)
+      if (matchingFile) {
+        matchedProducts.push({ product, imageFile: matchingFile })
       }
     }
 
