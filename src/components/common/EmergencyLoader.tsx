@@ -1,17 +1,17 @@
 
-import React from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface EmergencyLoaderProps {
-  children: React.ReactNode;
+  children: ReactNode;
   timeout?: number;
 }
 
 export const EmergencyLoader = ({ children, timeout = 10000 }: EmergencyLoaderProps) => {
-  const [showEmergency, setShowEmergency] = React.useState(false);
-  const [hasLoaded, setHasLoaded] = React.useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Set a timeout for emergency fallback
     const timer = setTimeout(() => {
       if (!hasLoaded) {
