@@ -38,25 +38,73 @@ export const DeleteAllProducts = () => {
 
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
-      // First delete related data
-      await supabase.from('product_images').delete().neq('product_id', '00000000-0000-0000-0000-000000000000');
-      await supabase.from('cart_items').delete().neq('product_id', '00000000-0000-0000-0000-000000000000');
-      await supabase.from('homepage_featured_products').delete().neq('product_id', '00000000-0000-0000-0000-000000000000');
+      // Delete all products and related data in the correct order
+      console.log('Starting bulk product deletion...');
       
-      // Then delete all products
-      const { error } = await supabase
+      // First, delete all related data that references products
+      const deleteOperations = [
+        // Delete order items referencing products
+        supabase.from('order_items').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        // Delete cart items
+        supabase.from('cart_items').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        // Delete product images
+        supabase.from('product_images').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        // Delete homepage featured products
+        supabase.from('homepage_featured_products').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        // Delete wishlists with products
+        supabase.from('wishlists').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        // Delete reviews
+        supabase.from('reviews').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        // Delete product variants
+        supabase.from('product_variants').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        // Delete stock movements
+        supabase.from('stock_movements').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+      ];
+
+      // Execute all related deletions
+      console.log('Deleting related data...');
+      const results = await Promise.allSettled(deleteOperations);
+      
+      // Log any failures but continue
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn(`Failed to delete related data ${index}:`, result.reason);
+        }
+      });
+
+      // Finally, delete all products
+      console.log('Deleting all products...');
+      const { error: productsError } = await supabase
         .from('products')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all products
+        .gte('id', '00000000-0000-0000-0000-000000000000');
       
-      if (error) throw error;
+      if (productsError) {
+        console.error('Error deleting products:', productsError);
+        throw productsError;
+      }
+
+      console.log('Bulk deletion completed');
     },
     onSuccess: () => {
+      // Invalidate all product-related queries
       queryClient.invalidateQueries({ queryKey: ['admin-products-filtered'] });
       queryClient.invalidateQueries({ queryKey: ['admin-paginated-products'] });
       queryClient.invalidateQueries({ queryKey: ['total-product-count'] });
-      toast.success(`All ${productCount} products deleted successfully`);
+      queryClient.invalidateQueries({ queryKey: ['products-filtered'] });
+      queryClient.invalidateQueries({ queryKey: ['categories-with-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['optimized-products'] });
+      
+      // Clear the confirmation text
       setConfirmationText("");
+      
+      // Show success message
+      toast.success(`All products and related data deleted successfully!`);
+      
+      // Force a page reload to ensure all cached data is cleared
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     },
     onError: (error: any) => {
       toast.error(`Failed to delete products: ${error.message}`);
