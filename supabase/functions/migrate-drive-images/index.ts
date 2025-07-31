@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     )
 
     const googleApiKey = Deno.env.get('GOOGLE_DRIVE_API_KEY')
-    const folderId = '1tG66zQTXGR-BQwjYZheRHVQ7s4n6-Jan'
+    const folderId = '1tG66zQTXGR-BQwjYZheRHVQ7s4n6-Jan' // Your Google Drive folder ID
 
     if (!googleApiKey) {
       throw new Error('Google Drive API key not configured')
