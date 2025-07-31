@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedProductImport } from "@/components/admin/EnhancedProductImport";
+import { ExcelProductImport } from "@/components/admin/ExcelProductImport";
 import { ProductImportScheduler } from "@/components/admin/ProductImportScheduler";
 import { ProductAnalyticsDashboard } from "@/components/admin/ProductAnalyticsDashboard";
 import { ProductManagementLayout } from "@/components/admin/ProductManagementLayout";
@@ -180,7 +181,7 @@ const AdminProducts = () => {
 
           <ErrorBoundary>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-xl">
                 <TabsTrigger 
                   value="products" 
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
@@ -197,7 +198,13 @@ const AdminProducts = () => {
                   value="import" 
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
                 >
-                  Import
+                  CSV Import
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="excel" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                >
+                  Excel Import
                 </TabsTrigger>
                 <TabsTrigger 
                   value="scheduler" 
@@ -231,6 +238,12 @@ const AdminProducts = () => {
               <TabsContent value="import" className="space-y-6">
                 <ErrorBoundary>
                   <EnhancedProductImport />
+                </ErrorBoundary>
+              </TabsContent>
+
+              <TabsContent value="excel" className="space-y-6">
+                <ErrorBoundary>
+                  <ExcelProductImport />
                 </ErrorBoundary>
               </TabsContent>
 
