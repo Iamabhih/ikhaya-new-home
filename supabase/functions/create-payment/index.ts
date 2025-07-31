@@ -100,7 +100,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { items, customerInfo, shippingAddress, paymentMethod } = await req.json()
+    const { items, customerInfo, shippingAddress, paymentMethod, deliveryFee = 0, deliveryZoneId } = await req.json()
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error('No items provided')
@@ -122,7 +122,7 @@ serve(async (req) => {
     }
 
     const taxAmount = subtotal * 0.15 // 15% VAT
-    const shippingAmount = subtotal > 500 ? 0 : 50 // Free shipping over R500
+    const shippingAmount = deliveryFee // Use calculated delivery fee
     const totalAmount = subtotal + taxAmount + shippingAmount
 
     // Generate order number

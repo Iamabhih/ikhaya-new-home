@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PaymentMethods } from "./PaymentMethods";
 import { PaymentSuccess } from "./PaymentSuccess";
+import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 
 interface CheckoutFormProps {
   user: any;
@@ -16,7 +17,7 @@ interface CheckoutFormProps {
 }
 
 export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
-  const { items, clearCart } = useCart();
+  const { items, clearCart, total: cartTotal } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState('billing'); // billing, payment, success
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
@@ -31,6 +32,8 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
     postalCode: "",
     province: "",
   });
+
+  const { deliveryFee, deliveryZone } = useDeliveryFee(cartTotal);
 
   const handleBillingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +70,8 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
           customerInfo: formData,
           shippingAddress: formData,
           paymentMethod: method,
+          deliveryFee: deliveryFee,
+          deliveryZoneId: deliveryZone?.id,
         },
       });
 
