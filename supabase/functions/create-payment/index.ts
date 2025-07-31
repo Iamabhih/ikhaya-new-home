@@ -209,7 +209,15 @@ serve(async (req) => {
           throw new Error('PayFast payment method is not active')
         }
         
-        if (!payfastMerchantId || !payfastMerchantKey) {
+        // For sandbox mode, use default test credentials if not provided
+        let merchantId = payfastMerchantId
+        let merchantKey = payfastMerchantKey
+        
+        if (payfastMode === 'sandbox' && (!merchantId || !merchantKey)) {
+          console.log('PayFast Sandbox - Using default test credentials')
+          merchantId = '10000100'
+          merchantKey = '46f0cd694581a'
+        } else if (!merchantId || !merchantKey) {
           throw new Error('PayFast is not properly configured. Missing merchant credentials.')
         }
         
@@ -218,21 +226,22 @@ serve(async (req) => {
           throw new Error('Passphrase is required for PayFast production mode')
         }
         
-        // Use appropriate URLs based on mode
+        // Use appropriate URLs based on mode (PayFast uses .co.za for both production and sandbox)
         const payfastUrl = payfastMode === 'production' 
           ? 'https://www.payfast.co.za/eng/process'
-          : 'https://sandbox.payfast.io/eng/process'
+          : 'https://sandbox.payfast.co.za/eng/process'
         
         console.log('PayFast Configuration:', {
           mode: payfastMode,
           url: payfastUrl,
-          merchant_id: payfastMerchantId ? 'Set' : 'Not set',
-          merchant_key: payfastMerchantKey ? 'Set' : 'Not set'
+          merchant_id: merchantId ? 'Set' : 'Not set',
+          merchant_key: merchantKey ? 'Set' : 'Not set',
+          using_sandbox_defaults: payfastMode === 'sandbox' && (!payfastMerchantId || !payfastMerchantKey)
         })
         
         const payfastData = {
-          merchant_id: payfastMerchantId,
-          merchant_key: payfastMerchantKey,
+          merchant_id: merchantId,
+          merchant_key: merchantKey,
           return_url: `${baseUrl}/payment/success?order_id=${order.id}&payment_method=payfast`,
           cancel_url: `${baseUrl}/checkout?cancelled=true`,
           notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment-secure`,
