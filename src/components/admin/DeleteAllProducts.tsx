@@ -43,22 +43,26 @@ export const DeleteAllProducts = () => {
       
       // First, delete all related data that references products
       const deleteOperations = [
-        // Delete order items referencing products
-        supabase.from('order_items').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        // Delete order items referencing products - this will prevent orders from being deleted
+        supabase.from('order_items').delete().neq('id', ''),
         // Delete cart items
-        supabase.from('cart_items').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('cart_items').delete().neq('id', ''),
         // Delete product images
-        supabase.from('product_images').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('product_images').delete().neq('id', ''),
         // Delete homepage featured products
-        supabase.from('homepage_featured_products').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('homepage_featured_products').delete().neq('id', ''),
         // Delete wishlists with products
-        supabase.from('wishlists').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('wishlists').delete().neq('id', ''),
         // Delete reviews
-        supabase.from('reviews').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('reviews').delete().neq('id', ''),
         // Delete product variants
-        supabase.from('product_variants').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('product_variants').delete().neq('id', ''),
         // Delete stock movements
-        supabase.from('stock_movements').delete().gte('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('stock_movements').delete().neq('id', ''),
+        // Delete product import errors
+        supabase.from('product_import_errors').delete().neq('id', ''),
+        // Delete product imports
+        supabase.from('product_imports').delete().neq('id', ''),
       ];
 
       // Execute all related deletions
@@ -77,7 +81,7 @@ export const DeleteAllProducts = () => {
       const { error: productsError } = await supabase
         .from('products')
         .delete()
-        .gte('id', '00000000-0000-0000-0000-000000000000');
+        .neq('id', ''); // This will delete ALL products
       
       if (productsError) {
         console.error('Error deleting products:', productsError);
