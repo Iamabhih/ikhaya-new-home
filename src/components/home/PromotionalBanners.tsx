@@ -198,28 +198,64 @@ export const PromotionalBanners = () => {
           </div>}
       </div>
 
-      {/* Top promotional strips */}
-      <div className="bg-background border-b">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
-            {banners.slice(0, 3).map(banner => <div key={banner.id} className="flex items-center justify-center p-3 rounded-lg text-center transition-all duration-200 hover:scale-105" style={{
-            backgroundColor: `${banner.background_color}20`,
-            borderColor: banner.background_color,
-            borderWidth: '1px'
-          }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{
-                backgroundColor: banner.background_color,
-                color: banner.text_color
-              }}>
-                    {banner.position}
+      {/* Premium promotional strips */}
+      <div className="bg-gradient-to-r from-slate-50 to-white border-t border-slate-200/50">
+        <div className="container mx-auto px-6 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {banners.slice(0, 3).map((banner, index) => (
+              <div 
+                key={banner.id} 
+                className="group relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              >
+                {/* Background gradient */}
+                <div 
+                  className="absolute inset-0 opacity-10"
+                  style={{
+                    background: `linear-gradient(135deg, ${banner.background_color}40 0%, ${banner.background_color}20 100%)`
+                  }}
+                />
+                
+                {/* Content */}
+                <div className="relative p-6 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {/* Premium badge */}
+                    <div 
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                      style={{ backgroundColor: banner.background_color }}
+                    >
+                      {index + 1}
+                    </div>
+                    
+                    {/* Text content */}
+                    <div>
+                      <div className="font-bold text-lg text-slate-800 group-hover:text-slate-900 transition-colors">
+                        {banner.title}
+                      </div>
+                      {banner.subtitle && (
+                        <div className="text-sm text-slate-600 font-medium">
+                          {banner.subtitle}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold text-sm">{banner.title}</div>
-                    {banner.subtitle && <div className="text-xs text-muted-foreground">{banner.subtitle}</div>}
+                  
+                  {/* Arrow indicator */}
+                  <div className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
                 </div>
-              </div>)}
+                
+                {/* Hover glow effect */}
+                <div 
+                  className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl"
+                  style={{
+                    background: `radial-gradient(circle at center, ${banner.background_color}60 0%, transparent 70%)`
+                  }}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>
