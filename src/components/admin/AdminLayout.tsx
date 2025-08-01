@@ -26,7 +26,7 @@ export const AdminLayout = ({ children, hideHeader = false }: AdminLayoutProps) 
           "transition-all duration-300"
         )}>
           <div className="h-full">
-            <div className="bg-white border-b border-gray-200/60 px-8 py-6">
+            <div className="bg-card border-b border-border px-8 py-6">
               <div className="max-w-none">
                 {children}
               </div>

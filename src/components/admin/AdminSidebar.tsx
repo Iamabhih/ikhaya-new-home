@@ -101,15 +101,15 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
 
   return (
     <div className={cn(
-      "flex flex-col bg-white border-r border-gray-200/60 h-full transition-all duration-300 shadow-sm",
+      "flex flex-col bg-card border-r border-border h-full transition-all duration-300 shadow-sm",
       collapsed ? "w-16" : "w-72"
     )}>
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-200/60">
+      <div className="flex items-center justify-between p-6 border-b border-border">
         {!collapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Shield className="h-5 w-5 text-white" />
+            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+              <Shield className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
               <span className="font-semibold text-gray-900 text-sm">
