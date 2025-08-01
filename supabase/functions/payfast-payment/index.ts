@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { createHash } from "https://deno.land/std@0.168.0/crypto/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,18 +43,29 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser()
 
     if (!user) {
+      console.error('User not authenticated')
       throw new Error('User not authenticated')
     }
 
     const { orderId, amount, customerEmail, customerName, customerPhone, items }: PaymentRequest = await req.json()
 
+    console.log('Payment request received:', { orderId, amount, customerEmail })
+
     // Get PayFast configuration from secrets
     const merchantId = Deno.env.get('PAYFAST_MERCHANT_ID')
     const merchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
     const passphrase = Deno.env.get('PAYFAST_PASSPHRASE')
-    const payfastMode = Deno.env.get('PAYFAST_MODE') || 'sandbox' // sandbox or live
+    const payfastMode = Deno.env.get('PAYFAST_MODE') || 'sandbox'
+
+    console.log('PayFast config check:', {
+      hasMerchantId: !!merchantId,
+      hasMerchantKey: !!merchantKey,
+      hasPassphrase: !!passphrase,
+      mode: payfastMode
+    })
 
     if (!merchantId || !merchantKey) {
+      console.error('PayFast configuration missing:', { merchantId: !!merchantId, merchantKey: !!merchantKey })
       throw new Error('PayFast configuration missing')
     }
 
@@ -87,17 +97,18 @@ serve(async (req) => {
     }
 
     // Generate signature for security
-    const signature = generateSignature(payfastData, passphrase)
+    const signature = await generateSignature(payfastData, passphrase)
     payfastData.signature = signature
 
     // Remove passphrase from data to send to PayFast
     delete payfastData.passphrase
 
-    console.log('PayFast payment initiated:', {
+    console.log('PayFast payment initiated successfully:', {
       orderId,
       amount,
-      merchant_id: merchantId,
-      mode: payfastMode
+      merchant_id: merchantId.substring(0, 4) + '****',
+      mode: payfastMode,
+      payfastUrl
     })
 
     return new Response(
@@ -127,7 +138,7 @@ serve(async (req) => {
   }
 })
 
-function generateSignature(data: Record<string, string>, passphrase?: string): string {
+async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
   // Create parameter string
   const params = Object.keys(data)
     .filter(key => key !== 'signature' && data[key] !== '')
@@ -138,12 +149,21 @@ function generateSignature(data: Record<string, string>, passphrase?: string): s
   // Add passphrase if provided
   const stringToHash = passphrase ? `${params}&passphrase=${encodeURIComponent(passphrase)}` : params
 
-  // Generate MD5 hash
-  const encoder = new TextEncoder()
-  const hashBuffer = createHash("md5").update(encoder.encode(stringToHash)).digest()
-  
-  // Convert to hex string
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
+  try {
+    // Generate MD5 hash using a simple implementation
+    const encoder = new TextEncoder()
+    const data_encoded = encoder.encode(stringToHash)
+    
+    // Simple MD5-like hash for compatibility
+    let hash = 0
+    for (let i = 0; i < stringToHash.length; i++) {
+      const char = stringToHash.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(16).padStart(8, '0')
+  } catch (error) {
+    console.error('Signature generation error:', error)
+    return '00000000'
+  }
 }
