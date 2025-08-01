@@ -108,22 +108,43 @@ Deno.serve(async (req) => {
 
     await logMessage('info', `Found ${products.length} products with SKUs`)
 
-    // Step 2: Get all files from Google Drive
-    progress.currentStep = 'Scanning Google Drive folder'
+    // Step 2: Get all files from Google Drive with pagination support
+    progress.currentStep = 'Scanning Google Drive folder (this may take a while for large folders)'
     await sendProgressUpdate(progress)
 
-    const driveResponse = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${googleApiKey}&fields=files(id,name,mimeType)&pageSize=1000`
-    )
+    let allDriveFiles: DriveFile[] = []
+    let nextPageToken: string | null = null
+    let pageCount = 0
+    
+    do {
+      pageCount++
+      await logMessage('info', `Scanning Google Drive page ${pageCount}...`)
+      
+      let url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType+contains+'image/'&key=${googleApiKey}&fields=files(id,name,mimeType),nextPageToken&pageSize=1000`
+      if (nextPageToken) {
+        url += `&pageToken=${nextPageToken}`
+      }
 
-    if (!driveResponse.ok) {
-      throw new Error(`Google Drive API error: ${driveResponse.statusText}`)
-    }
+      const driveResponse = await fetch(url)
+      
+      if (!driveResponse.ok) {
+        throw new Error(`Google Drive API error: ${driveResponse.statusText}`)
+      }
 
-    const driveData = await driveResponse.json()
-    const driveFiles: DriveFile[] = driveData.files || []
+      const driveData = await driveResponse.json()
+      const pageFiles = driveData.files || []
+      allDriveFiles.push(...pageFiles)
+      nextPageToken = driveData.nextPageToken
+      
+      await logMessage('info', `Found ${pageFiles.length} images on page ${pageCount}. Total so far: ${allDriveFiles.length}`)
+      
+      // Add delay between API calls to avoid rate limiting
+      if (nextPageToken) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    } while (nextPageToken)
 
-    await logMessage('info', `Found ${driveFiles.length} files in Google Drive folder`)
+    await logMessage('info', `Scan complete! Found ${allDriveFiles.length} total images across ${pageCount} pages`)
 
     // Enhanced helper function to extract product codes from filename
     function extractProductCodes(filename: string): string[] {
@@ -208,53 +229,83 @@ Deno.serve(async (req) => {
       return null
     }
 
-    // Step 3: Match products to images using enhanced matching
+    // Step 3: Match products to images using enhanced matching (process in chunks for memory efficiency)
     progress.status = 'processing'
     progress.total = products.length
-    progress.currentStep = 'Matching products to images'
+    progress.currentStep = 'Matching products to images (processing in chunks for large datasets)'
     await sendProgressUpdate(progress)
 
     const matchedProducts = []
-    for (const product of products) {
-      if (!product.sku) continue
+    const chunkSize = 1000 // Process products in chunks to avoid memory issues
+    
+    for (let i = 0; i < products.length; i += chunkSize) {
+      const productChunk = products.slice(i, Math.min(i + chunkSize, products.length))
+      await logMessage('info', `Processing product chunk ${Math.floor(i/chunkSize) + 1}/${Math.ceil(products.length/chunkSize)}`)
+      
+      for (const product of productChunk) {
+        if (!product.sku) continue
 
-      const matchingFile = findBestMatch(product.sku, driveFiles)
-      if (matchingFile) {
-        matchedProducts.push({ product, imageFile: matchingFile })
+        const matchingFile = findBestMatch(product.sku, allDriveFiles)
+        if (matchingFile) {
+          matchedProducts.push({ product, imageFile: matchingFile })
+        }
       }
+      
+      // Update progress for chunk completion
+      await sendProgressUpdate({
+        currentStep: `Matched ${matchedProducts.length} products so far... Processing chunk ${Math.floor(i/chunkSize) + 1}/${Math.ceil(products.length/chunkSize)}`
+      })
     }
 
     progress.total = matchedProducts.length
-    await logMessage('info', `Found ${matchedProducts.length} products with matching images`)
+    await logMessage('info', `Found ${matchedProducts.length} products with matching images out of ${allDriveFiles.length} total images`)
     await sendProgressUpdate(progress)
 
-    // Step 4: Process each matched product with enhanced error handling
-    const batchSize = 3 // Reduced batch size for better error handling
+    // Step 4: Process each matched product with enhanced error handling and rate limiting
+    const batchSize = 2 // Further reduced for large datasets
+    const maxConcurrentBatches = 1 // Process one batch at a time for stability
+    
+    await logMessage('info', `Starting migration of ${matchedProducts.length} matched products in batches of ${batchSize}`)
+    
     for (let i = 0; i < matchedProducts.length; i += batchSize) {
       const batch = matchedProducts.slice(i, Math.min(i + batchSize, matchedProducts.length))
+      const batchNumber = Math.floor(i / batchSize) + 1
+      const totalBatches = Math.ceil(matchedProducts.length / batchSize)
       
-      // Process batch in parallel with individual error handling
-      const batchPromises = batch.map(async ({ product, imageFile }) => {
+      await logMessage('info', `Processing batch ${batchNumber}/${totalBatches}`)
+      
+      // Process batch sequentially for better stability with large datasets
+      for (const { product, imageFile } of batch) {
         try {
           progress.currentFile = `${product.sku} (${imageFile.name})`
           await sendProgressUpdate(progress)
           await logMessage('info', `Processing ${product.sku}: ${imageFile.name}`)
 
-          // Download image with retry logic
+          // Download image with enhanced retry logic and rate limiting
           let imageResponse
-          let retries = 3
+          let retries = 5 // Increased retries for large datasets
+          let backoffDelay = 1000 // Start with 1 second
+          
           while (retries > 0) {
             try {
               imageResponse = await fetch(
                 `https://www.googleapis.com/drive/v3/files/${imageFile.id}?alt=media&key=${googleApiKey}`
               )
               if (imageResponse.ok) break
-              throw new Error(`HTTP ${imageResponse.status}: ${imageResponse.statusText}`)
+              
+              // Handle rate limiting specifically
+              if (imageResponse.status === 429) {
+                await logMessage('warn', `Rate limited for ${product.sku}, waiting ${backoffDelay}ms before retry`)
+                await new Promise(resolve => setTimeout(resolve, backoffDelay))
+                backoffDelay *= 2 // Exponential backoff
+              } else {
+                throw new Error(`HTTP ${imageResponse.status}: ${imageResponse.statusText}`)
+              }
             } catch (error) {
               retries--
               if (retries === 0) throw error
               await logMessage('warn', `Retry downloading ${product.sku}, attempts remaining: ${retries}`)
-              await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second before retry
+              await new Promise(resolve => setTimeout(resolve, backoffDelay))
             }
           }
 
@@ -263,12 +314,21 @@ Deno.serve(async (req) => {
           }
 
           const imageBlob = await imageResponse.blob()
+          
+          // Validate image size to prevent memory issues
+          if (imageBlob.size > 10 * 1024 * 1024) { // 10MB limit
+            await logMessage('warn', `Skipping ${product.sku}: Image too large (${Math.round(imageBlob.size / 1024 / 1024)}MB)`)
+            continue
+          }
+          
           const fileExtension = imageFile.name.toLowerCase().endsWith('.png') ? 'png' : 'jpg'
           const fileName = `${product.sku}.${fileExtension}`
 
-          // Upload to Supabase Storage with retry logic
+          // Upload to Supabase Storage with enhanced retry logic
           let uploadResult
-          retries = 3
+          retries = 5
+          backoffDelay = 1000
+          
           while (retries > 0) {
             try {
               uploadResult = await supabaseClient.storage
@@ -283,7 +343,8 @@ Deno.serve(async (req) => {
               retries--
               if (retries === 0) throw error
               await logMessage('warn', `Retry uploading ${product.sku}, attempts remaining: ${retries}`)
-              await new Promise(resolve => setTimeout(resolve, 1000))
+              await new Promise(resolve => setTimeout(resolve, backoffDelay))
+              backoffDelay *= 1.5
             }
           }
 
@@ -334,40 +395,32 @@ Deno.serve(async (req) => {
 
           progress.successful++
           await logMessage('info', `✅ Successfully migrated ${product.sku}`)
-          return { success: true, sku: product.sku }
-
+          
         } catch (error) {
           progress.failed++
           const errorMsg = `❌ ${product.sku}: ${error.message}`
           progress.errors.push(errorMsg)
           await logMessage('error', errorMsg)
-          return { success: false, sku: product.sku, error: error.message }
         } finally {
           progress.processed++
           
-          // Calculate estimated time remaining
+          // Calculate and update estimated time remaining
           if (progress.processed > 0) {
             const elapsed = Date.now() - new Date(startTime).getTime()
             const avgTimePerItem = elapsed / progress.processed
             const remaining = (progress.total - progress.processed) * avgTimePerItem
-            progress.estimatedTimeRemaining = `${Math.round(remaining / 1000)}s`
+            progress.estimatedTimeRemaining = `${Math.round(remaining / 1000 / 60)}min ${Math.round((remaining / 1000) % 60)}s`
           }
           
           await sendProgressUpdate(progress)
         }
-      })
-
-      // Wait for batch to complete
-      const batchResults = await Promise.allSettled(batchPromises)
+      }
       
-      // Log batch results
-      const batchSuccessful = batchResults.filter(r => r.status === 'fulfilled').length
-      const batchFailed = batchResults.filter(r => r.status === 'rejected').length
-      await logMessage('info', `Batch completed: ${batchSuccessful} successful, ${batchFailed} failed`)
-      
-      // Longer delay between batches to avoid rate limiting
+      // Enhanced delay between batches to respect API limits (longer for large datasets)
       if (i + batchSize < matchedProducts.length) {
-        await new Promise(resolve => setTimeout(resolve, 2000)) // Increased to 2 seconds
+        const delay = Math.min(5000, 1000 + (batchNumber * 100)) // Progressive delay up to 5 seconds
+        await logMessage('info', `Batch ${batchNumber} complete. Waiting ${delay}ms before next batch...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     }
 
