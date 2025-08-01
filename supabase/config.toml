@@ -1,1 +1,19 @@
 project_id = "kauostzhxqoxggwqgtym"
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-order-notification]
+verify_jwt = false
+
+[functions.migrate-drive-images]
+verify_jwt = false
+
+[functions.scan-storage-images]
+verify_jwt = false
+
+[functions.import-products]
+verify_jwt = false
+
+[functions.import-excel-products]
+verify_jwt = false

@@ -1,0 +1,377 @@
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import { 
+  Search, CheckCircle, AlertCircle, Activity, Pause, Play, Square, RefreshCw,
+  Database, FolderOpen, Image as ImageIcon, Link as LinkIcon
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface ScanProgress {
+  sessionId: string;
+  status: 'initializing' | 'scanning' | 'processing' | 'completed' | 'error';
+  currentStep: string;
+  processed: number;
+  successful: number;
+  failed: number;
+  total: number;
+  currentFile?: string;
+  errors: string[];
+  startTime: string;
+  foundImages: number;
+  matchedProducts: number;
+}
+
+interface LogEntry {
+  id: string;
+  timestamp: string;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+}
+
+export const StorageImageScanner = () => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState<ScanProgress | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const logsEndRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<any>(null);
+
+  const scrollToBottom = () => {
+    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [logs]);
+
+  const addLog = (level: 'info' | 'warn' | 'error', message: string) => {
+    const logEntry: LogEntry = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toLocaleTimeString(),
+      level,
+      message
+    };
+    setLogs(prev => [...prev, logEntry]);
+  };
+
+  const setupRealtimeChannel = (sessionId: string) => {
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    const channel = supabase
+      .channel(`storage-scan-${sessionId}`)
+      .on(
+        'broadcast',
+        { event: 'scan_progress' },
+        (payload) => {
+          const data = payload.payload as ScanProgress;
+          setProgress(data);
+          
+          if (data.currentStep) {
+            addLog('info', data.currentStep);
+          }
+          
+          if (data.errors && data.errors.length > 0) {
+            data.errors.forEach(error => addLog('error', error));
+          }
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+  };
+
+  const handleScan = async () => {
+    setIsProcessing(true);
+    setProgress(null);
+    setLogs([]);
+    
+    addLog('info', '🔍 Starting storage bucket image scan...');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('scan-storage-images');
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.success) {
+        setSessionId(data.sessionId);
+        setupRealtimeChannel(data.sessionId);
+        
+        toast({
+          title: "Storage Scan Started",
+          description: "Real-time progress will be shown below",
+        });
+      } else {
+        throw new Error(data?.error || "Storage scan failed to start");
+      }
+    } catch (error) {
+      console.error('Storage scan error:', error);
+      addLog('error', `❌ Failed to start storage scan: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast({
+        title: "Storage Scan Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+    }
+  };
+
+  const handleStop = () => {
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+    setIsProcessing(false);
+    addLog('warn', '⏹️ Storage scan stopped by user');
+    toast({
+      title: "Scan Stopped",
+      description: "The storage scan process has been stopped",
+      variant: "destructive",
+    });
+  };
+
+  const clearLogs = () => {
+    setLogs([]);
+    setProgress(null);
+  };
+
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'initializing': return 'bg-blue-500';
+      case 'scanning': return 'bg-yellow-500';
+      case 'processing': return 'bg-blue-500';
+      case 'completed': return 'bg-green-500';
+      case 'error': return 'bg-red-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getProgressPercentage = () => {
+    if (!progress || progress.total === 0) return 0;
+    return Math.round((progress.processed / progress.total) * 100);
+  };
+
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Auto-stop when completed or error
+    if (progress && (progress.status === 'completed' || progress.status === 'error')) {
+      setIsProcessing(false);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    }
+  }, [progress]);
+
+  return (
+    <div className="space-y-6">
+      {/* Main Scanner Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Storage Bucket Image Scanner
+            {progress && (
+              <Badge variant="outline" className={`${getStatusColor(progress.status)} text-primary-foreground`}>
+                {progress.status.charAt(0).toUpperCase() + progress.status.slice(1)}
+              </Badge>
+            )}
+          </CardTitle>
+          <CardDescription>
+            Scan the 'product-images' storage bucket (including subdirectories) and automatically match images to products based on SKU variants in filenames.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <Database className="h-4 w-4" />
+            <AlertDescription>
+              This scanner will recursively search all folders in the storage bucket and use enhanced SKU matching to link images with products. 
+              It supports various filename patterns and SKU variations.
+            </AlertDescription>
+          </Alert>
+
+          {/* Control Buttons */}
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={handleScan} 
+              disabled={isProcessing}
+              className="flex items-center gap-2"
+            >
+              <Search className="h-4 w-4" />
+              {isProcessing ? "Scanning Storage..." : "Start Storage Scan"}
+            </Button>
+            
+            {isProcessing && (
+              <Button 
+                onClick={handleStop}
+                variant="destructive"
+                className="flex items-center gap-2"
+              >
+                <Square className="h-4 w-4" />
+                Stop Scan
+              </Button>
+            )}
+
+            <Button 
+              onClick={clearLogs}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Clear Logs
+            </Button>
+          </div>
+
+          {/* Progress Section */}
+          {progress && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Progress: {progress.processed} / {progress.total}</span>
+                  <span>{getProgressPercentage()}%</span>
+                </div>
+                <Progress value={getProgressPercentage()} className="w-full" />
+              </div>
+
+              {/* Current Status */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <div className="text-lg font-bold text-blue-600">{progress.foundImages}</div>
+                  <div className="text-xs text-muted-foreground">Images Found</div>
+                </div>
+                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                  <div className="text-lg font-bold text-purple-600">{progress.matchedProducts}</div>
+                  <div className="text-xs text-muted-foreground">Products Matched</div>
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <div className="text-lg font-bold">{progress.processed}</div>
+                  <div className="text-xs text-muted-foreground">Processed</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                  <div className="text-lg font-bold text-green-600">{progress.successful}</div>
+                  <div className="text-xs text-muted-foreground">Successful</div>
+                </div>
+                <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded-lg">
+                  <div className="text-lg font-bold text-red-600">{progress.failed}</div>
+                  <div className="text-xs text-muted-foreground">Failed</div>
+                </div>
+              </div>
+
+              {/* Current File */}
+              {progress.currentFile && (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <FolderOpen className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm">
+                    <strong>Currently processing:</strong> {progress.currentFile}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Live Logs Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Live Scan Logs
+            <Badge variant="outline">{logs.length} entries</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-80 w-full border rounded-md p-4">
+            <div className="space-y-2">
+              {logs.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No logs yet. Start a storage scan to see real-time progress.
+                </div>
+              ) : (
+                logs.map((log) => (
+                  <div key={log.id} className="flex items-start gap-2 text-sm">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {log.timestamp}
+                    </span>
+                    <Badge 
+                      variant={log.level === 'error' ? 'destructive' : log.level === 'warn' ? 'outline' : 'secondary'}
+                      className="text-xs px-1"
+                    >
+                      {log.level.toUpperCase()}
+                    </Badge>
+                    <span className={
+                      log.level === 'error' ? 'text-red-600' : 
+                      log.level === 'warn' ? 'text-yellow-600' : 
+                      'text-foreground'
+                    }>
+                      {log.message}
+                    </span>
+                  </div>
+                ))
+              )}
+              <div ref={logsEndRef} />
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* Feature Description */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            Enhanced SKU Matching Features
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <LinkIcon className="h-4 w-4" />
+                Supported Filename Patterns
+              </h4>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>Direct SKU matches: <code>ABC123.jpg</code></li>
+                <li>With delimiters: <code>SKU-ABC123.png</code></li>
+                <li>In folders: <code>products/ABC123/image.jpg</code></li>
+                <li>With prefixes: <code>ITEM_ABC123.jpg</code></li>
+                <li>Multiple variations in one filename</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                SKU Variations Handled
+              </h4>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>Zero-padded numbers: <code>123</code> ↔ <code>0123</code></li>
+                <li>Leading zeros: <code>0123</code> ↔ <code>123</code></li>
+                <li>Alphanumeric codes of any length</li>
+                <li>Case-insensitive matching</li>
+                <li>Fuzzy matching with scoring</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
