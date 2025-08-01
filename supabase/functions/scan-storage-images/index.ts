@@ -41,13 +41,12 @@ Deno.serve(async (req) => {
   const sendProgressUpdate = async (progress: Partial<ScanProgress>) => {
     try {
       if (supabaseClient) {
-        await supabaseClient
-          .channel(`storage-scan-${sessionId}`)
-          .send({
-            type: 'broadcast',
-            event: 'scan_progress',
-            payload: { ...progress, sessionId }
-          })
+        const channel = supabaseClient.channel(`storage-scan-${sessionId}`)
+        await channel.send({
+          type: 'broadcast',
+          event: 'scan_progress',
+          payload: { ...progress, sessionId }
+        })
       }
     } catch (error) {
       console.error('Failed to send progress update:', error)
@@ -67,19 +66,18 @@ Deno.serve(async (req) => {
     // Send dedicated log message through realtime
     try {
       if (supabaseClient) {
-        await supabaseClient
-          .channel(`storage-scan-${sessionId}`)
-          .send({
-            type: 'broadcast',
-            event: 'scan_log',
-            payload: {
-              sessionId,
-              timestamp: timestamp,
-              level: level,
-              message: message,
-              data: data
-            }
-          })
+        const channel = supabaseClient.channel(`storage-scan-${sessionId}`)
+        await channel.send({
+          type: 'broadcast',
+          event: 'scan_log',
+          payload: {
+            sessionId,
+            timestamp: timestamp,
+            level: level,
+            message: message,
+            data: data
+          }
+        })
       }
     } catch (error) {
       console.error('Failed to send log message:', error)
