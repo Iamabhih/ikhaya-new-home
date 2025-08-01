@@ -7,6 +7,7 @@ import { ProductTestingPanel } from "@/components/admin/ProductTestingPanel";
 import { PromotionalBannersManagement } from "@/components/admin/PromotionalBannersManagement";
 import { BannerDesignGuide } from "@/components/admin/BannerDesignGuide";
 import { SystemStatusReport } from "@/components/admin/SystemStatusReport";
+import { DeleteAllOrders } from "@/components/admin/DeleteAllOrders";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image } from "lucide-react";
@@ -87,6 +88,10 @@ const SuperAdminSettings = () => {
                         <a href="/admin/orders" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
                           Go to Order Management
                         </a>
+                      </div>
+                      
+                      <div className="mt-6">
+                        <DeleteAllOrders />
                       </div>
                     </div>
                   </CardContent>
