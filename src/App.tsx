@@ -45,12 +45,14 @@ import "./App.css";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000,
+      staleTime: 5 * 60 * 1000, // Increased from 1 minute to 5 minutes to reduce refetching
+      gcTime: 10 * 60 * 1000, // Keep cached data for 10 minutes
       retry: (failureCount, error) => {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         return isMobile ? failureCount < 1 : failureCount < 2;
       },
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false, // Prevent refetch on reconnect to reduce connection storms
     },
   },
 });

@@ -78,7 +78,7 @@ export const NotificationCenter = () => {
     }
   ]);
 
-  // Get low stock count for real-time alerts
+  // Get low stock count for real-time alerts - optimized polling
   const { data: lowStockCount } = useQuery({
     queryKey: ['low-stock-count', settings.lowStockThreshold],
     queryFn: async () => {
@@ -91,7 +91,8 @@ export const NotificationCenter = () => {
       if (error) throw error;
       return count || 0;
     },
-    refetchInterval: 30000, // Check every 30 seconds
+    refetchInterval: 300000, // Reduced from 30s to 5 minutes to reduce database load
+    staleTime: 240000, // Cache for 4 minutes
   });
 
   // Update low stock alert when count changes

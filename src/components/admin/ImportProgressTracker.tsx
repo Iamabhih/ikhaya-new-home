@@ -78,16 +78,18 @@ export const ImportProgressTracker = ({ importId, onComplete, onError }: ImportP
 
     fetchImportStatus();
 
-    // Set up polling for active imports
+    // Set up polling for active imports - reduced frequency and stop when completed
     let interval: NodeJS.Timeout;
     if (importStatus?.status === 'processing' || importStatus?.status === 'pending') {
-      interval = setInterval(fetchImportStatus, 2000);
+      interval = setInterval(() => {
+        fetchImportStatus();
+      }, 5000); // Increased from 2s to 5s to reduce database load
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [importId, importStatus?.status, onComplete, onError]);
+  }, [importId, onComplete, onError]); // Removed importStatus?.status dependency to prevent recreation
 
   const downloadErrorReport = () => {
     if (errors.length === 0) return;

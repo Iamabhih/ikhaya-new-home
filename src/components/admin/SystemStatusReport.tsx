@@ -21,7 +21,7 @@ import {
 export const SystemStatusReport = () => {
   const [isRunningFullTest, setIsRunningFullTest] = useState(false);
 
-  // Comprehensive system health check
+  // Comprehensive system health check - optimized polling
   const { data: systemHealth, isLoading } = useQuery({
     queryKey: ['system-health'],
     queryFn: async () => {
@@ -88,7 +88,8 @@ export const SystemStatusReport = () => {
         };
       }
     },
-    refetchInterval: 30000 // Refresh every 30 seconds
+    refetchInterval: 300000, // Reduced from 30s to 5 minutes for database health
+    staleTime: 240000, // Cache for 4 minutes
   });
 
   const runFullSystemTest = async () => {
