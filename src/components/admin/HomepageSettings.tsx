@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, GripVertical, Image, ImageOff } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
@@ -19,6 +19,7 @@ export const HomepageSettings = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [productSelectOpen, setProductSelectOpen] = useState(false);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
 
   // Fetch featured categories
   const { data: featuredCategories = [], isLoading: loadingCategories } = useQuery({
@@ -79,7 +80,6 @@ export const HomepageSettings = () => {
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
     queryKey: ['all-products-with-images'],
     queryFn: async () => {
-      console.log('🔍 Fetching products with images...');
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -92,18 +92,12 @@ export const HomepageSettings = () => {
         .eq('is_active', true)
         .order('name');
       
-      if (error) {
-        console.error('❌ Error fetching products:', error);
-        throw error;
-      }
+      if (error) throw error;
       
-      const products = (data || []).map(product => ({
+      return (data || []).map(product => ({
         ...product,
-        product_images: product.product_images || [] // Ensure it's always an array
+        product_images: product.product_images || []
       }));
-      
-      console.log('✅ Products fetched:', products.length, products);
-      return products;
     }
   });
 
@@ -327,84 +321,102 @@ export const HomepageSettings = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0" align="start">
-                {productsLoading || !allProducts || !featuredProducts ? (
-                  <div className="p-4 text-center text-muted-foreground">
-                    Loading products...
+                <div className="p-4 space-y-4">
+                  <Input
+                    placeholder="Search products..."
+                    value={productSearchTerm}
+                    onChange={(e) => setProductSearchTerm(e.target.value)}
+                    className="w-full"
+                  />
+                  
+                  <div className="max-h-64 overflow-auto space-y-1">
+                    {productsLoading ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        Loading products...
+                      </div>
+                    ) : (() => {
+                      const availableProducts = allProducts
+                        .filter((prod: any) => 
+                          prod && 
+                          prod.id && 
+                          !featuredProducts.some(fp => fp.products?.id === prod.id) &&
+                          (productSearchTerm === "" || 
+                           prod.name?.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+                           prod.sku?.toLowerCase().includes(productSearchTerm.toLowerCase()))
+                        );
+
+                      if (availableProducts.length === 0) {
+                        return (
+                          <div className="p-4 text-center text-muted-foreground">
+                            {productSearchTerm ? "No products match your search" : "No products available to add"}
+                          </div>
+                        );
+                      }
+
+                      return availableProducts.map((product: any) => {
+                        const hasImages = Array.isArray(product.product_images) && product.product_images.length > 0;
+                        const primaryImage = hasImages ? 
+                          (product.product_images.find((img: any) => img?.is_primary) || product.product_images[0]) : 
+                          null;
+
+                        return (
+                          <div
+                            key={`product-${product.id}`}
+                            onClick={() => {
+                              setSelectedProductId(product.id);
+                              setProductSelectOpen(false);
+                              setProductSearchTerm("");
+                            }}
+                            className="flex items-center gap-3 p-3 rounded-md hover:bg-muted cursor-pointer transition-colors"
+                          >
+                            <Check
+                              className={cn(
+                                "h-4 w-4",
+                                selectedProductId === product.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            
+                            {/* Product image thumbnail or placeholder */}
+                            <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                              {hasImages && primaryImage?.image_url ? (
+                                <img 
+                                  src={primaryImage.image_url} 
+                                  alt={product.name || "Product"}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <ImageOff className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </div>
+                            
+                            {/* Product details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium truncate">{product.name || "Unnamed Product"}</span>
+                                {hasImages && (
+                                  <Image className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>R{product.price || "0"}</span>
+                                {product.sku && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{product.sku}</span>
+                                  </>
+                                )}
+                                <span>•</span>
+                                <span className={hasImages ? "text-green-600" : "text-amber-600"}>
+                                  {hasImages ? `${product.product_images.length} image${product.product_images.length > 1 ? 's' : ''}` : 'No images'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
-                ) : (
-                  <Command shouldFilter={false}>
-                    <CommandInput placeholder="Search products..." />
-                    <CommandEmpty>No product found.</CommandEmpty>
-                    <CommandGroup className="max-h-64 overflow-auto">
-                      {allProducts
-                        .filter((prod: any) => prod && prod.id && !featuredProducts.some(fp => fp.products?.id === prod.id))
-                        .map((product: any) => {
-                          const hasImages = Array.isArray(product.product_images) && product.product_images.length > 0;
-                          const primaryImage = hasImages ? 
-                            (product.product_images.find((img: any) => img?.is_primary) || product.product_images[0]) : 
-                            null;
-                          
-                          return (
-                            <CommandItem
-                              key={`product-${product.id}`}
-                              value={`${product.name || 'unnamed'}-${product.id}`}
-                              onSelect={() => {
-                                setSelectedProductId(selectedProductId === product.id ? "" : product.id);
-                                setProductSelectOpen(false);
-                              }}
-                              className="flex items-center gap-3 py-3"
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedProductId === product.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              
-                              {/* Product image thumbnail or placeholder */}
-                              <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
-                                {hasImages && primaryImage?.image_url ? (
-                                  <img 
-                                    src={primaryImage.image_url} 
-                                    alt={product.name || "Product"}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                ) : (
-                                  <ImageOff className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </div>
-                              
-                              {/* Product details */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium truncate">{product.name || "Unnamed Product"}</span>
-                                  {hasImages && (
-                                    <Image className="h-4 w-4 text-green-500 flex-shrink-0" />
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <span>R{product.price || "0"}</span>
-                                  {product.sku && (
-                                    <>
-                                      <span>•</span>
-                                      <span>{product.sku}</span>
-                                    </>
-                                  )}
-                                  <span>•</span>
-                                  <span className={hasImages ? "text-green-600" : "text-amber-600"}>
-                                    {hasImages ? `${product.product_images.length} image${product.product_images.length > 1 ? 's' : ''}` : 'No images'}
-                                  </span>
-                                </div>
-                              </div>
-                            </CommandItem>
-                          );
-                        })}
-                    </CommandGroup>
-                  </Command>
-                )}
+                </div>
               </PopoverContent>
             </Popover>
             <Button 
