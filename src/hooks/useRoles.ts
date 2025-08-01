@@ -19,18 +19,17 @@ export const useRoles = (user: User | null) => {
         return;
       }
 
-      // Prevent multiple calls for the same user within a short time frame
-      if (lastFetched === user.id && roles.length > 0) {
+      // Prevent multiple calls for the same user
+      if (lastFetched === user.id) {
         setLoading(false);
         return;
       }
 
-      // Prevent multiple simultaneous calls
-      if (loading && lastFetched === user.id) return;
-
       try {
         console.log('[useRoles] Fetching roles for user:', user.id);
         setLoading(true);
+        setLastFetched(user.id); // Set this early to prevent duplicate calls
+        
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
@@ -42,18 +41,18 @@ export const useRoles = (user: User | null) => {
         } else {
           console.log('[useRoles] Roles fetched:', data);
           setRoles(data?.map(r => r.role as AppRole) || []);
-          setLastFetched(user.id);
         }
       } catch (error) {
         console.error('Error fetching roles:', error);
         setRoles([]);
+        setLastFetched(null); // Reset on error to allow retry
       } finally {
         setLoading(false);
       }
     };
 
     fetchRoles();
-  }, [user?.id]); // Only depend on user.id, not the entire user object
+  }, [user?.id, lastFetched]); // Include lastFetched to properly track state
 
   const hasRole = (role: AppRole): boolean => {
     return roles.includes(role);
