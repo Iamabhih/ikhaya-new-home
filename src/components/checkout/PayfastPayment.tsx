@@ -171,47 +171,65 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
     return new Promise((resolve) => {
       try {
         console.log('📝 Creating form for PayFast submission...');
+        console.log('🎯 PayFast URL:', url);
+        console.log('📋 Payment data keys:', Object.keys(paymentData));
         
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = url;
         form.style.display = 'none';
         form.target = '_self';
+        form.acceptCharset = 'UTF-8';
+        form.enctype = 'application/x-www-form-urlencoded';
 
         // Add all PayFast parameters
         Object.entries(paymentData).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value as string;
-          form.appendChild(input);
+          if (value !== undefined && value !== null && value !== '') {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = String(value);
+            form.appendChild(input);
+            console.log(`🔹 Added field: ${key} = ${key === 'signature' ? '***' : value}`);
+          }
         });
 
         document.body.appendChild(form);
-        console.log('📋 Form created and appended to DOM');
+        console.log('📋 Form created and appended to DOM with', form.elements.length, 'fields');
         
         // Set timeout to detect if submission freezes
         const timeout = setTimeout(() => {
-          console.log('⏰ Form submission timeout - likely blocked');
-          document.body.removeChild(form);
-          resolve(false);
-        }, 3000);
-        
-        // Try to submit the form
-        setTimeout(() => {
-          console.log('🎯 Submitting form to PayFast...');
+          console.log('⏰ Form submission timeout - likely blocked by browser security');
           try {
-            form.submit();
-            // If we get here, submission might have worked
-            clearTimeout(timeout);
-            resolve(true);
-          } catch (error) {
-            console.log('❌ Form submission error:', error);
-            clearTimeout(timeout);
-            document.body.removeChild(form);
-            resolve(false);
+            if (document.body.contains(form)) {
+              document.body.removeChild(form);
+            }
+          } catch (e) {
+            console.log('Form cleanup error:', e);
           }
-        }, 100);
+          resolve(false);
+        }, 2000);
+        
+        // Try to submit the form immediately
+        console.log('🎯 Submitting form to PayFast...');
+        try {
+          form.submit();
+          console.log('✅ Form submission initiated');
+          // Clear timeout and resolve true - form submitted successfully
+          clearTimeout(timeout);
+          resolve(true);
+        } catch (error) {
+          console.log('❌ Form submission error:', error);
+          clearTimeout(timeout);
+          try {
+            if (document.body.contains(form)) {
+              document.body.removeChild(form);
+            }
+          } catch (e) {
+            console.log('Form cleanup error:', e);
+          }
+          resolve(false);
+        }
         
       } catch (error) {
         console.log('🚫 Form creation error:', error);
