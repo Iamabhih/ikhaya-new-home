@@ -11,7 +11,7 @@ import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 import { PayfastPayment } from "./PayfastPayment";
 
 interface CheckoutFormProps {
-  user: any;
+  user: any | null;
   onComplete: (data: any) => void;
 }
 
@@ -41,9 +41,9 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
       // Generate order number
       const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-      // Create order in database
+      // Create order in database  
       const orderData = {
-        user_id: user?.id,
+        user_id: user?.id || null,
         email: formData.email,
         order_number: orderNumber,
         billing_address: {

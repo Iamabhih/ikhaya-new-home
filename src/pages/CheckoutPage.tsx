@@ -143,7 +143,7 @@ const CheckoutPage = () => {
                   <h2 className="text-2xl font-bold">Payment Details</h2>
                 </div>
                 
-                <CheckoutForm user={user} onComplete={() => {}} />
+                <CheckoutForm user={user || null} onComplete={() => {}} />
               </CardContent>
             </Card>
           </div>
