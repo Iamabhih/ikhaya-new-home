@@ -5,7 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, GripVertical } from "lucide-react";
+import { Trash2, Plus, GripVertical, Image, ImageOff } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
@@ -14,6 +18,7 @@ export const HomepageSettings = () => {
   const queryClient = useQueryClient();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [productSelectOpen, setProductSelectOpen] = useState(false);
 
   // Fetch featured categories
   const { data: featuredCategories = [], isLoading: loadingCategories } = useQuery({
@@ -72,11 +77,17 @@ export const HomepageSettings = () => {
 
   // Fetch all products for selection
   const { data: allProducts = [] } = useQuery({
-    queryKey: ['all-products'],
+    queryKey: ['all-products-with-images'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, price')
+        .select(`
+          id, 
+          name, 
+          price, 
+          sku,
+          product_images:product_images(id, image_url, is_primary)
+        `)
         .eq('is_active', true)
         .order('name');
       
@@ -285,20 +296,90 @@ export const HomepageSettings = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
-            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Select a product to add" />
-              </SelectTrigger>
-              <SelectContent>
-                {allProducts
-                  .filter(prod => !featuredProducts.some(fp => fp.products?.id === prod.id))
-                  .map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} - R{product.price}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <Popover open={productSelectOpen} onOpenChange={setProductSelectOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={productSelectOpen}
+                  className="flex-1 justify-between"
+                >
+                  {selectedProductId
+                    ? allProducts.find((product: any) => product.id === selectedProductId)?.name
+                    : "Select a product to add"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search products..." />
+                  <CommandEmpty>No product found.</CommandEmpty>
+                  <CommandGroup className="max-h-64 overflow-auto">
+                    {allProducts
+                      .filter((prod: any) => !featuredProducts.some(fp => fp.products?.id === prod.id))
+                      .map((product: any) => {
+                        const hasImages = product.product_images && product.product_images.length > 0;
+                        const primaryImage = product.product_images?.find((img: any) => img.is_primary) || product.product_images?.[0];
+                        
+                        return (
+                          <CommandItem
+                            key={product.id}
+                            value={product.id}
+                            onSelect={(currentValue) => {
+                              setSelectedProductId(currentValue === selectedProductId ? "" : currentValue);
+                              setProductSelectOpen(false);
+                            }}
+                            className="flex items-center gap-3 py-3"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedProductId === product.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            
+                            {/* Product image thumbnail or placeholder */}
+                            <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                              {hasImages && primaryImage?.image_url ? (
+                                <img 
+                                  src={primaryImage.image_url} 
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <ImageOff className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </div>
+                            
+                            {/* Product details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium truncate">{product.name}</span>
+                                {hasImages && (
+                                  <Image className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>R{product.price}</span>
+                                {product.sku && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{product.sku}</span>
+                                  </>
+                                )}
+                                <span>•</span>
+                                <span className={hasImages ? "text-green-600" : "text-amber-600"}>
+                                  {hasImages ? `${product.product_images.length} image${product.product_images.length > 1 ? 's' : ''}` : 'No images'}
+                                </span>
+                              </div>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
             <Button 
               onClick={() => selectedProductId && addProductMutation.mutate(selectedProductId)}
               disabled={!selectedProductId || addProductMutation.isPending}
