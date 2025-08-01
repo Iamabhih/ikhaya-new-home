@@ -57,71 +57,63 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <EmergencyLoader timeout={15000}>
-      <BrowserCompatibilityChecker>
-        <ConditionalScriptLoader>
-          <QueryClientProvider client={queryClient}>
-            <SecurityProvider>
-              <AuthProvider>
-                <TooltipProvider>
-                  <Toaster />
-                  <SecurityMonitor />
-                  <BrowserRouter>
-                  <MobileSafeComponent name="Router">
-                    <Routes>
-                      {/* Public routes */}
-                      <Route path="/" element={<Index />} />
-                      <Route path="/products" element={<ProductsPage />} />
-                      <Route path="/products/:slug" element={<ProductDetailPage />} />
-                      <Route path="/categories" element={<CategoriesPage />} />
-                      <Route path="/categories/:slug" element={<CategoryPage />} />
-                      <Route path="/category/:slug" element={<CategoryPage />} />
-                      <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
-                      <Route path="/auth" element={<AuthPage />} />
-                      <Route path="/about" element={<AboutPage />} />
-                      <Route path="/contact" element={<ContactPage />} />
-                      <Route path="/faq" element={<FAQPage />} />
-                      <Route path="/shipping" element={<ShippingPage />} />
-                      <Route path="/returns" element={<ReturnsPage />} />
-                      <Route path="/return-request" element={<ReturnRequestPage />} />
-                      <Route path="/privacy" element={<PrivacyPage />} />
-                      <Route path="/terms" element={<TermsPage />} />
-                      
-                      {/* Protected routes */}
-                      <Route path="/account" element={<AccountPage />} />
-                      <Route path="/orders" element={<OrdersPage />} />
-                      <Route path="/wishlist" element={<WishlistPage />} />
-                      
-                       {/* Admin routes */}
-                       <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-                       <Route path="/admin/products" element={<AdminProtectedRoute><AdminProducts /></AdminProtectedRoute>} />
-                       <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
-                       <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
-                       <Route path="/admin/returns" element={<AdminProtectedRoute><AdminReturns /></AdminProtectedRoute>} />
-                       <Route path="/admin/homepage" element={<AdminProtectedRoute><AdminHomepage /></AdminProtectedRoute>} />
-                       
-                        {/* SuperAdmin only routes */}
-                        <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminUsers /></AdminProtectedRoute>} />
-                        <Route path="/admin/setup" element={<AdminSetupPage />} />
-                        <Route path="/superadmin" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminDashboard /></AdminProtectedRoute>} />
-                        <Route path="/superadmin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminUsers /></AdminProtectedRoute>} />
-                        <Route path="/superadmin/settings" element={<AdminProtectedRoute requireSuperAdmin={true}><SuperAdminSettings /></AdminProtectedRoute>} />
-                        <Route path="/superadmin/setup" element={<AdminSetupPage />} />
-                      
-                      {/* 404 route */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </MobileSafeComponent>
-                </BrowserRouter>
-              </TooltipProvider>
-            </AuthProvider>
-          </SecurityProvider>
-        </QueryClientProvider>
-      </ConditionalScriptLoader>
-      </BrowserCompatibilityChecker>
-    </EmergencyLoader>
+    <QueryClientProvider client={queryClient}>
+      <SecurityProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <SecurityMonitor />
+            <BrowserRouter>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/products/:slug" element={<ProductDetailPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/categories/:slug" element={<CategoryPage />} />
+                <Route path="/category/:slug" element={<CategoryPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/faq" element={<FAQPage />} />
+                <Route path="/shipping" element={<ShippingPage />} />
+                <Route path="/returns" element={<ReturnsPage />} />
+                <Route path="/return-request" element={<ReturnRequestPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                
+                {/* Protected routes */}
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
+                
+                 {/* Admin routes */}
+                 <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+                 <Route path="/admin/products" element={<AdminProtectedRoute><AdminProducts /></AdminProtectedRoute>} />
+                 <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
+                 <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
+                 <Route path="/admin/returns" element={<AdminProtectedRoute><AdminReturns /></AdminProtectedRoute>} />
+                 <Route path="/admin/homepage" element={<AdminProtectedRoute><AdminHomepage /></AdminProtectedRoute>} />
+                 
+                  {/* SuperAdmin only routes */}
+                  <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminUsers /></AdminProtectedRoute>} />
+                  <Route path="/admin/setup" element={<AdminSetupPage />} />
+                  <Route path="/superadmin" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminDashboard /></AdminProtectedRoute>} />
+                  <Route path="/superadmin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminUsers /></AdminProtectedRoute>} />
+                  <Route path="/superadmin/settings" element={<AdminProtectedRoute requireSuperAdmin={true}><SuperAdminSettings /></AdminProtectedRoute>} />
+                  <Route path="/superadmin/setup" element={<AdminSetupPage />} />
+                
+                {/* 404 route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </SecurityProvider>
+    </QueryClientProvider>
   );
 }
 
