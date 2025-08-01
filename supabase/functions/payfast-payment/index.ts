@@ -71,7 +71,7 @@ serve(async (req) => {
     }
 
     // Determine PayFast URL based on mode
-    const payfastUrl = payfastMode === 'live' 
+    const payfastUrl = payfastMode === 'live' || payfastMode === 'production'
       ? 'https://www.payfast.co.za/eng/process'
       : 'https://sandbox.payfast.co.za/eng/process'
 
