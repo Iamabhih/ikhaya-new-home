@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts"
+import { crypto } from "https://deno.land/std@0.208.0/crypto/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,7 +20,7 @@ interface PaymentRequest {
   }>
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -245,14 +244,10 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
   console.log('String to hash:', getString)
 
   try {
-    // Generate proper MD5 hash like PayFast expects
+    // Generate proper MD5 hash using Deno std crypto
     const encoder = new TextEncoder()
     const data_encoded = encoder.encode(getString)
-    const hashBuffer = await crypto.subtle.digest("MD5", data_encoded)
-    
-    // Convert to hex string
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    const hashHex = crypto.md5(data_encoded, "hex") as string
     
     console.log('Generated signature:', hashHex)
     return hashHex
