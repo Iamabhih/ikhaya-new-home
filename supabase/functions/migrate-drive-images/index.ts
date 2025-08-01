@@ -186,6 +186,81 @@ Deno.serve(async (req) => {
     console.log(`🎉 Scan complete! Found ${allDriveFiles.length} total images across ${pageCount} pages`)
     await logMessage('info', `Scan complete! Found ${allDriveFiles.length} total images across ${pageCount} pages`)
 
+    // Cache all discovered images to database for manual linking
+    console.log('🗄️ Caching discovered images...')
+    progress.currentStep = 'Caching discovered images for manual linking...'
+    progress.total = allDriveFiles.length
+    await sendProgressUpdate(progress)
+
+    // Helper function to extract SKU from filename
+    const extractSKUFromFilename = (filename: string): string | null => {
+      const codes = extractProductCodes(filename)
+      return codes.length > 0 ? codes[0] : null
+    }
+
+    // Helper function to format direct Google Drive link
+    const formatDirectLink = (fileId: string): string => {
+      return `https://drive.google.com/uc?export=view&id=${fileId}`
+    }
+
+    // Cache images in batches to avoid overwhelming the database
+    const cacheImagesBatchSize = 50
+    let cachedCount = 0
+    
+    for (let i = 0; i < allDriveFiles.length; i += cacheImagesBatchSize) {
+      const batch = allDriveFiles.slice(i, i + cacheImagesBatchSize)
+      const cacheData = batch.map(image => ({
+        sku: extractSKUFromFilename(image.name),
+        filename: image.name,
+        drive_id: image.id,
+        direct_url: formatDirectLink(image.id),
+        file_size: null, // Google Drive doesn't provide size in files endpoint
+        mime_type: image.mimeType,
+        scan_session_id: sessionId,
+        metadata: {
+          scan_timestamp: new Date().toISOString(),
+          source: 'google_drive_migration'
+        }
+      }))
+
+      try {
+        const { error: cacheError } = await supabaseClient
+          .from('cached_drive_images')
+          .upsert(cacheData, { 
+            onConflict: 'drive_id',
+            ignoreDuplicates: false 
+          })
+
+        if (cacheError) {
+          console.error('❌ Error caching images batch:', cacheError)
+          await logMessage('error', `Error caching images batch: ${cacheError.message}`)
+        } else {
+          cachedCount += batch.length
+          console.log(`✅ Cached batch of ${batch.length} images (${cachedCount}/${allDriveFiles.length})`)
+          
+          // Update progress for caching
+          progress.processed = cachedCount
+          await sendProgressUpdate(progress)
+        }
+      } catch (error) {
+        console.error('❌ Error caching images batch:', error)
+        await logMessage('error', `Error caching images batch: ${error.message}`)
+      }
+
+      // Small delay between batches to avoid overwhelming the database
+      if (i + cacheImagesBatchSize < allDriveFiles.length) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+
+    console.log(`🗄️ Cached ${cachedCount} images for manual linking`)
+    await logMessage('info', `Cached ${cachedCount} images for manual linking in cached_drive_images table`)
+
+    // Reset progress counters for the actual migration process
+    progress.processed = 0
+    progress.successful = 0
+    progress.failed = 0
+
     // Enhanced matching functions inspired by ImageSKUMatcher
     const createImageCache = () => {
       const cache = new Map<string, DriveFile>()
