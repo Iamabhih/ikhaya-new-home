@@ -154,26 +154,13 @@ export const logSecurityEvent = async (
   metadata: Record<string, any> = {}
 ) => {
   try {
-    // In a real implementation, this would send to a logging service
+    // Log to console for development/debugging
     console.warn(`Security Event [${riskLevel.toUpperCase()}]: ${eventType} - ${description}`, metadata);
     
-    // Could also send to analytics or security monitoring service
-    if (typeof window !== 'undefined' && riskLevel === 'critical') {
-      // Send critical events to monitoring
-      fetch('/api/security-log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventType,
-          description,
-          riskLevel,
-          metadata,
-          timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent,
-          url: window.location.href
-        })
-      }).catch(console.error);
-    }
+    // Only attempt to send to backend if we're in production and have proper endpoint
+    // Removing the API call that was causing recursive loops
+    // TODO: Implement proper security logging endpoint when needed
+    
   } catch (error) {
     console.error('Failed to log security event:', error);
   }

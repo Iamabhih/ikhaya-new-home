@@ -120,9 +120,9 @@ export const SecurityMonitor: React.FC = () => {
     };
   }, [user]);
 
-  // Load recent security events for admin users
+  // Load recent security events for admin users (only once per user session)
   useEffect(() => {
-    if (!user) return;
+    if (!user || !user.id) return;
     
     const loadSecurityEvents = async () => {
       try {
@@ -141,8 +141,11 @@ export const SecurityMonitor: React.FC = () => {
       }
     };
     
-    loadSecurityEvents();
-  }, [user]);
+    // Only load once per user session to prevent loops
+    if (securityEvents.length === 0) {
+      loadSecurityEvents();
+    }
+  }, [user?.id]); // Remove securityEvents from dependencies to prevent loops
 
   // Don't render anything visible - this is a background monitor
   return null;
