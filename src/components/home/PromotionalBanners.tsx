@@ -56,41 +56,52 @@ export const PromotionalBanners = () => {
     return null;
   }
   const currentBanner = banners[currentIndex];
-  return <div className="relative w-full bg-primary/5 overflow-hidden">
+  return <div className="relative w-full overflow-hidden">
       {/* Main promotional banner */}
-      <div className="relative min-h-[400px] md:min-h-[500px] flex items-center justify-center text-white transition-all duration-500" style={{
-      backgroundColor: currentBanner.background_color
+      <div className="relative min-h-[500px] md:min-h-[600px] flex items-center justify-center text-white transition-all duration-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{
+      background: currentBanner.background_color ? `linear-gradient(135deg, ${currentBanner.background_color} 0%, ${currentBanner.background_color}cc 50%, ${currentBanner.background_color}99 100%)` : undefined
     }}>
         {/* Background Image */}
         {currentBanner.image_url && <div className="absolute inset-0">
-            <img src={currentBanner.image_url} alt="" className="w-full h-full object-cover" />
+            <img src={currentBanner.image_url} alt="" className="w-full h-full object-cover scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/40" />
             {((currentBanner as any).overlay_opacity ?? 0.2) > 0 && <div className="absolute inset-0" style={{
-          backgroundColor: 'black',
-          opacity: (currentBanner as any).overlay_opacity ?? 0.2
+          background: `linear-gradient(135deg, rgba(0,0,0,${(currentBanner as any).overlay_opacity ?? 0.2}) 0%, rgba(0,0,0,${((currentBanner as any).overlay_opacity ?? 0.2) * 0.7}) 100%)`
         }} />}
           </div>}
 
+        {/* Decorative Elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
+        </div>
+
         {/* Content */}
-        <div className="relative z-10 container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
+        <div className="relative z-10 container mx-auto px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center min-h-[500px]">
               {/* Left side - Text content */}
               <div 
-                className="space-y-6" 
+                className="space-y-8 text-left" 
                 style={{
                   color: currentBanner.text_color,
-                  textShadow: (currentBanner as any).text_shadow !== 'none' ? (currentBanner as any).text_shadow : undefined,
-                  boxShadow: (currentBanner as any).content_shadow !== 'none' ? (currentBanner as any).content_shadow : undefined,
-                  padding: (currentBanner as any).content_shadow !== 'none' ? '1.5rem' : undefined,
-                  borderRadius: (currentBanner as any).content_shadow !== 'none' ? '0.75rem' : undefined
+                  textShadow: (currentBanner as any).text_shadow !== 'none' ? (currentBanner as any).text_shadow : '0 2px 8px rgba(0,0,0,0.3)',
                 }}
               >
+                {/* Premium Badge */}
+                <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+                  <span className="text-sm font-medium uppercase tracking-wider">Premium Collection</span>
+                </div>
                 <h1 
-                  className="text-4xl md:text-6xl font-bold leading-tight"
+                  className="text-5xl md:text-7xl xl:text-8xl font-black leading-none tracking-tight"
                   style={{ 
-                    fontFamily: (currentBanner as any).title_font_family || 'Inter',
-                    fontWeight: (currentBanner as any).title_font_weight || '700',
-                    textShadow: (currentBanner as any).title_shadow !== 'none' ? (currentBanner as any).title_shadow : undefined
+                    fontFamily: (currentBanner as any).title_font_family || 'Playfair Display',
+                    fontWeight: (currentBanner as any).title_font_weight || '900',
+                    textShadow: (currentBanner as any).title_shadow !== 'none' ? (currentBanner as any).title_shadow : '0 4px 12px rgba(0,0,0,0.4)',
+                    background: 'linear-gradient(135deg, currentColor 0%, rgba(255,255,255,0.8) 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
                   }}
                 >
                   {currentBanner.title}
@@ -98,10 +109,11 @@ export const PromotionalBanners = () => {
                 
                 {currentBanner.subtitle && (
                   <h2 
-                    className="text-xl md:text-3xl font-medium opacity-90"
+                    className="text-2xl md:text-4xl font-light opacity-95 tracking-wide"
                     style={{ 
                       fontFamily: (currentBanner as any).subtitle_font_family || 'Inter',
-                      fontWeight: (currentBanner as any).subtitle_font_weight || '500'
+                      fontWeight: (currentBanner as any).subtitle_font_weight || '300',
+                      textShadow: '0 2px 6px rgba(0,0,0,0.3)'
                     }}
                   >
                     {currentBanner.subtitle}
@@ -110,10 +122,11 @@ export const PromotionalBanners = () => {
                 
                 {currentBanner.description && (
                   <p 
-                    className="text-lg md:text-xl opacity-80 max-w-md text-white/90"
+                    className="text-xl md:text-2xl opacity-90 max-w-lg leading-relaxed"
                     style={{ 
                       fontFamily: (currentBanner as any).description_font_family || 'Inter',
-                      fontWeight: (currentBanner as any).description_font_weight || '400'
+                      fontWeight: (currentBanner as any).description_font_weight || '400',
+                      textShadow: '0 1px 4px rgba(0,0,0,0.3)'
                     }}
                   >
                     {currentBanner.description}
@@ -121,26 +134,43 @@ export const PromotionalBanners = () => {
                 )}
                 
                 {currentBanner.button_text && currentBanner.button_url && (
-                  <Link to={currentBanner.button_url}>
-                    <Button variant="glass" size="lg" className="mt-6 px-8 py-4 text-lg bg-white text-foreground hover:bg-white/90 shadow-premium hover-lift">
-                      {currentBanner.button_text}
-                    </Button>
-                  </Link>
+                  <div className="pt-4">
+                    <Link to={currentBanner.button_url}>
+                      <Button 
+                        size="lg" 
+                        className="px-12 py-6 text-lg font-semibold bg-white text-slate-900 hover:bg-white/95 shadow-2xl hover:shadow-white/20 transition-all duration-300 hover:scale-105 hover:-translate-y-1 border-0 rounded-full"
+                      >
+                        {currentBanner.button_text}
+                      </Button>
+                    </Link>
+                  </div>
                 )}
               </div>
 
               {/* Right side - Visual element */}
-              <div className="relative">
-                <div className="text-6xl md:text-8xl font-black opacity-20 transform rotate-12">
-                  SALE
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-4xl md:text-6xl font-black" style={{
-                  color: currentBanner.text_color
-                }}>
-                    {currentBanner.title.split(' ').map((word, index) => <div key={index} className="transform -rotate-6 hover:rotate-0 transition-transform duration-300">
-                        {word}
-                      </div>)}
+              <div className="relative hidden md:flex items-center justify-center">
+                <div className="relative">
+                  {/* Background geometric shapes */}
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="w-80 h-80 border-4 border-white rounded-full absolute -top-10 -right-10 animate-pulse" />
+                    <div className="w-60 h-60 border-2 border-white rounded-full absolute top-20 right-20" />
+                  </div>
+                  
+                  {/* Floating percentage */}
+                  <div className="relative z-10 text-center">
+                    <div className="text-8xl md:text-9xl font-black leading-none" style={{
+                      color: currentBanner.text_color,
+                      textShadow: '0 6px 20px rgba(0,0,0,0.5)',
+                      fontFamily: 'Playfair Display'
+                    }}>
+                      70%
+                    </div>
+                    <div className="text-2xl font-light tracking-widest uppercase mt-2" style={{
+                      color: currentBanner.text_color,
+                      textShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                    }}>
+                      OFF
+                    </div>
                   </div>
                 </div>
               </div>
@@ -150,21 +180,21 @@ export const PromotionalBanners = () => {
 
         {/* Navigation arrows */}
         {banners.length > 1 && <>
-            <button onClick={prevSlide} className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors duration-200" style={{
+            <button onClick={prevSlide} className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-4 transition-all duration-300 hover:scale-110 border border-white/20" style={{
           color: currentBanner.text_color
         }}>
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-8 w-8" />
             </button>
-            <button onClick={nextSlide} className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors duration-200" style={{
+            <button onClick={nextSlide} className="absolute right-6 top-1/2 transform -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-4 transition-all duration-300 hover:scale-110 border border-white/20" style={{
           color: currentBanner.text_color
         }}>
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-8 w-8" />
             </button>
           </>}
 
         {/* Slide indicators */}
-        {banners.length > 1 && <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            {banners.map((_, index) => <button key={index} onClick={() => setCurrentIndex(index)} className={`w-3 h-3 rounded-full transition-colors duration-200 ${index === currentIndex ? 'bg-white' : 'bg-white/50'}`} />)}
+        {banners.length > 1 && <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3">
+            {banners.map((_, index) => <button key={index} onClick={() => setCurrentIndex(index)} className={`w-4 h-4 rounded-full transition-all duration-300 border-2 border-white/30 ${index === currentIndex ? 'bg-white scale-110' : 'bg-white/30 hover:bg-white/50'}`} />)}
           </div>}
       </div>
 
