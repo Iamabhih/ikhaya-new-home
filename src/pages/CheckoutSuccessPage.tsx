@@ -154,7 +154,6 @@ const CheckoutSuccessPage = () => {
                 <div>
                   <h4 className="font-medium mb-2">Shipping Information</h4>
                   <div className="text-sm text-muted-foreground">
-                    <p>{orderDetails.customer_name}</p>
                     <p>{orderDetails.shipping_address?.address}</p>
                     <p>{orderDetails.shipping_address?.city}, {orderDetails.shipping_address?.province}</p>
                     <p>{orderDetails.shipping_address?.postal_code}</p>
@@ -172,7 +171,7 @@ const CheckoutSuccessPage = () => {
                         <p className="font-medium">{item.products?.name || item.product_name}</p>
                         <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
                       </div>
-                      <p className="font-medium">R {(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-medium">R {(item.unit_price * item.quantity).toFixed(2)}</p>
                     </div>
                   ))}
                 </div>

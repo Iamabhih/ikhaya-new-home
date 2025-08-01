@@ -55,8 +55,9 @@ serve(async (req) => {
         .update({
           status: 'confirmed',
           payment_status: 'paid',
-          payment_method: 'payfast',
+          payment_gateway: 'payfast',
           payment_reference: payfastData.pf_payment_id,
+          payment_gateway_response: payfastData,
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId)
@@ -87,7 +88,8 @@ serve(async (req) => {
         .update({
           status: 'cancelled',
           payment_status: 'failed',
-          payment_method: 'payfast',
+          payment_gateway: 'payfast',
+          payment_gateway_response: payfastData,
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId)
