@@ -146,154 +146,189 @@ Deno.serve(async (req) => {
 
     await logMessage('info', `Scan complete! Found ${allDriveFiles.length} total images across ${pageCount} pages`)
 
-    // Enhanced helper function to extract product codes from filename
-    function extractProductCodes(filename: string): string[] {
-      if (!filename || typeof filename !== 'string') return []
-      
-      try {
-        const codes: string[] = []
-        const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
-        
-        // Enhanced extraction - changed from 4,6 to 3,6 to catch shorter codes like 206
-        const numericCodes = nameWithoutExt.match(/\b\d{3,6}\b/g)
-        if (numericCodes) {
-          codes.push(...numericCodes)
-        }
-        
-        // Enhanced alphanumeric extraction - changed from 4,8 to 3,8
-        const alphanumericCodes = nameWithoutExt.match(/\b[A-Z0-9]{3,8}\b/gi)
-        if (alphanumericCodes) {
-          codes.push(...alphanumericCodes.map(code => code.toLowerCase()))
-        }
-        
-        // Split by common delimiters and check each part
-        const parts = nameWithoutExt.split(/[-_\s\.]+/)
-        for (const part of parts) {
-          if (!part) continue
-          const cleanPart = part.trim()
-          if (/^\d{3,6}$/.test(cleanPart) || /^[A-Z0-9]{3,8}$/i.test(cleanPart)) {
-            codes.push(cleanPart.toLowerCase())
-          }
-        }
-        
-        // Special handling for short codes - add zero-padded versions
-        const originalCodes = [...codes]
-        for (const code of originalCodes) {
-          if (/^\d{3}$/.test(code)) {
-            codes.push('0' + code) // Add zero-padded version
-          }
-        }
-        
-        // Remove duplicates
-        return [...new Set(codes)]
-      } catch (error) {
-        console.error('Error extracting product codes from filename:', filename, error)
-        return []
+    // Enhanced ImageSKUMatcher-inspired matching logic
+    class ImageSKUMatcher {
+      constructor() {
+        this.imageCache = new Map()
+        this.stats = { processed: 0, matched: 0, failed: 0 }
       }
-    }
 
-    // Enhanced image mapping function
-    function findBestMatch(productSku: string, driveFiles: DriveFile[]): DriveFile | null {
-      if (!productSku || !driveFiles || driveFiles.length === 0) return null
-      
-      const normalizedSku = productSku.toLowerCase().trim()
-      
-      // Try exact filename matches first
-      for (const file of driveFiles) {
-        try {
-          if (!file || !file.mimeType?.includes('image/') || !file.name) continue
-          
-          const fileName = file.name.toLowerCase()
-          // Direct filename matches
-          if (fileName === `${normalizedSku}.png` || 
-              fileName === `${normalizedSku}.jpg` || 
-              fileName === `${normalizedSku}.jpeg`) {
-            return file
+      buildImageMapping(driveFiles) {
+        this.imageCache.clear()
+        this.stats.processed = driveFiles?.length || 0
+        
+        if (!driveFiles || driveFiles.length === 0) return
+        
+        for (const file of driveFiles) {
+          try {
+            if (!file?.name || !file?.mimeType?.includes('image/')) continue
+            
+            const codes = this.extractProductCodes(file.name)
+            for (const code of codes) {
+              if (!this.imageCache.has(code)) {
+                this.imageCache.set(code, file)
+                this.stats.matched++
+              }
+            }
+          } catch (error) {
+            this.stats.failed++
+            continue
           }
-        } catch (error) {
-          continue // Skip problematic files
         }
       }
-      
-      // Try enhanced code extraction matching
-      for (const file of driveFiles) {
+
+      extractProductCodes(filename) {
+        if (!filename || typeof filename !== 'string') return []
+        
         try {
-          if (!file || !file.mimeType?.includes('image/') || !file.name) continue
+          const codes = new Set()
+          const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
+          const cleanName = nameWithoutExt.toLowerCase()
           
-          const extractedCodes = extractProductCodes(file.name)
-          
-          // Check if product SKU matches any extracted code
-          if (extractedCodes && extractedCodes.includes(normalizedSku)) {
-            return file
+          // Extract numeric codes (3-6 digits)
+          const numericMatches = cleanName.match(/\b\d{3,6}\b/g)
+          if (numericMatches) {
+            numericMatches.forEach(match => {
+              codes.add(match)
+              // Auto-pad short codes
+              if (match.length === 3) {
+                codes.add('0' + match)
+              }
+            })
           }
           
-          // For 3-digit SKUs, also try zero-padded version
-          if (/^\d{3}$/.test(normalizedSku) && extractedCodes && extractedCodes.includes('0' + normalizedSku)) {
-            return file
+          // Extract alphanumeric codes (3-8 characters)
+          const alphanumericMatches = cleanName.match(/\b[a-z0-9]{3,8}\b/g)
+          if (alphanumericMatches) {
+            alphanumericMatches.forEach(match => codes.add(match))
           }
           
-          // For 4-digit SKUs starting with 0, try without leading zero
-          if (/^0\d{3}$/.test(normalizedSku)) {
-            const withoutZero = normalizedSku.substring(1)
-            if (extractedCodes && extractedCodes.includes(withoutZero)) {
-              return file
+          // Handle separators and split by common delimiters
+          const parts = cleanName.split(/[-_\s\.]+/).filter(part => part.length > 0)
+          for (const part of parts) {
+            if (/^\d{3,6}$/.test(part) || /^[a-z0-9]{3,8}$/.test(part)) {
+              codes.add(part)
+              if (/^\d{3}$/.test(part)) {
+                codes.add('0' + part)
+              }
             }
           }
+          
+          // Try common prefixes
+          const prefixes = ['product', 'item', 'sku', 'code']
+          for (const prefix of prefixes) {
+            const regex = new RegExp(`${prefix}[-_\\s]*([a-z0-9]{3,8})`, 'g')
+            let match
+            while ((match = regex.exec(cleanName)) !== null) {
+              codes.add(match[1])
+              if (/^\d{3}$/.test(match[1])) {
+                codes.add('0' + match[1])
+              }
+            }
+          }
+          
+          return Array.from(codes)
         } catch (error) {
-          continue // Skip problematic files
+          console.error('Error extracting codes from:', filename, error)
+          return []
         }
       }
-      
-      return null
+
+      getProductImage(sku) {
+        if (!sku) return { found: false, image: null }
+        
+        const normalizedSku = sku.toLowerCase().trim()
+        
+        // Direct match
+        if (this.imageCache.has(normalizedSku)) {
+          return { found: true, image: this.imageCache.get(normalizedSku) }
+        }
+        
+        // Try with zero padding for 3-digit SKUs
+        if (/^\d{3}$/.test(normalizedSku)) {
+          const paddedSku = '0' + normalizedSku
+          if (this.imageCache.has(paddedSku)) {
+            return { found: true, image: this.imageCache.get(paddedSku) }
+          }
+        }
+        
+        // Try without leading zero for 4-digit SKUs
+        if (/^0\d{3}$/.test(normalizedSku)) {
+          const unpaddedSku = normalizedSku.substring(1)
+          if (this.imageCache.has(unpaddedSku)) {
+            return { found: true, image: this.imageCache.get(unpaddedSku) }
+          }
+        }
+        
+        return { found: false, image: null }
+      }
+
+      getStats() {
+        return { ...this.stats, cacheSize: this.imageCache.size }
+      }
     }
 
-    // Step 3: Match products to images using enhanced matching (process in chunks for memory efficiency)
+    // Initialize matcher
+    const matcher = new ImageSKUMatcher()
+
+    // Step 3: Build image mapping using enhanced matcher
     progress.status = 'processing'
+    progress.currentStep = 'Building intelligent image mapping cache'
+    await sendProgressUpdate(progress)
+
+    await logMessage('info', `Building image cache from ${allDriveFiles.length} images`)
+    matcher.buildImageMapping(allDriveFiles)
+    
+    const cacheStats = matcher.getStats()
+    await logMessage('info', `Image cache built: ${cacheStats.cacheSize} unique mappings from ${cacheStats.processed} images`)
+
+    // Step 4: Match products to images efficiently
     progress.total = products?.length || 0
-    progress.currentStep = 'Matching products to images (processing in chunks for large datasets)'
+    progress.currentStep = 'Matching products to images using intelligent cache'
     await sendProgressUpdate(progress)
 
     const matchedProducts = []
-    const chunkSize = 1000 // Process products in chunks to avoid memory issues
     
     if (!products || products.length === 0) {
       await logMessage('warn', 'No products found to process')
       progress.total = 0
       await sendProgressUpdate(progress)
     } else {
-      for (let i = 0; i < products.length; i += chunkSize) {
-        const productChunk = products.slice(i, Math.min(i + chunkSize, products.length))
-        await logMessage('info', `Processing product chunk ${Math.floor(i/chunkSize) + 1}/${Math.ceil(products.length/chunkSize)}`)
-        
-        for (const product of productChunk) {
-          try {
-            if (!product || !product.sku) continue
+      for (const product of products) {
+        try {
+          if (!product || !product.sku) continue
 
-            const matchingFile = findBestMatch(product.sku, allDriveFiles || [])
-            if (matchingFile) {
-              matchedProducts.push({ product, imageFile: matchingFile })
-            }
-          } catch (error) {
-            await logMessage('error', `Error processing product ${product?.sku || 'unknown'}: ${error.message}`)
+          const result = matcher.getProductImage(product.sku)
+          if (result.found) {
+            matchedProducts.push({ product, imageFile: result.image })
           }
+        } catch (error) {
+          await logMessage('error', `Error matching product ${product?.sku || 'unknown'}: ${error.message}`)
         }
-        
-        // Update progress for chunk completion
-        await sendProgressUpdate({
-          currentStep: `Matched ${matchedProducts.length} products so far... Processing chunk ${Math.floor(i/chunkSize) + 1}/${Math.ceil(products.length/chunkSize)}`
-        })
       }
     }
 
     progress.total = matchedProducts.length
-    await logMessage('info', `Found ${matchedProducts.length} products with matching images out of ${allDriveFiles.length} total images`)
+    await logMessage('info', `Intelligent matching complete: ${matchedProducts.length} products matched from ${allDriveFiles.length} images`)
     await sendProgressUpdate(progress)
 
-    // Step 4: Process each matched product with enhanced error handling and rate limiting
-    const batchSize = 2 // Further reduced for large datasets
-    const maxConcurrentBatches = 1 // Process one batch at a time for stability
+    // Step 5: Process matched products with enhanced error handling
+    const batchSize = 5 // Increased batch size for better efficiency  
     
     await logMessage('info', `Starting migration of ${matchedProducts.length} matched products in batches of ${batchSize}`)
+    
+    if (matchedProducts.length === 0) {
+      await logMessage('warn', 'No products to migrate - check SKU matching logic')
+      progress.status = 'completed'
+      progress.currentStep = 'No products matched - migration completed'
+      await sendProgressUpdate(progress)
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Migration completed - no products matched',
+        sessionId,
+        results: { processed: 0, successful: 0, failed: 0, errors: [] }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
+    }
     
     for (let i = 0; i < matchedProducts.length; i += batchSize) {
       const batch = matchedProducts.slice(i, Math.min(i + batchSize, matchedProducts.length))
