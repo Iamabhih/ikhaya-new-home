@@ -140,22 +140,35 @@ serve(async (req) => {
 })
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Create parameter string - matching PayFast PHP implementation
-  const params = Object.keys(data)
+  // Create parameter string - exactly matching PayFast PHP implementation
+  let pfOutput = ''
+  
+  // Build parameter string (PayFast expects sorted keys)
+  const sortedKeys = Object.keys(data)
     .filter(key => key !== 'signature' && data[key] !== '')
     .sort()
-    .map(key => `${key}=${encodeURIComponent(data[key])}`)
-    .join('&')
-
-  // Add passphrase if provided
-  const stringToHash = passphrase ? `${params}&passphrase=${encodeURIComponent(passphrase)}` : params
   
-  console.log('String to hash:', stringToHash)
+  for (const key of sortedKeys) {
+    const val = data[key]
+    if (val !== '') {
+      pfOutput += `${key}=${encodeURIComponent(val.trim())}&`
+    }
+  }
+  
+  // Remove last ampersand
+  let getString = pfOutput.slice(0, -1)
+  
+  // Add passphrase if provided
+  if (passphrase !== null && passphrase !== undefined) {
+    getString += `&passphrase=${encodeURIComponent(passphrase.trim())}`
+  }
+  
+  console.log('String to hash:', getString)
 
   try {
     // Generate proper MD5 hash like PayFast expects
     const encoder = new TextEncoder()
-    const data_encoded = encoder.encode(stringToHash)
+    const data_encoded = encoder.encode(getString)
     const hashBuffer = await crypto.subtle.digest("MD5", data_encoded)
     
     // Convert to hex string
