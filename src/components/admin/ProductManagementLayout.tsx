@@ -31,6 +31,7 @@ import { AdvancedProductSearch } from "./AdvancedProductSearch";
 import { ProductQuickForm } from "./ProductQuickForm";
 import { ProductDetailView } from "./ProductDetailView";
 import { ProductBulkActions } from "./ProductBulkActions";
+import { UnifiedLoadingSkeleton } from "@/components/ui/unified-loading-skeleton";
 
 interface Product {
   id: string;
@@ -57,6 +58,7 @@ interface ProductManagementLayoutProps {
   onSearch: (filters: any) => void;
   categories: Array<{ id: string; name: string }>;
   brands: Array<{ id: string; name: string }>;
+  refreshTrigger?: number;
 }
 
 export const ProductManagementLayout = ({
@@ -69,6 +71,7 @@ export const ProductManagementLayout = ({
   onSearch,
   categories,
   brands,
+  refreshTrigger,
 }: ProductManagementLayoutProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -334,21 +337,10 @@ export const ProductManagementLayout = ({
 
       {/* Product List */}
       {isLoading ? (
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4" : "space-y-3"}>
-          {Array.from({ length: 12 }).map((_, i) => (
-            <Card key={i} className="animate-pulse h-48">
-              <CardContent className="p-4 space-y-3">
-                <div className="h-4 bg-muted rounded"></div>
-                <div className="h-3 bg-muted rounded w-3/4"></div>
-                <div className="h-6 bg-muted rounded w-1/2"></div>
-                <div className="flex gap-2 mt-auto">
-                  <div className="h-8 bg-muted rounded flex-1"></div>
-                  <div className="h-8 bg-muted rounded flex-1"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <UnifiedLoadingSkeleton 
+          type={viewMode === 'grid' ? "products-grid" : "products-list"} 
+          count={viewMode === 'grid' ? 12 : 6}
+        />
       ) : products.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">

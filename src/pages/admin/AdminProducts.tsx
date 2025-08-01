@@ -248,6 +248,7 @@ const AdminProducts = () => {
                     onSearch={handleSearchFilters}
                     categories={categories}
                     brands={brands}
+                    refreshTrigger={refreshTrigger}
                   />
                 </ErrorBoundary>
               </TabsContent>
