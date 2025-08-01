@@ -177,41 +177,41 @@ function createImageCache() {
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
-  const sessionId = crypto.randomUUID()
-  let supabaseClient: any
+  const sessionId = crypto.randomUUID();
+  let supabaseClient: any;
 
   const sendProgressUpdate = async (progress: Partial<ScanProgress>) => {
     try {
       if (supabaseClient) {
-        const channel = supabaseClient.channel(`storage-scan-${sessionId}`)
+        const channel = supabaseClient.channel(`storage-scan-${sessionId}`);
         await channel.send({
           type: 'broadcast',
           event: 'scan_progress',
           payload: { ...progress, sessionId }
-        })
+        });
       }
     } catch (error) {
-      console.error('Failed to send progress update:', error)
+      console.error('Failed to send progress update:', error);
     }
-  }
+  };
 
   const logMessage = async (level: 'info' | 'warn' | 'error', message: string, data?: any) => {
-    const timestamp = new Date().toISOString()
-    console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`, data || '')
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`, data || '');
     
     // Send both progress update and separate log entry
     await sendProgressUpdate({
       currentStep: message,
       errors: level === 'error' ? [message] : undefined
-    })
+    });
 
     // Send dedicated log message through realtime
     try {
       if (supabaseClient) {
-        const channel = supabaseClient.channel(`storage-scan-${sessionId}`)
+        const channel = supabaseClient.channel(`storage-scan-${sessionId}`);
         await channel.send({
           type: 'broadcast',
           event: 'scan_log',
@@ -222,21 +222,21 @@ Deno.serve(async (req) => {
             message: message,
             data: data
           }
-        })
+        });
       }
     } catch (error) {
-      console.error('Failed to send log message:', error)
+      console.error('Failed to send log message:', error);
     }
-  }
+  };
 
   try {
     supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    const startTime = new Date().toISOString()
-    await logMessage('info', 'Starting storage bucket image scanning and product mapping')
+    const startTime = new Date().toISOString();
+    await logMessage('info', 'Starting storage bucket image scanning and product mapping');
 
     // Initialize progress
     const progress: ScanProgress = {
@@ -254,12 +254,12 @@ Deno.serve(async (req) => {
       uuidMatches: 0,
       skuMatches: 0,
       folderStructures: {}
-    }
+    };
 
-    await sendProgressUpdate(progress)
+    await sendProgressUpdate(progress);
     
-    // Start background processing immediately (no setTimeout needed)
-    await processStorageScan()
+    // Start processing immediately
+    await processStorageScan();
     
     async function processStorageScan() {
 
@@ -627,58 +627,37 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Completion
-    progress.status = 'completed'
-    progress.currentStep = 'Storage scan and mapping completed'
-    progress.currentFile = undefined
-    await sendProgressUpdate(progress)
+      // Completion
+      progress.status = 'completed';
+      progress.currentStep = 'Storage scan and mapping completed';
+      progress.currentFile = undefined;
+      await sendProgressUpdate(progress);
 
-    // Final report
-    await logMessage('info', `🎉 Storage scan completed!`)
-    await logMessage('info', `📈 Final Results:`)
-    await logMessage('info', `   • Total products: ${totalProducts}`)
-    await logMessage('info', `   • Images found: ${foundCount}`)
-    await logMessage('info', `   • Images not found: ${notFoundCount}`)
-    await logMessage('info', `   • Success rate: ${successRate}%`)
-    await logMessage('info', `   • Database records updated: ${progress.successful}`)
-    await logMessage('info', `   • Failed updates: ${progress.failed}`)
+      // Final report
+      await logMessage('info', `🎉 Storage scan completed!`);
+      await logMessage('info', `📈 Final Results:`);
+      await logMessage('info', `   • Total products: ${products.length}`);
+      await logMessage('info', `   • Images found: ${matches.length}`);
+      await logMessage('info', `   • Images not found: ${missingSkus.length}`);
+      await logMessage('info', `   • Success rate: ${Math.round((matches.length / products.length) * 100)}%`);
+      await logMessage('info', `   • Database records updated: ${progress.successful}`);
+      await logMessage('info', `   • Failed updates: ${progress.failed}`);
+    }
 
+    // Return success response with session ID
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Storage image scan completed',
-        sessionId,
-        results: {
-          totalProducts,
-          foundImages: progress.foundImages,
-          matchedProducts: progress.matchedProducts,
-          processed: progress.processed,
-          successful: progress.successful,
-          failed: progress.failed,
-          errors: progress.errors,
-          foundCount,
-          notFoundCount,
-          successRate,
-          uuidMatches: progress.uuidMatches,
-          skuMatches: progress.skuMatches,
-          folderStructures: progress.folderStructures,
-          missingSkusList: missingSkus.slice(0, 50)
-        }
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    )
+      JSON.stringify({ success: true, sessionId }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error('Storage scan error:', error)
+    console.error('Storage scan error:', error);
     
     await sendProgressUpdate({
       status: 'error',
       currentStep: `Storage scan failed: ${error.message}`,
       errors: [error.message]
-    })
+    });
 
     return new Response(
       JSON.stringify({
@@ -689,14 +668,7 @@ Deno.serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
-        }
-      )
-    } // End of processStorageScan function
-    
-    // Return success response with session ID
-    return new Response(
-      JSON.stringify({ success: true, sessionId }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      }
+    );
   }
-})
+});
