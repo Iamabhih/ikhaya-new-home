@@ -76,7 +76,7 @@ export const HomepageSettings = () => {
   });
 
   // Fetch all products for selection
-  const { data: allProducts = [] } = useQuery({
+  const { data: allProducts = [], isLoading: productsLoading } = useQuery({
     queryKey: ['all-products-with-images'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -92,7 +92,10 @@ export const HomepageSettings = () => {
         .order('name');
       
       if (error) throw error;
-      return data || [];
+      return (data || []).map(product => ({
+        ...product,
+        product_images: product.product_images || [] // Ensure it's always an array
+      }));
     }
   });
 
@@ -303,30 +306,41 @@ export const HomepageSettings = () => {
                   role="combobox"
                   aria-expanded={productSelectOpen}
                   className="flex-1 justify-between"
+                  disabled={productsLoading}
                 >
-                  {selectedProductId
-                    ? allProducts.find((product: any) => product.id === selectedProductId)?.name
-                    : "Select a product to add"}
+                  {productsLoading ? (
+                    "Loading products..."
+                  ) : selectedProductId ? (
+                    allProducts.find((product: any) => product.id === selectedProductId)?.name || "Product not found"
+                  ) : (
+                    "Select a product to add"
+                  )}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Search products..." />
-                  <CommandEmpty>No product found.</CommandEmpty>
+                  <CommandEmpty>
+                    {productsLoading ? "Loading..." : "No product found."}
+                  </CommandEmpty>
                   <CommandGroup className="max-h-64 overflow-auto">
-                    {allProducts
+                    {!productsLoading && Array.isArray(allProducts) && allProducts
                       .filter((prod: any) => !featuredProducts.some(fp => fp.products?.id === prod.id))
                       .map((product: any) => {
-                        const hasImages = product.product_images && product.product_images.length > 0;
-                        const primaryImage = product.product_images?.find((img: any) => img.is_primary) || product.product_images?.[0];
+                        if (!product || !product.id) return null;
+                        
+                        const hasImages = Array.isArray(product.product_images) && product.product_images.length > 0;
+                        const primaryImage = hasImages ? 
+                          (product.product_images.find((img: any) => img?.is_primary) || product.product_images[0]) : 
+                          null;
                         
                         return (
                           <CommandItem
-                            key={product.id}
-                            value={product.id}
-                            onSelect={(currentValue) => {
-                              setSelectedProductId(currentValue === selectedProductId ? "" : currentValue);
+                            key={`product-${product.id}`}
+                            value={`${product.name}-${product.id}`}
+                            onSelect={() => {
+                              setSelectedProductId(selectedProductId === product.id ? "" : product.id);
                               setProductSelectOpen(false);
                             }}
                             className="flex items-center gap-3 py-3"
@@ -343,8 +357,11 @@ export const HomepageSettings = () => {
                               {hasImages && primaryImage?.image_url ? (
                                 <img 
                                   src={primaryImage.image_url} 
-                                  alt={product.name}
+                                  alt={product.name || "Product"}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
                                 />
                               ) : (
                                 <ImageOff className="h-4 w-4 text-muted-foreground" />
@@ -354,13 +371,13 @@ export const HomepageSettings = () => {
                             {/* Product details */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium truncate">{product.name}</span>
+                                <span className="font-medium truncate">{product.name || "Unnamed Product"}</span>
                                 {hasImages && (
                                   <Image className="h-4 w-4 text-green-500 flex-shrink-0" />
                                 )}
                               </div>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span>R{product.price}</span>
+                                <span>R{product.price || "0"}</span>
                                 {product.sku && (
                                   <>
                                     <span>•</span>
