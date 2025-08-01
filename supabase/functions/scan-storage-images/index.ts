@@ -241,63 +241,111 @@ Deno.serve(async (req) => {
     progress.currentStep = 'Scanning storage bucket for images'
     await sendProgressUpdate(progress)
 
-    // Helper function to recursively scan storage directories
+    // Helper function to recursively scan storage directories with better error handling
     async function scanStorageDirectory(prefix: string = ''): Promise<StorageFile[]> {
       const allFiles: StorageFile[] = []
       let hasMore = true
       let offset = 0
-      const limit = 100
+      const limit = 50 // Reduced limit for better memory management
+      
+      await logMessage('info', `📂 Scanning directory: "${prefix || 'root'}"`)
 
       while (hasMore) {
-        const { data: files, error } = await supabaseClient.storage
-          .from('product-images')
-          .list(prefix, {
-            limit,
-            offset,
-            sortBy: { column: 'name', order: 'asc' }
-          })
+        try {
+          const { data: files, error } = await supabaseClient.storage
+            .from('product-images')
+            .list(prefix, {
+              limit,
+              offset,
+              sortBy: { column: 'name', order: 'asc' }
+            })
 
-        if (error) {
-          throw new Error(`Failed to list storage files: ${error.message}`)
-        }
+          if (error) {
+            await logMessage('error', `Failed to list files in "${prefix}": ${error.message}`)
+            break
+          }
 
-        if (!files || files.length === 0) {
-          hasMore = false
-          break
-        }
+          if (!files || files.length === 0) {
+            hasMore = false
+            break
+          }
 
-        for (const file of files) {
-          if (file.name) {
+          await logMessage('info', `   Found ${files.length} items in "${prefix}" (offset: ${offset})`)
+
+          for (const file of files) {
+            if (!file.name) continue
+            
             const fullPath = prefix ? `${prefix}/${file.name}` : file.name
             
-            // If it's a directory, recursively scan it
-            if (!file.id && !file.metadata) {
-              // This is likely a folder
-              const subFiles = await scanStorageDirectory(fullPath)
-              allFiles.push(...subFiles)
-            } else if (file.metadata && isImageFile(file.name)) {
+            // Check if it's a directory (no metadata and no file extension)
+            const isDirectory = !file.id && !file.metadata && !file.name.includes('.')
+            
+            if (isDirectory) {
+              await logMessage('info', `   📁 Found subdirectory: ${fullPath}`)
+              try {
+                const subFiles = await scanStorageDirectory(fullPath)
+                allFiles.push(...subFiles)
+                await logMessage('info', `   ✅ Scanned ${subFiles.length} files from ${fullPath}`)
+              } catch (subError) {
+                await logMessage('warn', `   ⚠️ Failed to scan subdirectory ${fullPath}: ${subError.message}`)
+              }
+            } else if (isImageFile(file.name)) {
               // This is an image file
               allFiles.push({
-                ...file,
-                name: fullPath
+                id: file.id || crypto.randomUUID(),
+                name: fullPath,
+                updated_at: file.updated_at || new Date().toISOString(),
+                created_at: file.created_at || new Date().toISOString(),
+                last_accessed_at: file.last_accessed_at || new Date().toISOString(),
+                metadata: file.metadata || {}
               })
+              
+              // Log every 10th image to avoid spam
+              if (allFiles.length % 10 === 0) {
+                await logMessage('info', `   📸 Found ${allFiles.length} images so far...`)
+              }
             }
           }
-        }
 
-        offset += limit
-        if (files.length < limit) {
-          hasMore = false
+          offset += limit
+          if (files.length < limit) {
+            hasMore = false
+          }
+
+          // Add a small delay to prevent overwhelming the API
+          if (hasMore) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          }
+
+        } catch (error) {
+          await logMessage('error', `Error during scan at offset ${offset}: ${error.message}`)
+          break
         }
       }
 
       return allFiles
     }
 
-    // Get all image files from storage
-    const storageImages = await scanStorageDirectory()
+    // Get all image files from storage with timeout protection
+    await logMessage('info', '🔍 Starting comprehensive storage scan...')
+    
+    let storageImages: StorageFile[] = []
+    try {
+      // Set a timeout for the storage scan to prevent hanging
+      const scanPromise = scanStorageDirectory()
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Storage scan timeout after 5 minutes')), 5 * 60 * 1000)
+      )
+      
+      storageImages = await Promise.race([scanPromise, timeoutPromise])
+      
+    } catch (error) {
+      await logMessage('error', `Storage scan failed: ${error.message}`)
+      throw error
+    }
+    
     progress.foundImages = storageImages.length
-    await logMessage('info', `Found ${storageImages.length} images in storage bucket (including subdirectories)`)
+    await logMessage('info', `✅ Completed storage scan: Found ${storageImages.length} images in all directories`)
 
     // Initialize image cache
     const imageCache = createImageCache()
@@ -331,18 +379,29 @@ Deno.serve(async (req) => {
       productsByCategory.get(categoryName)!.push(product)
     }
     
-    // Process each category
+    // Process each category with better progress tracking
+    let categoryIndex = 0
+    const totalCategories = productsByCategory.size
+    
     for (const [categoryName, categoryProducts] of productsByCategory.entries()) {
-      await logMessage('info', `📁 Processing category: ${categoryName} (${categoryProducts.length} products)`)
+      categoryIndex++
+      await logMessage('info', `📁 Processing category ${categoryIndex}/${totalCategories}: ${categoryName} (${categoryProducts.length} products)`)
       
-      for (const product of categoryProducts) {
+      let categoryMatches = 0
+      for (let i = 0; i < categoryProducts.length; i++) {
+        const product = categoryProducts[i]
+        
         if (!product.sku) {
           progress.processed++
           continue
         }
 
-        progress.currentFile = `${categoryName}: ${product.sku}`
-        await sendProgressUpdate(progress)
+        progress.currentFile = `${categoryName}: ${product.sku} (${i + 1}/${categoryProducts.length})`
+        
+        // Update progress every 10 products to reduce noise
+        if (i % 10 === 0 || i === categoryProducts.length - 1) {
+          await sendProgressUpdate(progress)
+        }
 
         // Find image using matching
         const matchedImage = imageCache.findImageForSKU(product.sku)
@@ -354,19 +413,29 @@ Deno.serve(async (req) => {
             category: categoryName
           })
           progress.matchedProducts++
-          await logMessage('info', `✅ Found ${product.sku} in ${matchedImage.name}`)
+          categoryMatches++
+          
+          // Only log every 5th match to reduce log spam
+          if (categoryMatches % 5 === 0 || categoryMatches === 1) {
+            await logMessage('info', `✅ Found ${product.sku} in ${matchedImage.name}`)
+          }
         } else {
           missingSkus.push({
             sku: product.sku, 
             productName: product.name,
             category: categoryName
           })
-          await logMessage('warn', `❌ Not found: ${product.sku}`)
+          
+          // Log only first few missing SKUs per category to avoid spam
+          if (missingSkus.length <= 10) {
+            await logMessage('warn', `❌ Not found: ${product.sku}`)
+          }
         }
 
         progress.processed++
-        await sendProgressUpdate(progress)
       }
+      
+      await logMessage('info', `   ✅ Category "${categoryName}" complete: ${categoryMatches}/${categoryProducts.length} matched`)
     }
     
     // Statistics
@@ -380,66 +449,91 @@ Deno.serve(async (req) => {
     await logMessage('info', `   • Not found: ${notFoundCount}`)
     await logMessage('info', `   • Success rate: ${successRate}%`)
 
-    // Step 5: Process matches and update database
-    progress.currentStep = 'Updating product image records'
+    // Step 5: Process matches and update database in batches
+    progress.currentStep = 'Updating product image records in database'
     progress.total = matches.length
     progress.processed = 0
     await sendProgressUpdate(progress)
 
-    for (const { product, image } of matches) {
-      try {
-        progress.currentFile = `Updating ${product.sku}`
-        await sendProgressUpdate(progress)
+    const batchSize = 20 // Process in smaller batches to avoid timeouts
+    for (let i = 0; i < matches.length; i += batchSize) {
+      const batch = matches.slice(i, Math.min(i + batchSize, matches.length))
+      
+      await logMessage('info', `📝 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(matches.length/batchSize)} (${batch.length} items)`)
+      
+      for (const { product, image } of batch) {
+        try {
+          progress.currentFile = `Updating ${product.sku}`
+          
+          // Update progress every 5 items to reduce noise
+          if (progress.processed % 5 === 0) {
+            await sendProgressUpdate(progress)
+          }
 
-        // Get existing images for this product
-        const { data: existingImages } = await supabaseClient
-          .from('product_images')
-          .select('*')
-          .eq('product_id', product.id)
+          // Get existing images for this product
+          const { data: existingImages } = await supabaseClient
+            .from('product_images')
+            .select('image_url, is_primary')
+            .eq('product_id', product.id)
 
-        // Get public URL for the storage file
-        const { data: urlData } = supabaseClient.storage
-          .from('product-images')
-          .getPublicUrl(image.name)
+          // Get public URL for the storage file
+          const { data: urlData } = supabaseClient.storage
+            .from('product-images')
+            .getPublicUrl(image.name)
 
-        // Skip if this URL already exists for this product
-        const existingUrls = new Set(existingImages?.map(img => img.image_url) || [])
-        if (existingUrls.has(urlData.publicUrl)) {
-          progress.processed++
-          continue
-        }
+          if (!urlData?.publicUrl) {
+            await logMessage('warn', `Failed to generate public URL for ${product.sku}`)
+            progress.failed++
+            continue
+          }
 
-        // Determine if this should be the primary image
-        const isPrimary = !existingImages?.some(img => img.is_primary)
+          // Skip if this URL already exists for this product
+          const existingUrls = new Set(existingImages?.map(img => img.image_url) || [])
+          if (existingUrls.has(urlData.publicUrl)) {
+            progress.processed++
+            continue
+          }
 
-        // Insert new image record
-        const { error: insertError } = await supabaseClient
-          .from('product_images')
-          .insert({
-            product_id: product.id,
-            image_url: urlData.publicUrl,
-            alt_text: `${product.name} product image`,
-            is_primary: isPrimary,
-            sort_order: existingImages?.length || 0
-          })
+          // Determine if this should be the primary image
+          const isPrimary = !existingImages?.some(img => img.is_primary)
 
-        if (insertError) {
-          await logMessage('warn', `Failed to insert image record for ${product.sku}: ${insertError.message}`)
+          // Insert new image record
+          const { error: insertError } = await supabaseClient
+            .from('product_images')
+            .insert({
+              product_id: product.id,
+              image_url: urlData.publicUrl,
+              alt_text: `${product.name} product image`,
+              is_primary: isPrimary,
+              sort_order: existingImages?.length || 0
+            })
+
+          if (insertError) {
+            await logMessage('warn', `Failed to insert image record for ${product.sku}: ${insertError.message}`)
+            progress.failed++
+          } else {
+            progress.successful++
+            
+            // Log only every 10th success to reduce noise
+            if (progress.successful % 10 === 0 || progress.successful === 1) {
+              await logMessage('info', `✅ Updated image record for ${product.sku}`)
+            }
+          }
+
+        } catch (error) {
           progress.failed++
-        } else {
-          progress.successful++
-          await logMessage('info', `✅ Updated image record for ${product.sku}`)
+          const errorMsg = `❌ ${product.sku}: ${error.message}`
+          progress.errors.push(errorMsg)
+          await logMessage('error', errorMsg)
         }
 
-      } catch (error) {
-        progress.failed++
-        const errorMsg = `❌ ${product.sku}: ${error.message}`
-        progress.errors.push(errorMsg)
-        await logMessage('error', errorMsg)
+        progress.processed++
       }
-
-      progress.processed++
-      await sendProgressUpdate(progress)
+      
+      // Small delay between batches to prevent overwhelming the database
+      if (i + batchSize < matches.length) {
+        await new Promise(resolve => setTimeout(resolve, 200))
+      }
     }
 
     // Completion
