@@ -19,9 +19,23 @@ interface PayfastPaymentProps {
       amount: number;
     }>;
   };
+  formData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    province: string;
+  };
+  cartItems: any[];
+  cartTotal: number;
+  deliveryFee: number;
+  user: any | null;
 }
 
-export const PayfastPayment = ({ orderData }: PayfastPaymentProps) => {
+export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deliveryFee, user }: PayfastPaymentProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showManualRedirect, setShowManualRedirect] = useState(false);
   const [payfastUrl, setPayfastUrl] = useState<string>('');
@@ -32,6 +46,61 @@ export const PayfastPayment = ({ orderData }: PayfastPaymentProps) => {
     setShowManualRedirect(false);
     
     try {
+      // First create the order in the database
+      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      
+      const orderCreateData = {
+        user_id: user?.id || null,
+        email: formData.email,
+        order_number: orderNumber,
+        billing_address: {
+          address: formData.address,
+          city: formData.city,
+          province: formData.province,
+          postal_code: formData.postalCode
+        },
+        shipping_address: {
+          address: formData.address,
+          city: formData.city,
+          province: formData.province,
+          postal_code: formData.postalCode
+        },
+        subtotal: cartTotal,
+        shipping_amount: deliveryFee,
+        total_amount: cartTotal + deliveryFee,
+        status: 'pending' as const
+      };
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert(orderCreateData)
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Insert order items
+      const orderItems = cartItems.map(item => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.product.price,
+        total_price: item.product.price * item.quantity,
+        product_name: item.product.name
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // Now process payment with the real order ID
+      const actualOrderData = {
+        ...orderData,
+        orderId: order.id
+      };
+
       // Get current session for authentication
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -40,19 +109,15 @@ export const PayfastPayment = ({ orderData }: PayfastPaymentProps) => {
         throw new Error('Authentication required. Please sign in.');
       }
       
-      if (!session) {
-        throw new Error('You must be signed in to make a payment.');
-      }
-      
       console.log('🔄 Calling PayFast payment with order data:', {
-        ...orderData,
-        customerEmail: orderData.customerEmail.substring(0, 3) + '***'
+        ...actualOrderData,
+        customerEmail: actualOrderData.customerEmail.substring(0, 3) + '***'
       });
       
       const { data, error } = await supabase.functions.invoke('payfast-payment', {
-        body: orderData,
+        body: actualOrderData,
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${session?.access_token}`
         }
       });
 

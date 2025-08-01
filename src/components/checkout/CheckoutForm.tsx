@@ -38,63 +38,21 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
     setIsProcessing(true);
 
     try {
-      // Generate order number
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      // Validate form data but don't create order yet - only proceed to payment
+      if (!formData.email || !formData.firstName || !formData.lastName || 
+          !formData.address || !formData.city || !formData.province || !formData.postalCode) {
+        throw new Error("Please fill in all required fields");
+      }
 
-      // Create order in database  
-      const orderData = {
-        user_id: user?.id || null,
-        email: formData.email,
-        order_number: orderNumber,
-        billing_address: {
-          address: formData.address,
-          city: formData.city,
-          province: formData.province,
-          postal_code: formData.postalCode
-        },
-        shipping_address: {
-          address: formData.address,
-          city: formData.city,
-          province: formData.province,
-          postal_code: formData.postalCode
-        },
-        subtotal: cartTotal,
-        shipping_amount: deliveryFee,
-        total_amount: cartTotal + deliveryFee,
-        status: 'pending' as const
-      };
-
-      const { data: order, error } = await supabase
-        .from('orders')
-        .insert(orderData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Insert order items
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.product.price,
-        total_price: item.product.price * item.quantity,
-        product_name: item.product.name
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      setOrderId(order.id);
+      // Generate a temporary order ID for payment processing
+      const tempOrderId = `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      setOrderId(tempOrderId);
       setCurrentStep('payment');
-      toast.success("Order created! Please complete payment.");
+      toast.success("Billing details saved! Please complete payment.");
 
     } catch (error) {
-      console.error('Order creation error:', error);
-      toast.error("Failed to create order. Please try again.");
+      console.error('Form validation error:', error);
+      toast.error(error instanceof Error ? error.message : "Please fill in all required fields.");
     } finally {
       setIsProcessing(false);
     }
@@ -116,6 +74,11 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
             amount: item.product.price * item.quantity
           }))
         }}
+        formData={formData}
+        cartItems={items}
+        cartTotal={cartTotal}
+        deliveryFee={deliveryFee}
+        user={user}
       />
     );
   }

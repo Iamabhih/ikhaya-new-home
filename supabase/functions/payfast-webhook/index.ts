@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { createHash } from "https://deno.land/std@0.168.0/crypto/mod.ts"
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,7 +34,7 @@ serve(async (req) => {
     delete payfastData.signature
 
     const passphrase = Deno.env.get('PAYFAST_PASSPHRASE')
-    const calculatedSignature = generateSignature(payfastData, passphrase)
+    const calculatedSignature = await generateSignature(payfastData, passphrase)
 
     if (receivedSignature !== calculatedSignature) {
       console.error('Invalid PayFast signature')
@@ -103,23 +103,46 @@ serve(async (req) => {
   }
 })
 
-function generateSignature(data: Record<string, string>, passphrase?: string): string {
-  // Create parameter string
-  const params = Object.keys(data)
+async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
+  // Create parameter string - exactly matching PayFast PHP implementation
+  let pfOutput = ''
+  
+  // Build parameter string (PayFast expects sorted keys)
+  const sortedKeys = Object.keys(data)
     .filter(key => key !== 'signature' && data[key] !== '')
     .sort()
-    .map(key => `${key}=${encodeURIComponent(data[key])}`)
-    .join('&')
-
-  // Add passphrase if provided
-  const stringToHash = passphrase ? `${params}&passphrase=${encodeURIComponent(passphrase)}` : params
-
-  // Generate MD5 hash
-  const encoder = new TextEncoder()
-  const hashBuffer = createHash("md5").update(encoder.encode(stringToHash)).digest()
   
-  // Convert to hex string
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
+  for (const key of sortedKeys) {
+    const val = data[key]
+    if (val !== '') {
+      pfOutput += `${key}=${encodeURIComponent(val.trim())}&`
+    }
+  }
+  
+  // Remove last ampersand
+  let getString = pfOutput.slice(0, -1)
+  
+  // Add passphrase if provided
+  if (passphrase !== null && passphrase !== undefined) {
+    getString += `&passphrase=${encodeURIComponent(passphrase.trim())}`
+  }
+  
+  console.log('Webhook string to hash:', getString)
+
+  try {
+    // Use crypto.subtle for proper MD5 hash like PayFast expects
+    const encoder = new TextEncoder()
+    const data_encoded = encoder.encode(getString)
+    const hashBuffer = await crypto.subtle.digest("MD5", data_encoded)
+    
+    // Convert to hex string
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    
+    console.log('Webhook generated signature:', hashHex)
+    return hashHex
+  } catch (error) {
+    console.error('Webhook signature generation error:', error)
+    throw new Error('Failed to generate payment signature')
+  }
 }
