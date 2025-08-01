@@ -110,21 +110,26 @@ Deno.serve(async (req) => {
 
     await sendProgressUpdate(progress)
 
-    // Step 1: Get all products with their SKUs
+    // Step 1: Get all products with their SKUs and categories (like PowerShell script)
     progress.status = 'scanning'
-    progress.currentStep = 'Fetching products from database'
+    progress.currentStep = 'Fetching products from database with categories'
     await sendProgressUpdate(progress)
 
     const { data: products, error: productsError } = await supabaseClient
       .from('products')
-      .select('id, sku, name')
+      .select(`
+        id, 
+        sku, 
+        name,
+        categories!inner(name)
+      `)
       .not('sku', 'is', null)
 
     if (productsError) {
       throw new Error(`Failed to fetch products: ${productsError.message}`)
     }
 
-    await logMessage('info', `Found ${products.length} products with SKUs`)
+    await logMessage('info', `Found ${products.length} products with SKUs across categories`)
 
     // Step 2: Recursively scan storage bucket for all images
     progress.currentStep = 'Scanning storage bucket for images'
@@ -195,30 +200,48 @@ Deno.serve(async (req) => {
     progress.foundImages = storageImages.length
     await logMessage('info', `Found ${storageImages.length} images in storage bucket (including subdirectories)`)
 
-    // Enhanced multi-SKU image cache with comprehensive mapping
-    const createImageCache = () => {
-      // Use Maps to handle multiple images per SKU
-      const skuToImages = new Map<string, StorageFile[]>()
-      const imageToSkus = new Map<string, string[]>()
-      const stats = { 
-        processed: 0, 
-        matched: 0, 
-        failed: 0, 
-        multiSkuFiles: 0,
-        uniqueSkus: 0,
-        duplicateSkus: 0
+    // Simplified but more reliable SKU extraction inspired by PowerShell script
+    function extractProductCodes(filename: string): string[] {
+      if (!filename || typeof filename !== 'string') return []
+      
+      try {
+        const codes = new Set<string>()
+        const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
+        
+        // Simple approach: extract any alphanumeric sequences that could be SKUs
+        const allMatches = nameWithoutExt.match(/\b[a-zA-Z0-9]{3,10}\b/g) || []
+        
+        for (const match of allMatches) {
+          const code = match.toLowerCase()
+          codes.add(code)
+          
+          // Handle zero-padding for numeric codes
+          if (/^\d{3}$/.test(code)) {
+            codes.add('0' + code)
+          }
+          if (/^0\d{3}$/.test(code)) {
+            codes.add(code.substring(1))
+          }
+        }
+        
+        return Array.from(codes)
+      } catch (error) {
+        console.error('Error extracting codes from:', filename, error)
+        return []
       }
+    }
+
+    // Simplified image cache focused on reliability
+    const createImageCache = () => {
+      const skuToImages = new Map<string, StorageFile[]>()
+      const stats = { processed: 0, matched: 0, failed: 0 }
       
       return {
         buildMapping: (storageFiles: StorageFile[]) => {
           skuToImages.clear()
-          imageToSkus.clear()
           stats.processed = storageFiles?.length || 0
           stats.matched = 0
           stats.failed = 0
-          stats.multiSkuFiles = 0
-          stats.uniqueSkus = 0
-          stats.duplicateSkus = 0
           
           if (!storageFiles || storageFiles.length === 0) return
           
@@ -227,25 +250,9 @@ Deno.serve(async (req) => {
               if (!file?.name) continue
               
               const codes = extractProductCodes(file.name)
-              if (codes.length === 0) {
-                stats.failed++
-                continue
-              }
-              
-              // Track multi-SKU files
-              if (codes.length > 1) {
-                stats.multiSkuFiles++
-              }
-              
-              // Store bidirectional mapping
-              imageToSkus.set(file.name, codes)
-              
               for (const code of codes) {
                 if (!skuToImages.has(code)) {
                   skuToImages.set(code, [])
-                  stats.uniqueSkus++
-                } else {
-                  stats.duplicateSkus++
                 }
                 skuToImages.get(code)!.push(file)
                 stats.matched++
@@ -257,218 +264,51 @@ Deno.serve(async (req) => {
           }
         },
         
-        getImage: (sku: string) => {
-          if (!sku) return { found: false, image: null, alternatives: [] }
+        findImageForSKU: (sku: string) => {
+          if (!sku) return null
           
           const normalizedSku = sku.toLowerCase().trim()
           
-          // Direct match
-          if (skuToImages.has(normalizedSku)) {
-            const images = skuToImages.get(normalizedSku)!
-            return { 
-              found: true, 
-              image: images[0], // Primary match
-              alternatives: images.slice(1), // Additional matches
-              allCodes: imageToSkus.get(images[0].name) || []
+          // Use word boundary matching like PowerShell script
+          for (const [cachedSku, images] of skuToImages.entries()) {
+            // Direct match
+            if (cachedSku === normalizedSku) {
+              return images[0] // Take first match like PowerShell script
             }
           }
           
-          // Try with zero padding for 3-digit SKUs
+          // Try with zero padding variations
           if (/^\d{3}$/.test(normalizedSku)) {
             const paddedSku = '0' + normalizedSku
             if (skuToImages.has(paddedSku)) {
-              const images = skuToImages.get(paddedSku)!
-              return { 
-                found: true, 
-                image: images[0],
-                alternatives: images.slice(1),
-                allCodes: imageToSkus.get(images[0].name) || []
-              }
+              return skuToImages.get(paddedSku)![0]
             }
           }
           
-          // Try without leading zero for 4-digit SKUs
           if (/^0\d{3}$/.test(normalizedSku)) {
             const unpaddedSku = normalizedSku.substring(1)
             if (skuToImages.has(unpaddedSku)) {
-              const images = skuToImages.get(unpaddedSku)!
-              return { 
-                found: true, 
-                image: images[0],
-                alternatives: images.slice(1),
-                allCodes: imageToSkus.get(images[0].name) || []
-              }
+              return skuToImages.get(unpaddedSku)![0]
             }
           }
           
-          // Fuzzy matching for similar SKUs
+          // Word boundary search through all filenames (like PowerShell \b$sku\b)
           for (const [cachedSku, images] of skuToImages.entries()) {
-            if (calculateSimilarity(normalizedSku, cachedSku) > 0.8) {
-              return { 
-                found: true, 
-                image: images[0],
-                alternatives: images.slice(1),
-                allCodes: imageToSkus.get(images[0].name) || [],
-                fuzzyMatch: true,
-                matchedSku: cachedSku
+            for (const image of images) {
+              const regex = new RegExp(`\\b${normalizedSku}\\b`, 'i')
+              if (regex.test(image.name)) {
+                return image
               }
             }
           }
           
-          return { found: false, image: null, alternatives: [] }
+          return null
         },
         
-        getStats: () => ({ ...stats, totalMappings: skuToImages.size }),
-        
-        getSkusForImage: (imageName: string) => imageToSkus.get(imageName) || [],
-        
-        getAllMappings: () => {
-          const mappings: Array<{sku: string, images: StorageFile[], isMultiSku: boolean}> = []
-          for (const [sku, images] of skuToImages.entries()) {
-            mappings.push({
-              sku,
-              images,
-              isMultiSku: images.some(img => (imageToSkus.get(img.name) || []).length > 1)
-            })
-          }
-          return mappings.sort((a, b) => a.sku.localeCompare(b.sku))
-        }
+        getStats: () => ({ ...stats, totalMappings: skuToImages.size })
       }
-    }
-    
-    // Helper function for fuzzy matching
-    function calculateSimilarity(str1: string, str2: string): number {
-      const longer = str1.length > str2.length ? str1 : str2
-      const shorter = str1.length > str2.length ? str2 : str1
-      
-      if (longer.length === 0) return 1.0
-      
-      const editDistance = levenshteinDistance(longer, shorter)
-      return (longer.length - editDistance) / longer.length
-    }
-    
-    function levenshteinDistance(str1: string, str2: string): number {
-      const matrix = Array(str2.length + 1).fill(null).map(() => 
-        Array(str1.length + 1).fill(null))
-      
-      for (let i = 0; i <= str1.length; i++) matrix[0][i] = i
-      for (let j = 0; j <= str2.length; j++) matrix[j][0] = j
-      
-      for (let j = 1; j <= str2.length; j++) {
-        for (let i = 1; i <= str1.length; i++) {
-          const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1
-          matrix[j][i] = Math.min(
-            matrix[j][i - 1] + 1,
-            matrix[j - 1][i] + 1,
-            matrix[j - 1][i - 1] + indicator
-          )
-        }
-      }
-      
-      return matrix[str2.length][str1.length]
     }
 
-    // Enhanced multi-SKU extraction function inspired by PowerShell script
-    function extractProductCodes(filename: string): string[] {
-      if (!filename || typeof filename !== 'string') return []
-      
-      try {
-        const codes = new Set<string>()
-        const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
-        const cleanName = nameWithoutExt.toLowerCase()
-        
-        // Multi-SKU pattern: Handle files like "319027.319026.PNG" or "123.456.789.jpg"
-        const multiSkuPattern = /\b\d{3,6}(?:\.\d{3,6})+\b/g
-        const multiSkuMatches = cleanName.match(multiSkuPattern)
-        if (multiSkuMatches) {
-          multiSkuMatches.forEach(match => {
-            // Split by dots and extract individual SKUs
-            const skus = match.split('.').filter(sku => sku.length >= 3)
-            skus.forEach(sku => {
-              codes.add(sku)
-              // Auto-pad 3-digit codes
-              if (sku.length === 3 && /^\d{3}$/.test(sku)) {
-                codes.add('0' + sku)
-              }
-            })
-          })
-        }
-        
-        // Standard numeric codes (3-6 digits) - enhanced patterns
-        const numericMatches = cleanName.match(/\b\d{3,6}\b/g)
-        if (numericMatches) {
-          numericMatches.forEach(match => {
-            codes.add(match)
-            // Auto-pad short codes
-            if (match.length === 3) {
-              codes.add('0' + match)
-            }
-            // Also try with leading zeros stripped
-            if (match.length > 3 && match.startsWith('0')) {
-              codes.add(match.substring(1))
-            }
-          })
-        }
-        
-        // Enhanced alphanumeric codes (3-10 characters)
-        const alphanumericMatches = cleanName.match(/\b[a-z0-9]{3,10}\b/g)
-        if (alphanumericMatches) {
-          alphanumericMatches.forEach(match => codes.add(match))
-        }
-        
-        // Handle multiple delimiters: dots, dashes, underscores, spaces
-        const delimiters = /[-_\s\.]+/
-        const parts = cleanName.split(delimiters).filter(part => part && part.length > 0)
-        for (const part of parts) {
-          if (/^\d{3,6}$/.test(part)) {
-            codes.add(part)
-            if (part.length === 3) {
-              codes.add('0' + part)
-            }
-          } else if (/^[a-z0-9]{3,10}$/.test(part)) {
-            codes.add(part)
-          }
-        }
-        
-        // Enhanced prefix patterns - more comprehensive
-        const prefixes = ['product', 'item', 'sku', 'code', 'img', 'pic', 'photo']
-        for (const prefix of prefixes) {
-          const regex = new RegExp(`${prefix}[-_\\s]*([a-z0-9]{3,10})`, 'gi')
-          let match
-          while ((match = regex.exec(cleanName)) !== null) {
-            const code = match[1].toLowerCase()
-            codes.add(code)
-            if (/^\d{3}$/.test(code)) {
-              codes.add('0' + code)
-            }
-          }
-        }
-        
-        // Extract from path segments (handle subdirectories)
-        const pathParts = filename.split('/').filter(part => part && !part.includes('.'))
-        for (const pathPart of pathParts) {
-          const pathCodes = extractProductCodes(pathPart)
-          pathCodes.forEach(code => codes.add(code))
-        }
-        
-        // Handle bracket patterns: [SKU123] or (456)
-        const bracketMatches = cleanName.match(/[\[\(]([a-z0-9]{3,10})[\]\)]/g)
-        if (bracketMatches) {
-          bracketMatches.forEach(match => {
-            const code = match.replace(/[\[\(\]\)]/g, '').toLowerCase()
-            codes.add(code)
-            if (/^\d{3}$/.test(code)) {
-              codes.add('0' + code)
-            }
-          })
-        }
-        
-        return Array.from(codes).filter(code => code.length >= 3)
-      } catch (error) {
-        console.error('Error extracting codes from:', filename, error)
-        return []
-      }
-    }
 
     // Initialize image cache
     const imageCache = createImageCache()
@@ -482,80 +322,74 @@ Deno.serve(async (req) => {
     imageCache.buildMapping(storageImages)
     
     const cacheStats = imageCache.getStats()
-    await logMessage('info', `Image cache built: ${cacheStats.cacheSize} unique mappings from ${cacheStats.processed} images`)
+    await logMessage('info', `Image cache built: ${cacheStats.totalMappings} unique mappings from ${cacheStats.processed} images`)
 
-    // Step 4: Match products to images with enhanced reporting
+    // Step 4: Simple, reliable matching like PowerShell script
     progress.total = products.length
-    progress.currentStep = 'Matching products to images using enhanced multi-SKU cache'
+    progress.currentStep = 'Finding images for each SKU using word boundary matching'
     await sendProgressUpdate(progress)
 
-    const matches: Array<{ 
-      product: any, 
-      image: StorageFile, 
-      matchType: string,
-      allCodes?: string[],
-      alternatives?: StorageFile[]
-    }> = []
-    const missingSkus: Array<{sku: string, productName: string}> = []
-    let fuzzyMatches = 0
-    let multiSkuMatches = 0
+    const matches: Array<{ product: any, image: StorageFile, category?: string }> = []
+    const missingSkus: Array<{sku: string, productName: string, category?: string}> = []
     
+    // Group products by category for better organization (like PowerShell script)
+    const productsByCategory = new Map<string, any[]>()
     for (const product of products) {
-      if (!product.sku) {
-        progress.processed++
-        continue
+      const categoryName = product.categories?.name || 'Uncategorized'
+      if (!productsByCategory.has(categoryName)) {
+        productsByCategory.set(categoryName, [])
       }
+      productsByCategory.get(categoryName)!.push(product)
+    }
+    
+    // Process each category
+    for (const [categoryName, categoryProducts] of productsByCategory.entries()) {
+      await logMessage('info', `📁 Processing category: ${categoryName} (${categoryProducts.length} products)`)
+      
+      for (const product of categoryProducts) {
+        if (!product.sku) {
+          progress.processed++
+          continue
+        }
 
-      progress.currentFile = `Analyzing SKU: ${product.sku}`
-      await sendProgressUpdate(progress)
+        progress.currentFile = `${categoryName}: ${product.sku}`
+        await sendProgressUpdate(progress)
 
-      const result = imageCache.getImage(product.sku)
-      if (result.found && result.image) {
-        const matchType = result.fuzzyMatch ? 'fuzzy' : 'exact'
-        if (result.fuzzyMatch) fuzzyMatches++
-        if ((result.allCodes || []).length > 1) multiSkuMatches++
+        // Find image using simplified matching (like PowerShell \b$sku\b)
+        const matchedImage = imageCache.findImageForSKU(product.sku)
         
-        matches.push({ 
-          product, 
-          image: result.image,
-          matchType,
-          allCodes: result.allCodes,
-          alternatives: result.alternatives
-        })
-        progress.matchedProducts++
-        
-        const matchInfo = result.fuzzyMatch 
-          ? `✅ Fuzzy matched SKU ${product.sku} to ${result.matchedSku} in ${result.image.name}`
-          : `✅ Matched SKU ${product.sku} to image ${result.image.name}`
-        
-        if ((result.allCodes || []).length > 1) {
-          await logMessage('info', `${matchInfo} [Multi-SKU: ${result.allCodes?.join(', ')}]`)
+        if (matchedImage) {
+          matches.push({ 
+            product, 
+            image: matchedImage,
+            category: categoryName
+          })
+          progress.matchedProducts++
+          await logMessage('info', `✅ Found ${product.sku} in ${matchedImage.name}`)
         } else {
-          await logMessage('info', matchInfo)
+          missingSkus.push({
+            sku: product.sku, 
+            productName: product.name,
+            category: categoryName
+          })
+          await logMessage('warn', `❌ Not found: ${product.sku}`)
         }
-        
-        if ((result.alternatives || []).length > 0) {
-          await logMessage('info', `   📎 ${result.alternatives?.length} additional images available for this SKU`)
-        }
-      } else {
-        missingSkus.push({sku: product.sku, productName: product.name})
-      }
 
-      progress.processed++
-      await sendProgressUpdate(progress)
+        progress.processed++
+        await sendProgressUpdate(progress)
+      }
     }
     
-    // Log summary statistics
-    const cacheStats = imageCache.getStats()
-    await logMessage('info', `📊 Cache Statistics: ${cacheStats.totalMappings} unique SKU mappings, ${cacheStats.multiSkuFiles} multi-SKU files`)
-    await logMessage('info', `📊 Match Statistics: ${matches.length} total matches (${fuzzyMatches} fuzzy, ${multiSkuMatches} multi-SKU)`)
+    // Simple statistics like PowerShell script
+    const totalProducts = products.length
+    const foundCount = matches.length
+    const notFoundCount = missingSkus.length
+    const successRate = Math.round((foundCount / totalProducts) * 100)
     
-    if (missingSkus.length > 0) {
-      await logMessage('warn', `⚠️ Missing images for ${missingSkus.length} SKUs`)
-      // Log first few missing SKUs as examples
-      const exampleMissing = missingSkus.slice(0, 5).map(item => item.sku).join(', ')
-      await logMessage('warn', `   Examples: ${exampleMissing}${missingSkus.length > 5 ? '...' : ''}`)
-    }
+    await logMessage('info', `📊 Results Summary:`)
+    await logMessage('info', `   • Found: ${foundCount}`)
+    await logMessage('info', `   • Not found: ${notFoundCount}`)
+    await logMessage('info', `   • Success rate: ${successRate}%`)
 
     // Step 4: Process matches and update database
     progress.currentStep = 'Updating product image records'
@@ -625,37 +459,43 @@ Deno.serve(async (req) => {
     progress.currentFile = undefined
     await sendProgressUpdate(progress)
 
-    // Generate comprehensive final report
-    const finalStats = imageCache.getStats()
-    const mappingReport = imageCache.getAllMappings()
+    // Generate simple, clear final report like PowerShell script
+    const totalProducts = products.length
+    const foundCount = matches.length
+    const notFoundCount = missingSkus.length
+    const successRate = Math.round((foundCount / totalProducts) * 100)
     
     await logMessage('info', `🎉 Storage scan completed!`)
     await logMessage('info', `📈 Final Results:`)
-    await logMessage('info', `   • ${progress.foundImages} images found in storage`)
-    await logMessage('info', `   • ${progress.matchedProducts} products matched (${fuzzyMatches} fuzzy matches)`)
-    await logMessage('info', `   • ${progress.successful} database records updated successfully`)
-    await logMessage('info', `   • ${progress.failed} operations failed`)
-    await logMessage('info', `   • ${finalStats.multiSkuFiles} files contained multiple SKUs`)
-    await logMessage('info', `   • ${missingSkus.length} SKUs had no matching images`)
+    await logMessage('info', `   • Total products: ${totalProducts}`)
+    await logMessage('info', `   • Images found: ${foundCount}`)
+    await logMessage('info', `   • Images not found: ${notFoundCount}`)
+    await logMessage('info', `   • Success rate: ${successRate}%`)
+    await logMessage('info', `   • Database records updated: ${progress.successful}`)
+    await logMessage('info', `   • Failed updates: ${progress.failed}`)
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Enhanced storage image scan and mapping completed',
+        message: 'Simplified storage image scan completed',
         sessionId,
         results: {
+          totalProducts,
           foundImages: progress.foundImages,
           matchedProducts: progress.matchedProducts,
           processed: progress.processed,
           successful: progress.successful,
           failed: progress.failed,
           errors: progress.errors,
-          fuzzyMatches,
-          multiSkuMatches,
-          missingSkus: missingSkus.length,
-          cacheStats: finalStats,
-          detailedMappings: mappingReport.slice(0, 100), // Limit for response size
-          missingSkusList: missingSkus.slice(0, 50) // Limit for response size
+          foundCount,
+          notFoundCount,
+          successRate,
+          categoryBreakdown: Array.from(productsByCategory.entries()).map(([cat, prods]) => ({
+            category: cat,
+            total: prods.length,
+            matched: matches.filter(m => m.category === cat).length
+          })),
+          missingSkusList: missingSkus.slice(0, 50) // Sample for debugging
         }
       }),
       {

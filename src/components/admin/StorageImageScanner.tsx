@@ -339,12 +339,12 @@ export const StorageImageScanner = () => {
       {/* Live Logs Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Live Scan Logs
-              <Badge variant="outline">{filteredLogs.length} of {logs.length} entries</Badge>
-            </div>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Live Scan Logs
+                <Badge variant="outline">{filteredLogs.length} of {logs.length} entries</Badge>
+              </div>
             <div className="flex items-center gap-2">
               <Button
                 variant={logFilter === 'all' ? 'default' : 'outline'}
