@@ -217,40 +217,31 @@ Deno.serve(async (req) => {
 })
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Create parameter string - exactly matching PayFast's specification
-  let pfOutput = ''
+  // Create parameter string - exactly matching PayFast's official implementation
+  let pfOutput = ""
   
-  // Build parameter string (PayFast expects sorted keys)
-  const sortedKeys = Object.keys(data)
-    .filter(key => key !== 'signature' && data[key] !== '')
-    .sort()
-  
-  for (const key of sortedKeys) {
-    const val = data[key]
-    if (val !== '') {
-      // PayFast requires specific encoding: encodeURIComponent + replace %20 with +
-      pfOutput += `${key}=${encodeURIComponent(val.trim()).replace(/%20/g, "+")}&`
+  // Use for...in loop like PayFast's official code (NO SORTING!)
+  for (let key in data) {
+    if (data.hasOwnProperty(key)) {
+      if (data[key] !== "") {
+        pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, "+")}&`
+      }
     }
   }
-  
+
   // Remove last ampersand
   let getString = pfOutput.slice(0, -1)
   
-  // Add passphrase if provided (PayFast format)
+  // Add passphrase if provided
   if (passphrase !== null && passphrase !== undefined) {
     getString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`
   }
   
   console.log('String to hash:', getString)
 
-  try {
-    // Generate proper MD5 hash using working Deno crypto library
-    const hashHex = md5(getString)
-    
-    console.log('Generated signature:', hashHex)
-    return hashHex
-  } catch (error) {
-    console.error('Signature generation error:', error)
-    throw new Error('Failed to generate payment signature')
-  }
+  // Generate MD5 hash using Deno crypto library
+  const hashHex = md5(getString)
+  
+  console.log('Generated signature:', hashHex)
+  return hashHex
 }
