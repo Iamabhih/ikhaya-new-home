@@ -146,140 +146,140 @@ Deno.serve(async (req) => {
 
     await logMessage('info', `Scan complete! Found ${allDriveFiles.length} total images across ${pageCount} pages`)
 
-    // Enhanced ImageSKUMatcher-inspired matching logic
-    class ImageSKUMatcher {
-      constructor() {
-        this.imageCache = new Map()
-        this.stats = { processed: 0, matched: 0, failed: 0 }
-      }
-
-      buildImageMapping(driveFiles) {
-        this.imageCache.clear()
-        this.stats.processed = driveFiles?.length || 0
-        
-        if (!driveFiles || driveFiles.length === 0) return
-        
-        for (const file of driveFiles) {
-          try {
-            if (!file?.name || !file?.mimeType?.includes('image/')) continue
-            
-            const codes = this.extractProductCodes(file.name)
-            for (const code of codes) {
-              if (!this.imageCache.has(code)) {
-                this.imageCache.set(code, file)
-                this.stats.matched++
+    // Enhanced matching functions inspired by ImageSKUMatcher
+    const createImageCache = () => {
+      const cache = new Map<string, DriveFile>()
+      const stats = { processed: 0, matched: 0, failed: 0 }
+      
+      return {
+        buildMapping: (driveFiles: DriveFile[]) => {
+          cache.clear()
+          stats.processed = driveFiles?.length || 0
+          stats.matched = 0
+          stats.failed = 0
+          
+          if (!driveFiles || driveFiles.length === 0) return
+          
+          for (const file of driveFiles) {
+            try {
+              if (!file?.name || !file?.mimeType?.includes('image/')) continue
+              
+              const codes = extractProductCodes(file.name)
+              for (const code of codes) {
+                if (!cache.has(code)) {
+                  cache.set(code, file)
+                  stats.matched++
+                }
               }
+            } catch (error) {
+              stats.failed++
+              continue
             }
-          } catch (error) {
-            this.stats.failed++
-            continue
           }
-        }
-      }
-
-      extractProductCodes(filename) {
-        if (!filename || typeof filename !== 'string') return []
+        },
         
-        try {
-          const codes = new Set()
-          const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
-          const cleanName = nameWithoutExt.toLowerCase()
+        getImage: (sku: string) => {
+          if (!sku) return { found: false, image: null }
           
-          // Extract numeric codes (3-6 digits)
-          const numericMatches = cleanName.match(/\b\d{3,6}\b/g)
-          if (numericMatches) {
-            numericMatches.forEach(match => {
-              codes.add(match)
-              // Auto-pad short codes
-              if (match.length === 3) {
-                codes.add('0' + match)
-              }
-            })
+          const normalizedSku = sku.toLowerCase().trim()
+          
+          // Direct match
+          if (cache.has(normalizedSku)) {
+            return { found: true, image: cache.get(normalizedSku) }
           }
           
-          // Extract alphanumeric codes (3-8 characters)
-          const alphanumericMatches = cleanName.match(/\b[a-z0-9]{3,8}\b/g)
-          if (alphanumericMatches) {
-            alphanumericMatches.forEach(match => codes.add(match))
-          }
-          
-          // Handle separators and split by common delimiters
-          const parts = cleanName.split(/[-_\s\.]+/).filter(part => part.length > 0)
-          for (const part of parts) {
-            if (/^\d{3,6}$/.test(part) || /^[a-z0-9]{3,8}$/.test(part)) {
-              codes.add(part)
-              if (/^\d{3}$/.test(part)) {
-                codes.add('0' + part)
-              }
+          // Try with zero padding for 3-digit SKUs
+          if (/^\d{3}$/.test(normalizedSku)) {
+            const paddedSku = '0' + normalizedSku
+            if (cache.has(paddedSku)) {
+              return { found: true, image: cache.get(paddedSku) }
             }
           }
           
-          // Try common prefixes
-          const prefixes = ['product', 'item', 'sku', 'code']
-          for (const prefix of prefixes) {
-            const regex = new RegExp(`${prefix}[-_\\s]*([a-z0-9]{3,8})`, 'g')
-            let match
-            while ((match = regex.exec(cleanName)) !== null) {
-              codes.add(match[1])
-              if (/^\d{3}$/.test(match[1])) {
-                codes.add('0' + match[1])
-              }
+          // Try without leading zero for 4-digit SKUs
+          if (/^0\d{3}$/.test(normalizedSku)) {
+            const unpaddedSku = normalizedSku.substring(1)
+            if (cache.has(unpaddedSku)) {
+              return { found: true, image: cache.get(unpaddedSku) }
             }
           }
           
-          return Array.from(codes)
-        } catch (error) {
-          console.error('Error extracting codes from:', filename, error)
-          return []
-        }
-      }
-
-      getProductImage(sku) {
-        if (!sku) return { found: false, image: null }
+          return { found: false, image: null }
+        },
         
-        const normalizedSku = sku.toLowerCase().trim()
-        
-        // Direct match
-        if (this.imageCache.has(normalizedSku)) {
-          return { found: true, image: this.imageCache.get(normalizedSku) }
-        }
-        
-        // Try with zero padding for 3-digit SKUs
-        if (/^\d{3}$/.test(normalizedSku)) {
-          const paddedSku = '0' + normalizedSku
-          if (this.imageCache.has(paddedSku)) {
-            return { found: true, image: this.imageCache.get(paddedSku) }
-          }
-        }
-        
-        // Try without leading zero for 4-digit SKUs
-        if (/^0\d{3}$/.test(normalizedSku)) {
-          const unpaddedSku = normalizedSku.substring(1)
-          if (this.imageCache.has(unpaddedSku)) {
-            return { found: true, image: this.imageCache.get(unpaddedSku) }
-          }
-        }
-        
-        return { found: false, image: null }
-      }
-
-      getStats() {
-        return { ...this.stats, cacheSize: this.imageCache.size }
+        getStats: () => ({ ...stats, cacheSize: cache.size })
       }
     }
 
-    // Initialize matcher
-    const matcher = new ImageSKUMatcher()
+    function extractProductCodes(filename: string): string[] {
+      if (!filename || typeof filename !== 'string') return []
+      
+      try {
+        const codes = new Set<string>()
+        const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
+        const cleanName = nameWithoutExt.toLowerCase()
+        
+        // Extract numeric codes (3-6 digits)
+        const numericMatches = cleanName.match(/\b\d{3,6}\b/g)
+        if (numericMatches) {
+          numericMatches.forEach(match => {
+            codes.add(match)
+            // Auto-pad short codes
+            if (match.length === 3) {
+              codes.add('0' + match)
+            }
+          })
+        }
+        
+        // Extract alphanumeric codes (3-8 characters)
+        const alphanumericMatches = cleanName.match(/\b[a-z0-9]{3,8}\b/g)
+        if (alphanumericMatches) {
+          alphanumericMatches.forEach(match => codes.add(match))
+        }
+        
+        // Handle separators and split by common delimiters
+        const parts = cleanName.split(/[-_\s\.]+/).filter(part => part && part.length > 0)
+        for (const part of parts) {
+          if (/^\d{3,6}$/.test(part) || /^[a-z0-9]{3,8}$/.test(part)) {
+            codes.add(part)
+            if (/^\d{3}$/.test(part)) {
+              codes.add('0' + part)
+            }
+          }
+        }
+        
+        // Try common prefixes
+        const prefixes = ['product', 'item', 'sku', 'code']
+        for (const prefix of prefixes) {
+          const regex = new RegExp(`${prefix}[-_\\s]*([a-z0-9]{3,8})`, 'g')
+          let match
+          while ((match = regex.exec(cleanName)) !== null) {
+            codes.add(match[1])
+            if (/^\d{3}$/.test(match[1])) {
+              codes.add('0' + match[1])
+            }
+          }
+        }
+        
+        return Array.from(codes)
+      } catch (error) {
+        console.error('Error extracting codes from:', filename, error)
+        return []
+      }
+    }
 
-    // Step 3: Build image mapping using enhanced matcher
+    // Initialize image cache
+    const imageCache = createImageCache()
+
+    // Step 3: Build image mapping using enhanced cache
     progress.status = 'processing'
     progress.currentStep = 'Building intelligent image mapping cache'
     await sendProgressUpdate(progress)
 
     await logMessage('info', `Building image cache from ${allDriveFiles.length} images`)
-    matcher.buildImageMapping(allDriveFiles)
+    imageCache.buildMapping(allDriveFiles)
     
-    const cacheStats = matcher.getStats()
+    const cacheStats = imageCache.getStats()
     await logMessage('info', `Image cache built: ${cacheStats.cacheSize} unique mappings from ${cacheStats.processed} images`)
 
     // Step 4: Match products to images efficiently
@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
     progress.currentStep = 'Matching products to images using intelligent cache'
     await sendProgressUpdate(progress)
 
-    const matchedProducts = []
+    const matchedProducts: Array<{product: any, imageFile: DriveFile}> = []
     
     if (!products || products.length === 0) {
       await logMessage('warn', 'No products found to process')
@@ -298,8 +298,8 @@ Deno.serve(async (req) => {
         try {
           if (!product || !product.sku) continue
 
-          const result = matcher.getProductImage(product.sku)
-          if (result.found) {
+          const result = imageCache.getImage(product.sku)
+          if (result.found && result.image) {
             matchedProducts.push({ product, imageFile: result.image })
           }
         } catch (error) {
