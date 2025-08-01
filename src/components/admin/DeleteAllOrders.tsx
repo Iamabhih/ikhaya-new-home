@@ -56,9 +56,9 @@ export const DeleteAllOrders = () => {
         supabase.from('payment_transactions').delete().neq('id', ''),
         // Delete order items
         supabase.from('order_items').delete().neq('id', ''),
-        // Delete return items (if any exist)
+        // Delete return items first (they reference return_requests)
         supabase.from('return_items').delete().neq('id', ''),
-        // Delete return requests (if any exist)
+        // Delete return requests (they reference orders)
         supabase.from('return_requests').delete().neq('id', ''),
       ];
 

@@ -11,6 +11,7 @@ import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { DeleteAllProducts } from "@/components/admin/DeleteAllProducts";
 import { ImageMigrationTool } from "@/components/admin/ImageMigrationTool";
 import { StorageImageScanner } from "@/components/admin/StorageImageScanner";
+import { ManualImageLinker } from "@/components/admin/ManualImageLinker";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -184,7 +185,7 @@ const AdminProducts = () => {
 
           <ErrorBoundary>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-7 bg-gray-100 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-8 bg-gray-100 p-1 rounded-xl">
                 <TabsTrigger 
                   value="products" 
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
@@ -226,6 +227,12 @@ const AdminProducts = () => {
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
                 >
                   Storage Scanner
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="manual-link" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                >
+                  Manual Link
                 </TabsTrigger>
               </TabsList>
 
@@ -278,6 +285,12 @@ const AdminProducts = () => {
               <TabsContent value="storage" className="space-y-6">
                 <ErrorBoundary>
                   <StorageImageScanner />
+                </ErrorBoundary>
+              </TabsContent>
+
+              <TabsContent value="manual-link" className="space-y-6">
+                <ErrorBoundary>
+                  <ManualImageLinker />
                 </ErrorBoundary>
               </TabsContent>
             </Tabs>
