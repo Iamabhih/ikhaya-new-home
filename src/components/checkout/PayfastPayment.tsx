@@ -60,12 +60,17 @@ export const PayfastPayment = ({ orderData }: PayfastPaymentProps) => {
       }
 
       if (data?.success) {
-        console.log('Payment initiation successful, redirecting to PayFast...');
+        console.log('Payment initiation successful, redirecting to PayFast...', {
+          url: data.payfast_url,
+          dataKeys: Object.keys(data.payment_data)
+        });
+        
         // Create form and submit to PayFast
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = data.payfast_url;
         form.style.display = 'none';
+        form.target = '_self'; // Ensure it submits in the same window
 
         // Add all PayFast parameters as hidden inputs
         Object.entries(data.payment_data).forEach(([key, value]) => {
@@ -74,10 +79,16 @@ export const PayfastPayment = ({ orderData }: PayfastPaymentProps) => {
           input.name = key;
           input.value = value as string;
           form.appendChild(input);
+          console.log(`Added form field: ${key} = ${value}`);
         });
 
         document.body.appendChild(form);
-        form.submit();
+        
+        // Add a small delay to ensure form is properly added to DOM
+        setTimeout(() => {
+          console.log('Submitting form to PayFast...');
+          form.submit();
+        }, 100);
       } else {
         throw new Error(data?.error || 'Failed to initiate payment');
       }
