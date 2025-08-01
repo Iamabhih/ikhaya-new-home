@@ -89,11 +89,8 @@ export const DeleteAllOrders = () => {
       console.log('Bulk order deletion completed');
     },
     onSuccess: () => {
-      // Invalidate all order-related queries
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['total-order-count'] });
-      queryClient.invalidateQueries({ queryKey: ['order-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics-overview'] });
+      // Invalidate all order-related queries more broadly
+      queryClient.invalidateQueries();
       
       // Clear the confirmation text
       setConfirmationText("");
@@ -104,7 +101,7 @@ export const DeleteAllOrders = () => {
       // Force a page reload to ensure all cached data is cleared
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 500);
     },
     onError: (error: any) => {
       toast.error(`Failed to delete orders: ${error.message}`);
