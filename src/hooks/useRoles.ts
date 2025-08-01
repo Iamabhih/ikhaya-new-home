@@ -52,7 +52,7 @@ export const useRoles = (user: User | null) => {
     };
 
     fetchRoles();
-  }, [user?.id, lastFetched]); // Include lastFetched to properly track state
+  }, [user?.id]); // Only depend on user.id to prevent infinite loops
 
   const hasRole = (role: AppRole): boolean => {
     return roles.includes(role);
