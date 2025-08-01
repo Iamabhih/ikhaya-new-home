@@ -37,13 +37,22 @@ Deno.serve(async (req) => {
   const sendProgressUpdate = async (progress: Partial<MigrationProgress>) => {
     try {
       if (supabaseClient) {
-        await supabaseClient
-          .channel(`migration-${sessionId}`)
-          .send({
-            type: 'broadcast',
-            event: 'migration_progress',
-            payload: { ...progress, sessionId }
-          })
+        // Send real-time update via broadcast
+        const channel = supabaseClient.channel(`migration-${sessionId}`)
+        await channel.send({
+          type: 'broadcast',
+          event: 'migration_progress',
+          payload: { ...progress, sessionId, timestamp: new Date().toISOString() }
+        })
+        
+        // Also log to console for debugging
+        console.log(`[PROGRESS] ${progress.currentStep || 'Update'} - ${JSON.stringify({
+          status: progress.status,
+          processed: progress.processed,
+          successful: progress.successful,
+          failed: progress.failed,
+          total: progress.total
+        })}`)
       }
     } catch (error) {
       console.error('Failed to send progress update:', error)
@@ -52,7 +61,13 @@ Deno.serve(async (req) => {
 
   const logMessage = async (level: 'info' | 'warn' | 'error', message: string, data?: any) => {
     const timestamp = new Date().toISOString()
-    console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`, data || '')
+    const logEntry = `[${timestamp}] [${level.toUpperCase()}] ${message}`
+    
+    if (data) {
+      console.log(logEntry, JSON.stringify(data, null, 2))
+    } else {
+      console.log(logEntry)
+    }
     
     await sendProgressUpdate({
       currentStep: message,
@@ -61,23 +76,31 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('🚀 Starting migration function...')
+    
     supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+    
+    console.log('✅ Supabase client initialized')
 
     const googleApiKey = Deno.env.get('GOOGLE_DRIVE_API_KEY')
     const folderId = '1tG66zQTXGR-BQwjYZheRHVQ7s4n6-Jan' // Your Google Drive folder ID
 
+    console.log('🔑 Checking Google Drive API key...')
     if (!googleApiKey) {
+      console.error('❌ Google Drive API key not configured')
       await logMessage('error', 'Google Drive API key not configured')
       throw new Error('Google Drive API key not configured')
     }
+    console.log('✅ Google Drive API key found')
 
     const startTime = new Date().toISOString()
-    await logMessage('info', 'Starting enhanced image migration from Google Drive to Supabase')
+    console.log('📋 Initializing migration process...')
+    await logMessage('info', '🚀 Starting enhanced image migration from Google Drive to Supabase')
 
-    // Initialize progress
+    // Initialize progress with detailed logging
     const progress: MigrationProgress = {
       sessionId,
       status: 'initializing',
@@ -90,25 +113,33 @@ Deno.serve(async (req) => {
       startTime
     }
 
+    console.log('📤 Sending initial progress update...')
     await sendProgressUpdate(progress)
+    console.log('✅ Initial progress sent')
 
     // Step 1: Get all products with their SKUs
+    console.log('📊 Starting product fetch...')
     progress.status = 'scanning'
     progress.currentStep = 'Fetching products from database'
     await sendProgressUpdate(progress)
 
+    console.log('🔍 Querying products table...')
     const { data: products, error: productsError } = await supabaseClient
       .from('products')
       .select('id, sku, name')
       .not('sku', 'is', null)
 
     if (productsError) {
+      console.error('❌ Products fetch failed:', productsError)
+      await logMessage('error', `Failed to fetch products: ${productsError.message}`)
       throw new Error(`Failed to fetch products: ${productsError.message}`)
     }
 
-    await logMessage('info', `Found ${products.length} products with SKUs`)
+    console.log(`✅ Found ${products?.length || 0} products with SKUs`)
+    await logMessage('info', `Found ${products?.length || 0} products with SKUs`)
 
     // Step 2: Get all files from Google Drive with pagination support
+    console.log('🔍 Starting Google Drive scan...')
     progress.currentStep = 'Scanning Google Drive folder (this may take a while for large folders)'
     await sendProgressUpdate(progress)
 
@@ -116,8 +147,11 @@ Deno.serve(async (req) => {
     let nextPageToken: string | null = null
     let pageCount = 0
     
+    console.log('📄 Starting paginated Google Drive scan...')
+    
     do {
       pageCount++
+      console.log(`📑 Scanning Google Drive page ${pageCount}...`)
       await logMessage('info', `Scanning Google Drive page ${pageCount}...`)
       
       let url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType+contains+'image/'&key=${googleApiKey}&fields=files(id,name,mimeType),nextPageToken&pageSize=1000`
@@ -125,25 +159,31 @@ Deno.serve(async (req) => {
         url += `&pageToken=${nextPageToken}`
       }
 
+      console.log(`🌐 Making API call to Google Drive...`)
       const driveResponse = await fetch(url)
       
       if (!driveResponse.ok) {
+        console.error(`❌ Google Drive API error: ${driveResponse.status} ${driveResponse.statusText}`)
         throw new Error(`Google Drive API error: ${driveResponse.statusText}`)
       }
 
+      console.log(`📊 Processing Google Drive response...`)
       const driveData = await driveResponse.json()
       const pageFiles = driveData.files || []
       allDriveFiles.push(...pageFiles)
       nextPageToken = driveData.nextPageToken
       
+      console.log(`✅ Page ${pageCount}: Found ${pageFiles.length} images. Total so far: ${allDriveFiles.length}`)
       await logMessage('info', `Found ${pageFiles.length} images on page ${pageCount}. Total so far: ${allDriveFiles.length}`)
       
       // Add delay between API calls to avoid rate limiting
       if (nextPageToken) {
+        console.log('⏸️ Adding delay to avoid rate limiting...')
         await new Promise(resolve => setTimeout(resolve, 100))
       }
     } while (nextPageToken)
 
+    console.log(`🎉 Scan complete! Found ${allDriveFiles.length} total images across ${pageCount} pages`)
     await logMessage('info', `Scan complete! Found ${allDriveFiles.length} total images across ${pageCount} pages`)
 
     // Enhanced matching functions inspired by ImageSKUMatcher

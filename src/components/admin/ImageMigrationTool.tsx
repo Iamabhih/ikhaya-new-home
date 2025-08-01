@@ -62,6 +62,8 @@ export const ImageMigrationTool = () => {
   };
 
   const setupRealtimeChannel = (sessionId: string) => {
+    addLog('info', `🔗 Setting up real-time channel for session: ${sessionId}`);
+    
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
@@ -72,6 +74,7 @@ export const ImageMigrationTool = () => {
         'broadcast',
         { event: 'migration_progress' },
         (payload) => {
+          console.log('📡 Received progress update:', payload);
           const data = payload.payload as MigrationProgress;
           setProgress(data);
           
@@ -82,9 +85,38 @@ export const ImageMigrationTool = () => {
           if (data.errors && data.errors.length > 0) {
             data.errors.forEach(error => addLog('error', error));
           }
+          
+          // Handle migration completion
+          if (data.status === 'completed') {
+            setIsProcessing(false);
+            addLog('info', '🎉 Migration completed successfully!');
+            toast({
+              title: "Migration Completed",
+              description: `Successfully processed ${data.successful} images`,
+            });
+          } else if (data.status === 'error') {
+            setIsProcessing(false);
+            addLog('error', '💥 Migration failed with errors');
+            toast({
+              title: "Migration Failed",
+              description: "Check the logs for details",
+              variant: "destructive",
+            });
+          }
         }
       )
-      .subscribe();
+      .on('presence', { event: 'sync' }, () => {
+        console.log('🔄 Channel presence synced');
+        addLog('info', '🔄 Real-time connection established');
+      })
+      .subscribe((status) => {
+        console.log('📡 Channel subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          addLog('info', '✅ Connected to real-time updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          addLog('error', '❌ Real-time connection failed');
+        }
+      });
 
     channelRef.current = channel;
   };
@@ -96,31 +128,45 @@ export const ImageMigrationTool = () => {
     setLogs([]);
     
     addLog('info', '🚀 Starting image migration process...');
+    addLog('info', '📋 Initializing connection to migration service...');
 
     try {
-      const { data, error } = await supabase.functions.invoke('migrate-drive-images');
+      console.log('🔧 Invoking migration function...');
+      const { data, error } = await supabase.functions.invoke('migrate-drive-images', {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      console.log('📥 Migration function response:', { data, error });
 
       if (error) {
-        throw new Error(error.message);
+        console.error('❌ Migration function error:', error);
+        throw new Error(`Migration service error: ${error.message}`);
       }
 
       if (data?.success) {
+        console.log('✅ Migration started successfully, session:', data.sessionId);
         setSessionId(data.sessionId);
         setupRealtimeChannel(data.sessionId);
         
+        addLog('info', `✅ Migration service started (Session: ${data.sessionId})`);
         toast({
           title: "Migration Started",
           description: "Real-time progress will be shown below",
         });
       } else {
-        throw new Error(data?.error || "Migration failed to start");
+        console.error('❌ Migration failed to start:', data);
+        throw new Error(data?.error || "Migration failed to start - check function logs");
       }
     } catch (error) {
-      console.error('Migration error:', error);
-      addLog('error', `❌ Failed to start migration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('💥 Migration error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      addLog('error', `❌ Failed to start migration: ${errorMessage}`);
+      addLog('error', '💡 Check the edge function logs for more details');
       toast({
         title: "Migration Failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        description: errorMessage,
         variant: "destructive",
       });
       setIsProcessing(false);
