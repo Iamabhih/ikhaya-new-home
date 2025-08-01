@@ -58,10 +58,32 @@ Deno.serve(async (req) => {
     const timestamp = new Date().toISOString()
     console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`, data || '')
     
+    // Send both progress update and separate log entry
     await sendProgressUpdate({
       currentStep: message,
       errors: level === 'error' ? [message] : undefined
     })
+
+    // Send dedicated log message through realtime
+    try {
+      if (supabaseClient) {
+        await supabaseClient
+          .channel(`storage-scan-${sessionId}`)
+          .send({
+            type: 'broadcast',
+            event: 'scan_log',
+            payload: {
+              sessionId,
+              timestamp: timestamp,
+              level: level,
+              message: message,
+              data: data
+            }
+          })
+      }
+    } catch (error) {
+      console.error('Failed to send log message:', error)
+    }
   }
 
   try {

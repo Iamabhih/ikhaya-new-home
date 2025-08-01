@@ -32,6 +32,7 @@ interface LogEntry {
   timestamp: string;
   level: 'info' | 'warn' | 'error';
   message: string;
+  type?: 'match' | 'progress' | 'error' | 'info';
 }
 
 export const StorageImageScanner = () => {
@@ -39,6 +40,7 @@ export const StorageImageScanner = () => {
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [logFilter, setLogFilter] = useState<'all' | 'matches' | 'progress' | 'errors'>('all');
   const { toast } = useToast();
   const logsEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -51,12 +53,27 @@ export const StorageImageScanner = () => {
     scrollToBottom();
   }, [logs]);
 
-  const addLog = (level: 'info' | 'warn' | 'error', message: string) => {
+  const addLog = (level: 'info' | 'warn' | 'error', message: string, type?: 'match' | 'progress' | 'error' | 'info') => {
+    // Detect log type from message content if not specified
+    let logType = type;
+    if (!logType) {
+      if (message.includes('✅ Matched SKU')) {
+        logType = 'match';
+      } else if (message.includes('❌')) {
+        logType = 'error';
+      } else if (message.includes('Found') || message.includes('Building') || message.includes('cache')) {
+        logType = 'progress';
+      } else {
+        logType = 'info';
+      }
+    }
+
     const logEntry: LogEntry = {
       id: crypto.randomUUID(),
       timestamp: new Date().toLocaleTimeString(),
       level,
-      message
+      message,
+      type: logType
     };
     setLogs(prev => [...prev, logEntry]);
   };
@@ -74,13 +91,15 @@ export const StorageImageScanner = () => {
         (payload) => {
           const data = payload.payload as ScanProgress;
           setProgress(data);
-          
-          if (data.currentStep) {
-            addLog('info', data.currentStep);
-          }
-          
-          if (data.errors && data.errors.length > 0) {
-            data.errors.forEach(error => addLog('error', error));
+        }
+      )
+      .on(
+        'broadcast', 
+        { event: 'scan_log' },
+        (payload) => {
+          const logData = payload.payload;
+          if (logData && logData.message) {
+            addLog(logData.level || 'info', logData.message);
           }
         }
       )
@@ -159,6 +178,28 @@ export const StorageImageScanner = () => {
   const getProgressPercentage = () => {
     if (!progress || progress.total === 0) return 0;
     return Math.round((progress.processed / progress.total) * 100);
+  };
+
+  const filteredLogs = logs.filter(log => {
+    if (logFilter === 'all') return true;
+    if (logFilter === 'matches') return log.type === 'match';
+    if (logFilter === 'progress') return log.type === 'progress';
+    if (logFilter === 'errors') return log.level === 'error' || log.type === 'error';
+    return true;
+  });
+
+  const getLogIcon = (log: LogEntry) => {
+    if (log.type === 'match') return '✅';
+    if (log.type === 'error' || log.level === 'error') return '❌';
+    if (log.type === 'progress') return '📊';
+    return '🔍';
+  };
+
+  const getLogColor = (log: LogEntry) => {
+    if (log.type === 'match') return 'text-green-600';
+    if (log.type === 'error' || log.level === 'error') return 'text-red-600';
+    if (log.type === 'progress') return 'text-blue-600';
+    return 'text-foreground';
   };
 
   useEffect(() => {
@@ -292,22 +333,61 @@ export const StorageImageScanner = () => {
       {/* Live Logs Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Live Scan Logs
-            <Badge variant="outline">{logs.length} entries</Badge>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Live Scan Logs
+              <Badge variant="outline">{filteredLogs.length} of {logs.length} entries</Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={logFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setLogFilter('all')}
+              >
+                All
+              </Button>
+              <Button
+                variant={logFilter === 'matches' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setLogFilter('matches')}
+                className="text-green-600"
+              >
+                Matches
+              </Button>
+              <Button
+                variant={logFilter === 'progress' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setLogFilter('progress')}
+                className="text-blue-600"
+              >
+                Progress
+              </Button>
+              <Button
+                variant={logFilter === 'errors' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setLogFilter('errors')}
+                className="text-red-600"
+              >
+                Errors
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-80 w-full border rounded-md p-4">
             <div className="space-y-2">
-              {logs.length === 0 ? (
+              {filteredLogs.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
-                  No logs yet. Start a storage scan to see real-time progress.
+                  {logs.length === 0 
+                    ? "No logs yet. Start a storage scan to see real-time progress."
+                    : `No ${logFilter} logs found. Try a different filter.`
+                  }
                 </div>
               ) : (
-                logs.map((log) => (
-                  <div key={log.id} className="flex items-start gap-2 text-sm">
+                filteredLogs.map((log) => (
+                  <div key={log.id} className="flex items-start gap-2 text-sm p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <span className="text-lg">{getLogIcon(log)}</span>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
                       {log.timestamp}
                     </span>
@@ -317,13 +397,14 @@ export const StorageImageScanner = () => {
                     >
                       {log.level.toUpperCase()}
                     </Badge>
-                    <span className={
-                      log.level === 'error' ? 'text-red-600' : 
-                      log.level === 'warn' ? 'text-yellow-600' : 
-                      'text-foreground'
-                    }>
+                    <span className={`${getLogColor(log)} flex-1 font-mono text-xs leading-relaxed`}>
                       {log.message}
                     </span>
+                    {log.type && (
+                      <Badge variant="outline" className="text-xs">
+                        {log.type}
+                      </Badge>
+                    )}
                   </div>
                 ))
               )}
