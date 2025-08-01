@@ -70,11 +70,12 @@ Deno.serve(async (req) => {
     const folderId = '1tG66zQTXGR-BQwjYZheRHVQ7s4n6-Jan' // Your Google Drive folder ID
 
     if (!googleApiKey) {
+      await logMessage('error', 'Google Drive API key not configured')
       throw new Error('Google Drive API key not configured')
     }
 
     const startTime = new Date().toISOString()
-    await logMessage('info', 'Starting image migration from Google Drive to Supabase')
+    await logMessage('info', 'Starting enhanced image migration from Google Drive to Supabase')
 
     // Initialize progress
     const progress: MigrationProgress = {
@@ -227,12 +228,12 @@ Deno.serve(async (req) => {
     await logMessage('info', `Found ${matchedProducts.length} products with matching images`)
     await sendProgressUpdate(progress)
 
-    // Step 4: Process each matched product
-    const batchSize = 5 // Process in batches to avoid overwhelming the system
+    // Step 4: Process each matched product with enhanced error handling
+    const batchSize = 3 // Reduced batch size for better error handling
     for (let i = 0; i < matchedProducts.length; i += batchSize) {
       const batch = matchedProducts.slice(i, Math.min(i + batchSize, matchedProducts.length))
       
-      // Process batch in parallel
+      // Process batch in parallel with individual error handling
       const batchPromises = batch.map(async ({ product, imageFile }) => {
         try {
           progress.currentFile = `${product.sku} (${imageFile.name})`
@@ -308,8 +309,7 @@ Deno.serve(async (req) => {
               .from('product_images')
               .update({
                 image_url: urlData.publicUrl,
-                alt_text: `${product.name} product image`,
-                updated_at: new Date().toISOString()
+                alt_text: `${product.name} product image`
               })
               .eq('id', existingImage.id)
 
@@ -358,11 +358,16 @@ Deno.serve(async (req) => {
       })
 
       // Wait for batch to complete
-      await Promise.all(batchPromises)
+      const batchResults = await Promise.allSettled(batchPromises)
       
-      // Small delay between batches to avoid rate limiting
+      // Log batch results
+      const batchSuccessful = batchResults.filter(r => r.status === 'fulfilled').length
+      const batchFailed = batchResults.filter(r => r.status === 'rejected').length
+      await logMessage('info', `Batch completed: ${batchSuccessful} successful, ${batchFailed} failed`)
+      
+      // Longer delay between batches to avoid rate limiting
       if (i + batchSize < matchedProducts.length) {
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 2000)) // Increased to 2 seconds
       }
     }
 
