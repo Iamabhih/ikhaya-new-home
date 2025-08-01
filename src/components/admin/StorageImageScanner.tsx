@@ -241,11 +241,11 @@ export const StorageImageScanner = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert>
+            <Alert>
             <Database className="h-4 w-4" />
             <AlertDescription>
-              This scanner will recursively search all folders in the storage bucket and use enhanced SKU matching to link images with products. 
-              It supports various filename patterns and SKU variations.
+              This enhanced scanner recursively searches all storage folders with advanced multi-SKU support, handling complex filename patterns like "319027.319026.PNG". 
+              Features fuzzy matching, bidirectional mapping, and comprehensive reporting with category-based organization.
             </AlertDescription>
           </Alert>
 
@@ -292,8 +292,8 @@ export const StorageImageScanner = () => {
                 <Progress value={getProgressPercentage()} className="w-full" />
               </div>
 
-              {/* Current Status */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {/* Enhanced Status Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                   <div className="text-lg font-bold text-blue-600">{progress.foundImages}</div>
                   <div className="text-xs text-muted-foreground">Images Found</div>
@@ -313,6 +313,12 @@ export const StorageImageScanner = () => {
                 <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded-lg">
                   <div className="text-lg font-bold text-red-600">{progress.failed}</div>
                   <div className="text-xs text-muted-foreground">Failed</div>
+                </div>
+                <div className="text-center p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
+                  <div className="text-lg font-bold text-amber-600">
+                    {logs.filter(log => log.message.includes('Multi-SKU')).length}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Multi-SKU Files</div>
                 </div>
               </div>
 
@@ -427,27 +433,31 @@ export const StorageImageScanner = () => {
             <div>
               <h4 className="font-semibold mb-2 flex items-center gap-2">
                 <LinkIcon className="h-4 w-4" />
-                Supported Filename Patterns
+                Enhanced Filename Patterns
               </h4>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                 <li>Direct SKU matches: <code>ABC123.jpg</code></li>
+                <li>Multi-SKU files: <code>319027.319026.PNG</code></li>
                 <li>With delimiters: <code>SKU-ABC123.png</code></li>
-                <li>In folders: <code>products/ABC123/image.jpg</code></li>
+                <li>In subdirectories: <code>products/ABC123/image.jpg</code></li>
                 <li>With prefixes: <code>ITEM_ABC123.jpg</code></li>
-                <li>Multiple variations in one filename</li>
+                <li>Bracket patterns: <code>[ABC123]_photo.jpg</code></li>
+                <li>Path-based SKUs: <code>category/123/product.jpg</code></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-2 flex items-center gap-2">
                 <Search className="h-4 w-4" />
-                SKU Variations Handled
+                Advanced SKU Matching
               </h4>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                 <li>Zero-padded numbers: <code>123</code> ↔ <code>0123</code></li>
                 <li>Leading zeros: <code>0123</code> ↔ <code>123</code></li>
-                <li>Alphanumeric codes of any length</li>
-                <li>Case-insensitive matching</li>
-                <li>Fuzzy matching with scoring</li>
+                <li>Multiple SKUs per file: <code>123.456.789</code></li>
+                <li>Fuzzy matching: <code>ABC123</code> ≈ <code>ABC124</code></li>
+                <li>Bidirectional mapping: One image → Multiple SKUs</li>
+                <li>Alternative images: One SKU → Multiple images</li>
+                <li>Comprehensive similarity scoring (80%+ threshold)</li>
               </ul>
             </div>
           </div>

@@ -195,17 +195,30 @@ Deno.serve(async (req) => {
     progress.foundImages = storageImages.length
     await logMessage('info', `Found ${storageImages.length} images in storage bucket (including subdirectories)`)
 
-    // Enhanced matching functions inspired by ImageSKUMatcher from GDrive migration
+    // Enhanced multi-SKU image cache with comprehensive mapping
     const createImageCache = () => {
-      const cache = new Map<string, StorageFile>()
-      const stats = { processed: 0, matched: 0, failed: 0 }
+      // Use Maps to handle multiple images per SKU
+      const skuToImages = new Map<string, StorageFile[]>()
+      const imageToSkus = new Map<string, string[]>()
+      const stats = { 
+        processed: 0, 
+        matched: 0, 
+        failed: 0, 
+        multiSkuFiles: 0,
+        uniqueSkus: 0,
+        duplicateSkus: 0
+      }
       
       return {
         buildMapping: (storageFiles: StorageFile[]) => {
-          cache.clear()
+          skuToImages.clear()
+          imageToSkus.clear()
           stats.processed = storageFiles?.length || 0
           stats.matched = 0
           stats.failed = 0
+          stats.multiSkuFiles = 0
+          stats.uniqueSkus = 0
+          stats.duplicateSkus = 0
           
           if (!storageFiles || storageFiles.length === 0) return
           
@@ -214,11 +227,28 @@ Deno.serve(async (req) => {
               if (!file?.name) continue
               
               const codes = extractProductCodes(file.name)
+              if (codes.length === 0) {
+                stats.failed++
+                continue
+              }
+              
+              // Track multi-SKU files
+              if (codes.length > 1) {
+                stats.multiSkuFiles++
+              }
+              
+              // Store bidirectional mapping
+              imageToSkus.set(file.name, codes)
+              
               for (const code of codes) {
-                if (!cache.has(code)) {
-                  cache.set(code, file)
-                  stats.matched++
+                if (!skuToImages.has(code)) {
+                  skuToImages.set(code, [])
+                  stats.uniqueSkus++
+                } else {
+                  stats.duplicateSkus++
                 }
+                skuToImages.get(code)!.push(file)
+                stats.matched++
               }
             } catch (error) {
               stats.failed++
@@ -228,38 +258,117 @@ Deno.serve(async (req) => {
         },
         
         getImage: (sku: string) => {
-          if (!sku) return { found: false, image: null }
+          if (!sku) return { found: false, image: null, alternatives: [] }
           
           const normalizedSku = sku.toLowerCase().trim()
           
           // Direct match
-          if (cache.has(normalizedSku)) {
-            return { found: true, image: cache.get(normalizedSku) }
+          if (skuToImages.has(normalizedSku)) {
+            const images = skuToImages.get(normalizedSku)!
+            return { 
+              found: true, 
+              image: images[0], // Primary match
+              alternatives: images.slice(1), // Additional matches
+              allCodes: imageToSkus.get(images[0].name) || []
+            }
           }
           
           // Try with zero padding for 3-digit SKUs
           if (/^\d{3}$/.test(normalizedSku)) {
             const paddedSku = '0' + normalizedSku
-            if (cache.has(paddedSku)) {
-              return { found: true, image: cache.get(paddedSku) }
+            if (skuToImages.has(paddedSku)) {
+              const images = skuToImages.get(paddedSku)!
+              return { 
+                found: true, 
+                image: images[0],
+                alternatives: images.slice(1),
+                allCodes: imageToSkus.get(images[0].name) || []
+              }
             }
           }
           
           // Try without leading zero for 4-digit SKUs
           if (/^0\d{3}$/.test(normalizedSku)) {
             const unpaddedSku = normalizedSku.substring(1)
-            if (cache.has(unpaddedSku)) {
-              return { found: true, image: cache.get(unpaddedSku) }
+            if (skuToImages.has(unpaddedSku)) {
+              const images = skuToImages.get(unpaddedSku)!
+              return { 
+                found: true, 
+                image: images[0],
+                alternatives: images.slice(1),
+                allCodes: imageToSkus.get(images[0].name) || []
+              }
             }
           }
           
-          return { found: false, image: null }
+          // Fuzzy matching for similar SKUs
+          for (const [cachedSku, images] of skuToImages.entries()) {
+            if (calculateSimilarity(normalizedSku, cachedSku) > 0.8) {
+              return { 
+                found: true, 
+                image: images[0],
+                alternatives: images.slice(1),
+                allCodes: imageToSkus.get(images[0].name) || [],
+                fuzzyMatch: true,
+                matchedSku: cachedSku
+              }
+            }
+          }
+          
+          return { found: false, image: null, alternatives: [] }
         },
         
-        getStats: () => ({ ...stats, cacheSize: cache.size })
+        getStats: () => ({ ...stats, totalMappings: skuToImages.size }),
+        
+        getSkusForImage: (imageName: string) => imageToSkus.get(imageName) || [],
+        
+        getAllMappings: () => {
+          const mappings: Array<{sku: string, images: StorageFile[], isMultiSku: boolean}> = []
+          for (const [sku, images] of skuToImages.entries()) {
+            mappings.push({
+              sku,
+              images,
+              isMultiSku: images.some(img => (imageToSkus.get(img.name) || []).length > 1)
+            })
+          }
+          return mappings.sort((a, b) => a.sku.localeCompare(b.sku))
+        }
       }
     }
+    
+    // Helper function for fuzzy matching
+    function calculateSimilarity(str1: string, str2: string): number {
+      const longer = str1.length > str2.length ? str1 : str2
+      const shorter = str1.length > str2.length ? str2 : str1
+      
+      if (longer.length === 0) return 1.0
+      
+      const editDistance = levenshteinDistance(longer, shorter)
+      return (longer.length - editDistance) / longer.length
+    }
+    
+    function levenshteinDistance(str1: string, str2: string): number {
+      const matrix = Array(str2.length + 1).fill(null).map(() => 
+        Array(str1.length + 1).fill(null))
+      
+      for (let i = 0; i <= str1.length; i++) matrix[0][i] = i
+      for (let j = 0; j <= str2.length; j++) matrix[j][0] = j
+      
+      for (let j = 1; j <= str2.length; j++) {
+        for (let i = 1; i <= str1.length; i++) {
+          const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1
+          matrix[j][i] = Math.min(
+            matrix[j][i - 1] + 1,
+            matrix[j - 1][i] + 1,
+            matrix[j - 1][i - 1] + indicator
+          )
+        }
+      }
+      
+      return matrix[str2.length][str1.length]
+    }
 
+    // Enhanced multi-SKU extraction function inspired by PowerShell script
     function extractProductCodes(filename: string): string[] {
       if (!filename || typeof filename !== 'string') return []
       
@@ -268,7 +377,24 @@ Deno.serve(async (req) => {
         const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
         const cleanName = nameWithoutExt.toLowerCase()
         
-        // Extract numeric codes (3-6 digits)
+        // Multi-SKU pattern: Handle files like "319027.319026.PNG" or "123.456.789.jpg"
+        const multiSkuPattern = /\b\d{3,6}(?:\.\d{3,6})+\b/g
+        const multiSkuMatches = cleanName.match(multiSkuPattern)
+        if (multiSkuMatches) {
+          multiSkuMatches.forEach(match => {
+            // Split by dots and extract individual SKUs
+            const skus = match.split('.').filter(sku => sku.length >= 3)
+            skus.forEach(sku => {
+              codes.add(sku)
+              // Auto-pad 3-digit codes
+              if (sku.length === 3 && /^\d{3}$/.test(sku)) {
+                codes.add('0' + sku)
+              }
+            })
+          })
+        }
+        
+        // Standard numeric codes (3-6 digits) - enhanced patterns
         const numericMatches = cleanName.match(/\b\d{3,6}\b/g)
         if (numericMatches) {
           numericMatches.forEach(match => {
@@ -277,40 +403,67 @@ Deno.serve(async (req) => {
             if (match.length === 3) {
               codes.add('0' + match)
             }
+            // Also try with leading zeros stripped
+            if (match.length > 3 && match.startsWith('0')) {
+              codes.add(match.substring(1))
+            }
           })
         }
         
-        // Extract alphanumeric codes (3-8 characters)
-        const alphanumericMatches = cleanName.match(/\b[a-z0-9]{3,8}\b/g)
+        // Enhanced alphanumeric codes (3-10 characters)
+        const alphanumericMatches = cleanName.match(/\b[a-z0-9]{3,10}\b/g)
         if (alphanumericMatches) {
           alphanumericMatches.forEach(match => codes.add(match))
         }
         
-        // Handle separators and split by common delimiters
-        const parts = cleanName.split(/[-_\s\.]+/).filter(part => part && part.length > 0)
+        // Handle multiple delimiters: dots, dashes, underscores, spaces
+        const delimiters = /[-_\s\.]+/
+        const parts = cleanName.split(delimiters).filter(part => part && part.length > 0)
         for (const part of parts) {
-          if (/^\d{3,6}$/.test(part) || /^[a-z0-9]{3,8}$/.test(part)) {
+          if (/^\d{3,6}$/.test(part)) {
             codes.add(part)
-            if (/^\d{3}$/.test(part)) {
+            if (part.length === 3) {
               codes.add('0' + part)
             }
+          } else if (/^[a-z0-9]{3,10}$/.test(part)) {
+            codes.add(part)
           }
         }
         
-        // Try common prefixes
-        const prefixes = ['product', 'item', 'sku', 'code']
+        // Enhanced prefix patterns - more comprehensive
+        const prefixes = ['product', 'item', 'sku', 'code', 'img', 'pic', 'photo']
         for (const prefix of prefixes) {
-          const regex = new RegExp(`${prefix}[-_\\s]*([a-z0-9]{3,8})`, 'g')
+          const regex = new RegExp(`${prefix}[-_\\s]*([a-z0-9]{3,10})`, 'gi')
           let match
           while ((match = regex.exec(cleanName)) !== null) {
-            codes.add(match[1])
-            if (/^\d{3}$/.test(match[1])) {
-              codes.add('0' + match[1])
+            const code = match[1].toLowerCase()
+            codes.add(code)
+            if (/^\d{3}$/.test(code)) {
+              codes.add('0' + code)
             }
           }
         }
         
-        return Array.from(codes)
+        // Extract from path segments (handle subdirectories)
+        const pathParts = filename.split('/').filter(part => part && !part.includes('.'))
+        for (const pathPart of pathParts) {
+          const pathCodes = extractProductCodes(pathPart)
+          pathCodes.forEach(code => codes.add(code))
+        }
+        
+        // Handle bracket patterns: [SKU123] or (456)
+        const bracketMatches = cleanName.match(/[\[\(]([a-z0-9]{3,10})[\]\)]/g)
+        if (bracketMatches) {
+          bracketMatches.forEach(match => {
+            const code = match.replace(/[\[\(\]\)]/g, '').toLowerCase()
+            codes.add(code)
+            if (/^\d{3}$/.test(code)) {
+              codes.add('0' + code)
+            }
+          })
+        }
+        
+        return Array.from(codes).filter(code => code.length >= 3)
       } catch (error) {
         console.error('Error extracting codes from:', filename, error)
         return []
@@ -331,12 +484,21 @@ Deno.serve(async (req) => {
     const cacheStats = imageCache.getStats()
     await logMessage('info', `Image cache built: ${cacheStats.cacheSize} unique mappings from ${cacheStats.processed} images`)
 
-    // Step 4: Match products to images efficiently using intelligent cache
+    // Step 4: Match products to images with enhanced reporting
     progress.total = products.length
-    progress.currentStep = 'Matching products to images using intelligent cache'
+    progress.currentStep = 'Matching products to images using enhanced multi-SKU cache'
     await sendProgressUpdate(progress)
 
-    const matches: Array<{ product: any, image: StorageFile }> = []
+    const matches: Array<{ 
+      product: any, 
+      image: StorageFile, 
+      matchType: string,
+      allCodes?: string[],
+      alternatives?: StorageFile[]
+    }> = []
+    const missingSkus: Array<{sku: string, productName: string}> = []
+    let fuzzyMatches = 0
+    let multiSkuMatches = 0
     
     for (const product of products) {
       if (!product.sku) {
@@ -349,13 +511,50 @@ Deno.serve(async (req) => {
 
       const result = imageCache.getImage(product.sku)
       if (result.found && result.image) {
-        matches.push({ product, image: result.image })
+        const matchType = result.fuzzyMatch ? 'fuzzy' : 'exact'
+        if (result.fuzzyMatch) fuzzyMatches++
+        if ((result.allCodes || []).length > 1) multiSkuMatches++
+        
+        matches.push({ 
+          product, 
+          image: result.image,
+          matchType,
+          allCodes: result.allCodes,
+          alternatives: result.alternatives
+        })
         progress.matchedProducts++
-        await logMessage('info', `✅ Matched SKU ${product.sku} to image ${result.image.name}`)
+        
+        const matchInfo = result.fuzzyMatch 
+          ? `✅ Fuzzy matched SKU ${product.sku} to ${result.matchedSku} in ${result.image.name}`
+          : `✅ Matched SKU ${product.sku} to image ${result.image.name}`
+        
+        if ((result.allCodes || []).length > 1) {
+          await logMessage('info', `${matchInfo} [Multi-SKU: ${result.allCodes?.join(', ')}]`)
+        } else {
+          await logMessage('info', matchInfo)
+        }
+        
+        if ((result.alternatives || []).length > 0) {
+          await logMessage('info', `   📎 ${result.alternatives?.length} additional images available for this SKU`)
+        }
+      } else {
+        missingSkus.push({sku: product.sku, productName: product.name})
       }
 
       progress.processed++
       await sendProgressUpdate(progress)
+    }
+    
+    // Log summary statistics
+    const cacheStats = imageCache.getStats()
+    await logMessage('info', `📊 Cache Statistics: ${cacheStats.totalMappings} unique SKU mappings, ${cacheStats.multiSkuFiles} multi-SKU files`)
+    await logMessage('info', `📊 Match Statistics: ${matches.length} total matches (${fuzzyMatches} fuzzy, ${multiSkuMatches} multi-SKU)`)
+    
+    if (missingSkus.length > 0) {
+      await logMessage('warn', `⚠️ Missing images for ${missingSkus.length} SKUs`)
+      // Log first few missing SKUs as examples
+      const exampleMissing = missingSkus.slice(0, 5).map(item => item.sku).join(', ')
+      await logMessage('warn', `   Examples: ${exampleMissing}${missingSkus.length > 5 ? '...' : ''}`)
     }
 
     // Step 4: Process matches and update database
@@ -426,12 +625,23 @@ Deno.serve(async (req) => {
     progress.currentFile = undefined
     await sendProgressUpdate(progress)
 
-    await logMessage('info', `🎉 Storage scan completed: Found ${progress.foundImages} images, matched ${progress.matchedProducts} products, updated ${progress.successful} successfully, ${progress.failed} failed`)
+    // Generate comprehensive final report
+    const finalStats = imageCache.getStats()
+    const mappingReport = imageCache.getAllMappings()
+    
+    await logMessage('info', `🎉 Storage scan completed!`)
+    await logMessage('info', `📈 Final Results:`)
+    await logMessage('info', `   • ${progress.foundImages} images found in storage`)
+    await logMessage('info', `   • ${progress.matchedProducts} products matched (${fuzzyMatches} fuzzy matches)`)
+    await logMessage('info', `   • ${progress.successful} database records updated successfully`)
+    await logMessage('info', `   • ${progress.failed} operations failed`)
+    await logMessage('info', `   • ${finalStats.multiSkuFiles} files contained multiple SKUs`)
+    await logMessage('info', `   • ${missingSkus.length} SKUs had no matching images`)
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Storage image scan and mapping completed',
+        message: 'Enhanced storage image scan and mapping completed',
         sessionId,
         results: {
           foundImages: progress.foundImages,
@@ -439,7 +649,13 @@ Deno.serve(async (req) => {
           processed: progress.processed,
           successful: progress.successful,
           failed: progress.failed,
-          errors: progress.errors
+          errors: progress.errors,
+          fuzzyMatches,
+          multiSkuMatches,
+          missingSkus: missingSkus.length,
+          cacheStats: finalStats,
+          detailedMappings: mappingReport.slice(0, 100), // Limit for response size
+          missingSkusList: missingSkus.slice(0, 50) // Limit for response size
         }
       }),
       {
