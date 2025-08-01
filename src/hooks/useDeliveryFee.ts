@@ -41,6 +41,8 @@ export const useDeliveryFee = (subtotal: number, selectedZone?: string) => {
   });
 
   useEffect(() => {
+    if (isLoading) return; // Don't calculate while loading
+    
     if (!deliveryZones.length || subtotal <= 0) {
       setCalculatedDelivery({
         deliveryFee: 0,
@@ -96,7 +98,7 @@ export const useDeliveryFee = (subtotal: number, selectedZone?: string) => {
       deliveryZone: zone,
       amountForFreeDelivery
     });
-  }, [deliveryZones, subtotal, selectedZone]);
+  }, [deliveryZones, subtotal, selectedZone, isLoading]);
 
   return {
     ...calculatedDelivery,
