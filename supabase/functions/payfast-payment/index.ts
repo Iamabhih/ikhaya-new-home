@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -139,7 +140,7 @@ serve(async (req) => {
 })
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Create parameter string
+  // Create parameter string - matching PayFast PHP implementation
   const params = Object.keys(data)
     .filter(key => key !== 'signature' && data[key] !== '')
     .sort()
@@ -148,22 +149,23 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
 
   // Add passphrase if provided
   const stringToHash = passphrase ? `${params}&passphrase=${encodeURIComponent(passphrase)}` : params
+  
+  console.log('String to hash:', stringToHash)
 
   try {
-    // Generate MD5 hash using a simple implementation
+    // Generate proper MD5 hash like PayFast expects
     const encoder = new TextEncoder()
     const data_encoded = encoder.encode(stringToHash)
+    const hashBuffer = await crypto.subtle.digest("MD5", data_encoded)
     
-    // Simple MD5-like hash for compatibility
-    let hash = 0
-    for (let i = 0; i < stringToHash.length; i++) {
-      const char = stringToHash.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
-      hash = hash & hash // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString(16).padStart(8, '0')
+    // Convert to hex string
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    
+    console.log('Generated signature:', hashHex)
+    return hashHex
   } catch (error) {
     console.error('Signature generation error:', error)
-    return '00000000'
+    throw new Error('Failed to generate payment signature')
   }
 }
