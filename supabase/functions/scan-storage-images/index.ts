@@ -257,6 +257,15 @@ Deno.serve(async (req) => {
     }
 
     await sendProgressUpdate(progress)
+    
+    // Return immediately to client with session ID for realtime updates
+    const responsePromise = new Response(
+      JSON.stringify({ success: true, sessionId }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+    
+    // Continue processing in background
+    setTimeout(async () => {
 
     // Step 1: Get all products with their SKUs
     progress.status = 'scanning'
@@ -686,5 +695,8 @@ Deno.serve(async (req) => {
         status: 500
       }
     )
+    }, 0) // End of setTimeout
+    
+    return responsePromise
   }
 })
