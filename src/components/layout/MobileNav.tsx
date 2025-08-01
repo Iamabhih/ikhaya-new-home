@@ -39,7 +39,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/admin/payments", label: "Payments", icon: CreditCard },
+    
     { href: "/admin/returns", label: "Returns", icon: RotateCcw },
   ];
 

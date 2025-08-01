@@ -118,12 +118,6 @@ export const Header = () => {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/admin/payments" className="w-full">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Payments
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
                       <Link to="/admin/returns" className="w-full">
                         <RotateCcw className="h-4 w-4 mr-2" />
                         Returns
