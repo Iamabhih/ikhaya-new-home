@@ -12,6 +12,12 @@ verify_jwt = false
 [functions.scan-storage-images]
 verify_jwt = false
 
+[functions.payfast-payment]
+verify_jwt = true
+
+[functions.payfast-webhook]
+verify_jwt = false
+
 [functions.import-products]
 verify_jwt = false
 

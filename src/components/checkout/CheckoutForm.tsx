@@ -8,6 +8,7 @@ import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDeliveryFee } from "@/hooks/useDeliveryFee";
+import { PayfastPayment } from "./PayfastPayment";
 
 interface CheckoutFormProps {
   user: any;
@@ -17,7 +18,8 @@ interface CheckoutFormProps {
 export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
   const { items, clearCart, total: cartTotal } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentStep, setCurrentStep] = useState('billing'); // billing, success
+  const [currentStep, setCurrentStep] = useState('billing'); // billing, payment, success
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: user?.email || "",
     firstName: "",
@@ -31,21 +33,104 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
 
   const { deliveryFee, deliveryZone } = useDeliveryFee(cartTotal);
 
-  const handleBillingSubmit = (e: React.FormEvent) => {
+  const handleBillingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Create order without payment processing for now
-    toast.success("Order information saved! Payment integration coming soon.");
-    setCurrentStep('success');
+    setIsProcessing(true);
+
+    try {
+      // Generate order number
+      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+      // Create order in database
+      const orderData = {
+        user_id: user?.id,
+        email: formData.email,
+        customer_name: `${formData.firstName} ${formData.lastName}`,
+        customer_phone: formData.phone,
+        order_number: orderNumber,
+        billing_address: {
+          address: formData.address,
+          city: formData.city,
+          province: formData.province,
+          postal_code: formData.postalCode
+        },
+        shipping_address: {
+          address: formData.address,
+          city: formData.city,
+          province: formData.province,
+          postal_code: formData.postalCode
+        },
+        subtotal: cartTotal,
+        delivery_fee: deliveryFee,
+        total_amount: cartTotal + deliveryFee,
+        status: 'awaiting_payment' as const,
+        payment_status: 'pending' as const
+      };
+
+      const { data: order, error } = await supabase
+        .from('orders')
+        .insert(orderData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Insert order items
+      const orderItems = items.map(item => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.product.price,
+        total_price: item.product.price * item.quantity,
+        product_name: item.product.name
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      setOrderId(order.id);
+      setCurrentStep('payment');
+      toast.success("Order created! Please complete payment.");
+
+    } catch (error) {
+      console.error('Order creation error:', error);
+      toast.error("Failed to create order. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  if (currentStep === 'payment' && orderId) {
+    return (
+      <PayfastPayment
+        orderData={{
+          orderId,
+          amount: cartTotal + deliveryFee,
+          customerEmail: formData.email,
+          customerName: `${formData.firstName} ${formData.lastName}`,
+          customerPhone: formData.phone,
+          items: items.map(item => ({
+            name: item.product.name,
+            description: item.product.short_description || '',
+            quantity: item.quantity,
+            amount: item.product.price * item.quantity
+          }))
+        }}
+      />
+    );
+  }
 
   if (currentStep === 'success') {
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Order Information Saved</CardTitle>
+          <CardTitle>Payment Successful!</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Your order information has been saved successfully. Payment integration will be available soon.</p>
+          <p>Your order has been processed successfully. You will receive a confirmation email shortly.</p>
         </CardContent>
       </Card>
     );
@@ -202,7 +287,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
               size="lg"
               disabled={isProcessing}
             >
-              Continue to Payment
+              {isProcessing ? "Creating Order..." : "Continue to Payment"}
             </Button>
           </div>
         </form>
