@@ -223,6 +223,75 @@ export type Database = {
         }
         Relationships: []
       }
+      cached_drive_images: {
+        Row: {
+          created_at: string
+          direct_url: string
+          drive_id: string
+          file_size: number | null
+          filename: string
+          id: string
+          is_linked: boolean | null
+          linked_at: string | null
+          linked_by: string | null
+          linked_product_id: string | null
+          metadata: Json | null
+          mime_type: string | null
+          scan_session_id: string | null
+          sku: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          direct_url: string
+          drive_id: string
+          file_size?: number | null
+          filename: string
+          id?: string
+          is_linked?: boolean | null
+          linked_at?: string | null
+          linked_by?: string | null
+          linked_product_id?: string | null
+          metadata?: Json | null
+          mime_type?: string | null
+          scan_session_id?: string | null
+          sku?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          direct_url?: string
+          drive_id?: string
+          file_size?: number | null
+          filename?: string
+          id?: string
+          is_linked?: boolean | null
+          linked_at?: string | null
+          linked_by?: string | null
+          linked_product_id?: string | null
+          metadata?: Json | null
+          mime_type?: string | null
+          scan_session_id?: string | null
+          sku?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cached_drive_images_linked_product_id_fkey"
+            columns: ["linked_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_performance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cached_drive_images_linked_product_id_fkey"
+            columns: ["linked_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -853,7 +922,11 @@ export type Database = {
           internal_notes: string | null
           notes: string | null
           order_number: string
+          payment_gateway: string | null
+          payment_gateway_response: Json | null
           payment_method: string | null
+          payment_reference: string | null
+          payment_status: string | null
           priority: Database["public"]["Enums"]["order_priority"] | null
           shipped_at: string | null
           shipping_address: Json | null
@@ -889,7 +962,11 @@ export type Database = {
           internal_notes?: string | null
           notes?: string | null
           order_number: string
+          payment_gateway?: string | null
+          payment_gateway_response?: Json | null
           payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           priority?: Database["public"]["Enums"]["order_priority"] | null
           shipped_at?: string | null
           shipping_address?: Json | null
@@ -925,7 +1002,11 @@ export type Database = {
           internal_notes?: string | null
           notes?: string | null
           order_number?: string
+          payment_gateway?: string | null
+          payment_gateway_response?: Json | null
           payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           priority?: Database["public"]["Enums"]["order_priority"] | null
           shipped_at?: string | null
           shipping_address?: Json | null
@@ -1156,6 +1237,7 @@ export type Database = {
           is_primary: boolean | null
           product_id: string
           sort_order: number | null
+          updated_at: string | null
         }
         Insert: {
           alt_text?: string | null
@@ -1165,6 +1247,7 @@ export type Database = {
           is_primary?: boolean | null
           product_id: string
           sort_order?: number | null
+          updated_at?: string | null
         }
         Update: {
           alt_text?: string | null
@@ -1174,6 +1257,7 @@ export type Database = {
           is_primary?: boolean | null
           product_id?: string
           sort_order?: number | null
+          updated_at?: string | null
         }
         Relationships: [
           {
