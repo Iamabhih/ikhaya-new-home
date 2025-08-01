@@ -175,151 +175,148 @@ Deno.serve(async (req) => {
     progress.foundImages = storageImages.length
     await logMessage('info', `Found ${storageImages.length} images in storage bucket (including subdirectories)`)
 
-    // Enhanced helper function to extract all possible SKU variants from filename
-    function extractProductCodes(filename: string): string[] {
-      const codes: string[] = []
+    // Enhanced matching functions inspired by ImageSKUMatcher from GDrive migration
+    const createImageCache = () => {
+      const cache = new Map<string, StorageFile>()
+      const stats = { processed: 0, matched: 0, failed: 0 }
       
-      // Remove file extension and path
-      const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff|svg)$/i, '')
-      const baseFilename = nameWithoutExt.split('/').pop() || nameWithoutExt
-      
-      // Pattern 1: Pure numeric codes (2-8 digits)
-      const numericCodes = baseFilename.match(/\b\d{2,8}\b/g)
-      if (numericCodes) {
-        codes.push(...numericCodes)
-      }
-      
-      // Pattern 2: Alphanumeric codes (2-12 characters)
-      const alphanumericCodes = baseFilename.match(/\b[A-Z0-9]{2,12}\b/gi)
-      if (alphanumericCodes) {
-        codes.push(...alphanumericCodes.map(code => code.toLowerCase()))
-      }
-      
-      // Pattern 3: Split by common delimiters and check each part
-      const delimiters = /[-_\s\.#\(\)\[\]]+/
-      const parts = baseFilename.split(delimiters)
-      for (const part of parts) {
-        const cleanPart = part.trim()
-        if (cleanPart.length >= 2 && /^[A-Z0-9]+$/i.test(cleanPart)) {
-          codes.push(cleanPart.toLowerCase())
-        }
-      }
-      
-      // Pattern 4: Extract from common SKU patterns
-      // SKU-123, ITEM_456, PROD-ABC123, etc.
-      const skuPatterns = baseFilename.match(/(?:sku|item|prod|code|ref)[-_\s]*([a-z0-9]+)/gi)
-      if (skuPatterns) {
-        skuPatterns.forEach(pattern => {
-          const match = pattern.match(/([a-z0-9]+)$/i)
-          if (match) {
-            codes.push(match[1].toLowerCase())
+      return {
+        buildMapping: (storageFiles: StorageFile[]) => {
+          cache.clear()
+          stats.processed = storageFiles?.length || 0
+          stats.matched = 0
+          stats.failed = 0
+          
+          if (!storageFiles || storageFiles.length === 0) return
+          
+          for (const file of storageFiles) {
+            try {
+              if (!file?.name) continue
+              
+              const codes = extractProductCodes(file.name)
+              for (const code of codes) {
+                if (!cache.has(code)) {
+                  cache.set(code, file)
+                  stats.matched++
+                }
+              }
+            } catch (error) {
+              stats.failed++
+              continue
+            }
           }
-        })
-      }
-      
-      // Pattern 5: Handle zero-padded variations
-      const originalCodes = [...codes]
-      for (const code of originalCodes) {
-        if (/^\d{2,3}$/.test(code)) {
-          // Add zero-padded versions for short numeric codes
-          codes.push('0' + code)
-          if (code.length === 2) {
-            codes.push('00' + code)
+        },
+        
+        getImage: (sku: string) => {
+          if (!sku) return { found: false, image: null }
+          
+          const normalizedSku = sku.toLowerCase().trim()
+          
+          // Direct match
+          if (cache.has(normalizedSku)) {
+            return { found: true, image: cache.get(normalizedSku) }
           }
-        }
-        if (/^0+\d+$/.test(code)) {
-          // Add version without leading zeros
-          codes.push(code.replace(/^0+/, ''))
-        }
+          
+          // Try with zero padding for 3-digit SKUs
+          if (/^\d{3}$/.test(normalizedSku)) {
+            const paddedSku = '0' + normalizedSku
+            if (cache.has(paddedSku)) {
+              return { found: true, image: cache.get(paddedSku) }
+            }
+          }
+          
+          // Try without leading zero for 4-digit SKUs
+          if (/^0\d{3}$/.test(normalizedSku)) {
+            const unpaddedSku = normalizedSku.substring(1)
+            if (cache.has(unpaddedSku)) {
+              return { found: true, image: cache.get(unpaddedSku) }
+            }
+          }
+          
+          return { found: false, image: null }
+        },
+        
+        getStats: () => ({ ...stats, cacheSize: cache.size })
       }
-      
-      // Pattern 6: Handle common variations
-      for (const code of originalCodes) {
-        // Add with/without common prefixes
-        if (code.startsWith('0')) {
-          codes.push(code.substring(1))
-        } else {
-          codes.push('0' + code)
-        }
-      }
-      
-      // Remove duplicates and sort by length (longer codes first for better matching)
-      return [...new Set(codes)].sort((a, b) => b.length - a.length)
     }
 
-    // Enhanced matching function with fuzzy matching capabilities
-    function findBestMatch(productSku: string, storageImages: StorageFile[]): StorageFile[] {
-      const normalizedSku = productSku.toLowerCase().trim()
-      const matches: { file: StorageFile, score: number }[] = []
+    function extractProductCodes(filename: string): string[] {
+      if (!filename || typeof filename !== 'string') return []
       
-      for (const file of storageImages) {
-        const fileName = file.name.toLowerCase()
-        const extractedCodes = extractProductCodes(file.name)
+      try {
+        const codes = new Set<string>()
+        const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
+        const cleanName = nameWithoutExt.toLowerCase()
         
-        let score = 0
-        
-        // Exact filename match (highest score)
-        if (fileName.includes(`${normalizedSku}.`) || 
-            fileName.includes(`/${normalizedSku}.`) ||
-            fileName.includes(`_${normalizedSku}.`) ||
-            fileName.includes(`-${normalizedSku}.`)) {
-          score = 100
+        // Extract numeric codes (3-6 digits)
+        const numericMatches = cleanName.match(/\b\d{3,6}\b/g)
+        if (numericMatches) {
+          numericMatches.forEach(match => {
+            codes.add(match)
+            // Auto-pad short codes
+            if (match.length === 3) {
+              codes.add('0' + match)
+            }
+          })
         }
         
-        // Exact code match in extracted codes
-        else if (extractedCodes.includes(normalizedSku)) {
-          score = 90
+        // Extract alphanumeric codes (3-8 characters)
+        const alphanumericMatches = cleanName.match(/\b[a-z0-9]{3,8}\b/g)
+        if (alphanumericMatches) {
+          alphanumericMatches.forEach(match => codes.add(match))
         }
         
-        // Handle numeric SKU variations
-        else if (/^\d+$/.test(normalizedSku)) {
-          // For numeric SKUs, try different padding
-          if (extractedCodes.includes('0' + normalizedSku)) {
-            score = 85
-          } else if (normalizedSku.startsWith('0') && extractedCodes.includes(normalizedSku.substring(1))) {
-            score = 85
-          } else if (extractedCodes.includes('00' + normalizedSku)) {
-            score = 80
-          }
-        }
-        
-        // Partial matches
-        if (score === 0) {
-          for (const code of extractedCodes) {
-            if (code.includes(normalizedSku) || normalizedSku.includes(code)) {
-              if (Math.abs(code.length - normalizedSku.length) <= 1) {
-                score = Math.max(score, 70)
-              } else {
-                score = Math.max(score, 50)
-              }
+        // Handle separators and split by common delimiters
+        const parts = cleanName.split(/[-_\s\.]+/).filter(part => part && part.length > 0)
+        for (const part of parts) {
+          if (/^\d{3,6}$/.test(part) || /^[a-z0-9]{3,8}$/.test(part)) {
+            codes.add(part)
+            if (/^\d{3}$/.test(part)) {
+              codes.add('0' + part)
             }
           }
         }
         
-        // Filename contains SKU
-        if (score === 0 && fileName.includes(normalizedSku)) {
-          score = 40
+        // Try common prefixes
+        const prefixes = ['product', 'item', 'sku', 'code']
+        for (const prefix of prefixes) {
+          const regex = new RegExp(`${prefix}[-_\\s]*([a-z0-9]{3,8})`, 'g')
+          let match
+          while ((match = regex.exec(cleanName)) !== null) {
+            codes.add(match[1])
+            if (/^\d{3}$/.test(match[1])) {
+              codes.add('0' + match[1])
+            }
+          }
         }
         
-        if (score > 0) {
-          matches.push({ file, score })
-        }
+        return Array.from(codes)
+      } catch (error) {
+        console.error('Error extracting codes from:', filename, error)
+        return []
       }
-      
-      // Sort by score (highest first) and return all matches above threshold
-      return matches
-        .filter(m => m.score >= 40)
-        .sort((a, b) => b.score - a.score)
-        .map(m => m.file)
     }
 
-    // Step 3: Match products to images
+    // Initialize image cache
+    const imageCache = createImageCache()
+
+    // Step 3: Build image mapping using enhanced cache
     progress.status = 'processing'
-    progress.total = products.length
-    progress.currentStep = 'Matching products to storage images'
+    progress.currentStep = 'Building intelligent image mapping cache'
     await sendProgressUpdate(progress)
 
-    const matches: Array<{ product: any, images: StorageFile[] }> = []
+    await logMessage('info', `Building image cache from ${storageImages.length} images`)
+    imageCache.buildMapping(storageImages)
+    
+    const cacheStats = imageCache.getStats()
+    await logMessage('info', `Image cache built: ${cacheStats.cacheSize} unique mappings from ${cacheStats.processed} images`)
+
+    // Step 4: Match products to images efficiently using intelligent cache
+    progress.total = products.length
+    progress.currentStep = 'Matching products to images using intelligent cache'
+    await sendProgressUpdate(progress)
+
+    const matches: Array<{ product: any, image: StorageFile }> = []
     
     for (const product of products) {
       if (!product.sku) {
@@ -330,11 +327,11 @@ Deno.serve(async (req) => {
       progress.currentFile = `Analyzing SKU: ${product.sku}`
       await sendProgressUpdate(progress)
 
-      const matchingImages = findBestMatch(product.sku, storageImages)
-      if (matchingImages.length > 0) {
-        matches.push({ product, images: matchingImages })
+      const result = imageCache.getImage(product.sku)
+      if (result.found && result.image) {
+        matches.push({ product, image: result.image })
         progress.matchedProducts++
-        await logMessage('info', `Found ${matchingImages.length} image(s) for SKU ${product.sku}`)
+        await logMessage('info', `✅ Matched SKU ${product.sku} to image ${result.image.name}`)
       }
 
       progress.processed++
@@ -347,7 +344,7 @@ Deno.serve(async (req) => {
     progress.processed = 0
     await sendProgressUpdate(progress)
 
-    for (const { product, images } of matches) {
+    for (const { product, image } of matches) {
       try {
         progress.currentFile = `Updating ${product.sku}`
         await sendProgressUpdate(progress)
@@ -358,43 +355,39 @@ Deno.serve(async (req) => {
           .select('*')
           .eq('product_id', product.id)
 
+        // Get public URL for the storage file
+        const { data: urlData } = supabaseClient.storage
+          .from('product-images')
+          .getPublicUrl(image.name)
+
+        // Skip if this URL already exists for this product
         const existingUrls = new Set(existingImages?.map(img => img.image_url) || [])
-
-        // Process each matched image
-        for (let i = 0; i < images.length; i++) {
-          const image = images[i]
-          
-          // Get public URL for the storage file
-          const { data: urlData } = supabaseClient.storage
-            .from('product-images')
-            .getPublicUrl(image.name)
-
-          // Skip if this URL already exists for this product
-          if (existingUrls.has(urlData.publicUrl)) {
-            continue
-          }
-
-          // Determine if this should be the primary image
-          const isPrimary = i === 0 && !existingImages?.some(img => img.is_primary)
-
-          // Insert new image record
-          const { error: insertError } = await supabaseClient
-            .from('product_images')
-            .insert({
-              product_id: product.id,
-              image_url: urlData.publicUrl,
-              alt_text: `${product.name} product image`,
-              is_primary: isPrimary,
-              sort_order: existingImages?.length ? existingImages.length + i : i
-            })
-
-          if (insertError) {
-            await logMessage('warn', `Failed to insert image record for ${product.sku}: ${insertError.message}`)
-          }
+        if (existingUrls.has(urlData.publicUrl)) {
+          progress.processed++
+          continue
         }
 
-        progress.successful++
-        await logMessage('info', `✅ Updated image records for ${product.sku} (${images.length} images)`)
+        // Determine if this should be the primary image
+        const isPrimary = !existingImages?.some(img => img.is_primary)
+
+        // Insert new image record
+        const { error: insertError } = await supabaseClient
+          .from('product_images')
+          .insert({
+            product_id: product.id,
+            image_url: urlData.publicUrl,
+            alt_text: `${product.name} product image`,
+            is_primary: isPrimary,
+            sort_order: existingImages?.length || 0
+          })
+
+        if (insertError) {
+          await logMessage('warn', `Failed to insert image record for ${product.sku}: ${insertError.message}`)
+          progress.failed++
+        } else {
+          progress.successful++
+          await logMessage('info', `✅ Updated image record for ${product.sku}`)
+        }
 
       } catch (error) {
         progress.failed++
