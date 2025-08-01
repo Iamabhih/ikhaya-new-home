@@ -218,7 +218,7 @@ serve(async (req) => {
 })
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Create parameter string - exactly matching PayFast PHP implementation
+  // Create parameter string - exactly matching PayFast's specification
   let pfOutput = ''
   
   // Build parameter string (PayFast expects sorted keys)
@@ -229,16 +229,17 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
   for (const key of sortedKeys) {
     const val = data[key]
     if (val !== '') {
-      pfOutput += `${key}=${encodeURIComponent(val.trim())}&`
+      // PayFast requires specific encoding: encodeURIComponent + replace %20 with +
+      pfOutput += `${key}=${encodeURIComponent(val.trim()).replace(/%20/g, "+")}&`
     }
   }
   
   // Remove last ampersand
   let getString = pfOutput.slice(0, -1)
   
-  // Add passphrase if provided
+  // Add passphrase if provided (PayFast format)
   if (passphrase !== null && passphrase !== undefined) {
-    getString += `&passphrase=${encodeURIComponent(passphrase.trim())}`
+    getString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`
   }
   
   console.log('String to hash:', getString)
