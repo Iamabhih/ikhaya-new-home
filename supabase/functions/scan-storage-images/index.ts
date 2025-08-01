@@ -110,9 +110,9 @@ Deno.serve(async (req) => {
 
     await sendProgressUpdate(progress)
 
-    // Step 1: Get all products with their SKUs and categories (like PowerShell script)
+    // Step 1: Get all products with their SKUs and categories
     progress.status = 'scanning'
-    progress.currentStep = 'Fetching products from database with categories'
+    progress.currentStep = 'Fetching products from database'
     await sendProgressUpdate(progress)
 
     const { data: products, error: productsError } = await supabaseClient
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
         id, 
         sku, 
         name,
-        categories!inner(name)
+        categories (name)
       `)
       .not('sku', 'is', null)
 
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to fetch products: ${productsError.message}`)
     }
 
-    await logMessage('info', `Found ${products.length} products with SKUs across categories`)
+    await logMessage('info', `Found ${products.length} products with SKUs`)
 
     // Step 2: Recursively scan storage bucket for all images
     progress.currentStep = 'Scanning storage bucket for images'
@@ -332,7 +332,7 @@ Deno.serve(async (req) => {
     const matches: Array<{ product: any, image: StorageFile, category?: string }> = []
     const missingSkus: Array<{sku: string, productName: string, category?: string}> = []
     
-    // Group products by category for better organization (like PowerShell script)
+    // Group products by category for better organization
     const productsByCategory = new Map<string, any[]>()
     for (const product of products) {
       const categoryName = product.categories?.name || 'Uncategorized'
