@@ -45,8 +45,6 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
       const orderData = {
         user_id: user?.id,
         email: formData.email,
-        customer_name: `${formData.firstName} ${formData.lastName}`,
-        customer_phone: formData.phone,
         order_number: orderNumber,
         billing_address: {
           address: formData.address,
@@ -61,10 +59,9 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
           postal_code: formData.postalCode
         },
         subtotal: cartTotal,
-        delivery_fee: deliveryFee,
+        shipping_amount: deliveryFee,
         total_amount: cartTotal + deliveryFee,
-        status: 'awaiting_payment' as const,
-        payment_status: 'pending' as const
+        status: 'pending' as const
       };
 
       const { data: order, error } = await supabase
