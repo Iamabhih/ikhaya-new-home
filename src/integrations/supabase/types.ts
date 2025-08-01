@@ -1581,8 +1581,11 @@ export type Database = {
           background_color: string | null
           button_text: string | null
           button_url: string | null
+          content_shadow: string | null
           created_at: string
           description: string | null
+          description_font_family: string | null
+          description_font_weight: string | null
           end_date: string | null
           id: string
           image_url: string | null
@@ -1591,16 +1594,25 @@ export type Database = {
           position: number
           start_date: string | null
           subtitle: string | null
+          subtitle_font_family: string | null
+          subtitle_font_weight: string | null
           text_color: string | null
+          text_shadow: string | null
           title: string
+          title_font_family: string | null
+          title_font_weight: string | null
+          title_shadow: string | null
           updated_at: string
         }
         Insert: {
           background_color?: string | null
           button_text?: string | null
           button_url?: string | null
+          content_shadow?: string | null
           created_at?: string
           description?: string | null
+          description_font_family?: string | null
+          description_font_weight?: string | null
           end_date?: string | null
           id?: string
           image_url?: string | null
@@ -1609,16 +1621,25 @@ export type Database = {
           position?: number
           start_date?: string | null
           subtitle?: string | null
+          subtitle_font_family?: string | null
+          subtitle_font_weight?: string | null
           text_color?: string | null
+          text_shadow?: string | null
           title: string
+          title_font_family?: string | null
+          title_font_weight?: string | null
+          title_shadow?: string | null
           updated_at?: string
         }
         Update: {
           background_color?: string | null
           button_text?: string | null
           button_url?: string | null
+          content_shadow?: string | null
           created_at?: string
           description?: string | null
+          description_font_family?: string | null
+          description_font_weight?: string | null
           end_date?: string | null
           id?: string
           image_url?: string | null
@@ -1627,8 +1648,14 @@ export type Database = {
           position?: number
           start_date?: string | null
           subtitle?: string | null
+          subtitle_font_family?: string | null
+          subtitle_font_weight?: string | null
           text_color?: string | null
+          text_shadow?: string | null
           title?: string
+          title_font_family?: string | null
+          title_font_weight?: string | null
+          title_shadow?: string | null
           updated_at?: string
         }
         Relationships: []

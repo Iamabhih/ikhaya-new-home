@@ -75,26 +75,58 @@ export const PromotionalBanners = () => {
           <div className="max-w-4xl mx-auto text-center">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               {/* Left side - Text content */}
-              <div className="space-y-6" style={{
-              color: currentBanner.text_color
-            }}>
-                <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+              <div 
+                className="space-y-6" 
+                style={{
+                  color: currentBanner.text_color,
+                  textShadow: (currentBanner as any).text_shadow !== 'none' ? (currentBanner as any).text_shadow : undefined,
+                  boxShadow: (currentBanner as any).content_shadow !== 'none' ? (currentBanner as any).content_shadow : undefined,
+                  padding: (currentBanner as any).content_shadow !== 'none' ? '1.5rem' : undefined,
+                  borderRadius: (currentBanner as any).content_shadow !== 'none' ? '0.75rem' : undefined
+                }}
+              >
+                <h1 
+                  className="text-4xl md:text-6xl font-bold leading-tight"
+                  style={{ 
+                    fontFamily: (currentBanner as any).title_font_family || 'Inter',
+                    fontWeight: (currentBanner as any).title_font_weight || '700',
+                    textShadow: (currentBanner as any).title_shadow !== 'none' ? (currentBanner as any).title_shadow : undefined
+                  }}
+                >
                   {currentBanner.title}
                 </h1>
                 
-                {currentBanner.subtitle && <h2 className="text-xl md:text-3xl font-medium opacity-90">
+                {currentBanner.subtitle && (
+                  <h2 
+                    className="text-xl md:text-3xl font-medium opacity-90"
+                    style={{ 
+                      fontFamily: (currentBanner as any).subtitle_font_family || 'Inter',
+                      fontWeight: (currentBanner as any).subtitle_font_weight || '500'
+                    }}
+                  >
                     {currentBanner.subtitle}
-                  </h2>}
+                  </h2>
+                )}
                 
-                {currentBanner.description && <p className="text-lg md:text-xl opacity-80 max-w-md text-white/90">
+                {currentBanner.description && (
+                  <p 
+                    className="text-lg md:text-xl opacity-80 max-w-md text-white/90"
+                    style={{ 
+                      fontFamily: (currentBanner as any).description_font_family || 'Inter',
+                      fontWeight: (currentBanner as any).description_font_weight || '400'
+                    }}
+                  >
                     {currentBanner.description}
-                  </p>}
+                  </p>
+                )}
                 
-                {currentBanner.button_text && currentBanner.button_url && <Link to={currentBanner.button_url}>
+                {currentBanner.button_text && currentBanner.button_url && (
+                  <Link to={currentBanner.button_url}>
                     <Button variant="glass" size="lg" className="mt-6 px-8 py-4 text-lg bg-white text-foreground hover:bg-white/90 shadow-premium hover-lift">
                       {currentBanner.button_text}
                     </Button>
-                  </Link>}
+                  </Link>
+                )}
               </div>
 
               {/* Right side - Visual element */}
