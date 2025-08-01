@@ -26,16 +26,41 @@ export const PayfastPayment = ({ orderData }: PayfastPaymentProps) => {
 
   const handlePayment = async () => {
     setIsProcessing(true);
+    
     try {
+      // Get current session for authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Authentication required. Please sign in.');
+      }
+      
+      if (!session) {
+        throw new Error('You must be signed in to make a payment.');
+      }
+      
+      console.log('Calling PayFast payment with order data:', {
+        ...orderData,
+        customerEmail: orderData.customerEmail.substring(0, 3) + '***' // Partially hide email in logs
+      });
+      
       const { data, error } = await supabase.functions.invoke('payfast-payment', {
-        body: orderData
+        body: orderData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
+      console.log('PayFast function response:', { data, error });
+
       if (error) {
-        throw error;
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Payment service error');
       }
 
-      if (data.success) {
+      if (data?.success) {
+        console.log('Payment initiation successful, redirecting to PayFast...');
         // Create form and submit to PayFast
         const form = document.createElement('form');
         form.method = 'POST';
@@ -54,11 +79,12 @@ export const PayfastPayment = ({ orderData }: PayfastPaymentProps) => {
         document.body.appendChild(form);
         form.submit();
       } else {
-        throw new Error(data.error || 'Failed to initiate payment');
+        throw new Error(data?.error || 'Failed to initiate payment');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment error:', error);
-      toast.error('Failed to initiate payment. Please try again.');
+      const errorMessage = error.message || 'Failed to initiate payment. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }

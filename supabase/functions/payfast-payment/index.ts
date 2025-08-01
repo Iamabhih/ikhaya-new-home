@@ -28,6 +28,10 @@ serve(async (req) => {
   }
 
   try {
+    console.log('PayFast payment function called');
+    console.log('Request method:', req.method);
+    console.log('Authorization header present:', !!req.headers.get('Authorization'));
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -41,7 +45,29 @@ serve(async (req) => {
     // Get the user from the request
     const {
       data: { user },
+      error: userError
     } = await supabaseClient.auth.getUser()
+
+    console.log('User authentication check:', { 
+      hasUser: !!user, 
+      userId: user?.id, 
+      userEmail: user?.email?.substring(0, 3) + '***',
+      userError: userError?.message 
+    });
+
+    if (userError) {
+      console.error('User authentication error:', userError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Authentication failed: ' + userError.message
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      )
+    }
 
     if (!user) {
       console.error('User not authenticated')
@@ -58,16 +84,25 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json()
-    console.log('Raw request body:', JSON.stringify(requestBody))
+    console.log('Raw request body (sanitized):', JSON.stringify({
+      ...requestBody,
+      customerEmail: requestBody.customerEmail?.substring(0, 3) + '***',
+      customerPhone: requestBody.customerPhone ? '***' : undefined
+    }))
     
     const { orderId, amount, customerEmail, customerName, customerPhone, items }: PaymentRequest = requestBody
 
     if (!orderId || !amount || !customerEmail || !customerName) {
-      console.error('Missing required payment parameters:', { orderId: !!orderId, amount: !!amount, customerEmail: !!customerEmail, customerName: !!customerName })
+      console.error('Missing required payment parameters:', { 
+        orderId: !!orderId, 
+        amount: !!amount, 
+        customerEmail: !!customerEmail, 
+        customerName: !!customerName 
+      })
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Missing required payment parameters'
+          error: 'Missing required payment parameters: orderId, amount, customerEmail, and customerName are required'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -76,7 +111,13 @@ serve(async (req) => {
       )
     }
 
-    console.log('Payment request received:', { orderId, amount, customerEmail })
+    console.log('Payment request received:', { 
+      orderId, 
+      amount, 
+      customerEmail: customerEmail.substring(0, 3) + '***',
+      customerName,
+      itemCount: items?.length || 0
+    })
 
     // Get PayFast configuration from secrets
     const merchantId = Deno.env.get('PAYFAST_MERCHANT_ID')
@@ -92,8 +133,20 @@ serve(async (req) => {
     })
 
     if (!merchantId || !merchantKey) {
-      console.error('PayFast configuration missing:', { merchantId: !!merchantId, merchantKey: !!merchantKey })
-      throw new Error('PayFast configuration missing')
+      console.error('PayFast configuration missing:', {
+        merchantId: merchantId ? 'present' : 'missing',
+        merchantKey: merchantKey ? 'present' : 'missing'
+      })
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'PayFast configuration is incomplete. Please check merchant credentials.'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
     }
 
     // Determine PayFast URL based on mode
@@ -152,14 +205,21 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('PayFast payment error:', error)
+    
+    // Return more specific error information
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const statusCode = error.message?.includes('configuration') ? 500 :
+                      error.message?.includes('Authentication') ? 401 :
+                      error.message?.includes('required') ? 400 : 500;
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: errorMessage,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: statusCode,
       }
     )
   }
