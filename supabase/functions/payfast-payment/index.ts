@@ -45,10 +45,36 @@ serve(async (req) => {
 
     if (!user) {
       console.error('User not authenticated')
-      throw new Error('User not authenticated')
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'User not authenticated'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      )
     }
 
-    const { orderId, amount, customerEmail, customerName, customerPhone, items }: PaymentRequest = await req.json()
+    const requestBody = await req.json()
+    console.log('Raw request body:', JSON.stringify(requestBody))
+    
+    const { orderId, amount, customerEmail, customerName, customerPhone, items }: PaymentRequest = requestBody
+
+    if (!orderId || !amount || !customerEmail || !customerName) {
+      console.error('Missing required payment parameters:', { orderId: !!orderId, amount: !!amount, customerEmail: !!customerEmail, customerName: !!customerName })
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Missing required payment parameters'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      )
+    }
 
     console.log('Payment request received:', { orderId, amount, customerEmail })
 
