@@ -27,6 +27,16 @@ interface ScanProgress {
   startTime: string
   foundImages: number
   matchedProducts: number
+  uuidMatches: number
+  skuMatches: number
+  folderStructures: Record<string, { type: 'uuid' | 'sku', count: number }>
+}
+
+interface FolderAnalysis {
+  path: string
+  type: 'uuid' | 'sku' | 'mixed'
+  imageCount: number
+  products?: Array<{ id: string; sku: string; name: string }>
 }
 
 // Helper functions defined at module level
@@ -34,6 +44,30 @@ function isImageFile(filename: string): boolean {
   const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.svg']
   const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'))
   return imageExtensions.includes(ext)
+}
+
+function isUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  return uuidRegex.test(str)
+}
+
+function analyzeFolderStructure(imagePath: string): { type: 'uuid' | 'sku', productId?: string, pathSegments: string[] } {
+  const segments = imagePath.split('/').filter(s => s.length > 0)
+  
+  // Check for UUID-based folder structure (products/uuid/...)
+  if (segments.length >= 2 && segments[0] === 'products' && isUUID(segments[1])) {
+    return {
+      type: 'uuid',
+      productId: segments[1],
+      pathSegments: segments
+    }
+  }
+  
+  // Otherwise assume SKU-based filename structure
+  return {
+    type: 'sku',
+    pathSegments: segments
+  }
 }
 
 function extractProductCodes(filename: string): string[] {
@@ -216,7 +250,10 @@ Deno.serve(async (req) => {
       errors: [],
       startTime,
       foundImages: 0,
-      matchedProducts: 0
+      matchedProducts: 0,
+      uuidMatches: 0,
+      skuMatches: 0,
+      folderStructures: {}
     }
 
     await sendProgressUpdate(progress)
@@ -347,95 +384,142 @@ Deno.serve(async (req) => {
     progress.foundImages = storageImages.length
     await logMessage('info', `✅ Completed storage scan: Found ${storageImages.length} images in all directories`)
 
-    // Initialize image cache
-    const imageCache = createImageCache()
-
-    // Step 3: Build image mapping using cache
+    // Step 3: Analyze folder structure and implement hybrid matching
     progress.status = 'processing'
-    progress.currentStep = 'Building image mapping cache'
+    progress.currentStep = 'Analyzing storage folder structure'
     await sendProgressUpdate(progress)
 
-    await logMessage('info', `Building image cache from ${storageImages.length} images`)
-    imageCache.buildMapping(storageImages)
+    // Analyze folder structures
+    const folderAnalysis = new Map<string, { type: 'uuid' | 'sku', images: StorageFile[], productIds: Set<string> }>()
     
-    const cacheStats = imageCache.getStats()
-    await logMessage('info', `Image cache built: ${cacheStats.totalMappings} unique mappings from ${cacheStats.processed} images`)
+    for (const image of storageImages) {
+      const analysis = analyzeFolderStructure(image.name)
+      const folderKey = analysis.type === 'uuid' ? 'products' : analysis.pathSegments[0] || 'root'
+      
+      if (!folderAnalysis.has(folderKey)) {
+        folderAnalysis.set(folderKey, { 
+          type: analysis.type, 
+          images: [], 
+          productIds: new Set() 
+        })
+      }
+      
+      folderAnalysis.get(folderKey)!.images.push(image)
+      if (analysis.productId) {
+        folderAnalysis.get(folderKey)!.productIds.add(analysis.productId)
+      }
+      
+      // Update folder structure stats
+      if (!progress.folderStructures[folderKey]) {
+        progress.folderStructures[folderKey] = { type: analysis.type, count: 0 }
+      }
+      progress.folderStructures[folderKey].count++
+    }
 
-    // Step 4: Match products to images
+    await logMessage('info', `📊 Folder structure analysis:`)
+    for (const [folder, info] of folderAnalysis.entries()) {
+      await logMessage('info', `   • ${folder}: ${info.type} structure, ${info.images.length} images`)
+    }
+
+    // Create product maps for efficient lookup
+    const productsByUuid = new Map<string, any>()
+    const productsBySku = new Map<string, any>()
+    
+    for (const product of products) {
+      productsByUuid.set(product.id, product)
+      if (product.sku) {
+        productsBySku.set(product.sku.toLowerCase(), product)
+      }
+    }
+
+    // Step 4: Hybrid matching approach
     progress.total = products.length
-    progress.currentStep = 'Finding images for each SKU'
+    progress.currentStep = 'Hybrid image matching (UUID + SKU)'
     await sendProgressUpdate(progress)
 
-    const matches: Array<{ product: any, image: StorageFile, category?: string }> = []
+    const matches: Array<{ product: any, image: StorageFile, category?: string, matchType: 'uuid' | 'sku' }> = []
     const missingSkus: Array<{sku: string, productName: string, category?: string}> = []
     
-    // Group products by category for better organization
-    const productsByCategory = new Map<string, any[]>()
-    for (const product of products) {
-      const categoryName = product.categories?.name || 'Uncategorized'
-      if (!productsByCategory.has(categoryName)) {
-        productsByCategory.set(categoryName, [])
-      }
-      productsByCategory.get(categoryName)!.push(product)
-    }
-    
-    // Process each category with better progress tracking
-    let categoryIndex = 0
-    const totalCategories = productsByCategory.size
-    
-    for (const [categoryName, categoryProducts] of productsByCategory.entries()) {
-      categoryIndex++
-      await logMessage('info', `📁 Processing category ${categoryIndex}/${totalCategories}: ${categoryName} (${categoryProducts.length} products)`)
+    // Build SKU cache for non-UUID folders
+    const imageCache = createImageCache()
+    const skuImages = storageImages.filter(img => analyzeFolderStructure(img.name).type === 'sku')
+    await logMessage('info', `Building SKU cache from ${skuImages.length} SKU-based images`)
+    imageCache.buildMapping(skuImages)
+
+    await logMessage('info', `🔍 Starting hybrid matching process...`)
+
+    // Process each product
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i]
       
-      let categoryMatches = 0
-      for (let i = 0; i < categoryProducts.length; i++) {
-        const product = categoryProducts[i]
-        
-        if (!product.sku) {
-          progress.processed++
-          continue
-        }
-
-        progress.currentFile = `${categoryName}: ${product.sku} (${i + 1}/${categoryProducts.length})`
-        
-        // Update progress every 10 products to reduce noise
-        if (i % 10 === 0 || i === categoryProducts.length - 1) {
-          await sendProgressUpdate(progress)
-        }
-
-        // Find image using matching
-        const matchedImage = imageCache.findImageForSKU(product.sku)
-        
-        if (matchedImage) {
-          matches.push({ 
-            product, 
-            image: matchedImage,
-            category: categoryName
-          })
-          progress.matchedProducts++
-          categoryMatches++
-          
-          // Only log every 5th match to reduce log spam
-          if (categoryMatches % 5 === 0 || categoryMatches === 1) {
-            await logMessage('info', `✅ Found ${product.sku} in ${matchedImage.name}`)
-          }
-        } else {
-          missingSkus.push({
-            sku: product.sku, 
-            productName: product.name,
-            category: categoryName
-          })
-          
-          // Log only first few missing SKUs per category to avoid spam
-          if (missingSkus.length <= 10) {
-            await logMessage('warn', `❌ Not found: ${product.sku}`)
-          }
-        }
-
+      if (!product.sku && !product.id) {
         progress.processed++
+        continue
       }
+
+      progress.currentFile = `${product.sku || product.id} (${i + 1}/${products.length})`
       
-      await logMessage('info', `   ✅ Category "${categoryName}" complete: ${categoryMatches}/${categoryProducts.length} matched`)
+      // Update progress every 20 products to reduce noise
+      if (i % 20 === 0 || i === products.length - 1) {
+        await sendProgressUpdate(progress)
+      }
+
+      let matchedImage: StorageFile | null = null
+      let matchType: 'uuid' | 'sku' = 'sku'
+
+      // Strategy 1: UUID-based matching (for products/ folder)
+      if (product.id && folderAnalysis.has('products')) {
+        const uuidFolder = folderAnalysis.get('products')!
+        const uuidImages = uuidFolder.images.filter(img => 
+          analyzeFolderStructure(img.name).productId === product.id
+        )
+        
+        if (uuidImages.length > 0) {
+          matchedImage = uuidImages[0] // Take first image from the product's folder
+          matchType = 'uuid'
+          progress.uuidMatches++
+        }
+      }
+
+      // Strategy 2: SKU-based matching (for other folders)
+      if (!matchedImage && product.sku) {
+        matchedImage = imageCache.findImageForSKU(product.sku)
+        if (matchedImage) {
+          matchType = 'sku'
+          progress.skuMatches++
+        }
+      }
+
+      // Record result
+      if (matchedImage) {
+        const categoryName = product.categories?.name || 'Uncategorized'
+        matches.push({ 
+          product, 
+          image: matchedImage,
+          category: categoryName,
+          matchType
+        })
+        progress.matchedProducts++
+        
+        // Log every 10th match to reduce spam
+        if (progress.matchedProducts % 10 === 0 || progress.matchedProducts === 1) {
+          await logMessage('info', `✅ ${matchType.toUpperCase()}: ${product.sku} → ${matchedImage.name}`)
+        }
+      } else {
+        const categoryName = product.categories?.name || 'Uncategorized'
+        missingSkus.push({
+          sku: product.sku || product.id, 
+          productName: product.name,
+          category: categoryName
+        })
+        
+        // Log first 10 missing items
+        if (missingSkus.length <= 10) {
+          await logMessage('warn', `❌ No match: ${product.sku || product.id}`)
+        }
+      }
+
+      progress.processed++
     }
     
     // Statistics
@@ -445,9 +529,11 @@ Deno.serve(async (req) => {
     const successRate = Math.round((foundCount / totalProducts) * 100)
     
     await logMessage('info', `📊 Results Summary:`)
-    await logMessage('info', `   • Found: ${foundCount}`)
+    await logMessage('info', `   • Total products: ${totalProducts}`)
+    await logMessage('info', `   • Found: ${foundCount} (UUID: ${progress.uuidMatches}, SKU: ${progress.skuMatches})`)
     await logMessage('info', `   • Not found: ${notFoundCount}`)
     await logMessage('info', `   • Success rate: ${successRate}%`)
+    await logMessage('info', `   • Folder structures found: ${Object.keys(progress.folderStructures).join(', ')}`)
 
     // Step 5: Process matches and update database in batches
     progress.currentStep = 'Updating product image records in database'
@@ -568,11 +654,9 @@ Deno.serve(async (req) => {
           foundCount,
           notFoundCount,
           successRate,
-          categoryBreakdown: Array.from(productsByCategory.entries()).map(([cat, prods]) => ({
-            category: cat,
-            total: prods.length,
-            matched: matches.filter(m => m.category === cat).length
-          })),
+          uuidMatches: progress.uuidMatches,
+          skuMatches: progress.skuMatches,
+          folderStructures: progress.folderStructures,
           missingSkusList: missingSkus.slice(0, 50)
         }
       }),
