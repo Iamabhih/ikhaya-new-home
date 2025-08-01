@@ -74,14 +74,14 @@ export const OptimizedFeaturedProducts = () => {
           </div>
 
           {/* Loading Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 xs:gap-3 sm:gap-4 md:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
               <Card key={i} className="border-0 bg-white/50 backdrop-blur-sm shadow-lg overflow-hidden animate-pulse">
-                <div className="h-64 bg-gradient-to-br from-secondary/20 to-secondary/40" />
-                <div className="p-6 space-y-3">
-                  <div className="h-4 bg-secondary/30 rounded animate-pulse" />
-                  <div className="h-3 bg-secondary/20 rounded w-3/4 animate-pulse" />
-                  <div className="h-5 bg-secondary/30 rounded w-1/2 animate-pulse" />
+                <div className="h-48 xs:h-56 sm:h-64 bg-gradient-to-br from-secondary/20 to-secondary/40" />
+                <div className="p-2 xs:p-3 sm:p-6 space-y-2 xs:space-y-3">
+                  <div className="h-3 xs:h-4 bg-secondary/30 rounded animate-pulse" />
+                  <div className="h-2 xs:h-3 bg-secondary/20 rounded w-3/4 animate-pulse" />
+                  <div className="h-4 xs:h-5 bg-secondary/30 rounded w-1/2 animate-pulse" />
                 </div>
               </Card>
             ))}
@@ -118,7 +118,7 @@ export const OptimizedFeaturedProducts = () => {
         </div>
         
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 xs:gap-3 sm:gap-4 md:gap-6 mb-12">
           {products.map((product, index) => (
             <div 
               key={product.id}

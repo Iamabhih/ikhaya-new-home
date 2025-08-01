@@ -48,7 +48,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
     return (
       <Card className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
         <CardContent className="p-0">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4">
+          <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 sm:gap-4 p-2 xs:p-3 sm:p-4">
             <ProductImage
               product={product}
               inWishlist={inWishlist}
@@ -57,10 +57,10 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
               viewMode={viewMode}
             />
             
-            <div className="flex-1 flex flex-col justify-between space-y-2 sm:space-y-0">
+            <div className="flex-1 flex flex-col justify-between space-y-1 xs:space-y-2 sm:space-y-0">
               <ProductDetails product={product} viewMode={viewMode} />
               
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 sm:pt-0">
+              <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-1 xs:gap-2 pt-1 xs:pt-2 sm:pt-0">
                 <ProductPrice 
                   price={product.price} 
                   compareAtPrice={product.compare_at_price}
@@ -95,7 +95,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           viewMode={viewMode}
         />
         
-        <div className="p-3 sm:p-4 flex-1 flex flex-col">
+        <div className="p-2 xs:p-3 sm:p-4 flex-1 flex flex-col">
           <ProductDetails product={product} viewMode={viewMode} />
           <ProductPrice 
             price={product.price} 
@@ -105,7 +105,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
         </div>
       </CardContent>
       
-      <CardFooter className="p-3 sm:p-4 pt-0">
+      <CardFooter className="p-2 xs:p-3 sm:p-4 pt-0">
         <ProductActions
           productId={product.id}
           inWishlist={inWishlist}

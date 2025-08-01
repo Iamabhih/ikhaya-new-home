@@ -417,9 +417,9 @@ const ProductsPage = () => {
                 itemHeight={350}
               />
             ) : (
-              <div className={`grid gap-6 ${
+              <div className={`grid gap-2 xs:gap-3 sm:gap-4 md:gap-6 ${
                 viewMode === "grid" 
-                  ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
+                  ? "grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6" 
                   : "grid-cols-1"
               }`}>
                 {products.map((product) => (

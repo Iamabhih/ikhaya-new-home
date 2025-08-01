@@ -40,7 +40,7 @@ export const ProductImage = ({
   const productUrl = `/products/${product.slug}`;
 
   const imageClasses = viewMode === "list" 
-    ? "w-full sm:w-24 md:w-32 h-48 sm:h-24 md:h-32 flex-shrink-0"
+    ? "w-full xs:w-20 sm:w-24 md:w-32 h-32 xs:h-20 sm:h-24 md:h-32 flex-shrink-0"
     : "aspect-square";
 
   return (
@@ -69,25 +69,26 @@ export const ProductImage = ({
         <Button
           variant="ghost"
           size="icon"
-          className={`absolute top-2 right-2 h-8 w-8 sm:h-9 sm:w-9 bg-background/80 hover:bg-background ${
+          className={`absolute top-1 xs:top-2 right-1 xs:right-2 h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 bg-background/80 hover:bg-background ${
             inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground'
           }`}
           onClick={onToggleWishlist}
           disabled={loading}
         >
-          <Heart className={`h-3 w-3 sm:h-4 sm:w-4 ${inWishlist ? 'fill-current' : ''}`} />
+          <Heart className={`h-3 w-3 xs:h-3 xs:w-3 sm:h-4 sm:w-4 ${inWishlist ? 'fill-current' : ''}`} />
         </Button>
       )}
       
       {hasDiscount && (
-        <div className={`absolute ${viewMode === "list" ? "top-1 sm:top-2 left-1 sm:left-2" : "top-2 left-2"} bg-destructive text-destructive-foreground px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium`}>
+        <div className={`absolute ${viewMode === "list" ? "top-1 xs:top-1 sm:top-2 left-1 xs:left-1 sm:left-2" : "top-1 xs:top-2 left-1 xs:left-2"} bg-destructive text-destructive-foreground px-1 xs:px-1.5 sm:px-2 py-0.5 xs:py-0.5 sm:py-1 rounded text-xs font-medium`}>
           Sale
         </div>
       )}
       
       {!isInStock && (
-        <div className={`absolute ${viewMode === "list" ? "top-1 sm:top-2 right-1 sm:right-2" : "bottom-2 left-2"} bg-muted text-muted-foreground px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium`}>
-          {viewMode === "list" ? "Out of Stock" : "Out of Stock"}
+        <div className={`absolute ${viewMode === "list" ? "top-1 xs:top-1 sm:top-2 right-1 xs:right-1 sm:right-2" : "bottom-1 xs:bottom-2 left-1 xs:left-2"} bg-muted text-muted-foreground px-1 xs:px-1.5 sm:px-2 py-0.5 xs:py-0.5 sm:py-1 rounded text-xs font-medium`}>
+          <span className="xs:hidden">Out</span>
+          <span className="hidden xs:inline">{viewMode === "list" ? "Out of Stock" : "Out of Stock"}</span>
         </div>
       )}
     </div>
