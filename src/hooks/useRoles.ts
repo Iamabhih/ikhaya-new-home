@@ -10,6 +10,7 @@ export const useRoles = (user: User | null) => {
   const [loading, setLoading] = useState(true);
   const fetchingRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
+  const rolesCache = useRef<{ [key: string]: AppRole[] }>({});
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -20,9 +21,15 @@ export const useRoles = (user: User | null) => {
         return;
       }
 
+      // Check cache first
+      if (rolesCache.current[user.id]) {
+        setRoles(rolesCache.current[user.id]);
+        setLoading(false);
+        return;
+      }
+
       // Prevent multiple calls for the same user and avoid concurrent calls
       if (lastUserIdRef.current === user.id || fetchingRef.current) {
-        setLoading(false);
         return;
       }
 
@@ -43,7 +50,10 @@ export const useRoles = (user: User | null) => {
           lastUserIdRef.current = null; // Reset on error to allow retry
         } else {
           console.log('[useRoles] Roles fetched:', data);
-          setRoles(data?.map(r => r.role as AppRole) || []);
+          const userRoles = data?.map(r => r.role as AppRole) || [];
+          setRoles(userRoles);
+          // Cache the result
+          rolesCache.current[user.id] = userRoles;
         }
       } catch (error) {
         console.error('Error fetching roles:', error);

@@ -41,25 +41,26 @@ export const DeleteAllOrders = () => {
       console.log('Starting bulk order deletion...');
       
       // Delete all order-related data in the correct order to avoid foreign key conflicts
+      // Using gt('created_at', '1970-01-01') as a way to select all records without UUID comparison
       const deleteOperations = [
         // Delete fulfillment items first
-        supabase.from('fulfillment_items').delete().neq('id', ''),
+        supabase.from('fulfillment_items').delete().gt('created_at', '1970-01-01'),
         // Delete fulfillments
-        supabase.from('fulfillments').delete().neq('id', ''),
+        supabase.from('fulfillments').delete().gt('created_at', '1970-01-01'),
         // Delete order timeline entries
-        supabase.from('order_timeline').delete().neq('id', ''),
+        supabase.from('order_timeline').delete().gt('created_at', '1970-01-01'),
         // Delete order notes
-        supabase.from('order_notes').delete().neq('id', ''),
+        supabase.from('order_notes').delete().gt('created_at', '1970-01-01'),
         // Delete order status history
-        supabase.from('order_status_history').delete().neq('id', ''),
+        supabase.from('order_status_history').delete().gt('created_at', '1970-01-01'),
         // Delete payment transactions
-        supabase.from('payment_transactions').delete().neq('id', ''),
+        supabase.from('payment_transactions').delete().gt('created_at', '1970-01-01'),
         // Delete order items
-        supabase.from('order_items').delete().neq('id', ''),
+        supabase.from('order_items').delete().gt('created_at', '1970-01-01'),
         // Delete return items first (they reference return_requests)
-        supabase.from('return_items').delete().neq('id', ''),
+        supabase.from('return_items').delete().gt('created_at', '1970-01-01'),
         // Delete return requests (they reference orders)
-        supabase.from('return_requests').delete().neq('id', ''),
+        supabase.from('return_requests').delete().gt('created_at', '1970-01-01'),
       ];
 
       // Execute all related deletions
@@ -78,7 +79,7 @@ export const DeleteAllOrders = () => {
       const { error: ordersError } = await supabase
         .from('orders')
         .delete()
-        .neq('id', ''); // This will delete ALL orders
+        .gt('created_at', '1970-01-01'); // This will delete ALL orders
       
       if (ordersError) {
         console.error('Error deleting orders:', ordersError);
