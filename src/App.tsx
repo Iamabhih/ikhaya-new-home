@@ -16,7 +16,6 @@ import CategoriesPage from "./pages/CategoriesPage";
 import CategoryPage from "./pages/CategoryPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
-import PaymentSuccess from "./pages/PaymentSuccess";
 import AuthPage from "./pages/AuthPage";
 import AccountPage from "./pages/AccountPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -36,7 +35,6 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminReturns from "./pages/admin/AdminReturns";
-import AdminPayments from "./pages/admin/AdminPayments";
 import AdminSetupPage from "./pages/admin/AdminSetupPage";
 import AdminHomepage from "./pages/admin/AdminHomepage";
 import SuperAdminSettings from "./pages/admin/SuperAdminSettings";
@@ -79,7 +77,6 @@ function App() {
                       <Route path="/category/:slug" element={<CategoryPage />} />
                       <Route path="/cart" element={<CartPage />} />
                       <Route path="/checkout" element={<CheckoutPage />} />
-                      <Route path="/payment/success" element={<PaymentSuccess />} />
                       <Route path="/auth" element={<AuthPage />} />
                       <Route path="/about" element={<AboutPage />} />
                       <Route path="/contact" element={<ContactPage />} />
@@ -101,7 +98,6 @@ function App() {
                        <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
                        <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
                        <Route path="/admin/returns" element={<AdminProtectedRoute><AdminReturns /></AdminProtectedRoute>} />
-                       <Route path="/admin/payments" element={<AdminProtectedRoute><AdminPayments /></AdminProtectedRoute>} />
                        <Route path="/admin/homepage" element={<AdminProtectedRoute><AdminHomepage /></AdminProtectedRoute>} />
                        
                         {/* SuperAdmin only routes */}

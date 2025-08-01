@@ -62,9 +62,9 @@ export const AdminQuickActions = () => {
     },
     {
       title: "Settings",
-      description: "Payment & system settings",
+      description: "System settings",
       icon: Settings,
-      href: "/admin/payments",
+      href: "/superadmin/settings",
       color: "bg-muted",
     },
   ];

@@ -43,11 +43,6 @@ const adminRoutes = [
     icon: BarChart3 
   },
   { 
-    title: "Payments", 
-    url: "/admin/payments", 
-    icon: CreditCard 
-  },
-  { 
     title: "Returns", 
     url: "/admin/returns", 
     icon: RotateCcw 

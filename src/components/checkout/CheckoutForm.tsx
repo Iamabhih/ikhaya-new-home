@@ -7,8 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PaymentMethods } from "./PaymentMethods";
-import { PaymentSuccess } from "./PaymentSuccess";
 import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 
 interface CheckoutFormProps {
@@ -19,9 +17,7 @@ interface CheckoutFormProps {
 export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
   const { items, clearCart, total: cartTotal } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentStep, setCurrentStep] = useState('billing'); // billing, payment, success
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
-  const [paymentResult, setPaymentResult] = useState(null);
+  const [currentStep, setCurrentStep] = useState('billing'); // billing, success
   const [formData, setFormData] = useState({
     email: user?.email || "",
     firstName: "",
@@ -37,117 +33,21 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
 
   const handleBillingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setCurrentStep('payment');
+    // Create order without payment processing for now
+    toast.success("Order information saved! Payment integration coming soon.");
+    setCurrentStep('success');
   };
 
-  const handlePaymentMethodSelect = async (method: string) => {
-    // Prevent multiple submissions
-    if (isProcessing) return;
-    
-    setSelectedPaymentMethod(method);
-    
-    if (items.length === 0) {
-      toast.error("Your cart is empty");
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      // Transform cart items for the payment function
-      const paymentItems = items.map(item => ({
-        productId: item.product_id,
-        name: item.product?.name || `Product ${item.product_id}`,
-        description: item.product?.short_description || item.product?.name || "",
-        price: item.product?.price || 0,
-        quantity: item.quantity,
-        sku: item.product?.sku || item.product_id,
-      }));
-
-      const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: {
-          items: paymentItems,
-          customerInfo: formData,
-          shippingAddress: formData,
-          paymentMethod: method,
-          deliveryFee: deliveryFee,
-          deliveryZoneId: deliveryZone?.id,
-        },
-      });
-
-      if (error) throw error;
-
-      setPaymentResult(data);
-      
-      // Don't clear cart here - wait for payment confirmation
-      
-      // Handle different payment method responses
-      if (method === 'payfast') {
-        // Redirect to PayFast
-        if (data.url && data.formData) {
-          // Create and submit form for PayFast - ensure single submission
-          const existingForm = document.querySelector('form[action*="payfast"]');
-          if (existingForm) {
-            existingForm.remove();
-          }
-          
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = data.url;
-          form.style.display = 'none';
-          
-          Object.keys(data.formData).forEach(key => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = data.formData[key];
-            form.appendChild(input);
-          });
-          
-          document.body.appendChild(form);
-          form.submit();
-          return;
-        }
-      } else if (method === 'payflex') {
-        // Redirect to PayFlex
-        if (data.checkoutUrl) {
-          window.location.href = data.checkoutUrl;
-          return;
-        } else {
-          toast.error("PayFlex checkout URL not available");
-        }
-      } else if (method === 'bank_transfer' || method === 'eft') {
-        // Don't clear cart for manual payment methods
-        setCurrentStep('success');
-        toast.success("Order created! Banking details provided for payment.");
-      } else if (method === 'cod') {
-        // Clear cart only for COD as it's immediately confirmed
-        clearCart();
-        setCurrentStep('success');
-        toast.success("Order confirmed! Payment will be collected on delivery.");
-      } else {
-        setCurrentStep('success');
-        toast.success("Order created successfully!");
-      }
-      
-    } catch (error) {
-      console.error("Checkout error:", error);
-      toast.error("Failed to process checkout. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  if (currentStep === 'success' && paymentResult) {
-    return <PaymentSuccess paymentResult={paymentResult} />;
-  }
-
-  if (currentStep === 'payment') {
+  if (currentStep === 'success') {
     return (
-      <PaymentMethods
-        onSelect={handlePaymentMethodSelect}
-        onBack={() => setCurrentStep('billing')}
-      />
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Order Information Saved</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Your order information has been saved successfully. Payment integration will be available soon.</p>
+        </CardContent>
+      </Card>
     );
   }
 
