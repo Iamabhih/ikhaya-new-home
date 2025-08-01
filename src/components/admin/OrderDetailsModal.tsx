@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -113,6 +113,10 @@ export const OrderDetailsModal = ({ orderId, isOpen, onClose, onStatusUpdate }: 
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Loading Order</DialogTitle>
+            <DialogDescription>Please wait while we load the order details...</DialogDescription>
+          </DialogHeader>
           <div className="text-center py-8">Loading order details...</div>
         </DialogContent>
       </Dialog>
@@ -123,6 +127,10 @@ export const OrderDetailsModal = ({ orderId, isOpen, onClose, onStatusUpdate }: 
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Order Not Found</DialogTitle>
+            <DialogDescription>The requested order could not be found or you don't have permission to view it.</DialogDescription>
+          </DialogHeader>
           <div className="text-center py-8">Order not found</div>
         </DialogContent>
       </Dialog>
@@ -142,6 +150,7 @@ export const OrderDetailsModal = ({ orderId, isOpen, onClose, onStatusUpdate }: 
               {order.status}
             </Badge>
           </DialogTitle>
+          <DialogDescription>View and manage order information, items, and status</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

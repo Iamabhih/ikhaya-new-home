@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -8,19 +8,20 @@ export type AppRole = 'customer' | 'admin' | 'superadmin';
 export const useRoles = (user: User | null) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastFetched, setLastFetched] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const fetchRoles = async () => {
       if (!user?.id) {
         setRoles([]);
         setLoading(false);
-        setLastFetched(null);
+        lastUserIdRef.current = null;
         return;
       }
 
-      // Prevent multiple calls for the same user
-      if (lastFetched === user.id) {
+      // Prevent multiple calls for the same user and avoid concurrent calls
+      if (lastUserIdRef.current === user.id || fetchingRef.current) {
         setLoading(false);
         return;
       }
@@ -28,7 +29,8 @@ export const useRoles = (user: User | null) => {
       try {
         console.log('[useRoles] Fetching roles for user:', user.id);
         setLoading(true);
-        setLastFetched(user.id); // Set this early to prevent duplicate calls
+        fetchingRef.current = true;
+        lastUserIdRef.current = user.id;
         
         const { data, error } = await supabase
           .from('user_roles')
@@ -38,6 +40,7 @@ export const useRoles = (user: User | null) => {
         if (error) {
           console.error('Error fetching user roles:', error);
           setRoles([]);
+          lastUserIdRef.current = null; // Reset on error to allow retry
         } else {
           console.log('[useRoles] Roles fetched:', data);
           setRoles(data?.map(r => r.role as AppRole) || []);
@@ -45,14 +48,15 @@ export const useRoles = (user: User | null) => {
       } catch (error) {
         console.error('Error fetching roles:', error);
         setRoles([]);
-        setLastFetched(null); // Reset on error to allow retry
+        lastUserIdRef.current = null; // Reset on error to allow retry
       } finally {
         setLoading(false);
+        fetchingRef.current = false;
       }
     };
 
     fetchRoles();
-  }, [user?.id]); // Only depend on user.id to prevent infinite loops
+  }, [user?.id]);
 
   const hasRole = (role: AppRole): boolean => {
     return roles.includes(role);
