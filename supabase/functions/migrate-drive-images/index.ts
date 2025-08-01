@@ -148,81 +148,99 @@ Deno.serve(async (req) => {
 
     // Enhanced helper function to extract product codes from filename
     function extractProductCodes(filename: string): string[] {
-      const codes: string[] = []
-      const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
+      if (!filename || typeof filename !== 'string') return []
       
-      // Enhanced extraction - changed from 4,6 to 3,6 to catch shorter codes like 206
-      const numericCodes = nameWithoutExt.match(/\b\d{3,6}\b/g)
-      if (numericCodes) {
-        codes.push(...numericCodes)
-      }
-      
-      // Enhanced alphanumeric extraction - changed from 4,8 to 3,8
-      const alphanumericCodes = nameWithoutExt.match(/\b[A-Z0-9]{3,8}\b/gi)
-      if (alphanumericCodes) {
-        codes.push(...alphanumericCodes.map(code => code.toLowerCase()))
-      }
-      
-      // Split by common delimiters and check each part
-      const parts = nameWithoutExt.split(/[-_\s\.]+/)
-      for (const part of parts) {
-        const cleanPart = part.trim()
-        if (/^\d{3,6}$/.test(cleanPart) || /^[A-Z0-9]{3,8}$/i.test(cleanPart)) {
-          codes.push(cleanPart.toLowerCase())
+      try {
+        const codes: string[] = []
+        const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
+        
+        // Enhanced extraction - changed from 4,6 to 3,6 to catch shorter codes like 206
+        const numericCodes = nameWithoutExt.match(/\b\d{3,6}\b/g)
+        if (numericCodes) {
+          codes.push(...numericCodes)
         }
-      }
-      
-      // Special handling for short codes - add zero-padded versions
-      const originalCodes = [...codes]
-      for (const code of originalCodes) {
-        if (/^\d{3}$/.test(code)) {
-          codes.push('0' + code) // Add zero-padded version
+        
+        // Enhanced alphanumeric extraction - changed from 4,8 to 3,8
+        const alphanumericCodes = nameWithoutExt.match(/\b[A-Z0-9]{3,8}\b/gi)
+        if (alphanumericCodes) {
+          codes.push(...alphanumericCodes.map(code => code.toLowerCase()))
         }
+        
+        // Split by common delimiters and check each part
+        const parts = nameWithoutExt.split(/[-_\s\.]+/)
+        for (const part of parts) {
+          if (!part) continue
+          const cleanPart = part.trim()
+          if (/^\d{3,6}$/.test(cleanPart) || /^[A-Z0-9]{3,8}$/i.test(cleanPart)) {
+            codes.push(cleanPart.toLowerCase())
+          }
+        }
+        
+        // Special handling for short codes - add zero-padded versions
+        const originalCodes = [...codes]
+        for (const code of originalCodes) {
+          if (/^\d{3}$/.test(code)) {
+            codes.push('0' + code) // Add zero-padded version
+          }
+        }
+        
+        // Remove duplicates
+        return [...new Set(codes)]
+      } catch (error) {
+        console.error('Error extracting product codes from filename:', filename, error)
+        return []
       }
-      
-      // Remove duplicates
-      return [...new Set(codes)]
     }
 
     // Enhanced image mapping function
     function findBestMatch(productSku: string, driveFiles: DriveFile[]): DriveFile | null {
+      if (!productSku || !driveFiles || driveFiles.length === 0) return null
+      
       const normalizedSku = productSku.toLowerCase().trim()
       
       // Try exact filename matches first
       for (const file of driveFiles) {
-        if (!file.mimeType?.includes('image/')) continue
-        
-        const fileName = file.name.toLowerCase()
-        // Direct filename matches
-        if (fileName === `${normalizedSku}.png` || 
-            fileName === `${normalizedSku}.jpg` || 
-            fileName === `${normalizedSku}.jpeg`) {
-          return file
+        try {
+          if (!file || !file.mimeType?.includes('image/') || !file.name) continue
+          
+          const fileName = file.name.toLowerCase()
+          // Direct filename matches
+          if (fileName === `${normalizedSku}.png` || 
+              fileName === `${normalizedSku}.jpg` || 
+              fileName === `${normalizedSku}.jpeg`) {
+            return file
+          }
+        } catch (error) {
+          continue // Skip problematic files
         }
       }
       
       // Try enhanced code extraction matching
       for (const file of driveFiles) {
-        if (!file.mimeType?.includes('image/')) continue
-        
-        const extractedCodes = extractProductCodes(file.name)
-        
-        // Check if product SKU matches any extracted code
-        if (extractedCodes.includes(normalizedSku)) {
-          return file
-        }
-        
-        // For 3-digit SKUs, also try zero-padded version
-        if (/^\d{3}$/.test(normalizedSku) && extractedCodes.includes('0' + normalizedSku)) {
-          return file
-        }
-        
-        // For 4-digit SKUs starting with 0, try without leading zero
-        if (/^0\d{3}$/.test(normalizedSku)) {
-          const withoutZero = normalizedSku.substring(1)
-          if (extractedCodes.includes(withoutZero)) {
+        try {
+          if (!file || !file.mimeType?.includes('image/') || !file.name) continue
+          
+          const extractedCodes = extractProductCodes(file.name)
+          
+          // Check if product SKU matches any extracted code
+          if (extractedCodes && extractedCodes.includes(normalizedSku)) {
             return file
           }
+          
+          // For 3-digit SKUs, also try zero-padded version
+          if (/^\d{3}$/.test(normalizedSku) && extractedCodes && extractedCodes.includes('0' + normalizedSku)) {
+            return file
+          }
+          
+          // For 4-digit SKUs starting with 0, try without leading zero
+          if (/^0\d{3}$/.test(normalizedSku)) {
+            const withoutZero = normalizedSku.substring(1)
+            if (extractedCodes && extractedCodes.includes(withoutZero)) {
+              return file
+            }
+          }
+        } catch (error) {
+          continue // Skip problematic files
         }
       }
       
@@ -231,30 +249,40 @@ Deno.serve(async (req) => {
 
     // Step 3: Match products to images using enhanced matching (process in chunks for memory efficiency)
     progress.status = 'processing'
-    progress.total = products.length
+    progress.total = products?.length || 0
     progress.currentStep = 'Matching products to images (processing in chunks for large datasets)'
     await sendProgressUpdate(progress)
 
     const matchedProducts = []
     const chunkSize = 1000 // Process products in chunks to avoid memory issues
     
-    for (let i = 0; i < products.length; i += chunkSize) {
-      const productChunk = products.slice(i, Math.min(i + chunkSize, products.length))
-      await logMessage('info', `Processing product chunk ${Math.floor(i/chunkSize) + 1}/${Math.ceil(products.length/chunkSize)}`)
-      
-      for (const product of productChunk) {
-        if (!product.sku) continue
+    if (!products || products.length === 0) {
+      await logMessage('warn', 'No products found to process')
+      progress.total = 0
+      await sendProgressUpdate(progress)
+    } else {
+      for (let i = 0; i < products.length; i += chunkSize) {
+        const productChunk = products.slice(i, Math.min(i + chunkSize, products.length))
+        await logMessage('info', `Processing product chunk ${Math.floor(i/chunkSize) + 1}/${Math.ceil(products.length/chunkSize)}`)
+        
+        for (const product of productChunk) {
+          try {
+            if (!product || !product.sku) continue
 
-        const matchingFile = findBestMatch(product.sku, allDriveFiles)
-        if (matchingFile) {
-          matchedProducts.push({ product, imageFile: matchingFile })
+            const matchingFile = findBestMatch(product.sku, allDriveFiles || [])
+            if (matchingFile) {
+              matchedProducts.push({ product, imageFile: matchingFile })
+            }
+          } catch (error) {
+            await logMessage('error', `Error processing product ${product?.sku || 'unknown'}: ${error.message}`)
+          }
         }
+        
+        // Update progress for chunk completion
+        await sendProgressUpdate({
+          currentStep: `Matched ${matchedProducts.length} products so far... Processing chunk ${Math.floor(i/chunkSize) + 1}/${Math.ceil(products.length/chunkSize)}`
+        })
       }
-      
-      // Update progress for chunk completion
-      await sendProgressUpdate({
-        currentStep: `Matched ${matchedProducts.length} products so far... Processing chunk ${Math.floor(i/chunkSize) + 1}/${Math.ceil(products.length/chunkSize)}`
-      })
     }
 
     progress.total = matchedProducts.length
