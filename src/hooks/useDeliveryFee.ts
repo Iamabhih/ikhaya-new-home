@@ -26,7 +26,7 @@ export const useDeliveryFee = (subtotal: number, selectedZone?: string) => {
     amountForFreeDelivery: 0
   });
 
-  const { data: deliveryZones = [] } = useQuery({
+  const { data: deliveryZones = [], isLoading } = useQuery({
     queryKey: ['delivery-zones'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -101,6 +101,6 @@ export const useDeliveryFee = (subtotal: number, selectedZone?: string) => {
   return {
     ...calculatedDelivery,
     deliveryZones,
-    isLoading: !deliveryZones
+    isLoading
   };
 };
