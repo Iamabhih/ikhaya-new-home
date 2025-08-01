@@ -171,17 +171,9 @@ serve(async (req) => {
       item_description: `Order ${orderId} - ${items.length} items`,
     }
 
-    // Add passphrase if provided
-    if (passphrase) {
-      payfastData.passphrase = passphrase
-    }
-
-    // Generate signature for security
+    // Generate signature for security (passphrase is used in signature but not sent as parameter)
     const signature = await generateSignature(payfastData, passphrase)
     payfastData.signature = signature
-
-    // Remove passphrase from data to send to PayFast
-    delete payfastData.passphrase
 
     console.log('PayFast payment initiated successfully:', {
       orderId,
