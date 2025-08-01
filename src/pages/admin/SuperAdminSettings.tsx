@@ -26,8 +26,12 @@ const SuperAdminSettings = () => {
               </div>
             </div>
 
-            <Tabs defaultValue="status" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7">
+            <Tabs defaultValue="orders" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-8">
+                <TabsTrigger value="orders" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Orders
+                </TabsTrigger>
                 <TabsTrigger value="status" className="flex items-center gap-2">
                   <Activity className="h-4 w-4" />
                   Status
@@ -57,6 +61,37 @@ const SuperAdminSettings = () => {
                   Testing
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="orders">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>SuperAdmin Order Management</CardTitle>
+                    <CardDescription>
+                      Advanced order management with full edit and delete capabilities. Only available to SuperAdmins.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p className="text-yellow-800 font-medium text-sm">
+                          ⚠️ SuperAdmin Order Features:
+                        </p>
+                        <ul className="text-yellow-700 text-sm mt-2 ml-4 list-disc">
+                          <li>Edit all order details including amounts, status, and customer information</li>
+                          <li>Delete orders and all related data permanently</li>
+                          <li>Modify addresses, tracking numbers, and payment information</li>
+                          <li>All actions are logged for security and audit purposes</li>
+                        </ul>
+                      </div>
+                      <div className="flex gap-4">
+                        <a href="/admin/orders" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+                          Go to Order Management
+                        </a>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               <TabsContent value="status">
                 <Card>

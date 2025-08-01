@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useRoles } from "@/hooks/useRoles";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   Search, 
   Filter, 
@@ -27,6 +29,7 @@ import { OrderDetailModal } from "./OrderDetailModal";
 import { BulkOrderActions } from "./BulkOrderActions";
 import { OrderFilters } from "./OrderFilters";
 import { OrderTimeline } from "./OrderTimeline";
+import { SuperAdminOrderActions } from "./SuperAdminOrderActions";
 
 interface Order {
   id: string;
@@ -70,6 +73,8 @@ export const EnhancedOrderManagement = () => {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { isSuperAdmin } = useRoles(user);
 
   // Fetch orders with enhanced filtering
   const { data: ordersData, isLoading } = useQuery({
@@ -460,6 +465,15 @@ export const EnhancedOrderManagement = () => {
                         <Send className="h-4 w-4 mr-2" />
                         Notify
                       </Button>
+
+                      {/* SuperAdmin Actions */}
+                      {isSuperAdmin && (
+                        <SuperAdminOrderActions
+                          order={order}
+                          onOrderUpdated={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
+                          onOrderDeleted={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
