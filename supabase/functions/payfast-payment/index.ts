@@ -1,4 +1,14 @@
-// Updated signature generation function for payfast-payment/index.ts
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0'
+import { corsHeaders } from '../_shared/cors.ts'
+
+// MD5 implementation for signature generation
+async function md5(text: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(text)
+  const hashBuffer = await crypto.subtle.digest('MD5', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
   // PayFast requires specific parameter order
@@ -61,14 +71,60 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
   console.log('- String length:', paramString.length);
 
   // Generate MD5 hash
-  const md5Hash = md5(paramString);
+  const md5Hash = await md5(paramString);
   
   console.log('- Generated signature:', md5Hash);
   return md5Hash;
 }
 
-// Also update the main function to ensure correct data format
-// In the payfast-payment function, update the payfastData section:
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  try {
+    console.log('PayFast payment function called')
+    
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Get PayFast configuration from environment
+    const merchantId = Deno.env.get('PAYFAST_MERCHANT_ID')
+    const merchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
+    const passphrase = Deno.env.get('PAYFAST_PASSPHRASE')
+    const mode = Deno.env.get('PAYFAST_MODE') || 'sandbox'
+
+    console.log('PayFast config:', {
+      merchantId: merchantId ? '***' : 'missing',
+      merchantKey: merchantKey ? '***' : 'missing',
+      passphrase: passphrase ? '***' : 'missing',
+      mode
+    })
+
+    if (!merchantId || !merchantKey) {
+      console.error('Missing PayFast configuration')
+      return new Response(
+        JSON.stringify({ error: 'PayFast configuration missing' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Parse request body
+    const { orderId, amount, customerEmail, customerName, customerPhone, items } = await req.json()
+
+    console.log('Payment request:', {
+      orderId,
+      amount,
+      customerEmail: customerEmail?.substring(0, 3) + '***',
+      customerName,
+      itemCount: items?.length
+    })
 
     // Prepare PayFast parameters with proper formatting
     const payfastData: Record<string, string> = {
@@ -83,7 +139,7 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
       cell_number: customerPhone || '',
       m_payment_id: orderId,
       amount: amount.toFixed(2),
-      item_name: items.map(item => item.name).join(', ').substring(0, 100), // PayFast limit
+      item_name: items.map((item: any) => item.name).join(', ').substring(0, 100), // PayFast limit
       item_description: `Order ${orderId} - ${items.length} items`,
     }
 
@@ -98,3 +154,40 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
     // Generate signature
     const signature = await generateSignature(cleanedData, passphrase)
     cleanedData.signature = signature
+
+    // PayFast URL based on mode
+    const payfastUrl = mode === 'live' 
+      ? 'https://www.payfast.co.za/eng/process'
+      : 'https://sandbox.payfast.co.za/eng/process'
+
+    console.log('PayFast payment data prepared:', {
+      url: payfastUrl,
+      dataKeys: Object.keys(cleanedData),
+      signature: signature.substring(0, 8) + '***'
+    })
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        payfastUrl,
+        paymentData: cleanedData
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
+
+  } catch (error) {
+    console.error('PayFast payment error:', error)
+    return new Response(
+      JSON.stringify({ 
+        error: 'Internal server error',
+        message: error.message 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
+  }
+})
