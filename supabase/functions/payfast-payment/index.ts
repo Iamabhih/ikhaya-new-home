@@ -169,8 +169,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        payfastUrl,
-        paymentData: cleanedData
+        payfast_url: payfastUrl,
+        payment_data: cleanedData
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
