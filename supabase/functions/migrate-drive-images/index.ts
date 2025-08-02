@@ -32,37 +32,182 @@ interface MigrationProgress {
   estimatedTimeRemaining?: string
 }
 
-// Enhanced SKU extraction with multiple pattern matching
-function extractSKUFromFilename(filename: string): string | null {
-  if (!filename || typeof filename !== 'string') return null
+// Enhanced robust SKU extraction with fuzzy matching and multiple pattern strategies
+function extractSKUFromFilename(filename: string): string[] {
+  if (!filename || typeof filename !== 'string') return []
   
   // Remove file extension and path
   const nameWithoutExt = filename.replace(/.*\//, '').replace(/\.[^/.]+$/, '')
   
-  console.log(`🔍 Extracting SKU from: ${filename} -> ${nameWithoutExt}`)
+  console.log(`🔍 Extracting SKUs from: ${filename} -> ${nameWithoutExt}`)
   
-  // Enhanced SKU patterns - try multiple extraction methods
-  const patterns = [
-    // Direct SKU: "455404" or "455404-1" or "455404_image"
-    /^(\d{4,8})(?:[_-].*)?$/,
-    // SKU in complex names: "455100.455101.455102.455103" -> take first
-    /^(\d{4,8})(?:\.\d+)*/,
-    // SKU with text: "SKU455404" or "PROD-455404"
-    /(?:SKU|PROD)[_-]?(\d{4,8})/i,
-    // Generic number patterns (4-8 digits)
-    /(\d{4,8})/,
-  ]
+  const skus = new Set<string>()
   
-  for (const pattern of patterns) {
-    const match = nameWithoutExt.match(pattern)
-    if (match && match[1]) {
-      console.log(`✅ Extracted SKU "${match[1]}" from "${filename}" using pattern: ${pattern}`)
-      return match[1]
+  // Pattern 1: Direct numeric SKUs (most common)
+  const directNumbers = nameWithoutExt.match(/\b\d{4,8}\b/g)
+  if (directNumbers) {
+    directNumbers.forEach(num => {
+      skus.add(num)
+      // Add zero-padded versions for short SKUs
+      if (num.length === 3) skus.add('0' + num)
+      if (num.length === 4 && !num.startsWith('0')) skus.add('0' + num)
+    })
+  }
+  
+  // Pattern 2: Complex multi-SKU patterns (455100.455101.455102.455103)
+  const multiSku = nameWithoutExt.match(/^(\d{4,8})(?:\.(\d{4,8}))+/)
+  if (multiSku) {
+    const allMatches = nameWithoutExt.match(/\d{4,8}/g)
+    if (allMatches) {
+      allMatches.forEach(sku => skus.add(sku))
     }
   }
   
-  console.log(`❌ Could not extract SKU from filename: ${filename}`)
-  return null
+  // Pattern 3: SKU with separators (455404-1, SKU_455404, PROD-455404)
+  const separatorPatterns = [
+    /(?:SKU|PROD|ITEM)[_-]?(\d{4,8})/gi,
+    /(\d{4,8})[_-]\d+/g,
+    /(\d{4,8})[_-][a-zA-Z]+/g
+  ]
+  
+  separatorPatterns.forEach(pattern => {
+    let match
+    while ((match = pattern.exec(nameWithoutExt)) !== null) {
+      skus.add(match[1])
+    }
+  })
+  
+  // Pattern 4: Category-based extraction (BAKEWARE/447604)
+  const pathMatch = filename.match(/\/(\d{4,8})/)
+  if (pathMatch) {
+    skus.add(pathMatch[1])
+  }
+  
+  // Pattern 5: Alphanumeric codes (for special products)
+  const alphaNumeric = nameWithoutExt.match(/\b[A-Z]\d{3,7}\b/g)
+  if (alphaNumeric) {
+    alphaNumeric.forEach(code => skus.add(code.toLowerCase()))
+  }
+  
+  const result = Array.from(skus)
+  console.log(`✅ Extracted SKUs [${result.join(', ')}] from "${filename}"`)
+  return result
+}
+
+// Enhanced fuzzy matching for better SKU correlation
+function createAdvancedImageMatcher() {
+  const imageCache = new Map<string, StorageImage>()
+  const fuzzyCache = new Map<string, string[]>() // normalized SKU -> original SKUs
+  
+  return {
+    buildMapping: (images: StorageImage[]) => {
+      imageCache.clear()
+      fuzzyCache.clear()
+      
+      console.log(`🧠 Building advanced image mapping from ${images.length} images`)
+      
+      for (const image of images) {
+        const skus = extractSKUFromFilename(image.filename)
+        
+        for (const sku of skus) {
+          // Store primary mapping
+          if (!imageCache.has(sku)) {
+            imageCache.set(sku, image)
+          }
+          
+          // Build fuzzy mapping variations
+          const variations = generateSKUVariations(sku)
+          for (const variation of variations) {
+            if (!fuzzyCache.has(variation)) {
+              fuzzyCache.set(variation, [])
+            }
+            fuzzyCache.get(variation)!.push(sku)
+          }
+        }
+      }
+      
+      console.log(`🎯 Built mapping: ${imageCache.size} direct matches, ${fuzzyCache.size} fuzzy variations`)
+    },
+    
+    findImage: (productSku: string): StorageImage | null => {
+      if (!productSku) return null
+      
+      const normalizedSku = productSku.toLowerCase().trim()
+      
+      // Direct match
+      if (imageCache.has(normalizedSku)) {
+        return imageCache.get(normalizedSku)!
+      }
+      
+      // Fuzzy match using variations
+      const variations = generateSKUVariations(normalizedSku)
+      for (const variation of variations) {
+        if (imageCache.has(variation)) {
+          console.log(`🎯 Fuzzy matched ${productSku} -> ${variation}`)
+          return imageCache.get(variation)!
+        }
+        
+        // Check fuzzy cache for this variation
+        if (fuzzyCache.has(variation)) {
+          const candidates = fuzzyCache.get(variation)!
+          for (const candidate of candidates) {
+            if (imageCache.has(candidate)) {
+              console.log(`🎯 Advanced fuzzy matched ${productSku} -> ${candidate}`)
+              return imageCache.get(candidate)!
+            }
+          }
+        }
+      }
+      
+      return null
+    },
+    
+    getStats: () => ({
+      directMappings: imageCache.size,
+      fuzzyVariations: fuzzyCache.size,
+      totalImages: Array.from(new Set(Array.from(imageCache.values()).map(img => img.filename))).length
+    })
+  }
+}
+
+// Generate SKU variations for fuzzy matching
+function generateSKUVariations(sku: string): string[] {
+  const variations = new Set<string>()
+  const normalized = sku.toLowerCase().trim()
+  
+  variations.add(normalized)
+  
+  // Zero padding variations
+  if (/^\d{3}$/.test(normalized)) {
+    variations.add('0' + normalized)
+  }
+  if (/^0\d{3}$/.test(normalized)) {
+    variations.add(normalized.substring(1))
+  }
+  if (/^\d{4}$/.test(normalized) && !normalized.startsWith('0')) {
+    variations.add('0' + normalized)
+  }
+  if (/^0\d{4}$/.test(normalized)) {
+    variations.add(normalized.substring(1))
+  }
+  
+  // Remove common prefixes/suffixes
+  const withoutPrefix = normalized.replace(/^(sku|prod|item)[_-]?/i, '')
+  if (withoutPrefix !== normalized) {
+    variations.add(withoutPrefix)
+  }
+  
+  // Handle hyphenated versions
+  if (normalized.includes('-')) {
+    variations.add(normalized.split('-')[0])
+  }
+  
+  // Handle underscored versions
+  if (normalized.includes('_')) {
+    variations.add(normalized.split('_')[0])
+  }
+  
+  return Array.from(variations)
 }
 
 Deno.serve(async (req) => {
@@ -196,19 +341,19 @@ Deno.serve(async (req) => {
                        file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)
         
         if (isImage) {
-          const sku = extractSKUFromFilename(file.name)
-          if (sku) {
+          const skus = extractSKUFromFilename(file.name)
+          if (skus.length > 0) {
             const storagePath = fullPath.startsWith('MULTI_MATCH_ORGANIZED/') 
               ? fullPath 
               : `MULTI_MATCH_ORGANIZED/${fullPath.replace('MULTI_MATCH_ORGANIZED/', '')}`
             
             imageFiles.push({
               filename: file.name,
-              sku,
+              sku: skus[0], // Use primary SKU for storage
               storagePath,
-              metadata: file.metadata || {}
+              metadata: { ...file.metadata || {}, allSkus: skus }
             })
-            console.log(`📎 Found image: ${file.name} -> SKU: ${sku}`)
+            console.log(`📎 Found image: ${file.name} -> SKUs: [${skus.join(', ')}]`)
           } else {
             console.log(`⚠️ Skipping image without extractable SKU: ${file.name}`)
           }
@@ -221,8 +366,8 @@ Deno.serve(async (req) => {
     console.log(`📊 Found ${imageFiles.length} processable images with SKUs`)
     await logMessage('info', `Found ${imageFiles.length} images in storage MULTI_MATCH_ORGANIZED folder`)
 
-    // Step 3: Build intelligent image cache for faster lookups
-    console.log("[PROGRESS] Building intelligent image mapping cache", JSON.stringify({
+    // Step 3: Build advanced intelligent image mapping
+    console.log("[PROGRESS] Building advanced image mapping cache", JSON.stringify({
       status: 'processing',
       processed: 0,
       successful: 0,
@@ -230,25 +375,17 @@ Deno.serve(async (req) => {
       total: imageFiles.length
     }))
     
-    console.log(`🗄️ Building image cache from ${imageFiles.length} images`)
-    const imageCache = new Map<string, StorageImage>()
+    console.log(`🧠 Building advanced image matcher from ${imageFiles.length} images`)
+    const imageMatcher = createAdvancedImageMatcher()
+    imageMatcher.buildMapping(imageFiles)
     
-    for (const image of imageFiles) {
-      // Store by SKU for O(1) lookup, handle multiple images per SKU
-      const existingImage = imageCache.get(image.sku)
-      if (!existingImage) {
-        imageCache.set(image.sku, image)
-      } else {
-        console.log(`🔄 Multiple images found for SKU ${image.sku}, keeping first: ${existingImage.filename}`)
-      }
-    }
-    
-    console.log(`✅ Image cache built: ${imageCache.size} unique SKU mappings from ${imageFiles.length} images`)
-    await logMessage('info', `Image cache built: ${imageCache.size} unique mappings from ${imageFiles.length} images`)
+    const matcherStats = imageMatcher.getStats()
+    console.log(`✅ Advanced mapping built: ${matcherStats.directMappings} direct, ${matcherStats.fuzzyVariations} fuzzy variants, ${matcherStats.totalImages} unique images`)
+    await logMessage('info', `Advanced image mapping: ${matcherStats.directMappings} direct mappings, ${matcherStats.fuzzyVariations} fuzzy variations`)
 
-    // Step 4: Match products to images efficiently
+    // Step 4: Enhanced product-image matching with fuzzy logic
     progress.total = products?.length || 1000
-    progress.currentStep = 'Matching products to images using intelligent cache'
+    progress.currentStep = 'Advanced fuzzy matching products to images'
     await sendProgressUpdate(progress)
 
     const matchedProducts: Array<{product: Product, imageFile: StorageImage}> = []
@@ -258,23 +395,36 @@ Deno.serve(async (req) => {
       progress.total = 0
       await sendProgressUpdate(progress)
     } else {
+      let exactMatches = 0
+      let fuzzyMatches = 0
+      
       for (const product of products) {
         try {
           if (!product || !product.sku) continue
 
-          const matchedImage = imageCache.get(product.sku)
+          const matchedImage = imageMatcher.findImage(product.sku)
           if (matchedImage) {
             matchedProducts.push({ product, imageFile: matchedImage })
-            console.log(`✅ Matched product ${product.sku} to image ${matchedImage.filename}`)
+            
+            // Check if it was a direct or fuzzy match
+            const directMatch = imageFiles.find(img => img.sku === product.sku)
+            if (directMatch) {
+              exactMatches++
+              console.log(`✅ Direct match: ${product.sku} -> ${matchedImage.filename}`)
+            } else {
+              fuzzyMatches++
+              console.log(`🎯 Fuzzy match: ${product.sku} -> ${matchedImage.filename}`)
+            }
           }
         } catch (error) {
           await logMessage('error', `Error matching product ${product?.sku || 'unknown'}: ${error.message}`)
         }
       }
+      console.log(`📊 Matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${matchedProducts.length} total matches`)
     }
 
     progress.total = matchedProducts.length
-    await logMessage('info', `Intelligent matching complete: ${matchedProducts.length} products matched from ${imageFiles.length} images`)
+    await logMessage('info', `Advanced matching complete: ${matchedProducts.length} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy) from ${imageFiles.length} images`)
     await sendProgressUpdate(progress)
 
     // Step 5: Process matched products with enhanced error handling
