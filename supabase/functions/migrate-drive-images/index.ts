@@ -659,7 +659,7 @@ Deno.serve(async (req) => {
       const { data: storageFiles, error: storageError } = await supabaseClient.storage
         .from('product-images')
         .list(folderPath, {
-          limit: 1000,
+          limit: 10000,
           sortBy: { column: 'name', order: 'asc' }
         })
 
@@ -727,7 +727,7 @@ Deno.serve(async (req) => {
     await logMessage('info', `Advanced image mapping: ${matcherStats.directMappings} direct mappings, ${matcherStats.fuzzyVariations} fuzzy variations`)
 
     // Step 4: Enhanced product-image matching with fuzzy logic
-    progress.total = products?.length || 1000
+    progress.total = products?.length || 10000
     progress.currentStep = 'Advanced fuzzy matching products to images'
     await sendProgressUpdate(progress)
 
