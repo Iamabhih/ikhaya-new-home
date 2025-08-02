@@ -43,55 +43,67 @@ function extractSKUFromFilename(filename: string): string[] {
   
   const skus = new Set<string>()
   
-  // Pattern 1: Direct numeric SKUs (most common)
-  const directNumbers = nameWithoutExt.match(/\b\d{4,8}\b/g)
-  if (directNumbers) {
-    directNumbers.forEach(num => {
-      skus.add(num)
-      // Add zero-padded versions for short SKUs
-      if (num.length === 3) skus.add('0' + num)
-      if (num.length === 4 && !num.startsWith('0')) skus.add('0' + num)
+  try {
+    // Pattern 1: Direct numeric SKUs (most common)
+    const directNumbers = nameWithoutExt.match(/\b\d{3,8}\b/g)
+    if (directNumbers) {
+      directNumbers.forEach(num => {
+        skus.add(num)
+        // Add zero-padded versions for short SKUs
+        if (num.length === 3) skus.add('0' + num)
+        if (num.length === 4 && !num.startsWith('0')) skus.add('0' + num)
+      })
+    }
+  
+    // Pattern 2: Complex multi-SKU patterns (455100.455101.455102.455103)
+    const multiSku = nameWithoutExt.match(/^(\d{3,8})(?:\.(\d{3,8}))+/)
+    if (multiSku) {
+      const allMatches = nameWithoutExt.match(/\d{3,8}/g)
+      if (allMatches) {
+        allMatches.forEach(sku => skus.add(sku))
+      }
+    }
+    
+    // Pattern 3: SKU with separators (455404-1, SKU_455404, PROD-455404)
+    const separatorPatterns = [
+      /(?:SKU|PROD|ITEM)[_-]?(\d{3,8})/gi,
+      /(\d{3,8})[_-]\d+/g,
+      /(\d{3,8})[_-][a-zA-Z]+/g,
+      /(\d{3,8})\s*\([^)]*\)/g // Handle patterns like "455110 (blue)"
+    ]
+    
+    separatorPatterns.forEach(pattern => {
+      let match
+      while ((match = pattern.exec(nameWithoutExt)) !== null) {
+        skus.add(match[1])
+      }
     })
-  }
-  
-  // Pattern 2: Complex multi-SKU patterns (455100.455101.455102.455103)
-  const multiSku = nameWithoutExt.match(/^(\d{4,8})(?:\.(\d{4,8}))+/)
-  if (multiSku) {
-    const allMatches = nameWithoutExt.match(/\d{4,8}/g)
-    if (allMatches) {
-      allMatches.forEach(sku => skus.add(sku))
+    
+    // Pattern 4: Category-based extraction (BAKEWARE/447604)
+    const pathMatch = filename.match(/\/(\d{3,8})/)
+    if (pathMatch) {
+      skus.add(pathMatch[1])
     }
-  }
-  
-  // Pattern 3: SKU with separators (455404-1, SKU_455404, PROD-455404)
-  const separatorPatterns = [
-    /(?:SKU|PROD|ITEM)[_-]?(\d{4,8})/gi,
-    /(\d{4,8})[_-]\d+/g,
-    /(\d{4,8})[_-][a-zA-Z]+/g
-  ]
-  
-  separatorPatterns.forEach(pattern => {
-    let match
-    while ((match = pattern.exec(nameWithoutExt)) !== null) {
-      skus.add(match[1])
+    
+    // Pattern 5: Space-separated patterns "455112 (2)"
+    const spacePattern = nameWithoutExt.match(/(\d{3,8})\s+\([^)]*\)/)
+    if (spacePattern) {
+      skus.add(spacePattern[1])
     }
-  })
-  
-  // Pattern 4: Category-based extraction (BAKEWARE/447604)
-  const pathMatch = filename.match(/\/(\d{4,8})/)
-  if (pathMatch) {
-    skus.add(pathMatch[1])
+    
+    // Pattern 6: Alphanumeric codes (for special products)
+    const alphaNumeric = nameWithoutExt.match(/\b[A-Z]\d{3,7}\b/g)
+    if (alphaNumeric) {
+      alphaNumeric.forEach(code => skus.add(code.toLowerCase()))
+    }
+    
+    const result = Array.from(skus)
+    console.log(`✅ Extracted SKUs [${result.join(', ')}] from "${filename}"`)
+    return result
+  } catch (error) {
+    console.error(`❌ Error extracting SKUs from "${filename}":`, error)
+    return []
   }
-  
-  // Pattern 5: Alphanumeric codes (for special products)
-  const alphaNumeric = nameWithoutExt.match(/\b[A-Z]\d{3,7}\b/g)
-  if (alphaNumeric) {
-    alphaNumeric.forEach(code => skus.add(code.toLowerCase()))
-  }
-  
-  const result = Array.from(skus)
-  console.log(`✅ Extracted SKUs [${result.join(', ')}] from "${filename}"`)
-  return result
 }
 
 // Enhanced fuzzy matching for better SKU correlation
@@ -107,22 +119,27 @@ function createAdvancedImageMatcher() {
       console.log(`🧠 Building advanced image mapping from ${images.length} images`)
       
       for (const image of images) {
-        const skus = extractSKUFromFilename(image.filename)
-        
-        for (const sku of skus) {
-          // Store primary mapping
-          if (!imageCache.has(sku)) {
-            imageCache.set(sku, image)
-          }
+        try {
+          const skus = extractSKUFromFilename(image.filename)
           
-          // Build fuzzy mapping variations
-          const variations = generateSKUVariations(sku)
-          for (const variation of variations) {
-            if (!fuzzyCache.has(variation)) {
-              fuzzyCache.set(variation, [])
+          for (const sku of skus) {
+            // Store primary mapping
+            if (!imageCache.has(sku)) {
+              imageCache.set(sku, image)
             }
-            fuzzyCache.get(variation)!.push(sku)
+            
+            // Build fuzzy mapping variations
+            const variations = generateSKUVariations(sku)
+            for (const variation of variations) {
+              if (!fuzzyCache.has(variation)) {
+                fuzzyCache.set(variation, [])
+              }
+              fuzzyCache.get(variation)!.push(sku)
+            }
           }
+        } catch (error) {
+          console.error(`Error processing image ${image.filename}:`, error)
+          continue
         }
       }
       
