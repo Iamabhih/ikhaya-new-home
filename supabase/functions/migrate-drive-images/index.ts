@@ -5,10 +5,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface DriveFile {
+interface StorageImage {
+  filename: string
+  sku: string
+  storagePath: string
+  metadata: any
+}
+
+interface Product {
   id: string
+  sku: string
   name: string
-  mimeType: string
 }
 
 interface MigrationProgress {
@@ -25,6 +32,39 @@ interface MigrationProgress {
   estimatedTimeRemaining?: string
 }
 
+// Enhanced SKU extraction with multiple pattern matching
+function extractSKUFromFilename(filename: string): string | null {
+  if (!filename || typeof filename !== 'string') return null
+  
+  // Remove file extension and path
+  const nameWithoutExt = filename.replace(/.*\//, '').replace(/\.[^/.]+$/, '')
+  
+  console.log(`🔍 Extracting SKU from: ${filename} -> ${nameWithoutExt}`)
+  
+  // Enhanced SKU patterns - try multiple extraction methods
+  const patterns = [
+    // Direct SKU: "455404" or "455404-1" or "455404_image"
+    /^(\d{4,8})(?:[_-].*)?$/,
+    // SKU in complex names: "455100.455101.455102.455103" -> take first
+    /^(\d{4,8})(?:\.\d+)*/,
+    // SKU with text: "SKU455404" or "PROD-455404"
+    /(?:SKU|PROD)[_-]?(\d{4,8})/i,
+    // Generic number patterns (4-8 digits)
+    /(\d{4,8})/,
+  ]
+  
+  for (const pattern of patterns) {
+    const match = nameWithoutExt.match(pattern)
+    if (match && match[1]) {
+      console.log(`✅ Extracted SKU "${match[1]}" from "${filename}" using pattern: ${pattern}`)
+      return match[1]
+    }
+  }
+  
+  console.log(`❌ Could not extract SKU from filename: ${filename}`)
+  return null
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -37,15 +77,6 @@ Deno.serve(async (req) => {
   const sendProgressUpdate = async (progress: Partial<MigrationProgress>) => {
     try {
       if (supabaseClient) {
-        // Send real-time update via broadcast
-        const channel = supabaseClient.channel(`migration-${sessionId}`)
-        await channel.send({
-          type: 'broadcast',
-          event: 'migration_progress',
-          payload: { ...progress, sessionId, timestamp: new Date().toISOString() }
-        })
-        
-        // Also log to console for debugging
         console.log(`[PROGRESS] ${progress.currentStep || 'Update'} - ${JSON.stringify({
           status: progress.status,
           processed: progress.processed,
@@ -85,20 +116,9 @@ Deno.serve(async (req) => {
     
     console.log('✅ Supabase client initialized')
 
-    const googleApiKey = Deno.env.get('GOOGLE_DRIVE_API_KEY')
-    const folderId = '1tG66zQTXGR-BQwjYZheRHVQ7s4n6-Jan' // Your Google Drive folder ID
-
-    console.log('🔑 Checking Google Drive API key...')
-    if (!googleApiKey) {
-      console.error('❌ Google Drive API key not configured')
-      await logMessage('error', 'Google Drive API key not configured')
-      throw new Error('Google Drive API key not configured')
-    }
-    console.log('✅ Google Drive API key found')
-
     const startTime = new Date().toISOString()
     console.log('📋 Initializing migration process...')
-    await logMessage('info', '🚀 Starting enhanced image migration from Google Drive to Supabase')
+    await logMessage('info', '🚀 Starting enhanced image migration from Storage to Supabase')
 
     // Initialize progress with detailed logging
     const progress: MigrationProgress = {
@@ -138,262 +158,100 @@ Deno.serve(async (req) => {
     console.log(`✅ Found ${products?.length || 0} products with SKUs`)
     await logMessage('info', `Found ${products?.length || 0} products with SKUs`)
 
-    // Step 2: Get all files from Google Drive with pagination support
-    console.log('🔍 Starting Google Drive scan...')
-    progress.currentStep = 'Scanning Google Drive folder (this may take a while for large folders)'
+    // Step 2: Recursively scan MULTI_MATCH_ORGANIZED folder
+    console.log('🔍 Starting Storage scan...')
+    progress.currentStep = 'Scanning MULTI_MATCH_ORGANIZED folder recursively'
     await sendProgressUpdate(progress)
 
-    let allDriveFiles: DriveFile[] = []
+    const imageFiles: StorageImage[] = []
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
     
-    // Check MULTI_MATCH_ORGANIZED folder in storage bucket first
-    console.log('🗄️ Checking existing images in MULTI_MATCH_ORGANIZED folder...')
-    const { data: storageFiles, error: storageError } = await supabaseClient
-      .storage
-      .from('product-images')
-      .list('MULTI_MATCH_ORGANIZED', { recursive: true })
+    // Function to recursively scan folders
+    async function scanFolder(folderPath: string = 'MULTI_MATCH_ORGANIZED') {
+      const { data: storageFiles, error: storageError } = await supabaseClient.storage
+        .from('product-images')
+        .list(folderPath, {
+          limit: 1000,
+          sortBy: { column: 'name', order: 'asc' }
+        })
 
-    if (storageError) {
-      console.error('❌ Error accessing storage:', storageError)
-      await logMessage('error', `Error accessing storage: ${storageError.message}`)
-    } else {
-      console.log(`✅ Found ${storageFiles?.length || 0} files in MULTI_MATCH_ORGANIZED folder`)
-      
-      // Convert storage files to DriveFile format
-      const storageImages = storageFiles
-        ?.filter(file => file.name && !file.name.endsWith('/') && 
-                 (file.name.toLowerCase().includes('.png') || 
-                  file.name.toLowerCase().includes('.jpg') || 
-                  file.name.toLowerCase().includes('.jpeg')))
-        .map(file => ({
-          id: file.name, // Use file path as ID
-          name: file.name.split('/').pop() || file.name, // Get just filename
-          mimeType: file.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
-          storagePath: `MULTI_MATCH_ORGANIZED/${file.name}`
-        })) || []
-      
-      allDriveFiles = storageImages as DriveFile[]
-      console.log(`📊 Converted ${allDriveFiles.length} storage files for processing`)
-      await logMessage('info', `Found ${allDriveFiles.length} images in storage MULTI_MATCH_ORGANIZED folder`)
+      if (storageError) {
+        console.error(`❌ Error accessing storage folder ${folderPath}:`, storageError)
+        throw new Error(`Storage access failed: ${storageError.message}`)
+      }
+
+      if (!storageFiles) return
+
+      for (const file of storageFiles) {
+        const fullPath = folderPath === 'MULTI_MATCH_ORGANIZED' ? file.name : `${folderPath}/${file.name}`
+        
+        // If it's a directory, scan it recursively
+        if (!file.metadata && file.name && !file.name.includes('.')) {
+          await scanFolder(`${folderPath}/${file.name}`)
+          continue
+        }
+        
+        // Check if it's an image file
+        const isImage = file.metadata?.mimetype?.startsWith('image/') || 
+                       file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)
+        
+        if (isImage) {
+          const sku = extractSKUFromFilename(file.name)
+          if (sku) {
+            const storagePath = fullPath.startsWith('MULTI_MATCH_ORGANIZED/') 
+              ? fullPath 
+              : `MULTI_MATCH_ORGANIZED/${fullPath.replace('MULTI_MATCH_ORGANIZED/', '')}`
+            
+            imageFiles.push({
+              filename: file.name,
+              sku,
+              storagePath,
+              metadata: file.metadata || {}
+            })
+            console.log(`📎 Found image: ${file.name} -> SKU: ${sku}`)
+          } else {
+            console.log(`⚠️ Skipping image without extractable SKU: ${file.name}`)
+          }
+        }
+      }
     }
-
-    // Cache all discovered images to database for manual linking
-    console.log('🗄️ Caching discovered images...')
-    progress.currentStep = 'Caching discovered images for manual linking...'
-    progress.total = allDriveFiles.length
-    await sendProgressUpdate(progress)
-
-    // Helper function to extract SKU from filename
-    const extractSKUFromFilename = (filename: string): string | null => {
-      const codes = extractProductCodes(filename)
-      return codes.length > 0 ? codes[0] : null
-    }
-
-    // Helper function to format storage URL
-    const formatStorageURL = (storagePath: string): string => {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')
-      return `${supabaseUrl}/storage/v1/object/public/product-images/${storagePath}`
-    }
-
-    // Cache images in batches to avoid overwhelming the database
-    const cacheImagesBatchSize = 50
-    let cachedCount = 0
     
-    for (let i = 0; i < allDriveFiles.length; i += cacheImagesBatchSize) {
-      const batch = allDriveFiles.slice(i, i + cacheImagesBatchSize)
-      const cacheData = batch.map(image => ({
-        sku: extractSKUFromFilename(image.name),
-        filename: image.name,
-        drive_id: image.id,
-        direct_url: formatStorageURL((image as any).storagePath || image.name),
-        file_size: null,
-        mime_type: image.mimeType,
-        scan_session_id: sessionId,
-        metadata: {
-          scan_timestamp: new Date().toISOString(),
-          source: 'storage_migration'
-        }
-      }))
-
-      try {
-        const { error: cacheError } = await supabaseClient
-          .from('cached_drive_images')
-          .upsert(cacheData, { 
-            onConflict: 'drive_id',
-            ignoreDuplicates: false 
-          })
-
-        if (cacheError) {
-          console.error('❌ Error caching images batch:', cacheError)
-          await logMessage('error', `Error caching images batch: ${cacheError.message}`)
-        } else {
-          cachedCount += batch.length
-          console.log(`✅ Cached batch of ${batch.length} images (${cachedCount}/${allDriveFiles.length})`)
-          
-          // Update progress for caching
-          progress.processed = cachedCount
-          await sendProgressUpdate(progress)
-        }
-      } catch (error) {
-        console.error('❌ Error caching images batch:', error)
-        await logMessage('error', `Error caching images batch: ${error.message}`)
-      }
-
-      // Small delay between batches to avoid overwhelming the database
-      if (i + cacheImagesBatchSize < allDriveFiles.length) {
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-    }
-
-    console.log(`🗄️ Cached ${cachedCount} images for manual linking`)
-    await logMessage('info', `Cached ${cachedCount} images for manual linking in cached_drive_images table`)
-
-    // Reset progress counters for the actual migration process
-    progress.processed = 0
-    progress.successful = 0
-    progress.failed = 0
-
-    // Enhanced matching functions inspired by ImageSKUMatcher
-    const createImageCache = () => {
-      const cache = new Map<string, DriveFile>()
-      const stats = { processed: 0, matched: 0, failed: 0 }
-      
-      return {
-        buildMapping: (driveFiles: DriveFile[]) => {
-          cache.clear()
-          stats.processed = driveFiles?.length || 0
-          stats.matched = 0
-          stats.failed = 0
-          
-          if (!driveFiles || driveFiles.length === 0) return
-          
-          for (const file of driveFiles) {
-            try {
-              if (!file?.name || !file?.mimeType?.includes('image/')) continue
-              
-              const codes = extractProductCodes(file.name)
-              for (const code of codes) {
-                if (!cache.has(code)) {
-                  cache.set(code, file)
-                  stats.matched++
-                }
-              }
-            } catch (error) {
-              stats.failed++
-              continue
-            }
-          }
-        },
-        
-        getImage: (sku: string) => {
-          if (!sku) return { found: false, image: null }
-          
-          const normalizedSku = sku.toLowerCase().trim()
-          
-          // Direct match
-          if (cache.has(normalizedSku)) {
-            return { found: true, image: cache.get(normalizedSku) }
-          }
-          
-          // Try with zero padding for 3-digit SKUs
-          if (/^\d{3}$/.test(normalizedSku)) {
-            const paddedSku = '0' + normalizedSku
-            if (cache.has(paddedSku)) {
-              return { found: true, image: cache.get(paddedSku) }
-            }
-          }
-          
-          // Try without leading zero for 4-digit SKUs
-          if (/^0\d{3}$/.test(normalizedSku)) {
-            const unpaddedSku = normalizedSku.substring(1)
-            if (cache.has(unpaddedSku)) {
-              return { found: true, image: cache.get(unpaddedSku) }
-            }
-          }
-          
-          return { found: false, image: null }
-        },
-        
-        getStats: () => ({ ...stats, cacheSize: cache.size })
-      }
-    }
-
-    function extractProductCodes(filename: string): string[] {
-      if (!filename || typeof filename !== 'string') return []
-      
-      try {
-        const codes = new Set<string>()
-        const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
-        const cleanName = nameWithoutExt.toLowerCase()
-        
-        // Extract numeric codes (3-6 digits)
-        const numericMatches = cleanName.match(/\b\d{3,6}\b/g)
-        if (numericMatches) {
-          numericMatches.forEach(match => {
-            codes.add(match)
-            // Auto-pad short codes
-            if (match.length === 3) {
-              codes.add('0' + match)
-            }
-          })
-        }
-        
-        // Extract alphanumeric codes (3-8 characters)
-        const alphanumericMatches = cleanName.match(/\b[a-z0-9]{3,8}\b/g)
-        if (alphanumericMatches) {
-          alphanumericMatches.forEach(match => codes.add(match))
-        }
-        
-        // Handle separators and split by common delimiters
-        const parts = cleanName.split(/[-_\s\.]+/).filter(part => part && part.length > 0)
-        for (const part of parts) {
-          if (/^\d{3,6}$/.test(part) || /^[a-z0-9]{3,8}$/.test(part)) {
-            codes.add(part)
-            if (/^\d{3}$/.test(part)) {
-              codes.add('0' + part)
-            }
-          }
-        }
-        
-        // Try common prefixes
-        const prefixes = ['product', 'item', 'sku', 'code']
-        for (const prefix of prefixes) {
-          const regex = new RegExp(`${prefix}[-_\\s]*([a-z0-9]{3,8})`, 'g')
-          let match
-          while ((match = regex.exec(cleanName)) !== null) {
-            codes.add(match[1])
-            if (/^\d{3}$/.test(match[1])) {
-              codes.add('0' + match[1])
-            }
-          }
-        }
-        
-        return Array.from(codes)
-      } catch (error) {
-        console.error('Error extracting codes from:', filename, error)
-        return []
-      }
-    }
-
-    // Initialize image cache
-    const imageCache = createImageCache()
-
-    // Step 3: Build image mapping using enhanced cache
-    progress.status = 'processing'
-    progress.currentStep = 'Building intelligent image mapping cache'
-    await sendProgressUpdate(progress)
-
-    await logMessage('info', `Building image cache from ${allDriveFiles.length} images`)
-    imageCache.buildMapping(allDriveFiles)
+    await scanFolder()
     
-    const cacheStats = imageCache.getStats()
-    await logMessage('info', `Image cache built: ${cacheStats.cacheSize} unique mappings from ${cacheStats.processed} images`)
+    console.log(`📊 Found ${imageFiles.length} processable images with SKUs`)
+    await logMessage('info', `Found ${imageFiles.length} images in storage MULTI_MATCH_ORGANIZED folder`)
+
+    // Step 3: Build intelligent image cache for faster lookups
+    console.log("[PROGRESS] Building intelligent image mapping cache", JSON.stringify({
+      status: 'processing',
+      processed: 0,
+      successful: 0,
+      failed: 0,
+      total: imageFiles.length
+    }))
+    
+    console.log(`🗄️ Building image cache from ${imageFiles.length} images`)
+    const imageCache = new Map<string, StorageImage>()
+    
+    for (const image of imageFiles) {
+      // Store by SKU for O(1) lookup, handle multiple images per SKU
+      const existingImage = imageCache.get(image.sku)
+      if (!existingImage) {
+        imageCache.set(image.sku, image)
+      } else {
+        console.log(`🔄 Multiple images found for SKU ${image.sku}, keeping first: ${existingImage.filename}`)
+      }
+    }
+    
+    console.log(`✅ Image cache built: ${imageCache.size} unique SKU mappings from ${imageFiles.length} images`)
+    await logMessage('info', `Image cache built: ${imageCache.size} unique mappings from ${imageFiles.length} images`)
 
     // Step 4: Match products to images efficiently
-    progress.total = products?.length || 0
+    progress.total = products?.length || 1000
     progress.currentStep = 'Matching products to images using intelligent cache'
     await sendProgressUpdate(progress)
 
-    const matchedProducts: Array<{product: any, imageFile: DriveFile}> = []
+    const matchedProducts: Array<{product: Product, imageFile: StorageImage}> = []
     
     if (!products || products.length === 0) {
       await logMessage('warn', 'No products found to process')
@@ -404,9 +262,10 @@ Deno.serve(async (req) => {
         try {
           if (!product || !product.sku) continue
 
-          const result = imageCache.getImage(product.sku)
-          if (result.found && result.image) {
-            matchedProducts.push({ product, imageFile: result.image })
+          const matchedImage = imageCache.get(product.sku)
+          if (matchedImage) {
+            matchedProducts.push({ product, imageFile: matchedImage })
+            console.log(`✅ Matched product ${product.sku} to image ${matchedImage.filename}`)
           }
         } catch (error) {
           await logMessage('error', `Error matching product ${product?.sku || 'unknown'}: ${error.message}`)
@@ -415,11 +274,11 @@ Deno.serve(async (req) => {
     }
 
     progress.total = matchedProducts.length
-    await logMessage('info', `Intelligent matching complete: ${matchedProducts.length} products matched from ${allDriveFiles.length} images`)
+    await logMessage('info', `Intelligent matching complete: ${matchedProducts.length} products matched from ${imageFiles.length} images`)
     await sendProgressUpdate(progress)
 
     // Step 5: Process matched products with enhanced error handling
-    const batchSize = 5 // Increased batch size for better efficiency  
+    const batchSize = 5
     
     await logMessage('info', `Starting migration of ${matchedProducts.length} matched products in batches of ${batchSize}`)
     
@@ -443,15 +302,12 @@ Deno.serve(async (req) => {
       
       await logMessage('info', `Processing batch ${batchNumber}/${totalBatches}`)
       
-      // Process batch sequentially for better stability with large datasets
+      // Process batch sequentially for better stability
       for (const { product, imageFile } of batch) {
         try {
-          progress.currentFile = `${product.sku} (${imageFile.name})`
+          progress.currentFile = `${product.sku} (${imageFile.filename})`
           await sendProgressUpdate(progress)
-          await logMessage('info', `Processing ${product.sku}: ${imageFile.name}`)
-
-          // For storage files, create direct URL
-          const imageUrl = formatStorageURL((imageFile as any).storagePath || imageFile.name)
+          await logMessage('info', `Processing ${product.sku}: ${imageFile.filename}`)
 
           // Check if product already has an image
           const { data: existingImages } = await supabaseClient
@@ -468,94 +324,90 @@ Deno.serve(async (req) => {
             continue
           }
 
-          // Insert product image record directly using storage URL
+          // Create product_images record with direct storage URL
+          const imageUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${imageFile.storagePath}`
+          
+          console.log(`🔗 Linking product ${product.name} (${product.sku}) to image: ${imageUrl}`)
+          
           const { error: insertError } = await supabaseClient
             .from('product_images')
             .insert({
               product_id: product.id,
               image_url: imageUrl,
               alt_text: `${product.name} product image`,
-              is_primary: true,
-              sort_order: 0
+              sort_order: 0,
+              is_primary: true
             })
 
           if (insertError) {
-            console.error(`❌ Failed to insert image record for ${product.sku}:`, insertError)
-            await logMessage('error', `Failed to insert image record for ${product.sku}: ${insertError.message}`)
+            console.error(`❌ Failed to insert image for ${product.sku}:`, insertError)
+            await logMessage('error', `Failed to insert image for ${product.sku}: ${insertError.message}`)
             progress.failed++
             progress.errors.push(`${product.sku}: ${insertError.message}`)
           } else {
-            console.log(`✅ Successfully migrated ${product.sku}`)
-            await logMessage('info', `✅ Successfully migrated ${product.sku}`)
+            console.log(`✅ Successfully linked ${product.sku} to ${imageFile.filename}`)
             progress.successful++
           }
 
           progress.processed++
           await sendProgressUpdate(progress)
-          
+
         } catch (error) {
+          console.error(`❌ Error processing ${product.sku}:`, error)
+          await logMessage('error', `Error processing ${product.sku}: ${error.message}`)
           progress.failed++
-          const errorMsg = `❌ ${product.sku}: ${error.message}`
-          progress.errors.push(errorMsg)
-          await logMessage('error', errorMsg)
+          progress.errors.push(`${product.sku}: ${error.message}`)
           progress.processed++
           await sendProgressUpdate(progress)
         }
       }
-      
-      // Enhanced delay between batches to respect API limits
+
+      // Small delay between batches to avoid overwhelming the database
       if (i + batchSize < matchedProducts.length) {
-        const delay = Math.min(2500, 1000 + (batchNumber * 100))
-        await logMessage('info', `Batch ${batchNumber} complete. Waiting ${delay}ms before next batch...`)
-        await new Promise(resolve => setTimeout(resolve, delay))
+        await new Promise(resolve => setTimeout(resolve, 100))
       }
     }
 
-    // Completion
+    // Final status update
     progress.status = 'completed'
-    progress.currentStep = 'Migration completed successfully'
-    progress.currentFile = undefined
+    progress.currentStep = `Migration completed: ${progress.successful} successful, ${progress.failed} failed`
     await sendProgressUpdate(progress)
 
-    await logMessage('info', `🎉 Migration completed: ${progress.successful} successful, ${progress.failed} failed`)
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Image migration completed',
-        sessionId,
-        results: {
-          processed: progress.processed,
-          successful: progress.successful,
-          failed: progress.failed,
-          errors: progress.errors
-        }
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    )
-
-  } catch (error) {
-    console.error('Migration error:', error)
+    const endTime = new Date().toISOString()
+    const duration = new Date(endTime).getTime() - new Date(startTime).getTime()
     
-    await sendProgressUpdate({
-      status: 'error',
-      currentStep: `Migration failed: ${error.message}`,
-      errors: [error.message]
+    await logMessage('info', `🎉 Migration completed in ${Math.round(duration / 1000)}s`)
+    
+    return new Response(JSON.stringify({
+      success: true,
+      message: `Migration completed successfully`,
+      sessionId,
+      results: {
+        processed: progress.processed,
+        successful: progress.successful,
+        failed: progress.failed,
+        errors: progress.errors.slice(0, 10) // Limit error list
+      },
+      performance: {
+        duration: Math.round(duration / 1000),
+        itemsPerSecond: Math.round(progress.processed / (duration / 1000))
+      }
+    }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+      status: 200 
     })
 
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-        sessionId
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
-    )
+  } catch (error) {
+    console.error('❌ Migration failed:', error)
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      sessionId,
+      results: { processed: 0, successful: 0, failed: 0, errors: [error.message] }
+    }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+      status: 500 
+    })
   }
 })

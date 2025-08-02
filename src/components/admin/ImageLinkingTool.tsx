@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { RefreshCw, Image, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { RefreshCw, Image, CheckCircle, XCircle, AlertCircle, FileImage, Database } from "lucide-react";
 
 interface MigrationProgress {
   status: 'initializing' | 'scanning' | 'processing' | 'completed' | 'error';
@@ -23,6 +23,49 @@ export const ImageLinkingTool = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState<MigrationProgress | null>(null);
   const [lastResults, setLastResults] = useState<any>(null);
+  const [stats, setStats] = useState<{
+    totalProducts: number;
+    productsWithImages: number;
+    availableImages: number;
+    unlinkedProducts: number;
+  } | null>(null);
+
+  const loadStats = async () => {
+    try {
+      // Get total products
+      const { count: totalProducts } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      // Get products with images
+      const { count: productsWithImages } = await supabase
+        .from('products')
+        .select('*, product_images!inner(*)', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      // Get available images in storage
+      const { data: storageFiles } = await supabase.storage
+        .from('product-images')
+        .list('MULTI_MATCH_ORGANIZED', { limit: 1000 });
+
+      const availableImages = storageFiles?.length || 0;
+      const unlinkedProducts = (totalProducts || 0) - (productsWithImages || 0);
+
+      setStats({
+        totalProducts: totalProducts || 0,
+        productsWithImages: productsWithImages || 0,
+        availableImages,
+        unlinkedProducts
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadStats();
+  }, []);
 
   const startImageLinking = async () => {
     setIsRunning(true);
@@ -30,7 +73,7 @@ export const ImageLinkingTool = () => {
     setLastResults(null);
 
     try {
-      toast.info("Starting image linking process...");
+      toast.info("Starting enhanced image linking process...");
       
       const { data, error } = await supabase.functions.invoke('migrate-drive-images', {
         body: {}
@@ -44,6 +87,8 @@ export const ImageLinkingTool = () => {
       
       if (data.success) {
         toast.success(`Image linking completed! ${data.results.successful} products linked successfully.`);
+        // Reload stats after successful linking
+        loadStats();
       } else {
         toast.error(`Image linking failed: ${data.error}`);
       }
@@ -77,14 +122,67 @@ export const ImageLinkingTool = () => {
 
   return (
     <div className="space-y-6">
+      {/* Stats Overview */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4 text-blue-500" />
+                <div>
+                  <div className="text-2xl font-bold">{stats.totalProducts}</div>
+                  <div className="text-sm text-muted-foreground">Total Products</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <div>
+                  <div className="text-2xl font-bold">{stats.productsWithImages}</div>
+                  <div className="text-sm text-muted-foreground">With Images</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <FileImage className="h-4 w-4 text-purple-500" />
+                <div>
+                  <div className="text-2xl font-bold">{stats.availableImages}</div>
+                  <div className="text-sm text-muted-foreground">Available Images</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+                <div>
+                  <div className="text-2xl font-bold">{stats.unlinkedProducts}</div>
+                  <div className="text-sm text-muted-foreground">Need Images</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Image className="h-5 w-5" />
-            Image Linking Tool
+            Enhanced Image Linking Tool
           </CardTitle>
           <CardDescription>
-            Link products to images from the MULTI_MATCH_ORGANIZED storage folder based on SKU matching.
+            Automatically link products to images from the MULTI_MATCH_ORGANIZED storage folder using intelligent SKU matching.
           </CardDescription>
         </CardHeader>
         
@@ -196,19 +294,31 @@ export const ImageLinkingTool = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">About This Tool</CardTitle>
+          <CardTitle className="text-sm">Enhanced Features</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>
-            This tool automatically links products to images stored in the MULTI_MATCH_ORGANIZED folder by matching SKU numbers in filenames.
+            This enhanced tool provides intelligent image linking with comprehensive SKU pattern matching and detailed progress tracking.
           </p>
           <ul className="list-disc list-inside space-y-1 ml-4">
-            <li>Scans all images in the MULTI_MATCH_ORGANIZED storage folder</li>
-            <li>Extracts SKU numbers from image filenames</li>
-            <li>Matches SKUs to products in the database</li>
-            <li>Creates product_images records for successful matches</li>
-            <li>Skips products that already have images</li>
+            <li>Recursively scans all subfolders in MULTI_MATCH_ORGANIZED</li>
+            <li>Enhanced SKU extraction with multiple pattern matching</li>
+            <li>Supports various filename formats (455404.jpg, SKU_455404, etc.)</li>
+            <li>Real-time progress tracking and detailed logging</li>
+            <li>Skips products that already have primary images</li>
+            <li>Creates optimized storage URLs for fast loading</li>
+            <li>Handles complex filename patterns and multi-SKU images</li>
           </ul>
+          
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <p className="font-medium">Supported File Patterns:</p>
+            <ul className="list-disc list-inside mt-1 text-xs space-y-1">
+              <li>Direct SKU: <code>455404.jpg</code></li>
+              <li>With separators: <code>455404-1.png</code>, <code>SKU_455404.jpg</code></li>
+              <li>In subfolders: <code>BAKEWARE/455404.jpg</code></li>
+              <li>Complex: <code>455100.455101.455102.png</code> (uses first SKU)</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
     </div>
