@@ -92,7 +92,7 @@ export const ImageLinkingTool = () => {
       // Get available images in storage
       const { data: storageFiles } = await supabase.storage
         .from('product-images')
-        .list('MULTI_MATCH_ORGANIZED', { limit: 1000 });
+        .list('MULTI_MATCH_ORGANIZED', { limit: 10000 });
 
       const availableImages = storageFiles?.length || 0;
       const unlinkedProducts = (totalProducts || 0) - (productsWithImages || 0);
@@ -123,7 +123,7 @@ export const ImageLinkingTool = () => {
         `)
         .eq('is_active', true)
         .not('sku', 'is', null)
-        .limit(50);
+        .limit(10000);
 
       if (error) throw error;
 
@@ -131,7 +131,7 @@ export const ImageLinkingTool = () => {
       const { data: productsWithImages } = await supabase
         .from('product_images')
         .select('product_id, products!inner(sku)')
-        .limit(1000);
+        .limit(10000);
 
       const linkedSkus = new Set(productsWithImages?.map(p => p.products?.sku).filter(Boolean) || []);
       
@@ -156,7 +156,7 @@ export const ImageLinkingTool = () => {
       
       const { data: storageFiles } = await supabase.storage
         .from('product-images')
-        .list('MULTI_MATCH_ORGANIZED', { limit: 100 });
+        .list('MULTI_MATCH_ORGANIZED', { limit: 10000 });
 
       if (!storageFiles) return;
 
