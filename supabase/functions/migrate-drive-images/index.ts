@@ -406,14 +406,14 @@ Deno.serve(async (req) => {
     await sendProgressUpdate(progress)
 
     const matchedProducts: Array<{product: Product, imageFile: StorageImage}> = []
+    let exactMatches = 0
+    let fuzzyMatches = 0
     
     if (!products || products.length === 0) {
       await logMessage('warn', 'No products found to process')
       progress.total = 0
       await sendProgressUpdate(progress)
     } else {
-      let exactMatches = 0
-      let fuzzyMatches = 0
       
       for (const product of products) {
         try {
