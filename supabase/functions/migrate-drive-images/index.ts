@@ -655,52 +655,73 @@ Deno.serve(async (req) => {
     const imageFiles: StorageImage[] = []
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     
-    // Function to recursively scan folders
+    // Function to recursively scan folders with pagination
     async function scanFolder(folderPath: string = targetFolder) {
-      const { data: storageFiles, error: storageError } = await supabaseClient.storage
-        .from('product-images')
-        .list(folderPath, {
-          limit: 10000,
-          sortBy: { column: 'name', order: 'asc' }
-        })
+      let offset = 0
+      const limit = 1000 // Use smaller chunks to avoid server limits
+      let hasMore = true
+      
+      while (hasMore) {
+        const { data: storageFiles, error: storageError } = await supabaseClient.storage
+          .from('product-images')
+          .list(folderPath, {
+            limit,
+            offset,
+            sortBy: { column: 'name', order: 'asc' }
+          })
 
-      if (storageError) {
-        console.error(`❌ Error accessing storage folder ${folderPath}:`, storageError)
-        throw new Error(`Storage access failed: ${storageError.message}`)
-      }
+        if (storageError) {
+          console.error(`❌ Error accessing storage folder ${folderPath}:`, storageError)
+          throw new Error(`Storage access failed: ${storageError.message}`)
+        }
 
-      if (!storageFiles) return
+        if (!storageFiles || storageFiles.length === 0) {
+          hasMore = false
+          break
+        }
 
-      for (const file of storageFiles) {
-        const fullPath = folderPath === 'MULTI_MATCH_ORGANIZED' ? file.name : `${folderPath}/${file.name}`
-        
-        // If it's a directory, scan it recursively
-        if (!file.metadata && file.name && !file.name.includes('.')) {
-          await scanFolder(`${folderPath}/${file.name}`)
-          continue
+        console.log(`📂 Scanning folder ${folderPath}, batch ${Math.floor(offset/limit) + 1}: found ${storageFiles.length} items`)
+
+        for (const file of storageFiles) {
+          const fullPath = folderPath === 'MULTI_MATCH_ORGANIZED' ? file.name : `${folderPath}/${file.name}`
+          
+          // If it's a directory, scan it recursively
+          if (!file.metadata && file.name && !file.name.includes('.')) {
+            await scanFolder(`${folderPath}/${file.name}`)
+            continue
+          }
+          
+          // Check if it's an image file
+          const isImage = file.metadata?.mimetype?.startsWith('image/') || 
+                         file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)
+          
+          if (isImage) {
+            const skus = extractSKUFromFilename(file.name)
+            if (skus.length > 0) {
+              const storagePath = fullPath.startsWith('MULTI_MATCH_ORGANIZED/') 
+                ? fullPath 
+                : `MULTI_MATCH_ORGANIZED/${fullPath.replace('MULTI_MATCH_ORGANIZED/', '')}`
+              
+              imageFiles.push({
+                filename: file.name,
+                sku: skus[0], // Use primary SKU for storage
+                storagePath,
+                metadata: { ...file.metadata || {}, allSkus: skus }
+              })
+              console.log(`📎 Found image: ${file.name} -> SKUs: [${skus.join(', ')}]`)
+            } else {
+              console.log(`⚠️ Skipping image without extractable SKU: ${file.name}`)
+            }
+          }
         }
         
-        // Check if it's an image file
-        const isImage = file.metadata?.mimetype?.startsWith('image/') || 
-                       file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)
-        
-        if (isImage) {
-          const skus = extractSKUFromFilename(file.name)
-          if (skus.length > 0) {
-            const storagePath = fullPath.startsWith('MULTI_MATCH_ORGANIZED/') 
-              ? fullPath 
-              : `MULTI_MATCH_ORGANIZED/${fullPath.replace('MULTI_MATCH_ORGANIZED/', '')}`
-            
-            imageFiles.push({
-              filename: file.name,
-              sku: skus[0], // Use primary SKU for storage
-              storagePath,
-              metadata: { ...file.metadata || {}, allSkus: skus }
-            })
-            console.log(`📎 Found image: ${file.name} -> SKUs: [${skus.join(', ')}]`)
-          } else {
-            console.log(`⚠️ Skipping image without extractable SKU: ${file.name}`)
-          }
+        // Check if we got fewer results than requested, meaning we've reached the end
+        if (storageFiles.length < limit) {
+          hasMore = false
+        } else {
+          offset += limit
+          // Add a small delay between batches to avoid overwhelming the API
+          await new Promise(resolve => setTimeout(resolve, 100))
         }
       }
     }
