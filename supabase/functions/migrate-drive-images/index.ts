@@ -197,6 +197,7 @@ function generateSKUVariations(sku: string): string[] {
   // Zero padding variations
   if (/^\d{3}$/.test(normalized)) {
     variations.add('0' + normalized)
+    variations.add('00' + normalized) // Sometimes 00123 format
   }
   if (/^0\d{3}$/.test(normalized)) {
     variations.add(normalized.substring(1))
@@ -207,21 +208,66 @@ function generateSKUVariations(sku: string): string[] {
   if (/^0\d{4}$/.test(normalized)) {
     variations.add(normalized.substring(1))
   }
+  if (/^00\d{3}$/.test(normalized)) {
+    variations.add(normalized.substring(2)) // Remove 00 prefix
+    variations.add(normalized.substring(1)) // Remove single 0 prefix
+  }
   
   // Remove common prefixes/suffixes
-  const withoutPrefix = normalized.replace(/^(sku|prod|item)[_-]?/i, '')
+  const withoutPrefix = normalized.replace(/^(sku|prod|item|product)[_-]?/i, '')
   if (withoutPrefix !== normalized) {
     variations.add(withoutPrefix)
   }
   
+  // Remove common suffixes
+  const withoutSuffix = normalized.replace(/[_-]?(main|primary|front|back|side|top|bottom|image|img|pic|photo)$/i, '')
+  if (withoutSuffix !== normalized) {
+    variations.add(withoutSuffix)
+  }
+  
   // Handle hyphenated versions
   if (normalized.includes('-')) {
-    variations.add(normalized.split('-')[0])
+    const parts = normalized.split('-')
+    variations.add(parts[0]) // First part
+    if (parts.length > 1) {
+      variations.add(parts.join('')) // Remove hyphens
+    }
   }
   
   // Handle underscored versions
   if (normalized.includes('_')) {
-    variations.add(normalized.split('_')[0])
+    const parts = normalized.split('_')
+    variations.add(parts[0]) // First part
+    if (parts.length > 1) {
+      variations.add(parts.join('')) // Remove underscores
+    }
+  }
+  
+  // Handle dotted versions (like 455147.455148.455149)
+  if (normalized.includes('.')) {
+    const parts = normalized.split('.')
+    parts.forEach(part => {
+      if (part.length >= 3) variations.add(part)
+    })
+    variations.add(parts.join('')) // Remove dots
+  }
+  
+  // Handle parentheses versions (like "455112 (2)")
+  const parenthesesMatch = normalized.match(/(\d+)\s*\([^)]*\)/)
+  if (parenthesesMatch) {
+    variations.add(parenthesesMatch[1])
+  }
+  
+  // Handle version numbers and suffixes
+  const versionMatch = normalized.match(/(\d+)[_-]?(v\d+|version\d+|\d+)$/i)
+  if (versionMatch) {
+    variations.add(versionMatch[1])
+  }
+  
+  // Remove file extensions if somehow included
+  const withoutExt = normalized.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
+  if (withoutExt !== normalized) {
+    variations.add(withoutExt)
   }
   
   return Array.from(variations)
