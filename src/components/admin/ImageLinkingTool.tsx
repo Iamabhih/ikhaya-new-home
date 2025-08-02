@@ -89,12 +89,32 @@ export const ImageLinkingTool = () => {
         .select('*, product_images!inner(*)', { count: 'exact', head: true })
         .eq('is_active', true);
 
-      // Get available images in storage
-      const { data: storageFiles } = await supabase.storage
-        .from('product-images')
-        .list('MULTI_MATCH_ORGANIZED', { limit: 10000 });
+      // Get available images in storage with pagination
+      let allStorageFiles: any[] = [];
+      let offset = 0;
+      const limit = 1000;
+      let hasMore = true;
 
-      const availableImages = storageFiles?.length || 0;
+      while (hasMore) {
+        const { data: storageFiles } = await supabase.storage
+          .from('product-images')
+          .list('MULTI_MATCH_ORGANIZED', { limit, offset });
+
+        if (!storageFiles || storageFiles.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        allStorageFiles.push(...storageFiles);
+        
+        if (storageFiles.length < limit) {
+          hasMore = false;
+        } else {
+          offset += limit;
+        }
+      }
+
+      const availableImages = allStorageFiles.length;
       const unlinkedProducts = (totalProducts || 0) - (productsWithImages || 0);
 
       setStats({
@@ -154,15 +174,34 @@ export const ImageLinkingTool = () => {
     try {
       addLog('info', 'Analyzing available images...');
       
-      const { data: storageFiles } = await supabase.storage
-        .from('product-images')
-        .list('MULTI_MATCH_ORGANIZED', { limit: 10000 });
+      // Get all storage files with pagination
+      let allStorageFiles: any[] = [];
+      let offset = 0;
+      const limit = 1000;
+      let hasMore = true;
 
-      if (!storageFiles) return;
+      while (hasMore) {
+        const { data: storageFiles } = await supabase.storage
+          .from('product-images')
+          .list('MULTI_MATCH_ORGANIZED', { limit, offset });
+
+        if (!storageFiles || storageFiles.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        allStorageFiles.push(...storageFiles);
+        
+        if (storageFiles.length < limit) {
+          hasMore = false;
+        } else {
+          offset += limit;
+        }
+      }
 
       const imageAnalysis: AvailableImage[] = [];
       
-      for (const file of storageFiles) {
+      for (const file of allStorageFiles) {
         if (file.name && file.metadata?.mimetype?.startsWith('image/')) {
           // Extract SKUs from filename (simplified extraction for analysis)
           const extractedSkus = extractSKUsFromFilename(file.name);
