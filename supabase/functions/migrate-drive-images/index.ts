@@ -630,6 +630,7 @@ Deno.serve(async (req) => {
         categories!inner(name)
       `)
       .not('sku', 'is', null)
+      .limit(10000)
 
     if (productsError) {
       console.error('❌ Products fetch failed:', productsError)
