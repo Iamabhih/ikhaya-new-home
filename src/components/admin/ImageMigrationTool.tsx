@@ -39,6 +39,8 @@ export const ImageMigrationTool = () => {
   const [progress, setProgress] = useState<MigrationProgress | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [targetFolder, setTargetFolder] = useState('');
+  const [enableCategoryMatching, setEnableCategoryMatching] = useState(true);
   const { toast } = useToast();
   const logsEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -132,7 +134,20 @@ export const ImageMigrationTool = () => {
 
     try {
       console.log('🔧 Invoking migration function...');
+      const requestBody: any = {};
+      
+      if (targetFolder.trim()) {
+        requestBody.targetFolder = targetFolder.trim();
+        addLog('info', `🎯 Targeting specific folder: ${targetFolder.trim()}`);
+      }
+      
+      if (enableCategoryMatching) {
+        requestBody.enableCategoryMatching = true;
+        addLog('info', '🔍 Category-aware matching enabled');
+      }
+      
       const { data, error } = await supabase.functions.invoke('migrate-drive-images', {
+        body: requestBody,
         headers: {
           'Content-Type': 'application/json',
         }
@@ -242,9 +257,46 @@ export const ImageMigrationTool = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               This will download images from your Google Drive folder and upload them to Supabase storage.
-              Existing images will be replaced. The process includes retry logic and batch processing for reliability.
+              Existing images will be replaced. Enhanced with category-aware matching and manual folder selection.
             </AlertDescription>
           </Alert>
+
+          {/* Enhanced Options */}
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+            <h4 className="font-medium">Enhanced Migration Options</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Target Folder (optional)</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., BABY/bottles or leave empty for all"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                  value={targetFolder}
+                  onChange={(e) => setTargetFolder(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Specify a specific folder to scan, or leave empty to scan all folders
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="categoryMatching"
+                    checked={enableCategoryMatching}
+                    onChange={(e) => setEnableCategoryMatching(e.target.checked)}
+                  />
+                  <label htmlFor="categoryMatching" className="text-sm font-medium">
+                    Enable Category-Aware Matching
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Boost matching confidence when folder names match product categories
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Control Buttons */}
           <div className="flex items-center gap-4">
