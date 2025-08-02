@@ -1598,7 +1598,7 @@ export type Database = {
           subtitle_font_weight: string | null
           text_color: string | null
           text_shadow: string | null
-          title: string
+          title: string | null
           title_font_family: string | null
           title_font_weight: string | null
           title_shadow: string | null
@@ -1625,7 +1625,7 @@ export type Database = {
           subtitle_font_weight?: string | null
           text_color?: string | null
           text_shadow?: string | null
-          title: string
+          title?: string | null
           title_font_family?: string | null
           title_font_weight?: string | null
           title_shadow?: string | null
@@ -1652,7 +1652,7 @@ export type Database = {
           subtitle_font_weight?: string | null
           text_color?: string | null
           text_shadow?: string | null
-          title?: string
+          title?: string | null
           title_font_family?: string | null
           title_font_weight?: string | null
           title_shadow?: string | null
