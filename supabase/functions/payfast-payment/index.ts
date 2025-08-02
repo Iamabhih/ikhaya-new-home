@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { md5 } from "https://deno.land/x/md5@v1.0.0/mod.ts"
+import { createHash } from "https://deno.land/std@0.208.0/crypto/crypto.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -248,7 +248,7 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
   console.log('String to hash (first 100 chars):', getString.substring(0, 100) + '...');
 
   // Use proper MD5 hash implementation
-  const md5Hash = md5(getString);
+  const md5Hash = createHash("md5").update(getString).toString();
   
   console.log('Generated signature:', md5Hash);
   return md5Hash;
