@@ -82,7 +82,7 @@ export const PromotionalBanners = () => {
                   textShadow: (currentBanner as any).text_shadow !== 'none' ? (currentBanner as any).text_shadow : '0 2px 8px rgba(0,0,0,0.3)',
                 }}
               >
-                {currentBanner.title && (
+                {currentBanner.title && currentBanner.title.trim() && (
                   <h1 
                     className="text-5xl md:text-7xl xl:text-8xl font-black leading-none tracking-tight"
                     style={{ 
