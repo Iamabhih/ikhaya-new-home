@@ -116,7 +116,11 @@ export const StorageImageScanner = () => {
     addLog('info', '🔍 Starting storage bucket image scan...');
 
     try {
-      const { data, error } = await supabase.functions.invoke('scan-storage-images');
+      const { data, error } = await supabase.functions.invoke('scan-storage-images', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+      });
 
       if (error) {
         throw new Error(error.message);
