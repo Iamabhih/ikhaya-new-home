@@ -223,22 +223,35 @@ export const PromotionalBanners = () => {
             {banners.slice(0, 3).map((banner, index) => (
               <div 
                 key={banner.id} 
-                className="group relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                className="group relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                onClick={() => setCurrentIndex(index)}
               >
-                {/* Background gradient */}
+                {/* Banner Image Background */}
+                {banner.image_url && (
+                  <div className="absolute inset-0">
+                    <img 
+                      src={banner.image_url} 
+                      alt={banner.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-300" />
+                  </div>
+                )}
+                
+                {/* Gradient overlay for better text readability */}
                 <div 
-                  className="absolute inset-0 opacity-10"
+                  className="absolute inset-0 opacity-20"
                   style={{
-                    background: `linear-gradient(135deg, ${banner.background_color}40 0%, ${banner.background_color}20 100%)`
+                    background: `linear-gradient(135deg, ${banner.background_color}60 0%, ${banner.background_color}20 100%)`
                   }}
                 />
                 
                 {/* Content */}
-                <div className="relative p-6 flex items-center justify-between">
+                <div className="relative p-6 flex items-center justify-between min-h-[120px]">
                   <div className="flex items-center gap-4">
-                    {/* Premium badge */}
+                    {/* Premium badge with banner color */}
                     <div 
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg border-2 border-white/20"
                       style={{ backgroundColor: banner.background_color }}
                     >
                       {index + 1}
@@ -246,11 +259,11 @@ export const PromotionalBanners = () => {
                     
                     {/* Text content */}
                     <div>
-                      <div className="font-bold text-lg text-slate-800 group-hover:text-slate-900 transition-colors">
+                      <div className="font-bold text-lg text-white group-hover:text-white/90 transition-colors drop-shadow-lg">
                         {banner.title}
                       </div>
                       {banner.subtitle && (
-                        <div className="text-sm text-slate-600 font-medium">
+                        <div className="text-sm text-white/90 font-medium drop-shadow-md">
                           {banner.subtitle}
                         </div>
                       )}
@@ -258,7 +271,7 @@ export const PromotionalBanners = () => {
                   </div>
                   
                   {/* Arrow indicator */}
-                  <div className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  <div className="text-white/80 group-hover:text-white transition-colors drop-shadow-lg">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
@@ -267,11 +280,16 @@ export const PromotionalBanners = () => {
                 
                 {/* Hover glow effect */}
                 <div 
-                  className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl"
+                  className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-300 rounded-2xl"
                   style={{
-                    background: `radial-gradient(circle at center, ${banner.background_color}60 0%, transparent 70%)`
+                    background: `radial-gradient(circle at center, ${banner.background_color}80 0%, transparent 70%)`
                   }}
                 />
+                
+                {/* Active indicator */}
+                {index === currentIndex && (
+                  <div className="absolute top-3 right-3 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse" />
+                )}
               </div>
             ))}
           </div>
