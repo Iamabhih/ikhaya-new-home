@@ -16,6 +16,7 @@ interface Product {
   id: string
   sku: string
   name: string
+  category_name?: string
 }
 
 interface MigrationProgress {
@@ -30,6 +31,14 @@ interface MigrationProgress {
   errors: string[]
   startTime: string
   estimatedTimeRemaining?: string
+}
+
+interface MatchResult {
+  product: Product
+  imageFile: StorageImage
+  matchType: 'exact' | 'fuzzy' | 'category-boosted'
+  matchScore: number
+  sourceFolder: string
 }
 
 // Enhanced robust SKU extraction with fuzzy matching and multiple pattern strategies
@@ -106,7 +115,252 @@ function extractSKUFromFilename(filename: string): string[] {
   }
 }
 
-// Enhanced fuzzy matching for better SKU correlation
+// Category mapping for better matching
+function getCategoryKeywords(): Record<string, string[]> {
+  return {
+    'TOYS': ['toy', 'game', 'play', 'kids', 'children', 'puzzle', 'doll', 'car', 'truck', 'action', 'figure'],
+    'BAKEWARE': ['bake', 'cake', 'pan', 'tin', 'mould', 'baking', 'oven', 'pastry', 'bread', 'cookie'],
+    'KITCHEN': ['kitchen', 'cook', 'pot', 'knife', 'utensil', 'bowl', 'plate', 'cup', 'mug', 'spoon'],
+    'HOMEWARE': ['home', 'decor', 'vase', 'candle', 'cushion', 'picture', 'frame', 'storage', 'organize'],
+    'ELECTRONICS': ['electronic', 'battery', 'cable', 'charger', 'adapter', 'tech', 'digital', 'smart'],
+    'TOOLS': ['tool', 'drill', 'hammer', 'screwdriver', 'wrench', 'saw', 'measure', 'hardware'],
+    'GARDEN': ['garden', 'plant', 'seed', 'watering', 'soil', 'fertilizer', 'outdoor', 'lawn'],
+    'CLOTHING': ['shirt', 'dress', 'pants', 'jacket', 'shoe', 'sock', 'hat', 'clothing', 'apparel'],
+    'STATIONERY': ['pen', 'pencil', 'paper', 'notebook', 'eraser', 'ruler', 'stapler', 'office'],
+    'BEAUTY': ['beauty', 'makeup', 'cream', 'lotion', 'shampoo', 'soap', 'cosmetic', 'skincare']
+  }
+}
+
+// Extract folder name from storage path for category matching
+function extractFolderFromPath(storagePath: string): string {
+  const pathParts = storagePath.split('/')
+  // Get the immediate parent folder of the image file
+  if (pathParts.length >= 3) {
+    return pathParts[pathParts.length - 2].toUpperCase()
+  }
+  return 'UNKNOWN'
+}
+
+// Calculate category match score
+function calculateCategoryScore(productName: string, productCategory: string | undefined, imageFolder: string): number {
+  const categoryKeywords = getCategoryKeywords()
+  let score = 0
+  
+  const productNameLower = productName.toLowerCase()
+  const productCategoryLower = productCategory?.toLowerCase() || ''
+  
+  // Direct folder match with product category gets highest score
+  if (productCategory && imageFolder.toLowerCase() === productCategoryLower) {
+    score += 10
+  }
+  
+  // Check if product name contains keywords matching the image folder
+  if (categoryKeywords[imageFolder]) {
+    for (const keyword of categoryKeywords[imageFolder]) {
+      if (productNameLower.includes(keyword)) {
+        score += 3
+      }
+    }
+  }
+  
+  // Check if product category contains keywords matching the image folder  
+  if (productCategory && categoryKeywords[imageFolder]) {
+    for (const keyword of categoryKeywords[imageFolder]) {
+      if (productCategoryLower.includes(keyword)) {
+        score += 5
+      }
+    }
+  }
+  
+  return score
+}
+
+// Enhanced fuzzy matching for better SKU correlation with category awareness
+function createCategoryAwareImageMatcher() {
+  const imageCache = new Map<string, StorageImage>()
+  const fuzzyCache = new Map<string, string[]>() // normalized SKU -> original SKUs
+  const categoryIndex = new Map<string, StorageImage[]>() // folder -> images
+  
+  return {
+    buildMapping: (images: StorageImage[]) => {
+      imageCache.clear()
+      fuzzyCache.clear()
+      categoryIndex.clear()
+      
+      console.log(`🧠 Building category-aware image mapping from ${images.length} images`)
+      
+      for (const image of images) {
+        try {
+          const skus = extractSKUFromFilename(image.filename)
+          const folder = extractFolderFromPath(image.storagePath)
+          
+          // Build category index
+          if (!categoryIndex.has(folder)) {
+            categoryIndex.set(folder, [])
+          }
+          categoryIndex.get(folder)!.push(image)
+          
+          for (const sku of skus) {
+            // Store primary mapping
+            if (!imageCache.has(sku)) {
+              imageCache.set(sku, image)
+            }
+            
+            // Build fuzzy mapping variations
+            const variations = generateSKUVariations(sku)
+            for (const variation of variations) {
+              if (!fuzzyCache.has(variation)) {
+                fuzzyCache.set(variation, [])
+              }
+              fuzzyCache.get(variation)!.push(sku)
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image ${image.filename}:`, error)
+          continue
+        }
+      }
+      
+      console.log(`🎯 Built mapping: ${imageCache.size} direct matches, ${fuzzyCache.size} fuzzy variations, ${categoryIndex.size} category folders`)
+    },
+    
+    findBestImage: (product: Product): MatchResult | null => {
+      if (!product.sku) return null
+      
+      const normalizedSku = product.sku.toLowerCase().trim()
+      const candidates: MatchResult[] = []
+      
+      // 1. Direct SKU match (highest priority)
+      if (imageCache.has(normalizedSku)) {
+        const image = imageCache.get(normalizedSku)!
+        const folder = extractFolderFromPath(image.storagePath)
+        const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
+        
+        candidates.push({
+          product,
+          imageFile: image,
+          matchType: 'exact',
+          matchScore: 100 + categoryScore,
+          sourceFolder: folder
+        })
+      }
+      
+      // 2. Fuzzy SKU matches
+      const variations = generateSKUVariations(normalizedSku)
+      for (const variation of variations) {
+        if (imageCache.has(variation)) {
+          const image = imageCache.get(variation)!
+          const folder = extractFolderFromPath(image.storagePath)
+          const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
+          
+          candidates.push({
+            product,
+            imageFile: image,
+            matchType: 'fuzzy',
+            matchScore: 80 + categoryScore,
+            sourceFolder: folder
+          })
+        }
+        
+        // Check fuzzy cache for this variation
+        if (fuzzyCache.has(variation)) {
+          const skuCandidates = fuzzyCache.get(variation)!
+          for (const candidate of skuCandidates) {
+            if (imageCache.has(candidate)) {
+              const image = imageCache.get(candidate)!
+              const folder = extractFolderFromPath(image.storagePath)
+              const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
+              
+              candidates.push({
+                product,
+                imageFile: image,
+                matchType: 'fuzzy',
+                matchScore: 70 + categoryScore,
+                sourceFolder: folder
+              })
+            }
+          }
+        }
+      }
+      
+      // 3. Category-based fallback (if no SKU match found and we have strong category signals)
+      if (candidates.length === 0 && product.category_name) {
+        const categoryFolder = product.category_name.toUpperCase()
+        if (categoryIndex.has(categoryFolder)) {
+          const categoryImages = categoryIndex.get(categoryFolder)!
+          // Only suggest category-based matches if we have strong keyword matches
+          for (const image of categoryImages.slice(0, 5)) { // Limit to first 5 to avoid noise
+            const categoryScore = calculateCategoryScore(product.name, product.category_name, categoryFolder)
+            if (categoryScore >= 5) { // Only if we have decent keyword match
+              candidates.push({
+                product,
+                imageFile: image,
+                matchType: 'category-boosted',
+                matchScore: categoryScore,
+                sourceFolder: categoryFolder
+              })
+            }
+          }
+        }
+      }
+      
+      // Return the best match (highest score)
+      if (candidates.length > 0) {
+        const bestMatch = candidates.sort((a, b) => b.matchScore - a.matchScore)[0]
+        console.log(`🎯 Best match for ${product.sku}: ${bestMatch.imageFile.filename} (${bestMatch.matchType}, score: ${bestMatch.matchScore}, folder: ${bestMatch.sourceFolder})`)
+        return bestMatch
+      }
+      
+      return null
+    },
+    
+    // Keep legacy method for backward compatibility
+    findImage: (productSku: string): StorageImage | null => {
+      if (!productSku) return null
+      
+      const normalizedSku = productSku.toLowerCase().trim()
+      
+      // Direct match
+      if (imageCache.has(normalizedSku)) {
+        return imageCache.get(normalizedSku)!
+      }
+      
+      // Fuzzy match using variations
+      const variations = generateSKUVariations(normalizedSku)
+      for (const variation of variations) {
+        if (imageCache.has(variation)) {
+          console.log(`🎯 Fuzzy matched ${productSku} -> ${variation}`)
+          return imageCache.get(variation)!
+        }
+        
+        // Check fuzzy cache for this variation
+        if (fuzzyCache.has(variation)) {
+          const candidates = fuzzyCache.get(variation)!
+          for (const candidate of candidates) {
+            if (imageCache.has(candidate)) {
+              console.log(`🎯 Advanced fuzzy matched ${productSku} -> ${candidate}`)
+              return imageCache.get(candidate)!
+            }
+          }
+        }
+      }
+      
+      return null
+    },
+    
+    getStats: () => ({
+      directMappings: imageCache.size,
+      fuzzyVariations: fuzzyCache.size,
+      totalImages: Array.from(new Set(Array.from(imageCache.values()).map(img => img.filename))).length,
+      categoryFolders: categoryIndex.size,
+      categoryBreakdown: Object.fromEntries(
+        Array.from(categoryIndex.entries()).map(([folder, images]) => [folder, images.length])
+      )
+    })
+  }
+}
+
+// Legacy image matcher for backward compatibility
 function createAdvancedImageMatcher() {
   const imageCache = new Map<string, StorageImage>()
   const fuzzyCache = new Map<string, string[]>() // normalized SKU -> original SKUs
@@ -281,6 +535,21 @@ Deno.serve(async (req) => {
 
   const sessionId = crypto.randomUUID()
   let supabaseClient: any
+  
+  // Parse request body for optional parameters
+  let requestBody: any = {}
+  try {
+    if (req.method === 'POST') {
+      requestBody = await req.json()
+    }
+  } catch (error) {
+    console.log('No request body or invalid JSON, using defaults')
+  }
+  
+  // Extract optional parameters
+  const targetFolder = requestBody.targetFolder || 'MULTI_MATCH_ORGANIZED' // Default to existing behavior
+  const enableCategoryMatching = requestBody.enableCategoryMatching !== false // Default to true
+  const categoryBoostThreshold = requestBody.categoryBoostThreshold || 5
 
   const sendProgressUpdate = async (progress: Partial<MigrationProgress>) => {
     try {
@@ -354,7 +623,12 @@ Deno.serve(async (req) => {
     console.log('🔍 Querying products table...')
     const { data: products, error: productsError } = await supabaseClient
       .from('products')
-      .select('id, sku, name')
+      .select(`
+        id, 
+        sku, 
+        name,
+        categories!inner(name)
+      `)
       .not('sku', 'is', null)
 
     if (productsError) {
@@ -363,19 +637,25 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to fetch products: ${productsError.message}`)
     }
 
-    console.log(`✅ Found ${products?.length || 0} products with SKUs`)
-    await logMessage('info', `Found ${products?.length || 0} products with SKUs`)
+    // Transform products to include category name for better matching
+    const transformedProducts = products?.map(p => ({
+      ...p,
+      category_name: p.categories?.name
+    })) || []
 
-    // Step 2: Recursively scan MULTI_MATCH_ORGANIZED folder
-    console.log('🔍 Starting Storage scan...')
-    progress.currentStep = 'Scanning MULTI_MATCH_ORGANIZED folder recursively'
+    console.log(`✅ Found ${transformedProducts.length} products with SKUs`)
+    await logMessage('info', `Found ${transformedProducts.length} products with SKUs (${enableCategoryMatching ? 'category-aware' : 'SKU-only'} matching enabled)`)
+
+    // Step 2: Recursively scan specified folder (with manual folder selection support)
+    console.log(`🔍 Starting Storage scan of ${targetFolder}...`)
+    progress.currentStep = `Scanning ${targetFolder} folder recursively`
     await sendProgressUpdate(progress)
 
     const imageFiles: StorageImage[] = []
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     
     // Function to recursively scan folders
-    async function scanFolder(folderPath: string = 'MULTI_MATCH_ORGANIZED') {
+    async function scanFolder(folderPath: string = targetFolder) {
       const { data: storageFiles, error: storageError } = await supabaseClient.storage
         .from('product-images')
         .list(folderPath, {
@@ -438,8 +718,8 @@ Deno.serve(async (req) => {
       total: imageFiles.length
     }))
     
-    console.log(`🧠 Building advanced image matcher from ${imageFiles.length} images`)
-    const imageMatcher = createAdvancedImageMatcher()
+    console.log(`🧠 Building ${enableCategoryMatching ? 'category-aware' : 'legacy'} image matcher from ${imageFiles.length} images`)
+    const imageMatcher = enableCategoryMatching ? createCategoryAwareImageMatcher() : createAdvancedImageMatcher()
     imageMatcher.buildMapping(imageFiles)
     
     const matcherStats = imageMatcher.getStats()
@@ -454,40 +734,71 @@ Deno.serve(async (req) => {
     const matchedProducts: Array<{product: Product, imageFile: StorageImage}> = []
     let exactMatches = 0
     let fuzzyMatches = 0
+    let categoryMatches = 0
     
-    if (!products || products.length === 0) {
+    if (!transformedProducts || transformedProducts.length === 0) {
       await logMessage('warn', 'No products found to process')
       progress.total = 0
       await sendProgressUpdate(progress)
     } else {
       
-      for (const product of products) {
+      for (const product of transformedProducts) {
         try {
           if (!product || !product.sku) continue
 
-          const matchedImage = imageMatcher.findImage(product.sku)
-          if (matchedImage) {
-            matchedProducts.push({ product, imageFile: matchedImage })
-            
-            // Check if it was a direct or fuzzy match
-            const directMatch = imageFiles.find(img => img.sku === product.sku)
-            if (directMatch) {
-              exactMatches++
-              console.log(`✅ Direct match: ${product.sku} -> ${matchedImage.filename}`)
-            } else {
-              fuzzyMatches++
-              console.log(`🎯 Fuzzy match: ${product.sku} -> ${matchedImage.filename}`)
+          // Use category-aware matching if enabled
+          if (enableCategoryMatching && typeof imageMatcher.findBestImage === 'function') {
+            const bestMatch = imageMatcher.findBestImage(product)
+            if (bestMatch) {
+              matchedProducts.push({ product: bestMatch.product, imageFile: bestMatch.imageFile })
+              
+              if (bestMatch.matchType === 'exact') {
+                exactMatches++
+              } else if (bestMatch.matchType === 'fuzzy') {
+                fuzzyMatches++
+              } else if (bestMatch.matchType === 'category-boosted') {
+                categoryMatches++
+              }
+              
+              console.log(`✅ ${bestMatch.matchType} match: ${product.sku} -> ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore}, folder: ${bestMatch.sourceFolder})`)
+            }
+          } else {
+            // Fallback to legacy matching
+            const matchedImage = imageMatcher.findImage(product.sku)
+            if (matchedImage) {
+              matchedProducts.push({ product, imageFile: matchedImage })
+              
+              // Check if it was a direct or fuzzy match
+              const directMatch = imageFiles.find(img => img.sku === product.sku)
+              if (directMatch) {
+                exactMatches++
+                console.log(`✅ Direct match: ${product.sku} -> ${matchedImage.filename}`)
+              } else {
+                fuzzyMatches++
+                console.log(`🎯 Fuzzy match: ${product.sku} -> ${matchedImage.filename}`)
+              }
             }
           }
         } catch (error) {
           await logMessage('error', `Error matching product ${product?.sku || 'unknown'}: ${error.message}`)
         }
       }
-      console.log(`📊 Matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${matchedProducts.length} total matches`)
+      
+      const totalMatches = exactMatches + fuzzyMatches + categoryMatches
+      if (enableCategoryMatching) {
+        console.log(`📊 Category-aware matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total matches`)
+      } else {
+        console.log(`📊 Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total matches`)
+      }
     }
 
     progress.total = matchedProducts.length
-    await logMessage('info', `Advanced matching complete: ${matchedProducts.length} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy) from ${imageFiles.length} images`)
+    const totalMatches = exactMatches + fuzzyMatches + categoryMatches
+    if (enableCategoryMatching) {
+      await logMessage('info', `Category-aware matching complete: ${totalMatches} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy, ${categoryMatches} category) from ${imageFiles.length} images`)
+    } else {
+      await logMessage('info', `Legacy matching complete: ${totalMatches} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy) from ${imageFiles.length} images`)
+    }
     await sendProgressUpdate(progress)
 
     // Step 5: Process matched products with enhanced error handling
