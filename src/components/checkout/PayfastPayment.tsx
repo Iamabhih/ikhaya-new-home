@@ -46,13 +46,14 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
     setShowManualRedirect(false);
     
     try {
-      // First create the order in the database
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      // Generate temporary order ID for PayFast tracking
+      const tempOrderId = `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       
-      const orderCreateData = {
+      // Store order data in sessionStorage for webhook processing
+      const pendingOrderData = {
+        tempOrderId,
         user_id: user?.id || null,
         email: formData.email,
-        order_number: orderNumber,
         billing_address: {
           address: formData.address,
           city: formData.city,
@@ -68,37 +69,23 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
         subtotal: cartTotal,
         shipping_amount: deliveryFee,
         total_amount: cartTotal + deliveryFee,
-        status: 'pending' as const
+        cartItems: cartItems.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.product.price,
+          total_price: item.product.price * item.quantity,
+          product_name: item.product.name,
+          product_sku: item.product.sku
+        }))
       };
 
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert(orderCreateData)
-        .select()
-        .single();
+      // Store pending order data for webhook processing
+      sessionStorage.setItem(`pending_order_${tempOrderId}`, JSON.stringify(pendingOrderData));
 
-      if (orderError) throw orderError;
-
-      // Insert order items
-      const orderItems = cartItems.map(item => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.product.price,
-        total_price: item.product.price * item.quantity,
-        product_name: item.product.name
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // Now process payment with the real order ID
-      const actualOrderData = {
+      // Process payment with temporary order ID
+      const paymentOrderData = {
         ...orderData,
-        orderId: order.id
+        orderId: tempOrderId
       };
 
       // Get current session for authentication
@@ -110,12 +97,12 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
       }
       
       console.log('🔄 Calling PayFast payment with order data:', {
-        ...actualOrderData,
-        customerEmail: actualOrderData.customerEmail.substring(0, 3) + '***'
+        ...paymentOrderData,
+        customerEmail: paymentOrderData.customerEmail.substring(0, 3) + '***'
       });
       
       const { data, error } = await supabase.functions.invoke('payfast-payment', {
-        body: actualOrderData,
+        body: paymentOrderData,
         headers: {
           Authorization: `Bearer ${session?.access_token}`
         }

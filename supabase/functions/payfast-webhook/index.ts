@@ -288,76 +288,129 @@ Deno.serve(async (req) => {
 
     console.log(`PayFast webhook: Order ${orderId}, Status: ${paymentStatus}, Amount: ${amount}`)
 
-    // Update order status based on payment status
+    // Handle payment status - CREATE ORDER ONLY AFTER SUCCESSFUL PAYMENT
     if (paymentStatus === 'COMPLETE') {
-      // Payment successful
-      const { error: updateError } = await supabaseClient
-        .from('orders')
-        .update({
-          status: 'confirmed',
-          payment_status: 'paid',
-          payment_gateway: 'payfast',
-          payment_reference: payfastData.pf_payment_id,
-          payment_gateway_response: payfastData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId)
+      console.log(`Payment successful for temp order ${orderId}, creating actual order...`);
+      
+      // Check if this is a temporary order ID that needs order creation
+      if (orderId.startsWith('TEMP-')) {
+        try {
+          // This is a new payment - create the order
+          const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+          
+          // Create order with confirmed status since payment is complete
+          const orderData = {
+            user_id: null, // Will be filled from frontend session data if available
+            email: payfastData.email_address,
+            order_number: orderNumber,
+            billing_address: {
+              address: `${payfastData.name_first} ${payfastData.name_last}`,
+              city: 'Unknown',
+              province: 'Unknown',
+              postal_code: 'Unknown'
+            },
+            shipping_address: {
+              address: `${payfastData.name_first} ${payfastData.name_last}`,
+              city: 'Unknown', 
+              province: 'Unknown',
+              postal_code: 'Unknown'
+            },
+            subtotal: amount,
+            shipping_amount: 0,
+            total_amount: amount,
+            status: 'confirmed',
+            payment_status: 'paid',
+            payment_gateway: 'payfast',
+            payment_reference: payfastData.pf_payment_id,
+            payment_gateway_response: payfastData
+          };
 
-      if (updateError) {
-        console.error('Failed to update order:', updateError)
-        return new Response('Database update failed', { status: 500 })
-      }
+          const { data: newOrder, error: orderError } = await supabaseClient
+            .from('orders')
+            .insert(orderData)
+            .select()
+            .single();
 
-      console.log(`Order ${orderId} marked as paid`)
+          if (orderError) {
+            console.error('Failed to create order:', orderError);
+            return new Response('Failed to create order', { status: 500 });
+          }
 
-      // Optionally send confirmation email
-      try {
-        const { data: order } = await supabaseClient
-          .from('orders')
-          .select('email, order_number')
-          .eq('id', orderId)
-          .single()
-
-        if (order?.email) {
-          await supabaseClient.functions.invoke('send-email', {
-            body: {
-              to: order.email,
-              template: 'order-confirmation',
-              data: {
-                orderId: order.order_number,
-                amount,
-                paymentReference: payfastData.pf_payment_id
+          console.log(`Order ${newOrder.id} created successfully for temp order ${orderId}`);
+          
+          // Send confirmation email
+          try {
+            await supabaseClient.functions.invoke('send-email', {
+              body: {
+                to: newOrder.email,
+                template: 'order-confirmation',
+                data: {
+                  orderId: newOrder.order_number,
+                  amount,
+                  paymentReference: payfastData.pf_payment_id
+                }
               }
-            }
-          })
+            });
+          } catch (emailError) {
+            console.error('Failed to send confirmation email:', emailError);
+            // Don't fail the webhook if email fails
+          }
+
+        } catch (error) {
+          console.error('Error creating order for successful payment:', error);
+          return new Response('Order creation failed', { status: 500 });
         }
-      } catch (emailError) {
-        console.error('Failed to send confirmation email:', emailError)
-        // Don't fail the webhook if email fails
+      } else {
+        // This is an existing order - just update it
+        const { error: updateError } = await supabaseClient
+          .from('orders')
+          .update({
+            status: 'confirmed',
+            payment_status: 'paid',
+            payment_gateway: 'payfast',
+            payment_reference: payfastData.pf_payment_id,
+            payment_gateway_response: payfastData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+
+        if (updateError) {
+          console.error('Failed to update existing order:', updateError);
+          return new Response('Database update failed', { status: 500 });
+        }
+
+        console.log(`Existing order ${orderId} marked as paid`);
       }
 
     } else if (paymentStatus === 'CANCELLED' || paymentStatus === 'FAILED') {
-      // Payment failed or cancelled
-      const { error: updateError } = await supabaseClient
-        .from('orders')
-        .update({
-          status: 'cancelled',
-          payment_status: 'failed',
-          payment_gateway: 'payfast',
-          payment_gateway_response: payfastData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId)
+      console.log(`Payment ${paymentStatus.toLowerCase()} for order ${orderId}`);
+      
+      // For temporary orders, we don't create anything - just log
+      if (orderId.startsWith('TEMP-')) {
+        console.log(`Temporary order ${orderId} payment failed - no order created`);
+      } else {
+        // For existing orders, mark as failed
+        const { error: updateError } = await supabaseClient
+          .from('orders')
+          .update({
+            status: 'cancelled',
+            payment_status: 'failed',
+            payment_gateway: 'payfast',
+            payment_gateway_response: payfastData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
 
-      if (updateError) {
-        console.error('Failed to update order:', updateError)
-        return new Response('Database update failed', { status: 500 })
+        if (updateError) {
+          console.error('Failed to update order:', updateError);
+          return new Response('Database update failed', { status: 500 });
+        }
+
+        console.log(`Order ${orderId} marked as failed/cancelled`);
       }
-
-      console.log(`Order ${orderId} marked as failed/cancelled`)
     } else {
       // Pending or other status
-      console.log(`Order ${orderId} has status: ${paymentStatus}`)
+      console.log(`Order ${orderId} has status: ${paymentStatus} - no action taken`);
     }
 
     return new Response('OK', { status: 200 })
