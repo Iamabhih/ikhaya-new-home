@@ -55,7 +55,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
         <ProgressiveImage
           src={currentImage.image_url}
           alt={currentImage.alt_text || productName}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          className="w-full h-full object-contain transition-transform duration-500 hover:scale-105"
         />
         
         {/* Loading progress indicator */}
@@ -111,7 +111,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               <ProgressiveImage
                 src={image.image_url}
                 alt={image.alt_text || `${productName} thumbnail ${index + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </button>
           ))}

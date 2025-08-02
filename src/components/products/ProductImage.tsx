@@ -51,7 +51,7 @@ export const ProductImage = ({
             <OptimizedImage
               src={primaryImage.image_url}
               alt={primaryImage.alt_text || product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
               lazy={true}
               quality={85}
               fallbackSrc="/placeholder.svg"
