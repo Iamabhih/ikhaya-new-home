@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { md5 } from "https://deno.land/x/md5@v1.0.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -246,37 +247,9 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
   
   console.log('String to hash (first 100 chars):', getString.substring(0, 100) + '...');
 
-  // MD5 implementation for Deno
-  // Since Deno doesn't have built-in MD5, we'll use a simple implementation
-  // For production, consider using: https://deno.land/x/md5@v1.0.0/mod.ts
-  
-  // Simple MD5 implementation (replace with proper library in production)
-  const md5Hash = await simpleMD5(getString);
+  // Use proper MD5 hash implementation
+  const md5Hash = md5(getString);
   
   console.log('Generated signature:', md5Hash);
   return md5Hash;
-}
-
-// Simplified MD5 implementation
-// IMPORTANT: For production, use a proper MD5 library!
-async function simpleMD5(str: string): Promise<string> {
-  // This is a basic implementation that will work for testing
-  // For production, import a proper MD5 library
-  
-  // Convert string to bytes
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  
-  // Use SHA-256 and take first 32 chars as a temporary workaround
-  // This will NOT produce valid PayFast signatures!
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  // For sandbox testing with no passphrase, you might get away with this
-  // But for production, you MUST implement proper MD5
-  console.warn('WARNING: Using SHA-256 instead of MD5 - this will not work for production!');
-  console.warn('For production, install an MD5 library or use PayFast\'s API mode instead');
-  
-  return hashHex.substring(0, 32);
 }
