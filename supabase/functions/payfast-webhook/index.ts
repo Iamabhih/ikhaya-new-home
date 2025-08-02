@@ -242,6 +242,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    console.log('PayFast webhook called - Raw request details:', {
+      method: req.method,
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries()),
+      contentType: req.headers.get('content-type')
+    });
+
     // Parse form data from PayFast
     const formData = await req.formData()
     const payfastData: Record<string, string> = {}
@@ -250,11 +257,14 @@ Deno.serve(async (req) => {
       payfastData[key] = value.toString()
     }
 
-    console.log('PayFast webhook received:', {
+    console.log('PayFast webhook received data:', {
       payment_status: payfastData.payment_status,
       m_payment_id: payfastData.m_payment_id,
       pf_payment_id: payfastData.pf_payment_id,
-      amount_gross: payfastData.amount_gross
+      amount_gross: payfastData.amount_gross,
+      signature: payfastData.signature,
+      allKeys: Object.keys(payfastData),
+      fullData: payfastData
     })
 
     // Verify signature
@@ -359,15 +369,15 @@ Deno.serve(async (req) => {
 })
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Sort the keys alphabetically (PayFast requirement)
-  const sortedKeys = Object.keys(data).sort();
-  
-  // Create parameter string
+  // PayFast requires original order, NOT alphabetical sorting!
+  // Create parameter string in the order keys appear
   let pfOutput = "";
   
-  for (const key of sortedKeys) {
-    if (data[key] !== "") {
-      pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, "+")}&`;
+  for (const key in data) {
+    if (data.hasOwnProperty(key)) {
+      if (data[key] !== "") {
+        pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, "+")}&`;
+      }
     }
   }
 
@@ -379,6 +389,7 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
     getString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`;
   }
   
+  console.log('Webhook PayFast signature input string:', getString);
   console.log('Webhook string to hash (first 100 chars):', getString.substring(0, 100) + '...');
 
   // Use the pure JS MD5 implementation

@@ -18,6 +18,9 @@ verify_jwt = true
 [functions.payfast-webhook]
 verify_jwt = false
 
+[functions.test-webhook-access]
+verify_jwt = false
+
 [functions.import-products]
 verify_jwt = false
 

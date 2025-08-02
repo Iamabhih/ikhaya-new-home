@@ -449,15 +449,15 @@ Deno.serve(async (req) => {
 })
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Sort the keys alphabetically (PayFast requirement)
-  const sortedKeys = Object.keys(data).sort();
-  
-  // Create parameter string
+  // PayFast requires original order, NOT alphabetical sorting!
+  // Create parameter string in the order keys appear
   let pfOutput = "";
   
-  for (const key of sortedKeys) {
-    if (data[key] !== "") {
-      pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, "+")}&`;
+  for (const key in data) {
+    if (data.hasOwnProperty(key)) {
+      if (data[key] !== "") {
+        pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, "+")}&`;
+      }
     }
   }
 
@@ -469,6 +469,7 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
     getString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`;
   }
   
+  console.log('PayFast signature input string:', getString);
   console.log('String to hash (first 100 chars):', getString.substring(0, 100) + '...');
 
   // Use the pure JS MD5 implementation
