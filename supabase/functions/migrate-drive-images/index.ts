@@ -749,7 +749,7 @@ Deno.serve(async (req) => {
     await logMessage('info', `Advanced image mapping: ${matcherStats.directMappings} direct mappings, ${matcherStats.fuzzyVariations} fuzzy variations`)
 
     // Step 4: Enhanced product-image matching with fuzzy logic
-    progress.total = products?.length || 10000
+    progress.total = Math.min(products?.length || 10000, 10000)
     progress.currentStep = 'Advanced fuzzy matching products to images'
     await sendProgressUpdate(progress)
 
