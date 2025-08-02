@@ -173,14 +173,6 @@ export const PromotionalBanners = () => {
                           OFF
                         </div>
                       </>
-                    ) : currentBanner.image_url ? (
-                      <div className="w-80 h-80 rounded-2xl overflow-hidden shadow-2xl">
-                        <img 
-                          src={currentBanner.image_url} 
-                          alt={currentBanner.title} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
                     ) : (
                       <div className="text-6xl md:text-7xl font-black leading-none opacity-20" style={{
                         color: currentBanner.text_color,
