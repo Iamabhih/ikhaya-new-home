@@ -144,47 +144,37 @@ Deno.serve(async (req) => {
     await sendProgressUpdate(progress)
 
     let allDriveFiles: DriveFile[] = []
-    let nextPageToken: string | null = null
-    let pageCount = 0
     
-    console.log('📄 Starting paginated Google Drive scan...')
-    
-    do {
-      pageCount++
-      console.log(`📑 Scanning Google Drive page ${pageCount}...`)
-      await logMessage('info', `Scanning Google Drive page ${pageCount}...`)
-      
-      let url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType+contains+'image/'&key=${googleApiKey}&fields=files(id,name,mimeType),nextPageToken&pageSize=1000`
-      if (nextPageToken) {
-        url += `&pageToken=${nextPageToken}`
-      }
+    // Check MULTI_MATCH_ORGANIZED folder in storage bucket first
+    console.log('🗄️ Checking existing images in MULTI_MATCH_ORGANIZED folder...')
+    const { data: storageFiles, error: storageError } = await supabaseClient
+      .storage
+      .from('product-images')
+      .list('MULTI_MATCH_ORGANIZED', { recursive: true })
 
-      console.log(`🌐 Making API call to Google Drive...`)
-      const driveResponse = await fetch(url)
+    if (storageError) {
+      console.error('❌ Error accessing storage:', storageError)
+      await logMessage('error', `Error accessing storage: ${storageError.message}`)
+    } else {
+      console.log(`✅ Found ${storageFiles?.length || 0} files in MULTI_MATCH_ORGANIZED folder`)
       
-      if (!driveResponse.ok) {
-        console.error(`❌ Google Drive API error: ${driveResponse.status} ${driveResponse.statusText}`)
-        throw new Error(`Google Drive API error: ${driveResponse.statusText}`)
-      }
-
-      console.log(`📊 Processing Google Drive response...`)
-      const driveData = await driveResponse.json()
-      const pageFiles = driveData.files || []
-      allDriveFiles.push(...pageFiles)
-      nextPageToken = driveData.nextPageToken
+      // Convert storage files to DriveFile format
+      const storageImages = storageFiles
+        ?.filter(file => file.name && !file.name.endsWith('/') && 
+                 (file.name.toLowerCase().includes('.png') || 
+                  file.name.toLowerCase().includes('.jpg') || 
+                  file.name.toLowerCase().includes('.jpeg')))
+        .map(file => ({
+          id: file.name, // Use file path as ID
+          name: file.name.split('/').pop() || file.name, // Get just filename
+          mimeType: file.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
+          storagePath: `MULTI_MATCH_ORGANIZED/${file.name}`
+        })) || []
       
-      console.log(`✅ Page ${pageCount}: Found ${pageFiles.length} images. Total so far: ${allDriveFiles.length}`)
-      await logMessage('info', `Found ${pageFiles.length} images on page ${pageCount}. Total so far: ${allDriveFiles.length}`)
-      
-      // Add delay between API calls to avoid rate limiting
-      if (nextPageToken) {
-        console.log('⏸️ Adding delay to avoid rate limiting...')
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-    } while (nextPageToken)
-
-    console.log(`🎉 Scan complete! Found ${allDriveFiles.length} total images across ${pageCount} pages`)
-    await logMessage('info', `Scan complete! Found ${allDriveFiles.length} total images across ${pageCount} pages`)
+      allDriveFiles = storageImages as DriveFile[]
+      console.log(`📊 Converted ${allDriveFiles.length} storage files for processing`)
+      await logMessage('info', `Found ${allDriveFiles.length} images in storage MULTI_MATCH_ORGANIZED folder`)
+    }
 
     // Cache all discovered images to database for manual linking
     console.log('🗄️ Caching discovered images...')
@@ -198,9 +188,10 @@ Deno.serve(async (req) => {
       return codes.length > 0 ? codes[0] : null
     }
 
-    // Helper function to format direct Google Drive link
-    const formatDirectLink = (fileId: string): string => {
-      return `https://drive.google.com/uc?export=view&id=${fileId}`
+    // Helper function to format storage URL
+    const formatStorageURL = (storagePath: string): string => {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      return `${supabaseUrl}/storage/v1/object/public/product-images/${storagePath}`
     }
 
     // Cache images in batches to avoid overwhelming the database
@@ -213,13 +204,13 @@ Deno.serve(async (req) => {
         sku: extractSKUFromFilename(image.name),
         filename: image.name,
         drive_id: image.id,
-        direct_url: formatDirectLink(image.id),
-        file_size: null, // Google Drive doesn't provide size in files endpoint
+        direct_url: formatStorageURL((image as any).storagePath || image.name),
+        file_size: null,
         mime_type: image.mimeType,
         scan_session_id: sessionId,
         metadata: {
           scan_timestamp: new Date().toISOString(),
-          source: 'google_drive_migration'
+          source: 'storage_migration'
         }
       }))
 
@@ -459,144 +450,62 @@ Deno.serve(async (req) => {
           await sendProgressUpdate(progress)
           await logMessage('info', `Processing ${product.sku}: ${imageFile.name}`)
 
-          // Download image with enhanced retry logic and rate limiting
-          let imageResponse
-          let retries = 5 // Increased retries for large datasets
-          let backoffDelay = 1000 // Start with 1 second
-          
-          while (retries > 0) {
-            try {
-              imageResponse = await fetch(
-                `https://www.googleapis.com/drive/v3/files/${imageFile.id}?alt=media&key=${googleApiKey}`
-              )
-              if (imageResponse.ok) break
-              
-              // Handle rate limiting specifically
-              if (imageResponse.status === 429) {
-                await logMessage('warn', `Rate limited for ${product.sku}, waiting ${backoffDelay}ms before retry`)
-                await new Promise(resolve => setTimeout(resolve, backoffDelay))
-                backoffDelay *= 2 // Exponential backoff
-              } else {
-                throw new Error(`HTTP ${imageResponse.status}: ${imageResponse.statusText}`)
-              }
-            } catch (error) {
-              retries--
-              if (retries === 0) throw error
-              await logMessage('warn', `Retry downloading ${product.sku}, attempts remaining: ${retries}`)
-              await new Promise(resolve => setTimeout(resolve, backoffDelay))
-            }
-          }
+          // For storage files, create direct URL
+          const imageUrl = formatStorageURL((imageFile as any).storagePath || imageFile.name)
 
-          if (!imageResponse.ok) {
-            throw new Error(`Failed to download image: ${imageResponse.statusText}`)
-          }
-
-          const imageBlob = await imageResponse.blob()
-          
-          // Validate image size to prevent memory issues
-          if (imageBlob.size > 10 * 1024 * 1024) { // 10MB limit
-            await logMessage('warn', `Skipping ${product.sku}: Image too large (${Math.round(imageBlob.size / 1024 / 1024)}MB)`)
-            continue
-          }
-          
-          const fileExtension = imageFile.name.toLowerCase().endsWith('.png') ? 'png' : 'jpg'
-          const fileName = `${product.sku}.${fileExtension}`
-
-          // Upload to Supabase Storage with enhanced retry logic
-          let uploadResult
-          retries = 5
-          backoffDelay = 1000
-          
-          while (retries > 0) {
-            try {
-              uploadResult = await supabaseClient.storage
-                .from('product-images')
-                .upload(fileName, imageBlob, {
-                  contentType: imageFile.mimeType,
-                  upsert: true
-                })
-              if (!uploadResult.error) break
-              throw uploadResult.error
-            } catch (error) {
-              retries--
-              if (retries === 0) throw error
-              await logMessage('warn', `Retry uploading ${product.sku}, attempts remaining: ${retries}`)
-              await new Promise(resolve => setTimeout(resolve, backoffDelay))
-              backoffDelay *= 1.5
-            }
-          }
-
-          if (uploadResult.error) {
-            throw new Error(`Upload failed: ${uploadResult.error.message}`)
-          }
-
-          // Get the public URL
-          const { data: urlData } = supabaseClient.storage
-            .from('product-images')
-            .getPublicUrl(fileName)
-
-          // Update or create product image record
-          const { data: existingImage } = await supabaseClient
+          // Check if product already has an image
+          const { data: existingImages } = await supabaseClient
             .from('product_images')
             .select('id')
             .eq('product_id', product.id)
-            .eq('is_primary', true)
-            .single()
+            .limit(1)
 
-          if (existingImage) {
-            const { error: updateError } = await supabaseClient
-              .from('product_images')
-              .update({
-                image_url: urlData.publicUrl,
-                alt_text: `${product.name} product image`
-              })
-              .eq('id', existingImage.id)
-
-            if (updateError) {
-              throw new Error(`Failed to update product image: ${updateError.message}`)
-            }
-          } else {
-            const { error: insertError } = await supabaseClient
-              .from('product_images')
-              .insert({
-                product_id: product.id,
-                image_url: urlData.publicUrl,
-                alt_text: `${product.name} product image`,
-                is_primary: true,
-                sort_order: 0
-              })
-
-            if (insertError) {
-              throw new Error(`Failed to create product image record: ${insertError.message}`)
-            }
+          if (existingImages && existingImages.length > 0) {
+            await logMessage('info', `⏭️ Skipping ${product.sku} - already has image`)
+            progress.processed++
+            progress.successful++
+            await sendProgressUpdate(progress)
+            continue
           }
 
-          progress.successful++
-          await logMessage('info', `✅ Successfully migrated ${product.sku}`)
+          // Insert product image record directly using storage URL
+          const { error: insertError } = await supabaseClient
+            .from('product_images')
+            .insert({
+              product_id: product.id,
+              image_url: imageUrl,
+              alt_text: `${product.name} product image`,
+              is_primary: true,
+              sort_order: 0
+            })
+
+          if (insertError) {
+            console.error(`❌ Failed to insert image record for ${product.sku}:`, insertError)
+            await logMessage('error', `Failed to insert image record for ${product.sku}: ${insertError.message}`)
+            progress.failed++
+            progress.errors.push(`${product.sku}: ${insertError.message}`)
+          } else {
+            console.log(`✅ Successfully migrated ${product.sku}`)
+            await logMessage('info', `✅ Successfully migrated ${product.sku}`)
+            progress.successful++
+          }
+
+          progress.processed++
+          await sendProgressUpdate(progress)
           
         } catch (error) {
           progress.failed++
           const errorMsg = `❌ ${product.sku}: ${error.message}`
           progress.errors.push(errorMsg)
           await logMessage('error', errorMsg)
-        } finally {
           progress.processed++
-          
-          // Calculate and update estimated time remaining
-          if (progress.processed > 0) {
-            const elapsed = Date.now() - new Date(startTime).getTime()
-            const avgTimePerItem = elapsed / progress.processed
-            const remaining = (progress.total - progress.processed) * avgTimePerItem
-            progress.estimatedTimeRemaining = `${Math.round(remaining / 1000 / 60)}min ${Math.round((remaining / 1000) % 60)}s`
-          }
-          
           await sendProgressUpdate(progress)
         }
       }
       
-      // Enhanced delay between batches to respect API limits (longer for large datasets)
+      // Enhanced delay between batches to respect API limits
       if (i + batchSize < matchedProducts.length) {
-        const delay = Math.min(5000, 1000 + (batchNumber * 100)) // Progressive delay up to 5 seconds
+        const delay = Math.min(2500, 1000 + (batchNumber * 100))
         await logMessage('info', `Batch ${batchNumber} complete. Waiting ${delay}ms before next batch...`)
         await new Promise(resolve => setTimeout(resolve, delay))
       }
