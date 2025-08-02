@@ -17,6 +17,11 @@ const WishlistPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
+  console.log('[WishlistPage] Rendering with:', { 
+    wishlistItemsCount: wishlistItems.length, 
+    userId: user?.id || 'guest' 
+  });
+  
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['wishlist-products', wishlistItems],
     queryFn: async () => {

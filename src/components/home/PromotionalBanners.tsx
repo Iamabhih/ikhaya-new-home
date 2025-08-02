@@ -82,20 +82,22 @@ export const PromotionalBanners = () => {
                   textShadow: (currentBanner as any).text_shadow !== 'none' ? (currentBanner as any).text_shadow : '0 2px 8px rgba(0,0,0,0.3)',
                 }}
               >
-                <h1 
-                  className="text-5xl md:text-7xl xl:text-8xl font-black leading-none tracking-tight"
-                  style={{ 
-                    fontFamily: (currentBanner as any).title_font_family || 'Playfair Display',
-                    fontWeight: (currentBanner as any).title_font_weight || '900',
-                    textShadow: (currentBanner as any).title_shadow !== 'none' ? (currentBanner as any).title_shadow : '0 4px 12px rgba(0,0,0,0.4)',
-                    background: 'linear-gradient(135deg, currentColor 0%, rgba(255,255,255,0.8) 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text'
-                  }}
-                >
-                  {currentBanner.title}
-                </h1>
+                {currentBanner.title && (
+                  <h1 
+                    className="text-5xl md:text-7xl xl:text-8xl font-black leading-none tracking-tight"
+                    style={{ 
+                      fontFamily: (currentBanner as any).title_font_family || 'Playfair Display',
+                      fontWeight: (currentBanner as any).title_font_weight || '900',
+                      textShadow: (currentBanner as any).title_shadow !== 'none' ? (currentBanner as any).title_shadow : '0 4px 12px rgba(0,0,0,0.4)',
+                      background: 'linear-gradient(135deg, currentColor 0%, rgba(255,255,255,0.8) 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}
+                  >
+                    {currentBanner.title}
+                  </h1>
+                )}
                 
                 {currentBanner.subtitle && (
                   <h2 

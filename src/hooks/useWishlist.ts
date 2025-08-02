@@ -31,6 +31,7 @@ export const useWishlist = () => {
   const loadDatabaseWishlist = async () => {
     if (!user) return;
     
+    console.log('[useWishlist] Loading database wishlist for user:', user.id);
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -41,6 +42,7 @@ export const useWishlist = () => {
 
       if (error) throw error;
       
+      console.log('[useWishlist] Loaded wishlist items:', data?.length || 0);
       setWishlistItems(data || []);
       
       // Migrate any local storage items to database
@@ -126,6 +128,7 @@ export const useWishlist = () => {
   };
 
   const addToWishlist = async (productId: string) => {
+    console.log('[useWishlist] Adding to wishlist:', productId, 'User:', user?.id || 'guest');
     setLoading(true);
     try {
       // Check if item already exists
