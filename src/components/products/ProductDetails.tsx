@@ -6,10 +6,11 @@ interface ProductDetailsProps {
     id: string;
     name: string;
     slug: string;
+    sku?: string;
     short_description?: string;
     average_rating?: number;
     review_count?: number;
-    stock_quantity?: number; // Added this to check if it's being displayed
+    stock_quantity?: number;
     categories?: {
       id: string;
       name: string;
@@ -36,12 +37,11 @@ export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
         </p>
       )}
       
-      {/* Rating */}
-      {product.average_rating && product.review_count && Number(product.review_count) > 0 && (
+      {/* SKU */}
+      {product.sku && (
         <div className="flex items-center gap-1 mb-1 sm:mb-2">
-          <StarRating rating={product.average_rating} readonly size="sm" />
           <span className="text-xs text-muted-foreground">
-            ({product.review_count})
+            SKU: {product.sku}
           </span>
         </div>
       )}

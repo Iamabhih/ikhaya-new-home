@@ -13,6 +13,7 @@ interface ProductCardProps {
     name: string;
     price: number;
     slug: string;
+    sku?: string;
     short_description?: string;
     compare_at_price?: number;
     average_rating?: number;
