@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 import { PayfastPayment } from "./PayfastPayment";
+import { DeliveryOptions } from "./DeliveryOptions";
 
 interface CheckoutFormProps {
   user: any | null;
@@ -20,6 +21,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState('billing'); // billing, payment, success
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [selectedDeliveryZone, setSelectedDeliveryZone] = useState<string>('');
   const [formData, setFormData] = useState({
     email: user?.email || "",
     firstName: "",
@@ -31,24 +33,40 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
     province: "",
   });
 
-  const { deliveryFee, deliveryZone } = useDeliveryFee(cartTotal);
+  const { deliveryFee, deliveryZone, deliveryZones } = useDeliveryFee(cartTotal, selectedDeliveryZone);
+
+  // Auto-select first available delivery zone
+  useEffect(() => {
+    if (deliveryZones.length > 0 && !selectedDeliveryZone) {
+      setSelectedDeliveryZone(deliveryZones[0].id);
+    }
+  }, [deliveryZones, selectedDeliveryZone]);
 
   const handleBillingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
 
     try {
-      // Validate form data but don't create order yet - only proceed to payment
+      // Validate form data and delivery zone
       if (!formData.email || !formData.firstName || !formData.lastName || 
           !formData.address || !formData.city || !formData.province || !formData.postalCode) {
         throw new Error("Please fill in all required fields");
+      }
+
+      if (!selectedDeliveryZone) {
+        throw new Error("Please select a delivery option");
+      }
+
+      // Check minimum order value for selected delivery zone
+      if (deliveryZone && cartTotal < deliveryZone.min_order_value) {
+        throw new Error(`Minimum order value for ${deliveryZone.name} is R${deliveryZone.min_order_value.toFixed(2)}`);
       }
 
       // Generate a temporary order ID for payment processing
       const tempOrderId = `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       setOrderId(tempOrderId);
       setCurrentStep('payment');
-      toast.success("Billing details saved! Please complete payment.");
+      toast.success("Details confirmed! Please complete payment.");
 
     } catch (error) {
       console.error('Form validation error:', error);
@@ -78,6 +96,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
         cartItems={items}
         cartTotal={cartTotal}
         deliveryFee={deliveryFee}
+        selectedDeliveryZone={selectedDeliveryZone}
         user={user}
       />
     );
@@ -240,8 +259,15 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
             </div>
           </div>
 
+          {/* Delivery Options */}
+          <DeliveryOptions
+            subtotal={cartTotal}
+            selectedZone={selectedDeliveryZone}
+            onZoneChange={setSelectedDeliveryZone}
+          />
+
           <div className="pt-4 sm:pt-6">
-            <Button 
+            <Button
               type="submit" 
               className="w-full h-11 sm:h-12 text-sm sm:text-base font-medium" 
               size="lg"

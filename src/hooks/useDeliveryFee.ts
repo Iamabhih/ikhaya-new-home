@@ -5,9 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 interface DeliveryZone {
   id: string;
   name: string;
+  description: string;
   delivery_fee: number;
   free_delivery_threshold: number | null;
   min_order_value: number;
+  estimated_days_min: number;
+  estimated_days_max: number;
   is_active: boolean;
 }
 

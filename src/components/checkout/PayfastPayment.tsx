@@ -32,10 +32,11 @@ interface PayfastPaymentProps {
   cartItems: any[];
   cartTotal: number;
   deliveryFee: number;
+  selectedDeliveryZone: string;
   user: any | null;
 }
 
-export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deliveryFee, user }: PayfastPaymentProps) => {
+export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deliveryFee, selectedDeliveryZone, user }: PayfastPaymentProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showManualRedirect, setShowManualRedirect] = useState(false);
   const [payfastUrl, setPayfastUrl] = useState<string>('');
@@ -69,6 +70,7 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
         subtotal: cartTotal,
         shipping_amount: deliveryFee,
         total_amount: cartTotal + deliveryFee,
+        delivery_zone_id: selectedDeliveryZone,
         cartItems: cartItems.map(item => ({
           product_id: item.product_id,
           quantity: item.quantity,
