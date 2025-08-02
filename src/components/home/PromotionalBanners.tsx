@@ -64,9 +64,8 @@ export const PromotionalBanners = () => {
         {/* Background Image */}
         {currentBanner.image_url && <div className="absolute inset-0">
             <img src={currentBanner.image_url} alt="" className="w-full h-full object-cover scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/40" />
-            {((currentBanner as any).overlay_opacity ?? 0.2) > 0 && <div className="absolute inset-0" style={{
-          background: `linear-gradient(135deg, rgba(0,0,0,${(currentBanner as any).overlay_opacity ?? 0.2}) 0%, rgba(0,0,0,${((currentBanner as any).overlay_opacity ?? 0.2) * 0.7}) 100%)`
+            {((currentBanner as any).overlay_opacity ?? 0) > 0 && <div className="absolute inset-0" style={{
+          background: `linear-gradient(135deg, rgba(0,0,0,${(currentBanner as any).overlay_opacity}) 0%, rgba(0,0,0,${((currentBanner as any).overlay_opacity) * 0.7}) 100%)`
         }} />}
           </div>}
 
@@ -156,22 +155,41 @@ export const PromotionalBanners = () => {
                     <div className="w-60 h-60 border-2 border-white rounded-full absolute top-20 right-20" />
                   </div>
                   
-                  {/* Floating percentage */}
+                  {/* Dynamic percentage or content */}
                   <div className="relative z-10 text-center">
-                    <div className="text-8xl md:text-9xl font-black leading-none" style={{
-                      color: currentBanner.text_color,
-                      textShadow: '0 6px 20px rgba(0,0,0,0.5)',
-                      fontFamily: 'Playfair Display'
-                    }}>
-                      70%
-                    </div>
-                    <div className="text-2xl font-light tracking-widest uppercase mt-2" style={{
-                      color: currentBanner.text_color,
-                      textShadow: '0 2px 8px rgba(0,0,0,0.4)'
-                    }}>
-                      OFF
-                    </div>
-                  </div>
+                    {(currentBanner as any).discount_percentage ? (
+                      <>
+                        <div className="text-8xl md:text-9xl font-black leading-none" style={{
+                          color: currentBanner.text_color,
+                          textShadow: '0 6px 20px rgba(0,0,0,0.5)',
+                          fontFamily: 'Playfair Display'
+                        }}>
+                          {(currentBanner as any).discount_percentage}%
+                        </div>
+                        <div className="text-2xl font-light tracking-widest uppercase mt-2" style={{
+                          color: currentBanner.text_color,
+                          textShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                        }}>
+                          OFF
+                        </div>
+                      </>
+                    ) : currentBanner.image_url ? (
+                      <div className="w-80 h-80 rounded-2xl overflow-hidden shadow-2xl">
+                        <img 
+                          src={currentBanner.image_url} 
+                          alt={currentBanner.title} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-6xl md:text-7xl font-black leading-none opacity-20" style={{
+                        color: currentBanner.text_color,
+                        textShadow: '0 6px 20px rgba(0,0,0,0.5)',
+                        fontFamily: 'Playfair Display'
+                      }}>
+                        {currentBanner.title?.charAt(0)}
+                      </div>
+                    )}</div>
                 </div>
               </div>
             </div>
