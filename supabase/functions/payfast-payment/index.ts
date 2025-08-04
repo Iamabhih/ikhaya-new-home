@@ -246,19 +246,41 @@ function md5(string: string): string {
 }
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Create parameter string
+  // Create parameter string following PayFast's exact rules
   let pfOutput = "";
   
-  // Process parameters in the order they appear in the data object
-  // Only include non-blank fields as per PayFast documentation
-  for (let key in data) {
+  // CRITICAL: PayFast requires parameters in the ORDER they appear in the form, NOT alphabetical!
+  // Process in the exact order we're building the form
+  const orderedKeys = [
+    'merchant_id',
+    'merchant_key', 
+    'return_url',
+    'cancel_url',
+    'notify_url',
+    'name_first',
+    'name_last',
+    'email_address',
+    'cell_number',
+    'm_payment_id',
+    'amount',
+    'item_name',
+    'item_description'
+  ];
+  
+  // Add parameters in exact order, only including non-blank fields
+  for (const key of orderedKeys) {
     if (data.hasOwnProperty(key)) {
       const value = data[key];
-      // Only include non-blank fields
+      // Only include non-blank fields as per PayFast documentation
       if (value !== null && value !== undefined && value !== '') {
-        // URL encode with uppercase hex codes and replace %20 with +
+        // URL encode exactly as PayFast expects: uppercase hex, spaces as +
         const encodedValue = encodeURIComponent(value.trim())
-          .replace(/%20/g, "+")
+          .replace(/!/g, '%21')
+          .replace(/'/g, '%27')
+          .replace(/\(/g, '%28')
+          .replace(/\)/g, '%29')
+          .replace(/\*/g, '%2A')
+          .replace(/%20/g, '+')
           .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
         
         pfOutput += `${key}=${encodedValue}&`;
@@ -272,12 +294,17 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
   // Add passphrase if provided (also with uppercase encoding)
   if (passphrase !== null && passphrase !== undefined && passphrase !== "") {
     const encodedPassphrase = encodeURIComponent(passphrase.trim())
-      .replace(/%20/g, "+")
+      .replace(/!/g, '%21')
+      .replace(/'/g, '%27')
+      .replace(/\(/g, '%28')
+      .replace(/\)/g, '%29')
+      .replace(/\*/g, '%2A')
+      .replace(/%20/g, '+')
       .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
     getString += `&passphrase=${encodedPassphrase}`;
   }
   
-  console.log('PayFast signature generation:');
+  console.log('PayFast signature generation (corrected):');
   console.log('- Parameter string (first 200 chars):', getString.substring(0, 200) + '...');
   console.log('- Full string length:', getString.length);
   console.log('- Has passphrase:', !!(passphrase && passphrase !== ""));
@@ -455,17 +482,17 @@ Deno.serve(async (req) => {
 
     console.log('PayFast URL determined:', { payfastUrl, isTestMode });
 
-    // Prepare PayFast parameters in specific order
+    // Prepare PayFast parameters in PayFast's required order
     const payfastData: Record<string, string> = {};
     
-    // Add parameters in specific order
+    // Add parameters in PayFast's exact required order
     payfastData.merchant_id = merchantId;
     payfastData.merchant_key = merchantKey;
     payfastData.return_url = `${req.headers.get('origin')}/checkout/success?order_id=${orderId}`;
     payfastData.cancel_url = `${req.headers.get('origin')}/checkout?cancelled=true`;
     payfastData.notify_url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/payfast-webhook`;
     
-    // Only add non-empty values
+    // Only add non-empty customer details
     const firstName = customerName.split(' ')[0] || '';
     const lastName = customerName.split(' ').slice(1).join(' ') || '';
     

@@ -232,19 +232,25 @@ function md5(string: string): string {
 }
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Create parameter string
+  // Create parameter string following PayFast's exact rules
   let pfOutput = "";
   
-  // Process in the order received from PayFast
-  // IMPORTANT: Only include NON-BLANK fields as per PayFast documentation
+  // CRITICAL: For webhooks, PayFast sends data in their order, not alphabetical
+  // We need to process in the order received from the webhook
+  // Only include non-blank fields as per PayFast documentation
   for (let key in data) {
     if (data.hasOwnProperty(key)) {
       const value = data[key];
       // Only include non-blank fields
       if (value !== null && value !== undefined && value !== '') {
-        // URL encode with uppercase hex codes and replace %20 with +
+        // URL encode exactly as PayFast expects: uppercase hex, spaces as +
         const encodedValue = encodeURIComponent(value.trim())
-          .replace(/%20/g, "+")
+          .replace(/!/g, '%21')
+          .replace(/'/g, '%27')
+          .replace(/\(/g, '%28')
+          .replace(/\)/g, '%29')
+          .replace(/\*/g, '%2A')
+          .replace(/%20/g, '+')
           .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
         
         pfOutput += `${key}=${encodedValue}&`;
@@ -258,12 +264,17 @@ async function generateSignature(data: Record<string, string>, passphrase?: stri
   // Add passphrase if provided (also with uppercase encoding)
   if (passphrase !== null && passphrase !== undefined && passphrase !== "") {
     const encodedPassphrase = encodeURIComponent(passphrase.trim())
-      .replace(/%20/g, "+")
+      .replace(/!/g, '%21')
+      .replace(/'/g, '%27')
+      .replace(/\(/g, '%28')
+      .replace(/\)/g, '%29')
+      .replace(/\*/g, '%2A')
+      .replace(/%20/g, '+')
       .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
     getString += `&passphrase=${encodedPassphrase}`;
   }
   
-  console.log('Webhook signature verification:');
+  console.log('Webhook signature verification (corrected):');
   console.log('- Parameter string (first 300 chars):', getString.substring(0, 300) + '...');
   console.log('- Full string length:', getString.length);
   console.log('- Has passphrase:', !!(passphrase && passphrase !== ""));
