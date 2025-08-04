@@ -516,30 +516,19 @@ Deno.serve(async (req) => {
     // Add signature to the data
     payfastData.signature = signature;
 
-    // Build complete PayFast URL with all parameters
-    const urlParams = new URLSearchParams();
-    Object.entries(payfastData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        urlParams.append(key, value);
-      }
-    });
-    
-    const completePayfastUrl = `${payfastUrl}?${urlParams.toString()}`;
-
     console.log('PayFast payment initiated successfully:', {
       orderId,
       amount,
       merchant_id: merchantId.substring(0, 4) + '****',
       mode: isTestMode ? 'sandbox' : 'live',
-      baseUrl: payfastUrl,
-      completeUrlLength: completePayfastUrl.length,
+      payfastUrl,
       dataKeys: Object.keys(payfastData)
     })
 
     return new Response(
       JSON.stringify({
         success: true,
-        payfast_url: completePayfastUrl,
+        payfast_url: payfastUrl,
         payment_data: payfastData
       }),
       {
