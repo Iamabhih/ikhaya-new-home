@@ -1142,6 +1142,36 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_settings: {
+        Row: {
+          created_at: string | null
+          gateway_name: string
+          id: string
+          is_enabled: boolean | null
+          is_test_mode: boolean | null
+          settings: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          gateway_name: string
+          id?: string
+          is_enabled?: boolean | null
+          is_test_mode?: boolean | null
+          settings?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          gateway_name?: string
+          id?: string
+          is_enabled?: boolean | null
+          is_test_mode?: boolean | null
+          settings?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
           amount: number

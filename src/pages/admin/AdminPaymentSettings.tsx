@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,22 +10,92 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CreditCard, Settings, Shield, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminPaymentSettings = () => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [isTestMode, setIsTestMode] = useState(true);
   const [payfastSettings, setPayfastSettings] = useState({
-    merchantId: "10000100",
-    merchantKey: "46f0cd694581a",
+    merchantId: "",
+    merchantKey: "",
     passphrase: "",
     enabled: true
   });
 
-  const handleSaveSettings = () => {
-    toast({
-      title: "Settings saved",
-      description: "Payment settings have been updated successfully.",
-    });
+  // Load existing settings on component mount
+  useEffect(() => {
+    loadPaymentSettings();
+  }, []);
+
+  const loadPaymentSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('payment_settings')
+        .select('*')
+        .eq('gateway_name', 'payfast')
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // Not found error is OK
+        console.error('Error loading payment settings:', error);
+        return;
+      }
+
+      if (data) {
+        setIsTestMode(data.is_test_mode);
+        const settings = data.settings as any;
+        setPayfastSettings({
+          merchantId: settings?.merchant_id || "",
+          merchantKey: settings?.merchant_key || "",
+          passphrase: settings?.passphrase || "",
+          enabled: data.is_enabled
+        });
+      }
+    } catch (error) {
+      console.error('Error loading payment settings:', error);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('payment_settings')
+        .upsert({
+          gateway_name: 'payfast',
+          is_enabled: payfastSettings.enabled,
+          is_test_mode: isTestMode,
+          settings: {
+            merchant_id: payfastSettings.merchantId,
+            merchant_key: payfastSettings.merchantKey,
+            passphrase: payfastSettings.passphrase
+          }
+        }, {
+          onConflict: 'gateway_name'
+        });
+
+      if (error) {
+        toast({
+          title: "Error saving settings",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Settings saved",
+        description: "PayFast payment settings have been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error saving settings",
+        description: "An unexpected error occurred while saving settings.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const testPaymentConnection = () => {
@@ -204,8 +274,8 @@ const AdminPaymentSettings = () => {
                   </div>
 
                   <div className="flex gap-3">
-                    <Button onClick={handleSaveSettings}>
-                      Save Configuration
+                    <Button onClick={handleSaveSettings} disabled={isLoading}>
+                      {isLoading ? "Saving..." : "Save Configuration"}
                     </Button>
                     <Button variant="outline" onClick={testPaymentConnection}>
                       Test Connection
@@ -260,7 +330,7 @@ const AdminPaymentSettings = () => {
                       <Label htmlFor="webhook-url">Webhook URL</Label>
                       <Input
                         id="webhook-url"
-                        value="https://your-domain.com/api/payfast-webhook"
+                        value="https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook"
                         disabled
                         className="bg-muted"
                       />
@@ -272,7 +342,7 @@ const AdminPaymentSettings = () => {
                       <Label htmlFor="return-url">Return URL</Label>
                       <Input
                         id="return-url"
-                        value="https://your-domain.com/checkout/success"
+                        value={`${window.location.origin}/checkout/success`}
                         disabled
                         className="bg-muted"
                       />
