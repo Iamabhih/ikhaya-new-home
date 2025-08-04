@@ -48,6 +48,11 @@ const adminRoutes = [
     icon: RotateCcw 
   },
   { 
+    title: "Payments", 
+    url: "/admin/payments", 
+    icon: CreditCard 
+  },
+  { 
     title: "Homepage", 
     url: "/admin/homepage", 
     icon: Home 
@@ -62,7 +67,13 @@ const superAdminRoutes = [
     badge: "Super"
   },
   { 
-    title: "SuperAdmin Settings", 
+    title: "Payment Settings", 
+    url: "/admin/payment-settings", 
+    icon: CreditCard,
+    badge: "Super"
+  },
+  { 
+    title: "System Settings", 
     url: "/superadmin/settings", 
     icon: Settings,
     badge: "Super"

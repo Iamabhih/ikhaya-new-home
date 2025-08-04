@@ -38,6 +38,8 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminReturns from "./pages/admin/AdminReturns";
 import AdminSetupPage from "./pages/admin/AdminSetupPage";
 import AdminHomepage from "./pages/admin/AdminHomepage";
+import AdminPayments from "./pages/admin/AdminPayments";
+import AdminPaymentSettings from "./pages/admin/AdminPaymentSettings";
 import SuperAdminSettings from "./pages/admin/SuperAdminSettings";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import "./App.css";
@@ -98,10 +100,12 @@ function App() {
                  <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
                  <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
                  <Route path="/admin/returns" element={<AdminProtectedRoute><AdminReturns /></AdminProtectedRoute>} />
+                 <Route path="/admin/payments" element={<AdminProtectedRoute><AdminPayments /></AdminProtectedRoute>} />
                  <Route path="/admin/homepage" element={<AdminProtectedRoute><AdminHomepage /></AdminProtectedRoute>} />
                  
                   {/* SuperAdmin only routes */}
                   <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminUsers /></AdminProtectedRoute>} />
+                  <Route path="/admin/payment-settings" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminPaymentSettings /></AdminProtectedRoute>} />
                   <Route path="/admin/setup" element={<AdminSetupPage />} />
                   <Route path="/superadmin" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminDashboard /></AdminProtectedRoute>} />
                   <Route path="/superadmin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminUsers /></AdminProtectedRoute>} />
