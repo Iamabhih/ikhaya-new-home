@@ -330,7 +330,35 @@ Deno.serve(async (req) => {
       }
     }
 
-    const passphrase = Deno.env.get('PAYFAST_PASSPHRASE') || '';
+    // Get PayFast configuration from database to match payment function
+    console.log('Loading PayFast configuration from database for signature verification...');
+    
+    const { data: paymentSettings, error: settingsError } = await supabaseClient
+      .from('payment_settings')
+      .select('*')
+      .eq('gateway_name', 'payfast')
+      .eq('is_enabled', true)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error('Error loading payment settings for webhook:', settingsError);
+      return new Response('Failed to load payment configuration', { status: 500 });
+    }
+
+    if (!paymentSettings) {
+      console.error('PayFast gateway not enabled or configured for webhook');
+      return new Response('PayFast payment gateway is not enabled', { status: 500 });
+    }
+
+    const settings = paymentSettings.settings as any;
+    const passphrase = settings?.passphrase || Deno.env.get('PAYFAST_PASSPHRASE') || '';
+    
+    console.log('PayFast config loaded for webhook:', {
+      hasPassphrase: !!passphrase,
+      isTestMode: paymentSettings.is_test_mode,
+      fromDatabase: true
+    });
+
     const calculatedSignature = await generateSignature(dataForVerification, passphrase);
 
     if (receivedSignature !== calculatedSignature) {
