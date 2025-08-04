@@ -379,25 +379,56 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('Payment request received:', { 
-      orderId, 
-      amount, 
-      customerEmail: customerEmail.substring(0, 3) + '***',
-      customerName,
-      itemCount: items?.length || 0
-    })
+    // Get PayFast configuration from database first, then fall back to environment
+    console.log('Loading PayFast configuration from database...');
+    
+    const { data: paymentSettings, error: settingsError } = await supabaseClient
+      .from('payment_settings')
+      .select('*')
+      .eq('gateway_name', 'payfast')
+      .eq('is_enabled', true)
+      .maybeSingle();
 
-    // Get PayFast configuration from secrets
-    const merchantId = Deno.env.get('PAYFAST_MERCHANT_ID')
-    const merchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
-    const passphrase = Deno.env.get('PAYFAST_PASSPHRASE') || ''
-    const payfastMode = Deno.env.get('PAYFAST_MODE') || 'sandbox'
+    if (settingsError) {
+      console.error('Error loading payment settings:', settingsError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Failed to load payment configuration'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
+    }
 
-    console.log('PayFast config check:', {
+    if (!paymentSettings) {
+      console.error('PayFast gateway not enabled or configured');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'PayFast payment gateway is not enabled or configured'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
+    }
+
+    const settings = paymentSettings.settings as any;
+    const merchantId = settings?.merchant_id || Deno.env.get('PAYFAST_MERCHANT_ID')
+    const merchantKey = settings?.merchant_key || Deno.env.get('PAYFAST_MERCHANT_KEY')
+    const passphrase = settings?.passphrase || Deno.env.get('PAYFAST_PASSPHRASE') || ''
+    const isTestMode = paymentSettings.is_test_mode
+
+    console.log('PayFast config loaded:', {
       hasMerchantId: !!merchantId,
       hasMerchantKey: !!merchantKey,
       hasPassphrase: !!passphrase,
-      mode: payfastMode
+      isTestMode: isTestMode,
+      fromDatabase: true
     })
 
     if (!merchantId || !merchantKey) {
@@ -417,10 +448,12 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Determine PayFast URL based on mode
-    const payfastUrl = payfastMode === 'live' || payfastMode === 'production'
+    // Determine PayFast URL based on test mode from database
+    const payfastUrl = !isTestMode
       ? 'https://www.payfast.co.za/eng/process'
       : 'https://sandbox.payfast.co.za/eng/process'
+
+    console.log('PayFast URL determined:', { payfastUrl, isTestMode });
 
     // Prepare PayFast parameters in specific order
     const payfastData: Record<string, string> = {};
@@ -460,7 +493,7 @@ Deno.serve(async (req) => {
       orderId,
       amount,
       merchant_id: merchantId.substring(0, 4) + '****',
-      mode: payfastMode,
+      mode: isTestMode ? 'sandbox' : 'live',
       payfastUrl,
       dataKeys: Object.keys(payfastData)
     })
