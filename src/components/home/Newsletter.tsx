@@ -9,6 +9,9 @@ import { Mail, Send, CheckCircle, Heart } from "lucide-react";
 
 export const Newsletter = () => {
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [mobile, setMobile] = useState("");
   const [loading, setLoading] = useState(false);
   const { sendAdminNotification } = useEmailService();
 
@@ -26,6 +29,9 @@ export const Newsletter = () => {
         .from('newsletter_subscriptions')
         .insert({
           email,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          mobile_number: mobile || null,
           source: 'newsletter_signup',
           metadata: { 
             page_url: window.location.href,
@@ -51,12 +57,15 @@ export const Newsletter = () => {
       await sendAdminNotification({
         type: 'contact-form',
         subject: 'New Newsletter Subscription',
-        message: `New newsletter subscription from: ${email}`,
-        data: { email, source: 'newsletter_signup' },
+        message: `New newsletter subscription from: ${firstName} ${lastName} (${email})`,
+        data: { email, firstName, lastName, mobile, source: 'newsletter_signup' },
       });
 
       toast.success("Thank you for subscribing to our newsletter!");
       setEmail("");
+      setFirstName("");
+      setLastName("");
+      setMobile("");
     } catch (error) {
       console.error('Newsletter subscription error:', error);
       toast.error("Failed to subscribe. Please try again.");
@@ -112,40 +121,65 @@ export const Newsletter = () => {
             </div>
 
             {/* Newsletter Form */}
-            <form onSubmit={handleSubmit} className="max-w-lg mx-auto">
-              <Card className="border-0 bg-primary-foreground/10 backdrop-blur-md shadow-xl p-2">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1 relative">
-                    <Input
-                      type="email"
-                      placeholder="Enter your email address"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="bg-primary-foreground/90 backdrop-blur-sm text-foreground border-0 shadow-lg h-12 pl-12 text-base placeholder:text-muted-foreground focus:ring-2 focus:ring-primary-foreground/50"
-                      disabled={loading}
-                    />
-                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-4">
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  type="text"
+                  placeholder="First Name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="bg-primary-foreground/90 backdrop-blur-sm text-foreground border-0 shadow-lg h-12 text-base placeholder:text-muted-foreground focus:ring-2 focus:ring-primary-foreground/50"
+                  disabled={loading}
+                />
+                <Input
+                  type="text"
+                  placeholder="Last Name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="bg-primary-foreground/90 backdrop-blur-sm text-foreground border-0 shadow-lg h-12 text-base placeholder:text-muted-foreground focus:ring-2 focus:ring-primary-foreground/50"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Contact Fields */}
+              <div className="space-y-3">
+                <Input
+                  type="email"
+                  placeholder="Email Address *"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="bg-primary-foreground/90 backdrop-blur-sm text-foreground border-0 shadow-lg h-12 text-base placeholder:text-muted-foreground focus:ring-2 focus:ring-primary-foreground/50"
+                  disabled={loading}
+                />
+                <Input
+                  type="tel"
+                  placeholder="Mobile Number (Optional)"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                  className="bg-primary-foreground/90 backdrop-blur-sm text-foreground border-0 shadow-lg h-12 text-base placeholder:text-muted-foreground focus:ring-2 focus:ring-primary-foreground/50"
+                  disabled={loading}
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-primary-foreground text-primary hover:bg-primary-foreground/90 shadow-lg h-12 px-8 font-semibold transition-all duration-300 hover:scale-105 group"
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    Subscribing...
                   </div>
-                  <Button 
-                    type="submit" 
-                    disabled={loading}
-                    className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 shadow-lg h-12 px-8 font-semibold transition-all duration-300 hover:scale-105 group"
-                  >
-                    {loading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                        Subscribing...
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        Subscribe
-                        <Send className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-                      </div>
-                    )}
-                  </Button>
-                </div>
-              </Card>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    Subscribe
+                    <Send className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                  </div>
+                )}
+              </Button>
               
               {/* Privacy Note */}
               <p className="text-primary-foreground/70 text-sm mt-4 leading-relaxed">

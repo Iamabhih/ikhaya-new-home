@@ -716,6 +716,7 @@ export type Database = {
           is_active: boolean
           last_name: string | null
           metadata: Json | null
+          mobile_number: string | null
           referrer: string | null
           source: string | null
           subscribed_at: string
@@ -732,6 +733,7 @@ export type Database = {
           is_active?: boolean
           last_name?: string | null
           metadata?: Json | null
+          mobile_number?: string | null
           referrer?: string | null
           source?: string | null
           subscribed_at?: string
@@ -748,6 +750,7 @@ export type Database = {
           is_active?: boolean
           last_name?: string | null
           metadata?: Json | null
+          mobile_number?: string | null
           referrer?: string | null
           source?: string | null
           subscribed_at?: string
