@@ -156,30 +156,58 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
         throw new Error(error.message || 'Payment service error');
       }
 
-      if (data?.success && data?.uuid) {
-        console.log('🎯 PayFast UUID received, launching onsite payment...');
+      if (data?.success) {
+        // Check if we need to fallback to redirect method
+        if (data?.fallback_mode) {
+          console.log('🔄 Using fallback redirect method');
+          
+          // Create a form and submit it for redirect
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = data.redirect_url;
+          form.style.display = 'none';
+          
+          // Add all form data as hidden inputs
+          Object.entries(data.form_data).forEach(([key, value]) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value as string;
+            form.appendChild(input);
+          });
+          
+          document.body.appendChild(form);
+          form.submit();
+          return;
+        }
         
-        // Use PayFast onsite payment with callback
-        window.payfast_do_onsite_payment(
-          {
-            uuid: data.uuid,
-            return_url: data.return_url,
-            cancel_url: data.cancel_url
-          },
-          (result: boolean) => {
-            console.log('PayFast onsite payment result:', result);
-            if (result) {
-              // Payment completed
-              toast.success('Payment completed successfully!');
-              // Redirect to success page
-              window.location.href = data.return_url || '/checkout/success';
-            } else {
-              // Payment window closed or cancelled
-              toast.error('Payment was cancelled or failed. Please try again.');
-              setIsProcessing(false);
+        if (data?.uuid) {
+          console.log('🎯 PayFast UUID received, launching onsite payment...');
+          
+          // Use PayFast onsite payment with callback
+          window.payfast_do_onsite_payment(
+            {
+              uuid: data.uuid,
+              return_url: data.return_url,
+              cancel_url: data.cancel_url
+            },
+            (result: boolean) => {
+              console.log('PayFast onsite payment result:', result);
+              if (result) {
+                // Payment completed
+                toast.success('Payment completed successfully!');
+                // Redirect to success page
+                window.location.href = data.return_url || '/checkout/success';
+              } else {
+                // Payment window closed or cancelled
+                toast.error('Payment was cancelled or failed. Please try again.');
+                setIsProcessing(false);
+              }
             }
-          }
-        );
+          );
+        } else {
+          throw new Error('PayFast did not return payment identifier');
+        }
       } else {
         throw new Error(data?.error || 'Failed to initiate payment');
       }

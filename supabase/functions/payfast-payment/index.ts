@@ -516,49 +516,94 @@ Deno.serve(async (req) => {
     // Add signature to the data
     payfastData.signature = signature;
 
-    // For Onsite Payments, we need to get a UUID from PayFast first
+    // For Onsite Payments, we need to get an identifier from PayFast first
+    // PayFast onsite uses a different endpoint for getting payment identifiers
     const onsiteUrl = isTestMode 
       ? 'https://sandbox.payfast.co.za/onsite/process'
       : 'https://www.payfast.co.za/onsite/process';
 
-    console.log('Requesting PayFast UUID for onsite payment:', {
+    console.log('Requesting PayFast identifier for onsite payment:', {
       orderId,
       amount,
       merchant_id: merchantId.substring(0, 4) + '****',
       mode: isTestMode ? 'sandbox' : 'live',
-      onsiteUrl
+      onsiteUrl,
+      dataToSend: Object.keys(payfastData)
     });
 
-    // Make request to PayFast onsite API to get UUID
-    const formData = new URLSearchParams();
-    Object.entries(payfastData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        formData.append(key, value);
-      }
-    });
-
-    const onsiteResponse = await fetch(onsiteUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData.toString()
-    });
-
-    if (!onsiteResponse.ok) {
-      console.error('PayFast onsite API error:', {
-        status: onsiteResponse.status,
-        statusText: onsiteResponse.statusText
+    try {
+      // Create form data with proper encoding
+      const formData = new URLSearchParams();
+      Object.entries(payfastData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          formData.append(key, value);
+        }
       });
-      throw new Error(`PayFast onsite API error: ${onsiteResponse.status}`);
-    }
 
-    const onsiteResult = await onsiteResponse.json();
-    
-    if (!onsiteResult.uuid) {
-      console.error('PayFast onsite response missing UUID:', onsiteResult);
-      throw new Error('PayFast did not return a valid UUID');
-    }
+      console.log('Form data being sent to PayFast:', formData.toString().substring(0, 200) + '...');
+
+      const onsiteResponse = await fetch(onsiteUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (compatible; PayFast Integration)',
+        },
+        body: formData.toString()
+      });
+
+      console.log('PayFast onsite response status:', onsiteResponse.status);
+
+      if (!onsiteResponse.ok) {
+        const responseText = await onsiteResponse.text();
+        console.error('PayFast onsite API error:', {
+          status: onsiteResponse.status,
+          statusText: onsiteResponse.statusText,
+          responseBody: responseText.substring(0, 500)
+        });
+        
+        // For onsite payments, if we can't get the UUID, fall back to redirect method
+        console.log('Falling back to redirect method due to onsite API error');
+        
+        const redirectUrl = isTestMode
+          ? 'https://sandbox.payfast.co.za/eng/process'
+          : 'https://www.payfast.co.za/eng/process';
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            redirect_url: redirectUrl,
+            form_data: payfastData,
+            fallback_mode: true
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      }
+
+      const contentType = onsiteResponse.headers.get('content-type');
+      console.log('PayFast response content-type:', contentType);
+
+      let onsiteResult;
+      if (contentType?.includes('application/json')) {
+        onsiteResult = await onsiteResponse.json();
+      } else {
+        const responseText = await onsiteResponse.text();
+        console.log('Non-JSON response from PayFast:', responseText.substring(0, 200));
+        // Try to extract UUID from HTML response if present
+        const uuidMatch = responseText.match(/uuid['":\s]*([a-f0-9-]+)/i);
+        if (uuidMatch) {
+          onsiteResult = { uuid: uuidMatch[1] };
+        } else {
+          throw new Error('Could not extract UUID from PayFast response');
+        }
+      }
+      
+      if (!onsiteResult.uuid) {
+        console.error('PayFast onsite response missing UUID:', onsiteResult);
+        throw new Error('PayFast did not return a valid UUID');
+      }
 
     console.log('PayFast onsite payment UUID received:', {
       orderId,
