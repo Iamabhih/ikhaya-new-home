@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 
 export const OptimizedCategoryGrid = () => {
   const { data: categories, isLoading, error } = useQuery({
@@ -115,17 +116,11 @@ export const OptimizedCategoryGrid = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-4">
-                  <Skeleton className="h-16 w-16 rounded-full mx-auto mb-4" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-3 w-3/4 mx-auto" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <UniversalLoading 
+            variant="grid" 
+            count={8} 
+            className="grid-cols-2 md:grid-cols-4" 
+          />
         </div>
       </section>
     );

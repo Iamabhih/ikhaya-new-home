@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tables } from "@/integrations/supabase/types";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 type PromotionalBanner = Tables<"promotional_banners">;
 export const PromotionalBanners = () => {
   const [banners, setBanners] = useState<PromotionalBanner[]>([]);
@@ -42,15 +43,18 @@ export const PromotionalBanners = () => {
     setCurrentIndex(prev => (prev - 1 + banners.length) % banners.length);
   };
   if (loading) {
-    return <div className="relative w-full bg-primary/5 overflow-hidden">
-        <div className="relative min-h-[400px] md:min-h-[500px] flex items-center justify-center bg-gradient-to-r from-primary/10 to-secondary/10">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-primary/20 rounded w-48 mx-auto"></div>
-            <div className="h-6 bg-primary/15 rounded w-32 mx-auto"></div>
-            <div className="h-12 bg-primary/10 rounded w-24 mx-auto"></div>
-          </div>
+    return (
+      <div className="relative w-full bg-primary/5 overflow-hidden">
+        <div className="relative min-h-[400px] md:min-h-[500px] flex items-center justify-center">
+          <UniversalLoading 
+            variant="spinner" 
+            size="lg" 
+            text="Loading promotional content..." 
+            className="text-white"
+          />
         </div>
-      </div>;
+      </div>
+    );
   }
   if (banners.length === 0) {
     return null;

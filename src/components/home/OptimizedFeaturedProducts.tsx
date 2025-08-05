@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Star, ArrowRight, Sparkles } from "lucide-react";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 
 export const OptimizedFeaturedProducts = () => {
   const { data: products = [], isLoading } = useQuery({
@@ -63,29 +64,11 @@ export const OptimizedFeaturedProducts = () => {
     return (
       <section className="py-20 bg-gradient-to-b from-background to-secondary/10">
         <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-primary/10 rounded-full px-4 py-2 mb-4">
-              <div className="w-4 h-4 bg-primary/20 rounded animate-pulse" />
-              <div className="w-20 h-3 bg-primary/20 rounded animate-pulse" />
-            </div>
-            <div className="w-80 h-10 bg-secondary/20 rounded mx-auto mb-4 animate-pulse" />
-            <div className="w-96 h-6 bg-secondary/15 rounded mx-auto animate-pulse" />
-          </div>
-
-          {/* Loading Grid */}
-          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 xs:gap-3 sm:gap-4 md:gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="border-0 bg-white/50 backdrop-blur-sm shadow-lg overflow-hidden animate-pulse">
-                <div className="h-48 xs:h-56 sm:h-64 bg-gradient-to-br from-secondary/20 to-secondary/40" />
-                <div className="p-2 xs:p-3 sm:p-6 space-y-2 xs:space-y-3">
-                  <div className="h-3 xs:h-4 bg-secondary/30 rounded animate-pulse" />
-                  <div className="h-2 xs:h-3 bg-secondary/20 rounded w-3/4 animate-pulse" />
-                  <div className="h-4 xs:h-5 bg-secondary/30 rounded w-1/2 animate-pulse" />
-                </div>
-              </Card>
-            ))}
-          </div>
+          <UniversalLoading 
+            variant="grid" 
+            count={8} 
+            className="grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+          />
         </div>
       </section>
     );

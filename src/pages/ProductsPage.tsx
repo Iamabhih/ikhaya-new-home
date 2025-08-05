@@ -14,6 +14,7 @@ import { Grid, List, ChevronLeft, ChevronRight, SlidersHorizontal, Search, Filte
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Card } from "@/components/ui/card";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -393,22 +394,14 @@ const ProductsPage = () => {
 
             {/* Product Grid */}
             {isLoading ? (
-              <div className={`grid gap-6 ${
-                viewMode === "grid" 
+              <UniversalLoading 
+                variant="grid" 
+                count={12} 
+                className={viewMode === "grid" 
                   ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
                   : "grid-cols-1"
-              }`}>
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <Card key={i} className="border-0 bg-white/50 backdrop-blur-sm shadow-lg animate-pulse">
-                    <div className="h-72 bg-gradient-to-br from-secondary/20 to-secondary/40 rounded-t-lg" />
-                    <div className="p-4 space-y-3">
-                      <div className="h-4 bg-secondary/30 rounded animate-pulse" />
-                      <div className="h-3 bg-secondary/20 rounded w-3/4 animate-pulse" />
-                      <div className="h-5 bg-secondary/30 rounded w-1/2 animate-pulse" />
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                }
+              />
             ) : useVirtualization && viewMode === "grid" ? (
               <VirtualizedProductGrid
                 products={products}

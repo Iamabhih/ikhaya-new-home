@@ -6,6 +6,8 @@ import { ProductImage } from "./ProductImage";
 import { ProductDetails } from "./ProductDetails";
 import { ProductPrice } from "./ProductPrice";
 import { ProductActions } from "./ProductActions";
+import { useState, useEffect } from "react";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 
 interface ProductCardProps {
   product: {
