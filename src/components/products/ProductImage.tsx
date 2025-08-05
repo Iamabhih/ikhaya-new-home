@@ -41,7 +41,7 @@ export const ProductImage = ({
 
   const imageClasses = viewMode === "list" 
     ? "w-full xs:w-20 sm:w-24 md:w-32 h-32 xs:h-20 sm:h-24 md:h-32 flex-shrink-0"
-    : "aspect-square";
+    : "aspect-square w-full";
 
   return (
     <div className={`relative overflow-hidden rounded-lg ${viewMode === "grid" ? "rounded-t-lg" : ""}`}>
