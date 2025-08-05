@@ -83,27 +83,42 @@ export const StorageImageScanner = () => {
       supabase.removeChannel(channelRef.current);
     }
 
+    addLog('info', `📡 Setting up realtime channel for session: ${sessionId}`);
+
     const channel = supabase
       .channel(`storage-scan-${sessionId}`)
       .on(
         'broadcast',
         { event: 'scan_progress' },
         (payload) => {
+          console.log('📊 Progress update received:', payload.payload);
           const data = payload.payload as ScanProgress;
           setProgress(data);
+          addLog('info', `📊 Progress: ${data.processed}/${data.total} - ${data.currentStep}`);
         }
       )
       .on(
         'broadcast', 
         { event: 'scan_log' },
         (payload) => {
+          console.log('📝 Log received:', payload.payload);
           const logData = payload.payload;
           if (logData && logData.message) {
             addLog(logData.level || 'info', logData.message);
           }
         }
       )
-      .subscribe();
+      .on('presence', { event: 'sync' }, () => {
+        console.log('🔄 Channel presence synced');
+        addLog('info', '🔄 Channel presence synced');
+      })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log('👋 Someone joined the channel', key, newPresences);
+      })
+      .subscribe((status) => {
+        console.log('📡 Channel subscription status:', status);
+        addLog('info', `📡 Channel subscription status: ${status}`);
+      });
 
     channelRef.current = channel;
   };
@@ -116,19 +131,36 @@ export const StorageImageScanner = () => {
     addLog('info', '🔍 Starting storage bucket image scan...');
 
     try {
+      // Get session token with better error handling
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        throw new Error('Authentication required. Please login and try again.');
+      }
+
+      addLog('info', '🔐 Authentication verified, invoking scan function...');
+
       const { data, error } = await supabase.functions.invoke('scan-storage-images', {
         headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Authorization': `Bearer ${sessionData.session.access_token}`,
+          'Content-Type': 'application/json',
         },
       });
 
+      console.log('Function response:', { data, error });
+
       if (error) {
-        throw new Error(error.message);
+        console.error('Function invocation error:', error);
+        throw new Error(`Function error: ${error.message}`);
       }
 
       if (data?.success) {
         setSessionId(data.sessionId);
-        setupRealtimeChannel(data.sessionId);
+        addLog('info', `✅ Scan initiated with session: ${data.sessionId}`);
+        
+        // Setup realtime channel with delay to ensure function is ready
+        setTimeout(() => {
+          setupRealtimeChannel(data.sessionId);
+        }, 1000);
         
         toast({
           title: "Storage Scan Started",
