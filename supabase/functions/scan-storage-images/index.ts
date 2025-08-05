@@ -221,6 +221,18 @@ Deno.serve(async (req) => {
   const sessionId = crypto.randomUUID();
   let supabaseClient: any;
 
+  // Auth check first
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Authentication required'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401,
+    });
+  }
+
   const sendProgressUpdate = async (progress: Partial<ScanProgress>) => {
     try {
       if (supabaseClient) {
@@ -274,7 +286,7 @@ Deno.serve(async (req) => {
     );
 
     const startTime = new Date().toISOString();
-    await logMessage('info', 'Starting storage bucket image scanning and product mapping');
+    await logMessage('info', '🚀 Starting storage bucket image scanning and product mapping');
 
     // Initialize progress
     const progress: ScanProgress = {
@@ -296,8 +308,8 @@ Deno.serve(async (req) => {
 
     await sendProgressUpdate(progress);
     
-    // Start processing in background
-    processStorageScan();
+    // Start processing in background using waitUntil
+    EdgeRuntime.waitUntil(processStorageScan());
     
     // Return initial response immediately to prevent timeout
     return new Response(JSON.stringify({ 
@@ -311,6 +323,8 @@ Deno.serve(async (req) => {
 
     async function processStorageScan() {
       try {
+        await logMessage('info', '🔧 Background processing started');
+
         // Step 1: Get all products with their SKUs
         progress.status = 'scanning';
         progress.currentStep = 'Fetching products from database';
@@ -519,85 +533,96 @@ Deno.serve(async (req) => {
         console.log(`🔍 [MATCHING_START] Starting PRIORITIZED hybrid matching process...`)
         await logMessage('info', `🔍 [MATCHING_START] Starting PRIORITIZED hybrid matching: UUID first, then SKU exact, then fuzzy`)
 
-        // Process each product
-        for (let i = 0; i < products.length; i++) {
-          const product = products[i]
+        // Process each product in smaller batches to avoid timeouts
+        const processingBatchSize = 100;
+        for (let batchStart = 0; batchStart < products.length; batchStart += processingBatchSize) {
+          const batchEnd = Math.min(batchStart + processingBatchSize, products.length);
+          const batch = products.slice(batchStart, batchEnd);
           
-          if (!product.sku && !product.id) {
-            progress.processed++
-            continue
-          }
+          console.log(`🔄 [MATCHING_BATCH] Processing batch ${Math.floor(batchStart/processingBatchSize) + 1}/${Math.ceil(products.length/processingBatchSize)} (${batch.length} products)`);
+          await logMessage('info', `🔄 [MATCHING_BATCH] Processing batch ${Math.floor(batchStart/processingBatchSize) + 1}/${Math.ceil(products.length/processingBatchSize)}`);
 
-          progress.currentFile = `${product.sku || product.id} (${i + 1}/${products.length})`
-          
-          // Update progress every 20 products to reduce noise
-          if (i % 20 === 0 || i === products.length - 1) {
-            await sendProgressUpdate(progress)
-          }
-
-          let matchedImage: StorageFile | null = null
-          let matchType: 'uuid' | 'sku' = 'sku'
-
-          // Strategy 1: UUID-based matching (for products/ folder)
-          if (product.id && folderAnalysis.has('products')) {
-            const uuidFolder = folderAnalysis.get('products')!
-            const uuidImages = uuidFolder.images.filter(img => 
-              analyzeFolderStructure(img.name).productId === product.id
-            )
+          for (let i = 0; i < batch.length; i++) {
+            const product = batch[i]
             
-            if (uuidImages.length > 0) {
-              matchedImage = uuidImages[0] // Take first image from the product's folder
-              matchType = 'uuid'
-              progress.uuidMatches++
-              console.log(`✅ [UUID_MATCH] ${product.sku} -> ${matchedImage.name} (UUID-based)`)
+            if (!product.sku && !product.id) {
+              progress.processed++
+              continue
             }
-          }
 
-          // Strategy 2: SKU-based matching (for other folders) - PRIORITIZED exact matching
-          if (!matchedImage && product.sku) {
-            console.log(`🔍 [SKU_SEARCH] Searching for SKU: ${product.sku}`)
-            matchedImage = imageCache.findImageForSKU(product.sku)
+            progress.currentFile = `${product.sku || product.id} (${batchStart + i + 1}/${products.length})`
+            
+            // Update progress every 20 products to reduce noise
+            if ((batchStart + i) % 20 === 0 || batchStart + i === products.length - 1) {
+              await sendProgressUpdate(progress)
+            }
+
+            let matchedImage: StorageFile | null = null
+            let matchType: 'uuid' | 'sku' = 'sku'
+
+            // Strategy 1: UUID-based matching (for products/ folder)
+            if (product.id && folderAnalysis.has('products')) {
+              const uuidFolder = folderAnalysis.get('products')!
+              const uuidImages = uuidFolder.images.filter(img => 
+                analyzeFolderStructure(img.name).productId === product.id
+              )
+              
+              if (uuidImages.length > 0) {
+                matchedImage = uuidImages[0] // Take first image from the product's folder
+                matchType = 'uuid'
+                progress.uuidMatches++
+                console.log(`✅ [UUID_MATCH] ${product.sku} -> ${matchedImage.name} (UUID-based)`)
+              }
+            }
+
+            // Strategy 2: SKU-based matching (for other folders) - PRIORITIZED exact matching
+            if (!matchedImage && product.sku) {
+              matchedImage = imageCache.findImageForSKU(product.sku)
+              if (matchedImage) {
+                matchType = 'sku'
+                progress.skuMatches++
+                console.log(`✅ [SKU_MATCH] ${product.sku} -> ${matchedImage.name} (SKU-based)`)
+              }
+            }
+
+            // Record result
             if (matchedImage) {
-              matchType = 'sku'
-              progress.skuMatches++
-              console.log(`✅ [SKU_MATCH] ${product.sku} -> ${matchedImage.name} (SKU-based)`)
+              const categoryName = product.categories?.name || 'Uncategorized'
+              matches.push({ 
+                product, 
+                image: matchedImage,
+                category: categoryName,
+                matchType
+              })
+              progress.matchedProducts++
+              
+              // Log every 25th match to reduce spam but show progress
+              if (progress.matchedProducts % 25 === 0 || progress.matchedProducts === 1) {
+                console.log(`✅ [MATCH_PROGRESS] ${matchType.toUpperCase()}: ${product.sku} → ${matchedImage.name} (${progress.matchedProducts} matches so far)`)
+                await logMessage('info', `✅ [MATCH_PROGRESS] ${matchType.toUpperCase()}: ${product.sku} → ${matchedImage.name} (${progress.matchedProducts} matches)`)
+              }
             } else {
-              console.log(`❌ [NO_SKU_MATCH] No image found for SKU: ${product.sku}`)
+              const categoryName = product.categories?.name || 'Uncategorized'
+              missingSkus.push({
+                sku: product.sku || product.id, 
+                productName: product.name,
+                category: categoryName
+              })
+              
+              // Log first 5 missing items, then every 50th to avoid spam
+              if (missingSkus.length <= 5 || missingSkus.length % 50 === 0) {
+                console.log(`❌ [NO_MATCH] No image found for: ${product.sku || product.id} (${missingSkus.length} total missing)`)
+                await logMessage('warn', `❌ [NO_MATCH] ${product.sku || product.id} (${missingSkus.length} total missing)`)
+              }
             }
+
+            progress.processed++
           }
 
-          // Record result
-          if (matchedImage) {
-            const categoryName = product.categories?.name || 'Uncategorized'
-            matches.push({ 
-              product, 
-              image: matchedImage,
-              category: categoryName,
-              matchType
-            })
-            progress.matchedProducts++
-            
-            // Log every 25th match to reduce spam but show progress
-            if (progress.matchedProducts % 25 === 0 || progress.matchedProducts === 1) {
-              console.log(`✅ [MATCH_PROGRESS] ${matchType.toUpperCase()}: ${product.sku} → ${matchedImage.name} (${progress.matchedProducts} matches so far)`)
-              await logMessage('info', `✅ [MATCH_PROGRESS] ${matchType.toUpperCase()}: ${product.sku} → ${matchedImage.name} (${progress.matchedProducts} matches)`)
-            }
-          } else {
-            const categoryName = product.categories?.name || 'Uncategorized'
-            missingSkus.push({
-              sku: product.sku || product.id, 
-              productName: product.name,
-              category: categoryName
-            })
-            
-            // Log first 5 missing items, then every 50th to avoid spam
-            if (missingSkus.length <= 5 || missingSkus.length % 50 === 0) {
-              console.log(`❌ [NO_MATCH] No image found for: ${product.sku || product.id} (${missingSkus.length} total missing)`)
-              await logMessage('warn', `❌ [NO_MATCH] ${product.sku || product.id} (${missingSkus.length} total missing)`)
-            }
+          // Small delay between batches
+          if (batchEnd < products.length) {
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
-
-          progress.processed++
         }
         
         // Statistics
@@ -626,7 +651,7 @@ Deno.serve(async (req) => {
         progress.processed = 0
         await sendProgressUpdate(progress)
 
-        const batchSize = 20 // Process in smaller batches to avoid timeouts
+        const batchSize = 10 // Process in smaller batches to avoid timeouts
         for (let i = 0; i < matches.length; i += batchSize) {
           const batch = matches.slice(i, Math.min(i + batchSize, matches.length))
           
@@ -656,6 +681,7 @@ Deno.serve(async (req) => {
               if (!urlData?.publicUrl) {
                 await logMessage('warn', `Failed to generate public URL for ${product.sku}`)
                 progress.failed++
+                progress.processed++
                 continue
               }
 
@@ -663,6 +689,7 @@ Deno.serve(async (req) => {
               const existingUrls = new Set(existingImages?.map(img => img.image_url) || [])
               if (existingUrls.has(urlData.publicUrl)) {
                 progress.processed++
+                progress.successful++
                 continue
               }
 
@@ -739,6 +766,7 @@ Deno.serve(async (req) => {
         console.error('❌ [FATAL_ERROR] Storage scan failed:', error);
         progress.status = 'error';
         progress.currentStep = `Error: ${error.message}`;
+        progress.errors.push(error.message);
         await sendProgressUpdate(progress);
         await logMessage('error', `Storage scan failed: ${error.message}`);
       }

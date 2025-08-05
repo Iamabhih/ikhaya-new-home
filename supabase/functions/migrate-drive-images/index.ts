@@ -574,6 +574,18 @@ Deno.serve(async (req) => {
   const sessionId = crypto.randomUUID()
   let supabaseClient: any
   
+  // Auth check first
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Authentication required'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401,
+    });
+  }
+  
   // Parse request body for optional parameters
   let requestBody: any = {}
   try {
@@ -592,6 +604,12 @@ Deno.serve(async (req) => {
   const sendProgressUpdate = async (progress: Partial<MigrationProgress>) => {
     try {
       if (supabaseClient) {
+        const channel = supabaseClient.channel(`drive-migration-${sessionId}`)
+        await channel.send({
+          type: 'broadcast',
+          event: 'migration_progress',
+          payload: { ...progress, sessionId }
+        })
         console.log(`[PROGRESS] ${progress.currentStep || 'Update'} - ${JSON.stringify({
           status: progress.status,
           processed: progress.processed,
@@ -619,6 +637,26 @@ Deno.serve(async (req) => {
       currentStep: message,
       errors: level === 'error' ? [message] : undefined
     })
+
+    // Send dedicated log message through realtime
+    try {
+      if (supabaseClient) {
+        const channel = supabaseClient.channel(`drive-migration-${sessionId}`)
+        await channel.send({
+          type: 'broadcast',
+          event: 'migration_log',
+          payload: {
+            sessionId,
+            timestamp: timestamp,
+            level: level,
+            message: message,
+            data: data
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Failed to send log message:', error)
+    }
   }
 
   try {
@@ -652,349 +690,373 @@ Deno.serve(async (req) => {
     await sendProgressUpdate(progress)
     console.log('✅ Initial progress sent')
 
-    // Step 1: Get all products with their SKUs
-    console.log('📊 Starting product fetch...')
-    progress.status = 'scanning'
-    progress.currentStep = 'Fetching products from database'
-    await sendProgressUpdate(progress)
-
-    console.log('🔍 Querying products table...')
-    const { data: products, error: productsError } = await supabaseClient
-      .from('products')
-      .select(`
-        id, 
-        sku, 
-        name,
-        categories!inner(name)
-      `)
-      .not('sku', 'is', null)
-      .limit(10000) // Increased limit to 10,000 as requested
-
-    if (productsError) {
-      console.error('❌ Products fetch failed:', productsError)
-      await logMessage('error', `Failed to fetch products: ${productsError.message}`)
-      throw new Error(`Failed to fetch products: ${productsError.message}`)
-    }
-
-    // Transform products to include category name for better matching
-    const transformedProducts = products?.map(p => ({
-      ...p,
-      category_name: p.categories?.name
-    })) || []
-
-    console.log(`✅ Found ${transformedProducts.length} products with SKUs`)
-    await logMessage('info', `Found ${transformedProducts.length} products with SKUs (${enableCategoryMatching ? 'category-aware' : 'SKU-only'} matching enabled)`)
-
-    // Step 2: Recursively scan specified folder (with manual folder selection support)
-    console.log(`🔍 Starting Storage scan of ${targetFolder}...`)
-    progress.currentStep = `Scanning ${targetFolder} folder recursively`
-    await sendProgressUpdate(progress)
-
-    const imageFiles: StorageImage[] = []
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    // Start processing in background using waitUntil
+    EdgeRuntime.waitUntil(processMigration());
     
-    // Function to recursively scan folders with pagination
-    async function scanFolder(folderPath: string = targetFolder) {
-      let offset = 0
-      const limit = 5000 // Use larger chunks for better performance
-      let hasMore = true
-      
-      while (hasMore) {
-        const { data: storageFiles, error: storageError } = await supabaseClient.storage
-          .from('product-images')
-          .list(folderPath, {
-            limit,
-            offset,
-            sortBy: { column: 'name', order: 'asc' }
-          })
+    // Return initial response immediately to prevent timeout
+    return new Response(JSON.stringify({
+      success: true,
+      sessionId,
+      message: 'Drive migration started successfully'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
 
-        if (storageError) {
-          console.error(`❌ Error accessing storage folder ${folderPath}:`, storageError)
-          throw new Error(`Storage access failed: ${storageError.message}`)
+    async function processMigration() {
+      try {
+        await logMessage('info', '🔧 Background migration processing started');
+
+        // Step 1: Get all products with their SKUs
+        console.log('📊 Starting product fetch...')
+        progress.status = 'scanning'
+        progress.currentStep = 'Fetching products from database'
+        await sendProgressUpdate(progress)
+
+        console.log('🔍 Querying products table...')
+        const { data: products, error: productsError } = await supabaseClient
+          .from('products')
+          .select(`
+            id, 
+            sku, 
+            name,
+            categories!inner(name)
+          `)
+          .not('sku', 'is', null)
+          .limit(10000) // Increased limit to 10,000 as requested
+
+        if (productsError) {
+          console.error('❌ Products fetch failed:', productsError)
+          await logMessage('error', `Failed to fetch products: ${productsError.message}`)
+          throw new Error(`Failed to fetch products: ${productsError.message}`)
         }
 
-        if (!storageFiles || storageFiles.length === 0) {
-          hasMore = false
-          break
-        }
+        // Transform products to include category name for better matching
+        const transformedProducts = products?.map(p => ({
+          ...p,
+          category_name: p.categories?.name
+        })) || []
 
-        console.log(`📂 Scanning folder ${folderPath}, batch ${Math.floor(offset/limit) + 1}: found ${storageFiles.length} items`)
+        console.log(`✅ Found ${transformedProducts.length} products with SKUs`)
+        await logMessage('info', `Found ${transformedProducts.length} products with SKUs (${enableCategoryMatching ? 'category-aware' : 'SKU-only'} matching enabled)`)
 
-        for (const file of storageFiles) {
-          const fullPath = folderPath === 'MULTI_MATCH_ORGANIZED' ? file.name : `${folderPath}/${file.name}`
+        // Step 2: Recursively scan specified folder (with manual folder selection support)
+        console.log(`🔍 Starting Storage scan of ${targetFolder}...`)
+        progress.currentStep = `Scanning ${targetFolder} folder recursively`
+        await sendProgressUpdate(progress)
+
+        const imageFiles: StorageImage[] = []
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')
+        
+        // Function to recursively scan folders with pagination
+        async function scanFolder(folderPath: string = targetFolder) {
+          let offset = 0
+          const limit = 1000 // Use smaller chunks to avoid timeouts
+          let hasMore = true
           
-          // If it's a directory, scan it recursively
-          if (!file.metadata && file.name && !file.name.includes('.')) {
-            await scanFolder(`${folderPath}/${file.name}`)
-            continue
-          }
-          
-          // Check if it's an image file
-          const isImage = file.metadata?.mimetype?.startsWith('image/') || 
-                         file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)
-          
-          if (isImage) {
-            const skus = extractSKUFromFilename(file.name)
-            if (skus.length > 0) {
-              const storagePath = fullPath.startsWith('MULTI_MATCH_ORGANIZED/') 
-                ? fullPath 
-                : `MULTI_MATCH_ORGANIZED/${fullPath.replace('MULTI_MATCH_ORGANIZED/', '')}`
+          while (hasMore) {
+            try {
+              const { data: storageFiles, error: storageError } = await supabaseClient.storage
+                .from('product-images')
+                .list(folderPath, {
+                  limit,
+                  offset,
+                  sortBy: { column: 'name', order: 'asc' }
+                })
+
+              if (storageError) {
+                console.error(`❌ Error accessing storage folder ${folderPath}:`, storageError)
+                throw new Error(`Storage access failed: ${storageError.message}`)
+              }
+
+              if (!storageFiles || storageFiles.length === 0) {
+                hasMore = false
+                break
+              }
+
+              console.log(`📂 Scanning folder ${folderPath}, batch ${Math.floor(offset/limit) + 1}: found ${storageFiles.length} items`)
+
+              for (const file of storageFiles) {
+                const fullPath = folderPath === 'MULTI_MATCH_ORGANIZED' ? file.name : `${folderPath}/${file.name}`
+                
+                // If it's a directory, scan it recursively
+                if (!file.metadata && file.name && !file.name.includes('.')) {
+                  await scanFolder(`${folderPath}/${file.name}`)
+                  continue
+                }
+                
+                // Check if it's an image file
+                const isImage = file.metadata?.mimetype?.startsWith('image/') || 
+                               file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)
+                
+                if (isImage) {
+                  const skus = extractSKUFromFilename(file.name)
+                  if (skus.length > 0) {
+                    const storagePath = fullPath.startsWith('MULTI_MATCH_ORGANIZED/') 
+                      ? fullPath 
+                      : `MULTI_MATCH_ORGANIZED/${fullPath.replace('MULTI_MATCH_ORGANIZED/', '')}`
+                    
+                    imageFiles.push({
+                      filename: file.name,
+                      sku: skus[0], // Use primary SKU for storage
+                      storagePath,
+                      metadata: { ...file.metadata || {}, allSkus: skus }
+                    })
+                    console.log(`📎 Found image: ${file.name} -> SKUs: [${skus.join(', ')}]`)
+                  } else {
+                    console.log(`⚠️ Skipping image without extractable SKU: ${file.name}`)
+                  }
+                }
+              }
               
-              imageFiles.push({
-                filename: file.name,
-                sku: skus[0], // Use primary SKU for storage
-                storagePath,
-                metadata: { ...file.metadata || {}, allSkus: skus }
-              })
-              console.log(`📎 Found image: ${file.name} -> SKUs: [${skus.join(', ')}]`)
-            } else {
-              console.log(`⚠️ Skipping image without extractable SKU: ${file.name}`)
+              // Check if we got fewer results than requested, meaning we've reached the end
+              if (storageFiles.length < limit) {
+                hasMore = false
+              } else {
+                offset += limit
+                // Add a small delay between batches to avoid overwhelming the API
+                await new Promise(resolve => setTimeout(resolve, 100))
+              }
+            } catch (error) {
+              console.error(`❌ [SCAN_ERROR] Error scanning folder ${folderPath}:`, error)
+              await logMessage('error', `Error scanning folder ${folderPath}: ${error.message}`)
+              hasMore = false
             }
           }
         }
         
-        // Check if we got fewer results than requested, meaning we've reached the end
-        if (storageFiles.length < limit) {
-          hasMore = false
+        await scanFolder()
+        
+        console.log(`📊 Found ${imageFiles.length} processable images with SKUs`)
+        await logMessage('info', `Found ${imageFiles.length} images in storage ${targetFolder} folder`)
+
+        // Step 3: Build advanced intelligent image mapping
+        console.log("[PROGRESS] Building advanced image mapping cache", JSON.stringify({
+          status: 'processing',
+          processed: 0,
+          successful: 0,
+          failed: 0,
+          total: imageFiles.length
+        }))
+        
+        console.log(`🧠 Building ${enableCategoryMatching ? 'category-aware' : 'legacy'} image matcher from ${imageFiles.length} images`)
+        const imageMatcher = enableCategoryMatching ? createCategoryAwareImageMatcher() : createAdvancedImageMatcher()
+        imageMatcher.buildMapping(imageFiles)
+        
+        const matcherStats = imageMatcher.getStats()
+        console.log(`✅ Advanced mapping built: ${matcherStats.directMappings} direct, ${matcherStats.fuzzyVariations} fuzzy variants, ${matcherStats.totalImages} unique images`)
+        await logMessage('info', `Advanced image mapping: ${matcherStats.directMappings} direct mappings, ${matcherStats.fuzzyVariations} fuzzy variations`)
+
+        // Step 4: Enhanced product-image matching with PRIORITIZED exact matching first
+        progress.total = Math.min(transformedProducts?.length || 10000, 10000) // Increased to 10,000
+        progress.currentStep = 'PRIORITIZED exact matching + fuzzy fallback for products to images'
+        await sendProgressUpdate(progress)
+        
+        await logMessage('info', `🔍 [MATCHING] Starting PRIORITIZED matching: Exact SKU matches first, then fuzzy fallback`)
+
+        const matchedProducts: Array<{product: Product, imageFile: StorageImage}> = []
+        let exactMatches = 0
+        let fuzzyMatches = 0
+        let categoryMatches = 0
+        
+        if (!transformedProducts || transformedProducts.length === 0) {
+          await logMessage('warn', 'No products found to process')
+          progress.total = 0
+          await sendProgressUpdate(progress)
         } else {
-          offset += limit
-          // Add a small delay between batches to avoid overwhelming the API
-          await new Promise(resolve => setTimeout(resolve, 100))
-        }
-      }
-    }
-    
-    await scanFolder()
-    
-    console.log(`📊 Found ${imageFiles.length} processable images with SKUs`)
-    await logMessage('info', `Found ${imageFiles.length} images in storage MULTI_MATCH_ORGANIZED folder`)
+          
+          // Process products in smaller batches to avoid memory issues
+          const processingBatchSize = 100;
+          for (let batchStart = 0; batchStart < transformedProducts.length; batchStart += processingBatchSize) {
+            const batchEnd = Math.min(batchStart + processingBatchSize, transformedProducts.length);
+            const batch = transformedProducts.slice(batchStart, batchEnd);
+            
+            console.log(`🔄 [MATCHING_BATCH] Processing batch ${Math.floor(batchStart/processingBatchSize) + 1}/${Math.ceil(transformedProducts.length/processingBatchSize)} (${batch.length} products)`);
+            await logMessage('info', `🔄 [MATCHING_BATCH] Processing batch ${Math.floor(batchStart/processingBatchSize) + 1}/${Math.ceil(transformedProducts.length/processingBatchSize)}`);
 
-    // Step 3: Build advanced intelligent image mapping
-    console.log("[PROGRESS] Building advanced image mapping cache", JSON.stringify({
-      status: 'processing',
-      processed: 0,
-      successful: 0,
-      failed: 0,
-      total: imageFiles.length
-    }))
-    
-    console.log(`🧠 Building ${enableCategoryMatching ? 'category-aware' : 'legacy'} image matcher from ${imageFiles.length} images`)
-    const imageMatcher = enableCategoryMatching ? createCategoryAwareImageMatcher() : createAdvancedImageMatcher()
-    imageMatcher.buildMapping(imageFiles)
-    
-    const matcherStats = imageMatcher.getStats()
-    console.log(`✅ Advanced mapping built: ${matcherStats.directMappings} direct, ${matcherStats.fuzzyVariations} fuzzy variants, ${matcherStats.totalImages} unique images`)
-    await logMessage('info', `Advanced image mapping: ${matcherStats.directMappings} direct mappings, ${matcherStats.fuzzyVariations} fuzzy variations`)
+            for (const product of batch) {
+              try {
+                if (!product || !product.sku) continue
 
-    // Step 4: Enhanced product-image matching with PRIORITIZED exact matching first
-    progress.total = Math.min(products?.length || 10000, 10000) // Increased to 10,000
-    progress.currentStep = 'PRIORITIZED exact matching + fuzzy fallback for products to images'
-    await sendProgressUpdate(progress)
-    
-    await logMessage('info', `🔍 [MATCHING] Starting PRIORITIZED matching: Exact SKU matches first, then fuzzy fallback`)
-
-    const matchedProducts: Array<{product: Product, imageFile: StorageImage}> = []
-    let exactMatches = 0
-    let fuzzyMatches = 0
-    let categoryMatches = 0
-    
-    if (!transformedProducts || transformedProducts.length === 0) {
-      await logMessage('warn', 'No products found to process')
-      progress.total = 0
-      await sendProgressUpdate(progress)
-    } else {
-      
-      for (const product of transformedProducts) {
-        try {
-          if (!product || !product.sku) continue
-
-          // Use category-aware matching if enabled
-          if (enableCategoryMatching && typeof imageMatcher.findBestImage === 'function') {
-            const bestMatch = imageMatcher.findBestImage(product)
-            if (bestMatch) {
-              matchedProducts.push({ product: bestMatch.product, imageFile: bestMatch.imageFile })
-              
-              if (bestMatch.matchType === 'exact') {
-                exactMatches++
-              } else if (bestMatch.matchType === 'fuzzy') {
-                fuzzyMatches++
-              } else if (bestMatch.matchType === 'category-boosted') {
-                categoryMatches++
+                // Use category-aware matching if enabled
+                if (enableCategoryMatching && typeof imageMatcher.findBestImage === 'function') {
+                  const bestMatch = imageMatcher.findBestImage(product)
+                  if (bestMatch) {
+                    matchedProducts.push({ product: bestMatch.product, imageFile: bestMatch.imageFile })
+                    
+                    if (bestMatch.matchType === 'exact') {
+                      exactMatches++
+                    } else if (bestMatch.matchType === 'fuzzy') {
+                      fuzzyMatches++
+                    } else if (bestMatch.matchType === 'category-boosted') {
+                      categoryMatches++
+                    }
+                    
+                    console.log(`✅ [${bestMatch.matchType.toUpperCase()}] ${product.sku} -> ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore}, folder: ${bestMatch.sourceFolder})`)
+                    await logMessage('info', `✅ [${bestMatch.matchType.toUpperCase()}] ${product.sku} matched to ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore})`)
+                  }
+                } else {
+                  // Fallback to legacy matching
+                  const matchedImage = imageMatcher.findImage(product.sku)
+                  if (matchedImage) {
+                    matchedProducts.push({ product, imageFile: matchedImage })
+                    
+                    // Check if it was a direct or fuzzy match
+                    const directMatch = imageFiles.find(img => img.sku === product.sku)
+                    if (directMatch) {
+                      exactMatches++
+                      console.log(`✅ [EXACT] ${product.sku} -> ${matchedImage.filename}`)
+                      await logMessage('info', `✅ [EXACT] ${product.sku} matched to ${matchedImage.filename}`)
+                    } else {
+                      fuzzyMatches++
+                      console.log(`🎯 [FUZZY] ${product.sku} -> ${matchedImage.filename}`)
+                      await logMessage('info', `🎯 [FUZZY] ${product.sku} matched to ${matchedImage.filename}`)
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error(`❌ [ERROR] Matching product ${product?.sku || 'unknown'}:`, error)
+                await logMessage('error', `❌ [ERROR] Failed to match product ${product?.sku || 'unknown'}: ${error.message}`)
               }
-              
-              console.log(`✅ [${bestMatch.matchType.toUpperCase()}] ${product.sku} -> ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore}, folder: ${bestMatch.sourceFolder})`)
-              await logMessage('info', `✅ [${bestMatch.matchType.toUpperCase()}] ${product.sku} matched to ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore})`)
             }
+
+            // Small delay between batches
+            if (batchEnd < transformedProducts.length) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          }
+          
+          const totalMatches = exactMatches + fuzzyMatches + categoryMatches
+          if (enableCategoryMatching) {
+            console.log(`📊 [SUMMARY] Category-aware matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total matches`)
+            await logMessage('info', `📊 [SUMMARY] Matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total`)
           } else {
-            // Fallback to legacy matching
-            const matchedImage = imageMatcher.findImage(product.sku)
-            if (matchedImage) {
-              matchedProducts.push({ product, imageFile: matchedImage })
+            console.log(`📊 [SUMMARY] Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total matches`)
+            await logMessage('info', `📊 [SUMMARY] Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total`)
+          }
+        }
+
+        progress.total = matchedProducts.length
+        const totalMatches = exactMatches + fuzzyMatches + categoryMatches
+        if (enableCategoryMatching) {
+          await logMessage('info', `Category-aware matching complete: ${totalMatches} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy, ${categoryMatches} category) from ${imageFiles.length} images`)
+        } else {
+          await logMessage('info', `Legacy matching complete: ${totalMatches} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy) from ${imageFiles.length} images`)
+        }
+        await sendProgressUpdate(progress)
+
+        // Step 5: Process matched products with enhanced error handling
+        const batchSize = 5
+        
+        await logMessage('info', `Starting migration of ${matchedProducts.length} matched products in batches of ${batchSize}`)
+        
+        if (matchedProducts.length === 0) {
+          await logMessage('warn', 'No products to migrate - check SKU matching logic')
+          progress.status = 'completed'
+          progress.currentStep = 'No products matched - migration completed'
+          await sendProgressUpdate(progress)
+          return
+        }
+        
+        for (let i = 0; i < matchedProducts.length; i += batchSize) {
+          const batch = matchedProducts.slice(i, Math.min(i + batchSize, matchedProducts.length))
+          const batchNumber = Math.floor(i / batchSize) + 1
+          const totalBatches = Math.ceil(matchedProducts.length / batchSize)
+          
+          await logMessage('info', `Processing batch ${batchNumber}/${totalBatches}`)
+          
+          // Process batch sequentially for better stability
+          for (const { product, imageFile } of batch) {
+            try {
+              progress.currentFile = `${product.sku} (${imageFile.filename})`
+              await sendProgressUpdate(progress)
+              await logMessage('info', `🔄 [PROCESSING] ${product.sku}: ${imageFile.filename}`)
+              console.log(`🔄 [PROCESSING] Product: ${product.name} (${product.sku}) -> Image: ${imageFile.filename}`)
+
+              // Check if product already has an image
+              const { data: existingImages } = await supabaseClient
+                .from('product_images')
+                .select('id')
+                .eq('product_id', product.id)
+                .limit(1)
+
+              if (existingImages && existingImages.length > 0) {
+                console.log(`⏭️ [SKIP] ${product.sku} already has ${existingImages.length} image(s)`)
+                await logMessage('info', `⏭️ [SKIP] ${product.sku} - already has ${existingImages.length} image(s)`)
+                progress.processed++
+                progress.successful++
+                await sendProgressUpdate(progress)
+                continue
+              }
+
+              // Create product_images record with direct storage URL
+              const imageUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${imageFile.storagePath}`
               
-              // Check if it was a direct or fuzzy match
-              const directMatch = imageFiles.find(img => img.sku === product.sku)
-              if (directMatch) {
-                exactMatches++
-                console.log(`✅ [EXACT] ${product.sku} -> ${matchedImage.filename}`)
-                await logMessage('info', `✅ [EXACT] ${product.sku} matched to ${matchedImage.filename}`)
+              console.log(`🔗 [LINKING] Product: ${product.name} (${product.sku})`)
+              console.log(`🔗 [LINKING] Image URL: ${imageUrl}`)
+              await logMessage('info', `🔗 [LINKING] ${product.sku} -> ${imageUrl}`)
+              
+              const { error: insertError } = await supabaseClient
+                .from('product_images')
+                .insert({
+                  product_id: product.id,
+                  image_url: imageUrl,
+                  alt_text: `${product.name} product image`,
+                  sort_order: 0,
+                  is_primary: true
+                })
+
+              if (insertError) {
+                console.error(`❌ [DB_ERROR] Failed to insert image for ${product.sku}:`, insertError)
+                await logMessage('error', `❌ [DB_ERROR] Failed to insert image for ${product.sku}: ${insertError.message}`)
+                progress.failed++
+                progress.errors.push(`${product.sku}: ${insertError.message}`)
               } else {
-                fuzzyMatches++
-                console.log(`🎯 [FUZZY] ${product.sku} -> ${matchedImage.filename}`)
-                await logMessage('info', `🎯 [FUZZY] ${product.sku} matched to ${matchedImage.filename}`)
+                console.log(`✅ [SUCCESS] Successfully linked ${product.sku} to ${imageFile.filename}`)
+                await logMessage('info', `✅ [SUCCESS] ${product.sku} successfully linked to ${imageFile.filename}`)
+                progress.successful++
               }
+
+              progress.processed++
+              await sendProgressUpdate(progress)
+
+            } catch (error) {
+              console.error(`❌ [PROCESSING_ERROR] Error processing ${product.sku}:`, error)
+              await logMessage('error', `❌ [PROCESSING_ERROR] Error processing ${product.sku}: ${error.message}`)
+              progress.failed++
+              progress.errors.push(`${product.sku}: ${error.message}`)
+              progress.processed++
+              await sendProgressUpdate(progress)
             }
           }
-        } catch (error) {
-          console.error(`❌ [ERROR] Matching product ${product?.sku || 'unknown'}:`, error)
-          await logMessage('error', `❌ [ERROR] Failed to match product ${product?.sku || 'unknown'}: ${error.message}`)
-        }
-      }
-      
-      const totalMatches = exactMatches + fuzzyMatches + categoryMatches
-      if (enableCategoryMatching) {
-        console.log(`📊 [SUMMARY] Category-aware matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total matches`)
-        await logMessage('info', `📊 [SUMMARY] Matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total`)
-      } else {
-        console.log(`📊 [SUMMARY] Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total matches`)
-        await logMessage('info', `📊 [SUMMARY] Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total`)
-      }
-    }
 
-    progress.total = matchedProducts.length
-    const totalMatches = exactMatches + fuzzyMatches + categoryMatches
-    if (enableCategoryMatching) {
-      await logMessage('info', `Category-aware matching complete: ${totalMatches} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy, ${categoryMatches} category) from ${imageFiles.length} images`)
-    } else {
-      await logMessage('info', `Legacy matching complete: ${totalMatches} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy) from ${imageFiles.length} images`)
-    }
-    await sendProgressUpdate(progress)
-
-    // Step 5: Process matched products with enhanced error handling
-    const batchSize = 5
-    
-    await logMessage('info', `Starting migration of ${matchedProducts.length} matched products in batches of ${batchSize}`)
-    
-    if (matchedProducts.length === 0) {
-      await logMessage('warn', 'No products to migrate - check SKU matching logic')
-      progress.status = 'completed'
-      progress.currentStep = 'No products matched - migration completed'
-      await sendProgressUpdate(progress)
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Migration completed - no products matched',
-        sessionId,
-        results: { processed: 0, successful: 0, failed: 0, errors: [] }
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
-    }
-    
-    for (let i = 0; i < matchedProducts.length; i += batchSize) {
-      const batch = matchedProducts.slice(i, Math.min(i + batchSize, matchedProducts.length))
-      const batchNumber = Math.floor(i / batchSize) + 1
-      const totalBatches = Math.ceil(matchedProducts.length / batchSize)
-      
-      await logMessage('info', `Processing batch ${batchNumber}/${totalBatches}`)
-      
-      // Process batch sequentially for better stability
-      for (const { product, imageFile } of batch) {
-        try {
-          progress.currentFile = `${product.sku} (${imageFile.filename})`
-          await sendProgressUpdate(progress)
-          await logMessage('info', `🔄 [PROCESSING] ${product.sku}: ${imageFile.filename}`)
-          console.log(`🔄 [PROCESSING] Product: ${product.name} (${product.sku}) -> Image: ${imageFile.filename}`)
-
-          // Check if product already has an image
-          const { data: existingImages } = await supabaseClient
-            .from('product_images')
-            .select('id')
-            .eq('product_id', product.id)
-            .limit(1)
-
-          if (existingImages && existingImages.length > 0) {
-            console.log(`⏭️ [SKIP] ${product.sku} already has ${existingImages.length} image(s)`)
-            await logMessage('info', `⏭️ [SKIP] ${product.sku} - already has ${existingImages.length} image(s)`)
-            progress.processed++
-            progress.successful++
-            await sendProgressUpdate(progress)
-            continue
+          // Small delay between batches to avoid overwhelming the database
+          if (i + batchSize < matchedProducts.length) {
+            await new Promise(resolve => setTimeout(resolve, 100))
           }
-
-          // Create product_images record with direct storage URL
-          const imageUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${imageFile.storagePath}`
-          
-          console.log(`🔗 [LINKING] Product: ${product.name} (${product.sku})`)
-          console.log(`🔗 [LINKING] Image URL: ${imageUrl}`)
-          await logMessage('info', `🔗 [LINKING] ${product.sku} -> ${imageUrl}`)
-          
-          const { error: insertError } = await supabaseClient
-            .from('product_images')
-            .insert({
-              product_id: product.id,
-              image_url: imageUrl,
-              alt_text: `${product.name} product image`,
-              sort_order: 0,
-              is_primary: true
-            })
-
-          if (insertError) {
-            console.error(`❌ [DB_ERROR] Failed to insert image for ${product.sku}:`, insertError)
-            await logMessage('error', `❌ [DB_ERROR] Failed to insert image for ${product.sku}: ${insertError.message}`)
-            progress.failed++
-            progress.errors.push(`${product.sku}: ${insertError.message}`)
-          } else {
-            console.log(`✅ [SUCCESS] Successfully linked ${product.sku} to ${imageFile.filename}`)
-            await logMessage('info', `✅ [SUCCESS] ${product.sku} successfully linked to ${imageFile.filename}`)
-            progress.successful++
-          }
-
-          progress.processed++
-          await sendProgressUpdate(progress)
-
-        } catch (error) {
-          console.error(`❌ [PROCESSING_ERROR] Error processing ${product.sku}:`, error)
-          await logMessage('error', `❌ [PROCESSING_ERROR] Error processing ${product.sku}: ${error.message}`)
-          progress.failed++
-          progress.errors.push(`${product.sku}: ${error.message}`)
-          progress.processed++
-          await sendProgressUpdate(progress)
         }
-      }
 
-      // Small delay between batches to avoid overwhelming the database
-      if (i + batchSize < matchedProducts.length) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // Final status update
+        progress.status = 'completed'
+        progress.currentStep = `Migration completed: ${progress.successful} successful, ${progress.failed} failed`
+        await sendProgressUpdate(progress)
+
+        const endTime = new Date().toISOString()
+        const duration = new Date(endTime).getTime() - new Date(startTime).getTime()
+        
+        console.log(`🎉 [COMPLETED] Migration finished in ${Math.round(duration / 1000)}s`)
+        console.log(`🎉 [FINAL_STATS] Processed: ${progress.processed}, Success: ${progress.successful}, Failed: ${progress.failed}`)
+        await logMessage('info', `🎉 [COMPLETED] Migration completed in ${Math.round(duration / 1000)}s - Success: ${progress.successful}, Failed: ${progress.failed}`)
+        
+      } catch (error) {
+        console.error('❌ [FATAL_ERROR] Migration failed:', error)
+        progress.status = 'error'
+        progress.currentStep = `Error: ${error.message}`
+        progress.errors.push(error.message)
+        await sendProgressUpdate(progress)
+        await logMessage('error', `Migration failed: ${error.message}`)
       }
     }
-
-    // Final status update
-    progress.status = 'completed'
-    progress.currentStep = `Migration completed: ${progress.successful} successful, ${progress.failed} failed`
-    await sendProgressUpdate(progress)
-
-    const endTime = new Date().toISOString()
-    const duration = new Date(endTime).getTime() - new Date(startTime).getTime()
-    
-    console.log(`🎉 [COMPLETED] Migration finished in ${Math.round(duration / 1000)}s`)
-    console.log(`🎉 [FINAL_STATS] Processed: ${progress.processed}, Success: ${progress.successful}, Failed: ${progress.failed}`)
-    await logMessage('info', `🎉 [COMPLETED] Migration completed in ${Math.round(duration / 1000)}s - Success: ${progress.successful}, Failed: ${progress.failed}`)
-    
-    return new Response(JSON.stringify({
-      success: true,
-      message: `Migration completed successfully`,
-      sessionId,
-      results: {
-        processed: progress.processed,
-        successful: progress.successful,
-        failed: progress.failed,
-        errors: progress.errors.slice(0, 10) // Limit error list
-      },
-      performance: {
-        duration: Math.round(duration / 1000),
-        itemsPerSecond: Math.round(progress.processed / (duration / 1000))
-      }
-    }), { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-      status: 200 
-    })
 
   } catch (error) {
     console.error('❌ Migration failed:', error)
