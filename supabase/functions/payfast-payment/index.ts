@@ -624,7 +624,7 @@ Deno.serve(async (req) => {
       }
     )
 
-  } catch (error) {
+    } catch (error) {
     console.error('PayFast payment error:', error)
     
     // Return more specific error information
