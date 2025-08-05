@@ -625,6 +625,30 @@ Deno.serve(async (req) => {
     )
 
     } catch (error) {
+      console.error('PayFast onsite payment error:', error)
+      
+      // Fall back to redirect method if onsite fails
+      console.log('Falling back to redirect method due to onsite error');
+      
+      const redirectUrl = isTestMode
+        ? 'https://sandbox.payfast.co.za/eng/process'
+        : 'https://www.payfast.co.za/eng/process';
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          redirect_url: redirectUrl,
+          form_data: payfastData,
+          fallback_mode: true
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
+  } catch (error) {
     console.error('PayFast payment error:', error)
     
     // Return more specific error information
