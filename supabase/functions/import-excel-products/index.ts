@@ -35,12 +35,13 @@ function parseExcelFile(arrayBuffer: ArrayBuffer): SheetData[] {
         // Clean up numeric fields
         if (header.toLowerCase().includes('price') || 
             header.toLowerCase().includes('stock') || 
-            header.toLowerCase().includes('quantity')) {
+            header.toLowerCase().includes('quantity') ||
+            header.toLowerCase().includes('qty')) {
           if (value === '' || value === null || value === undefined) {
-            value = null;
+            value = header.toLowerCase().includes('price') ? null : 0; // Default stock to 0, price to null
           } else {
             const numValue = parseFloat(String(value));
-            value = isNaN(numValue) ? null : numValue;
+            value = isNaN(numValue) ? (header.toLowerCase().includes('price') ? null : 0) : numValue;
           }
         }
         
