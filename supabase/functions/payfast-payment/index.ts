@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
       }
     )
 
-    // Get the user from the request
+    // Get the user from the request (optional for guest checkout)
     const {
       data: { user },
       error: userError
@@ -313,38 +313,13 @@ Deno.serve(async (req) => {
 
     console.log('User authentication check:', { 
       hasUser: !!user, 
-      userId: user?.id, 
-      userEmail: user?.email?.substring(0, 3) + '***',
+      userId: user?.id || 'guest', 
+      userEmail: user?.email?.substring(0, 3) + '***' || 'guest',
       userError: userError?.message 
     });
 
-    if (userError) {
-      console.error('User authentication error:', userError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Authentication failed: ' + userError.message
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401,
-        }
-      )
-    }
-
-    if (!user) {
-      console.error('User not authenticated')
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'User not authenticated'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401,
-        }
-      )
-    }
+    // Allow both authenticated and guest users to make payments
+    // Only log userError for debugging, don't fail the request
 
     const requestBody = await req.json()
     console.log('Raw request body (sanitized):', JSON.stringify({
