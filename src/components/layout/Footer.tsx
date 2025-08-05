@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Instagram, Mail, Phone, MapPin } from "lucide-react";
 
 export const Footer = () => {
   return (
@@ -28,22 +28,30 @@ export const Footer = () => {
             {/* Social Links */}
             <div className="flex space-x-4">
               <a 
-                href="#" 
+                href="https://facebook.com/homeware.ikhaya" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 glass-card flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover-lift"
               >
                 <Facebook className="h-4 w-4" />
               </a>
               <a 
-                href="#" 
+                href="https://instagram.com/homeware.ikhaya" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 glass-card flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover-lift"
               >
                 <Instagram className="h-4 w-4" />
               </a>
               <a 
-                href="#" 
+                href="https://tiktok.com/@ikhayahomestore" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 glass-card flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover-lift"
               >
-                <Twitter className="h-4 w-4" />
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.321 5.562c-.799-.505-1.338-1.36-1.338-2.349v-.276h-3.275v11.67c0 1.917-1.555 3.473-3.473 3.473s-3.473-1.556-3.473-3.473 1.555-3.473 3.473-3.473c.351 0 .69.053 1.009.151v-3.367c-.316-.042-.641-.064-.969-.064-3.584 0-6.49 2.906-6.49 6.49s2.906 6.491 6.49 6.491 6.49-2.907 6.49-6.491v-5.622c1.417 1.016 3.151 1.614 5.018 1.614v-3.275c-1.206 0-2.306-.42-3.162-1.115-.42-.34-.782-.766-1.05-1.255-.268-.489-.4-1.022-.4-1.555z"/>
+                </svg>
               </a>
             </div>
 
