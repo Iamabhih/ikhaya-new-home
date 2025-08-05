@@ -246,13 +246,30 @@ function md5(string: string): string {
 }
 
 // Generate signature exactly like PayFast's official specification
+// For onsite payments, we use the field ORDER as specified in PayFast docs, NOT alphabetical
 function generateSignature(data: any, passPhrase: string | null = null): string {
-  // CRITICAL: PayFast requires alphabetical sorting of all parameters
-  const sortedKeys = Object.keys(data).sort();
+  // PayFast field order for onsite payments (from their docs)
+  const fieldOrder = [
+    'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
+    'name_first', 'name_last', 'email_address', 'cell_number',
+    'm_payment_id', 'amount', 'item_name', 'item_description',
+    'custom_int1', 'custom_int2', 'custom_int3', 'custom_int4', 'custom_int5',
+    'custom_str1', 'custom_str2', 'custom_str3', 'custom_str4', 'custom_str5',
+    'email_confirmation', 'confirmation_address', 'payment_method'
+  ];
   
   let pfOutput = "";
-  for (const key of sortedKeys) {
-    if (data[key] !== "") {
+  
+  // Process fields in the specified order
+  for (const key of fieldOrder) {
+    if (data[key] !== undefined && data[key] !== null && data[key] !== "") {
+      pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, "+")}&`;
+    }
+  }
+  
+  // Add any remaining fields not in the standard order (shouldn't happen but safety)
+  for (const key of Object.keys(data)) {
+    if (!fieldOrder.includes(key) && data[key] !== undefined && data[key] !== null && data[key] !== "") {
       pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, "+")}&`;
     }
   }
@@ -266,7 +283,7 @@ function generateSignature(data: any, passPhrase: string | null = null): string 
   }
   
   console.log('PayFast signature generation:');
-  console.log('- Sorted keys:', sortedKeys.join(', '));
+  console.log('- Field order used:', fieldOrder.filter(f => data[f] !== undefined && data[f] !== null && data[f] !== "").join(', '));
   console.log('- Parameter string:', getString);
   console.log('- Has passphrase:', !!(passPhrase && passPhrase !== ""));
   
@@ -427,7 +444,6 @@ Deno.serve(async (req) => {
     console.log('PayFast URL determined:', { payfastUrl, isTestMode });
 
     // Build PayFast data in the EXACT order required by PayFast
-    // Using an array-like object to maintain order
     const payfastData: any = {};
     
     // Merchant details (MUST be first)
@@ -477,14 +493,19 @@ Deno.serve(async (req) => {
     });
 
     try {
-      // Create form data maintaining order
+      // Create form data maintaining the exact order
       const formData = new URLSearchParams();
-      for (let key in payfastData) {
-        if(payfastData.hasOwnProperty(key)){
-          const value = payfastData[key];
-          if (value !== "") {
-            formData.append(key, value.toString().trim());
-          }
+      
+      // Add fields in the exact order for PayFast
+      const orderedFields = [
+        'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
+        'name_first', 'name_last', 'email_address', 'cell_number',
+        'm_payment_id', 'amount', 'item_name', 'item_description', 'signature'
+      ];
+      
+      for (const key of orderedFields) {
+        if (payfastData[key] !== undefined && payfastData[key] !== null && payfastData[key] !== "") {
+          formData.append(key, payfastData[key].toString().trim());
         }
       }
 
