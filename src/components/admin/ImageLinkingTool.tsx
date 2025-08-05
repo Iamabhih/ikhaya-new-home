@@ -691,12 +691,12 @@ export const ImageLinkingTool = () => {
   const getEstimatedTimeRemaining = () => {
     if (!progress || progress.total === 0 || progress.processed === 0) return null;
     
-    const rate = progress.processed / ((Date.now() - new Date(progress.startTime || Date.now()).getTime()) / 1000);
-    const remaining = (progress.total - progress.processed) / rate;
+    // Estimate based on processing rate (simplified calculation without startTime)
+    const estimatedSeconds = (progress.total - progress.processed) * 2; // rough estimate of 2 seconds per item
     
-    if (remaining < 60) return `${Math.round(remaining)}s`;
-    if (remaining < 3600) return `${Math.round(remaining / 60)}m`;
-    return `${Math.round(remaining / 3600)}h`;
+    if (estimatedSeconds < 60) return `${Math.round(estimatedSeconds)}s`;
+    if (estimatedSeconds < 3600) return `${Math.round(estimatedSeconds / 60)}m`;
+    return `${Math.round(estimatedSeconds / 3600)}h`;
   };
 
   return (
