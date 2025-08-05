@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CreditCard, ExternalLink } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
+
+// Extend window object to include PayFast function
+declare global {
+  interface Window {
+    payfast_do_onsite_payment?: (params: { uuid: string; return_url?: string; cancel_url?: string }, callback?: (result: boolean) => void) => void;
+  }
+}
 
 interface PayfastPaymentProps {
   orderData: {
@@ -38,13 +45,45 @@ interface PayfastPaymentProps {
 
 export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deliveryFee, selectedDeliveryZone, user }: PayfastPaymentProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showManualRedirect, setShowManualRedirect] = useState(false);
-  const [payfastUrl, setPayfastUrl] = useState<string>('');
-  const [paymentData, setPaymentData] = useState<Record<string, string>>({});
+  const [payfastScriptLoaded, setPayfastScriptLoaded] = useState(false);
+
+  // Load PayFast onsite script
+  useEffect(() => {
+    const loadPayfastScript = () => {
+      if (window.payfast_do_onsite_payment) {
+        setPayfastScriptLoaded(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://www.payfast.co.za/onsite/engine.js';
+      script.async = true;
+      script.onload = () => {
+        console.log('PayFast onsite script loaded');
+        setPayfastScriptLoaded(true);
+      };
+      script.onerror = () => {
+        console.error('Failed to load PayFast onsite script');
+        toast.error('Failed to load payment script. Please refresh and try again.');
+      };
+      document.head.appendChild(script);
+    };
+
+    loadPayfastScript();
+  }, []);
 
   const handlePayment = async () => {
+    if (!payfastScriptLoaded) {
+      toast.error('Payment system is still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    if (!window.payfast_do_onsite_payment) {
+      toast.error('Payment system not available. Please refresh the page.');
+      return;
+    }
+
     setIsProcessing(true);
-    setShowManualRedirect(false);
     
     try {
       // Generate temporary order ID for PayFast tracking
@@ -98,7 +137,7 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
         throw new Error('Authentication required. Please sign in.');
       }
       
-      console.log('🔄 Calling PayFast payment with order data:', {
+      console.log('🔄 Calling PayFast onsite payment with order data:', {
         ...paymentOrderData,
         customerEmail: paymentOrderData.customerEmail.substring(0, 3) + '***'
       });
@@ -110,40 +149,37 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
         }
       });
 
-      console.log('✅ PayFast function response:', { success: data?.success, hasUrl: !!data?.payfast_url });
+      console.log('✅ PayFast function response:', { success: data?.success, hasUuid: !!data?.uuid });
 
       if (error) {
         console.error('❌ Edge function error:', error);
         throw new Error(error.message || 'Payment service error');
       }
 
-      if (data?.success) {
-        console.log('🎯 Payment initiation successful, attempting redirect...');
+      if (data?.success && data?.uuid) {
+        console.log('🎯 PayFast UUID received, launching onsite payment...');
         
-        // Store PayFast data for fallback
-        setPayfastUrl(data.payfast_url);
-        setPaymentData(data.payment_data);
-        
-        // Detect environment
-        const isLovablePreview = window.location.hostname.includes('lovableproject.com');
-        console.log('🌍 Environment:', isLovablePreview ? 'Lovable Preview' : 'Production');
-        
-        if (isLovablePreview) {
-          // In Lovable preview, show manual redirect immediately
-          console.log('📱 Lovable preview detected - showing manual redirect');
-          setShowManualRedirect(true);
-          setIsProcessing(false);
-          return;
-        }
-
-        // Try automatic form submission with timeout
-        console.log('🚀 Attempting automatic form submission...');
-        const success = await attemptFormSubmission(data.payfast_url, data.payment_data);
-        
-        if (!success) {
-          console.log('⚠️ Form submission failed - showing manual redirect');
-          setShowManualRedirect(true);
-        }
+        // Use PayFast onsite payment with callback
+        window.payfast_do_onsite_payment(
+          {
+            uuid: data.uuid,
+            return_url: data.return_url,
+            cancel_url: data.cancel_url
+          },
+          (result: boolean) => {
+            console.log('PayFast onsite payment result:', result);
+            if (result) {
+              // Payment completed
+              toast.success('Payment completed successfully!');
+              // Redirect to success page
+              window.location.href = data.return_url || '/checkout/success';
+            } else {
+              // Payment window closed or cancelled
+              toast.error('Payment was cancelled or failed. Please try again.');
+              setIsProcessing(false);
+            }
+          }
+        );
       } else {
         throw new Error(data?.error || 'Failed to initiate payment');
       }
@@ -151,110 +187,8 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
       console.error('💥 Payment error:', error);
       const errorMessage = error.message || 'Failed to initiate payment. Please try again.';
       toast.error(errorMessage);
-    } finally {
       setIsProcessing(false);
     }
-  };
-
-  const attemptFormSubmission = (url: string, paymentData: Record<string, string>): Promise<boolean> => {
-    return new Promise((resolve) => {
-      try {
-        console.log('📝 Creating form for PayFast submission...');
-        console.log('🎯 PayFast URL:', url);
-        console.log('📋 Payment data keys:', Object.keys(paymentData));
-        
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = url;
-        form.style.display = 'none';
-        form.target = '_self';
-        form.acceptCharset = 'UTF-8';
-        form.enctype = 'application/x-www-form-urlencoded';
-
-        // Add all PayFast parameters
-        Object.entries(paymentData).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = String(value);
-            form.appendChild(input);
-            console.log(`🔹 Added field: ${key} = ${key === 'signature' ? '***' : value}`);
-          }
-        });
-
-        document.body.appendChild(form);
-        console.log('📋 Form created and appended to DOM with', form.elements.length, 'fields');
-        
-        // Set timeout to detect if submission freezes
-        const timeout = setTimeout(() => {
-          console.log('⏰ Form submission timeout - likely blocked by browser security');
-          try {
-            if (document.body.contains(form)) {
-              document.body.removeChild(form);
-            }
-          } catch (e) {
-            console.log('Form cleanup error:', e);
-          }
-          resolve(false);
-        }, 2000);
-        
-        // Try to submit the form immediately
-        console.log('🎯 Submitting form to PayFast...');
-        try {
-          form.submit();
-          console.log('✅ Form submission initiated');
-          // Clear timeout and resolve true - form submitted successfully
-          clearTimeout(timeout);
-          resolve(true);
-        } catch (error) {
-          console.log('❌ Form submission error:', error);
-          clearTimeout(timeout);
-          try {
-            if (document.body.contains(form)) {
-              document.body.removeChild(form);
-            }
-          } catch (e) {
-            console.log('Form cleanup error:', e);
-          }
-          resolve(false);
-        }
-        
-      } catch (error) {
-        console.log('🚫 Form creation error:', error);
-        resolve(false);
-      }
-    });
-  };
-
-  const handleManualRedirect = () => {
-    if (!payfastUrl || !paymentData) {
-      toast.error('Payment data not available. Please try again.');
-      return;
-    }
-
-    console.log('🔗 Opening PayFast in new tab...');
-    
-    // Create form for new tab
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = payfastUrl;
-    form.target = '_blank';
-    form.style.display = 'none';
-
-    Object.entries(paymentData).forEach(([key, value]) => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = key;
-      input.value = value as string;
-      form.appendChild(input);
-    });
-
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-    
-    toast.success('PayFast payment page opened in new tab');
   };
 
   return (
@@ -286,7 +220,7 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
 
         <div className="text-center space-y-2">
           <p className="text-sm text-muted-foreground">
-            You will be redirected to PayFast's secure payment page
+            Secure payment will open on this page - no redirects needed
           </p>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>🔒</span>
@@ -296,7 +230,7 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
 
         <Button
           onClick={handlePayment}
-          disabled={isProcessing}
+          disabled={isProcessing || !payfastScriptLoaded}
           className="w-full"
           size="lg"
         >
@@ -304,6 +238,11 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Processing...
+            </>
+          ) : !payfastScriptLoaded ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Loading Payment System...
             </>
           ) : (
             <>
@@ -313,25 +252,11 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
           )}
         </Button>
 
-        {showManualRedirect && (
-          <div className="border border-warning/20 bg-warning/5 p-4 rounded-lg space-y-3">
-            <div className="text-center">
-              <p className="text-sm font-medium text-warning-foreground">
-                Automatic redirect blocked
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Click below to continue to PayFast in a new tab
-              </p>
-            </div>
-            <Button
-              onClick={handleManualRedirect}
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Continue to PayFast
-            </Button>
+        {!payfastScriptLoaded && (
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">
+              Loading secure payment system...
+            </p>
           </div>
         )}
 

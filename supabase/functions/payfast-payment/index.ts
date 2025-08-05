@@ -516,20 +516,62 @@ Deno.serve(async (req) => {
     // Add signature to the data
     payfastData.signature = signature;
 
-    console.log('PayFast payment initiated successfully:', {
+    // For Onsite Payments, we need to get a UUID from PayFast first
+    const onsiteUrl = isTestMode 
+      ? 'https://sandbox.payfast.co.za/onsite/process'
+      : 'https://www.payfast.co.za/onsite/process';
+
+    console.log('Requesting PayFast UUID for onsite payment:', {
       orderId,
       amount,
       merchant_id: merchantId.substring(0, 4) + '****',
       mode: isTestMode ? 'sandbox' : 'live',
-      payfastUrl,
-      dataKeys: Object.keys(payfastData)
-    })
+      onsiteUrl
+    });
+
+    // Make request to PayFast onsite API to get UUID
+    const formData = new URLSearchParams();
+    Object.entries(payfastData).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        formData.append(key, value);
+      }
+    });
+
+    const onsiteResponse = await fetch(onsiteUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString()
+    });
+
+    if (!onsiteResponse.ok) {
+      console.error('PayFast onsite API error:', {
+        status: onsiteResponse.status,
+        statusText: onsiteResponse.statusText
+      });
+      throw new Error(`PayFast onsite API error: ${onsiteResponse.status}`);
+    }
+
+    const onsiteResult = await onsiteResponse.json();
+    
+    if (!onsiteResult.uuid) {
+      console.error('PayFast onsite response missing UUID:', onsiteResult);
+      throw new Error('PayFast did not return a valid UUID');
+    }
+
+    console.log('PayFast onsite payment UUID received:', {
+      orderId,
+      uuid: onsiteResult.uuid.substring(0, 8) + '****',
+      mode: isTestMode ? 'sandbox' : 'live'
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
-        payfast_url: payfastUrl,
-        payment_data: payfastData
+        uuid: onsiteResult.uuid,
+        return_url: payfastData.return_url,
+        cancel_url: payfastData.cancel_url
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
