@@ -706,6 +706,57 @@ export type Database = {
           },
         ]
       }
+      newsletter_subscriptions: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          ip_address: unknown | null
+          is_active: boolean
+          last_name: string | null
+          metadata: Json | null
+          referrer: string | null
+          source: string | null
+          subscribed_at: string
+          unsubscribed_at: string | null
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          last_name?: string | null
+          metadata?: Json | null
+          referrer?: string | null
+          source?: string | null
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          last_name?: string | null
+          metadata?: Json | null
+          referrer?: string | null
+          source?: string | null
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string

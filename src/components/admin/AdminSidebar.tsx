@@ -12,7 +12,8 @@ import {
   Crown,
   Shield,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Mail
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/hooks/useRoles";
@@ -51,6 +52,11 @@ const adminRoutes = [
     title: "Payments", 
     url: "/admin/payments", 
     icon: CreditCard 
+  },
+  { 
+    title: "Subscriptions", 
+    url: "/admin/subscriptions", 
+    icon: Mail 
   },
   { 
     title: "Homepage", 

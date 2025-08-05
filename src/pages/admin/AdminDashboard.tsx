@@ -7,7 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, ShoppingCart, Users, CreditCard, TrendingUp, AlertTriangle, Settings, Crown } from "lucide-react";
+import { Package, ShoppingCart, Users, CreditCard, TrendingUp, AlertTriangle, Settings, Crown, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
@@ -21,11 +21,12 @@ const AdminDashboard = () => {
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
-      const [productsRes, ordersRes, customersRes, revenueRes] = await Promise.all([
+      const [productsRes, ordersRes, customersRes, revenueRes, subscriptionsRes] = await Promise.all([
         supabase.from('products').select('id, stock_quantity').eq('is_active', true),
         supabase.from('orders').select('id, total_amount, status, created_at'),
         supabase.from('profiles').select('id'),
-        supabase.from('orders').select('total_amount').eq('status', 'delivered')
+        supabase.from('orders').select('total_amount').eq('status', 'delivered'),
+        supabase.from('newsletter_subscriptions').select('id, is_active, subscribed_at')
       ]);
 
       const totalProducts = productsRes.data?.length || 0;
@@ -33,6 +34,18 @@ const AdminDashboard = () => {
       const totalCustomers = customersRes.data?.length || 0;
       const totalRevenue = revenueRes.data?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
       const lowStockProducts = productsRes.data?.filter(p => p.stock_quantity <= 5).length || 0;
+      
+      // Newsletter subscription metrics
+      const totalSubscriptions = subscriptionsRes.data?.length || 0;
+      const activeSubscriptions = subscriptionsRes.data?.filter(s => s.is_active).length || 0;
+      
+      // Recent subscriptions (last 30 days)
+      const recentSubscriptions = subscriptionsRes.data?.filter(sub => {
+        const subDate = new Date(sub.subscribed_at);
+        const monthAgo = new Date();
+        monthAgo.setDate(monthAgo.getDate() - 30);
+        return subDate >= monthAgo;
+      }) || [];
 
       // Order status distribution
       const statusCounts = ordersRes.data?.reduce((acc, order) => {
@@ -74,6 +87,9 @@ const AdminDashboard = () => {
         totalRevenue,
         lowStockProducts,
         recentOrdersCount: recentOrders.length,
+        totalSubscriptions,
+        activeSubscriptions,
+        recentSubscriptionsCount: recentSubscriptions.length,
         statusDistribution: Object.entries(statusCounts).map(([status, count]) => ({
           status,
           count
@@ -125,7 +141,7 @@ const AdminDashboard = () => {
 
           
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
             <Card className="bg-white border border-gray-200/60 shadow-sm hover:shadow-md transition-all duration-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 <CardTitle className="text-sm font-medium text-gray-700">Total Products</CardTitle>
@@ -177,6 +193,21 @@ const AdminDashboard = () => {
               <CardContent className="space-y-2">
                 <div className="text-3xl font-bold text-gray-900">R{stats?.totalRevenue?.toFixed(2) || '0.00'}</div>
                 <p className="text-sm text-gray-500">From delivered orders</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border border-gray-200/60 shadow-sm hover:shadow-md transition-all duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-gray-700">Newsletter Subs</CardTitle>
+                <div className="p-2 bg-purple-50 rounded-lg">
+                  <Mail className="h-5 w-5 text-purple-600" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="text-3xl font-bold text-gray-900">{stats?.activeSubscriptions || 0}</div>
+                <p className="text-sm text-gray-500">
+                  <span className="text-green-600 font-medium">+{stats?.recentSubscriptionsCount || 0}</span> this month
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -327,14 +358,32 @@ const AdminDashboard = () => {
                 </Card>
               </Link>
 
-              <Link to="/admin/homepage" className="group">
+              <Link to="/admin/subscriptions" className="group">
                 <Card className="bg-white border border-gray-200/60 shadow-sm hover:shadow-lg hover:border-purple-200 transition-all duration-200 h-full">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-3">
                       <div className="p-3 bg-purple-50 rounded-xl group-hover:bg-purple-100 transition-colors">
-                        <Settings className="h-6 w-6 text-purple-600" />
+                        <Mail className="h-6 w-6 text-purple-600" />
                       </div>
                       <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-purple-700">
+                        Subscriptions
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 text-sm leading-relaxed">Manage newsletter subscribers and export mailing lists</p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link to="/admin/homepage" className="group">
+                <Card className="bg-white border border-gray-200/60 shadow-sm hover:shadow-lg hover:border-emerald-200 transition-all duration-200 h-full">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 transition-colors">
+                        <Settings className="h-6 w-6 text-emerald-600" />
+                      </div>
+                      <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-emerald-700">
                         Homepage Settings
                       </CardTitle>
                     </div>

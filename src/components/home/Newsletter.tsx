@@ -17,26 +17,42 @@ export const Newsletter = () => {
     setLoading(true);
 
     try {
-      // Store newsletter subscription
+      // Get user metadata for tracking
+      const userAgent = navigator.userAgent;
+      const referrer = document.referrer;
+
+      // Store newsletter subscription in dedicated table
       const { error } = await supabase
-        .from('email_logs')
+        .from('newsletter_subscriptions')
         .insert({
-          email_address: email,
-          template_name: 'newsletter-signup',
-          subject: 'Newsletter Subscription',
-          status: 'sent',
-          metadata: { source: 'newsletter_form' },
-          sent_at: new Date().toISOString(),
+          email,
+          source: 'newsletter_signup',
+          metadata: { 
+            page_url: window.location.href,
+            utm_source: new URLSearchParams(window.location.search).get('utm_source'),
+            utm_medium: new URLSearchParams(window.location.search).get('utm_medium'),
+            utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign')
+          },
+          user_agent: userAgent,
+          referrer: referrer || null,
         });
 
-      if (error) throw error;
+      if (error) {
+        // Handle duplicate email gracefully
+        if (error.code === '23505') {
+          toast.success("You're already subscribed to our newsletter!");
+          setEmail("");
+          return;
+        }
+        throw error;
+      }
 
       // Send admin notification about new subscription
       await sendAdminNotification({
         type: 'contact-form',
         subject: 'New Newsletter Subscription',
         message: `New newsletter subscription from: ${email}`,
-        data: { email, source: 'newsletter_form' },
+        data: { email, source: 'newsletter_signup' },
       });
 
       toast.success("Thank you for subscribing to our newsletter!");

@@ -40,6 +40,7 @@ import AdminSetupPage from "./pages/admin/AdminSetupPage";
 import AdminHomepage from "./pages/admin/AdminHomepage";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminPaymentSettings from "./pages/admin/AdminPaymentSettings";
+import { AdminSubscriptions } from "./pages/admin/AdminSubscriptions";
 import SuperAdminSettings from "./pages/admin/SuperAdminSettings";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import "./App.css";
@@ -101,6 +102,7 @@ function App() {
                  <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
                  <Route path="/admin/returns" element={<AdminProtectedRoute><AdminReturns /></AdminProtectedRoute>} />
                  <Route path="/admin/payments" element={<AdminProtectedRoute><AdminPayments /></AdminProtectedRoute>} />
+                 <Route path="/admin/subscriptions" element={<AdminProtectedRoute><AdminSubscriptions /></AdminProtectedRoute>} />
                  <Route path="/admin/homepage" element={<AdminProtectedRoute><AdminHomepage /></AdminProtectedRoute>} />
                  
                   {/* SuperAdmin only routes */}
