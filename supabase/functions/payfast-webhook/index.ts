@@ -231,49 +231,36 @@ function md5(string: string): string {
   return temp.toLowerCase();
 }
 
-async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // For webhooks, PayFast sends data in alphabetical order
-  // We need to sort alphabetically for signature verification
-  const orderedData: Record<string, string> = {};
-  
-  // Sort keys alphabetically (excluding 'signature')
-  Object.keys(data)
-    .filter(key => key !== 'signature')
-    .sort()
-    .forEach(key => {
-      // Only include non-empty values
-      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
-        orderedData[key] = data[key];
+// Generate signature for webhook verification (exactly like PayFast's Node.js example)
+function generateSignature(data: any, passPhrase: string | null = null): string {
+  // Create parameter string
+  let pfOutput = "";
+  for (let key in data) {
+    if(data.hasOwnProperty(key)){
+      // Skip the signature field for verification
+      if (key !== 'signature' && data[key] !== "") {
+        pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, "+")}&`;
       }
-    });
+    }
+  }
   
-  // Build the parameter string using URLSearchParams
-  const params = new URLSearchParams();
-  
-  // Add sorted parameters
-  Object.entries(orderedData).forEach(([key, value]) => {
-    params.append(key, value);
-  });
-  
-  // Get the string representation
-  let paramString = params.toString();
+  // Remove last ampersand
+  let getString = pfOutput.slice(0, -1);
   
   // Add passphrase if provided
-  if (passphrase && passphrase !== '') {
-    paramString += `&passphrase=${encodeURIComponent(passphrase)}`;
+  if (passPhrase !== null && passPhrase !== "") {
+    getString += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, "+")}`;
   }
   
   console.log('Webhook signature verification:');
-  console.log('- Sorted keys:', Object.keys(orderedData).join(', '));
-  console.log('- Parameter string (first 300 chars):', paramString.substring(0, 300) + '...');
-  console.log('- Full parameter string:', paramString);
-  console.log('- Has passphrase:', !!(passphrase && passphrase !== ''));
+  console.log('- Parameter string:', getString);
+  console.log('- Has passphrase:', !!(passPhrase && passPhrase !== ""));
   
   // Generate MD5 hash
-  const md5Hash = md5(paramString);
+  const signature = md5(getString);
   
-  console.log('- Calculated signature:', md5Hash);
-  return md5Hash;
+  console.log('- Calculated signature:', signature);
+  return signature;
 }
 
 Deno.serve(async (req) => {
@@ -283,9 +270,16 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      supabaseUrl,
+      supabaseServiceRoleKey
     )
 
     console.log('PayFast webhook called - Raw request details:', {
@@ -298,10 +292,10 @@ Deno.serve(async (req) => {
     // Parse form data from PayFast
     const formData = await req.formData();
     
-    // Create data structure
-    const payfastData: Record<string, string> = {};
+    // Create data structure preserving the order PayFast sends
+    const payfastData: any = {};
     
-    // Process form data
+    // Process form data in the order received
     for (const [key, value] of formData) {
       payfastData[key] = value.toString();
     }
@@ -354,7 +348,8 @@ Deno.serve(async (req) => {
       fromDatabase: true
     });
 
-    const calculatedSignature = await generateSignature(payfastData, passphrase);
+    // Generate signature for verification (excluding the signature field itself)
+    const calculatedSignature = generateSignature(payfastData, passphrase);
 
     if (receivedSignature !== calculatedSignature) {
       console.error('Invalid PayFast signature:', {
@@ -366,14 +361,12 @@ Deno.serve(async (req) => {
         lastCharMatch: receivedSignature?.[receivedSignature.length - 1] === calculatedSignature?.[calculatedSignature.length - 1]
       });
       
-      // Debug: Log the exact data being used
-      console.error('Data for verification (all non-signature fields):', 
-        Object.entries(payfastData)
-          .filter(([key]) => key !== 'signature')
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([k, v]) => `${k}=${v}`)
-          .join(', ')
-      );
+      // Debug: Log the parameters being used
+      const debugParams = Object.entries(payfastData)
+        .filter(([key]) => key !== 'signature')
+        .map(([k, v]) => `${k}=${v}`)
+        .join(', ');
+      console.error('Data for verification (excluding signature):', debugParams);
       console.error('Passphrase present:', !!passphrase);
       
       return new Response('Invalid signature', { status: 400 })
@@ -389,7 +382,7 @@ Deno.serve(async (req) => {
 
     // Handle payment status - CREATE ORDER ONLY AFTER SUCCESSFUL PAYMENT
     if (paymentStatus === 'COMPLETE') {
-      console.log(`Payment successful for temp order ${orderId}, creating actual order...`);
+      console.log(`Payment successful for order ${orderId}, processing...`);
       
       // Check if this is a temporary order ID that needs order creation
       if (orderId.startsWith('TEMP-')) {
@@ -403,13 +396,13 @@ Deno.serve(async (req) => {
             email: payfastData.email_address,
             order_number: orderNumber,
             billing_address: {
-              address: `${payfastData.name_first} ${payfastData.name_last}`,
+              address: `${payfastData.name_first || ''} ${payfastData.name_last || ''}`.trim(),
               city: 'Unknown',
               province: 'Unknown',
               postal_code: 'Unknown'
             },
             shipping_address: {
-              address: `${payfastData.name_first} ${payfastData.name_last}`,
+              address: `${payfastData.name_first || ''} ${payfastData.name_last || ''}`.trim(),
               city: 'Unknown', 
               province: 'Unknown',
               postal_code: 'Unknown'
@@ -437,7 +430,7 @@ Deno.serve(async (req) => {
 
           console.log(`Order ${newOrder.id} created successfully for temp order ${orderId}`);
           
-          // Send confirmation email
+          // Send confirmation email (optional)
           try {
             await supabaseClient.functions.invoke('send-email', {
               body: {

@@ -245,47 +245,35 @@ function md5(string: string): string {
   return temp.toLowerCase();
 }
 
-async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // PayFast requires parameters in alphabetical order for signature generation
-  const orderedData: Record<string, string> = {};
-  
-  // Sort keys alphabetically
-  Object.keys(data)
-    .sort()
-    .forEach(key => {
-      // Only include non-empty values
-      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
-        orderedData[key] = data[key];
+// Generate signature exactly like PayFast's Node.js example
+function generateSignature(data: any, passPhrase: string | null = null): string {
+  // Create parameter string
+  let pfOutput = "";
+  for (let key in data) {
+    if(data.hasOwnProperty(key)){
+      if (data[key] !== "") {
+        pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, "+")}&`;
       }
-    });
+    }
+  }
   
-  // Build the parameter string
-  const params = new URLSearchParams();
-  
-  // Add sorted parameters
-  Object.entries(orderedData).forEach(([key, value]) => {
-    params.append(key, value);
-  });
-  
-  // Get the string representation
-  let paramString = params.toString();
+  // Remove last ampersand
+  let getString = pfOutput.slice(0, -1);
   
   // Add passphrase if provided
-  if (passphrase && passphrase !== '') {
-    paramString += `&passphrase=${encodeURIComponent(passphrase)}`;
+  if (passPhrase !== null && passPhrase !== "") {
+    getString += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, "+")}`;
   }
   
   console.log('PayFast signature generation:');
-  console.log('- Sorted keys:', Object.keys(orderedData).join(', '));
-  console.log('- Parameter string (first 200 chars):', paramString.substring(0, 200) + '...');
-  console.log('- Full parameter string:', paramString);
-  console.log('- Has passphrase:', !!(passphrase && passphrase !== ''));
+  console.log('- Parameter string:', getString);
+  console.log('- Has passphrase:', !!(passPhrase && passPhrase !== ""));
   
   // Generate MD5 hash
-  const md5Hash = md5(paramString);
+  const signature = md5(getString);
   
-  console.log('- Generated signature:', md5Hash);
-  return md5Hash;
+  console.log('- Generated signature:', signature);
+  return signature;
 }
 
 Deno.serve(async (req) => {
@@ -299,9 +287,16 @@ Deno.serve(async (req) => {
     console.log('Request method:', req.method);
     console.log('Authorization header present:', !!req.headers.get('Authorization'));
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      supabaseAnonKey,
       {
         global: {
           headers: { Authorization: req.headers.get('Authorization')! },
@@ -455,40 +450,43 @@ Deno.serve(async (req) => {
 
     console.log('PayFast URL determined:', { payfastUrl, isTestMode });
 
-    // Prepare PayFast parameters
-    const payfastData: Record<string, string> = {
-      merchant_id: merchantId,
-      merchant_key: merchantKey,
-      return_url: `${req.headers.get('origin')}/checkout/success?order_id=${orderId}`,
-      cancel_url: `${req.headers.get('origin')}/checkout?cancelled=true`,
-      notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payfast-webhook`,
-      email_address: customerEmail,
-      m_payment_id: orderId,
-      amount: amount.toFixed(2),
-      item_name: items.map(item => item.name).join(', ').substring(0, 100),
-      item_description: `Order ${orderId} - ${items.length} items`
-    };
-
-    // Add customer name if provided
+    // Build PayFast data in the EXACT order required by PayFast
+    // Using an array-like object to maintain order
+    const payfastData: any = {};
+    
+    // Merchant details (MUST be first)
+    payfastData["merchant_id"] = merchantId;
+    payfastData["merchant_key"] = merchantKey;
+    
+    // URLs
+    payfastData["return_url"] = `${req.headers.get('origin')}/checkout/success?order_id=${orderId}`;
+    payfastData["cancel_url"] = `${req.headers.get('origin')}/checkout?cancelled=true`;
+    payfastData["notify_url"] = `${Deno.env.get('SUPABASE_URL')}/functions/v1/payfast-webhook`;
+    
+    // Buyer details
     const firstName = customerName.split(' ')[0] || '';
     const lastName = customerName.split(' ').slice(1).join(' ') || '';
-
-    if (firstName) payfastData.name_first = firstName;
-    if (lastName) payfastData.name_last = lastName;
-
-    // Add phone if provided
-    if (customerPhone) {
-      payfastData.cell_number = customerPhone;
-    }
-
-    // Generate signature using alphabetically sorted parameters
-    const signature = await generateSignature(payfastData, passphrase);
     
-    // Add signature to the data
-    payfastData.signature = signature;
+    if (firstName) payfastData["name_first"] = firstName;
+    if (lastName) payfastData["name_last"] = lastName;
+    payfastData["email_address"] = customerEmail;
+    if (customerPhone) {
+      payfastData["cell_number"] = customerPhone;
+    }
+    
+    // Transaction details
+    payfastData["m_payment_id"] = orderId;
+    payfastData["amount"] = amount.toFixed(2);
+    payfastData["item_name"] = items.map(item => item.name).join(', ').substring(0, 100);
+    payfastData["item_description"] = `Order ${orderId} - ${items.length} items`;
+
+    // Generate signature (passphrase is only used for signature, not included in form data)
+    const signature = generateSignature(payfastData, passphrase);
+    
+    // Add signature to the data AFTER generating it
+    payfastData["signature"] = signature;
 
     // For Onsite Payments, we need to get an identifier from PayFast first
-    // PayFast onsite uses a different endpoint for getting payment identifiers
     const onsiteUrl = isTestMode 
       ? 'https://sandbox.payfast.co.za/onsite/process'
       : 'https://www.payfast.co.za/onsite/process';
@@ -499,19 +497,22 @@ Deno.serve(async (req) => {
       merchant_id: merchantId.substring(0, 4) + '****',
       mode: isTestMode ? 'sandbox' : 'live',
       onsiteUrl,
-      dataToSend: Object.keys(payfastData)
+      dataKeys: Object.keys(payfastData)
     });
 
     try {
-      // Create form data with proper encoding
+      // Create form data maintaining order
       const formData = new URLSearchParams();
-      Object.entries(payfastData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && value !== '') {
-          formData.append(key, value);
+      for (let key in payfastData) {
+        if(payfastData.hasOwnProperty(key)){
+          const value = payfastData[key];
+          if (value !== "") {
+            formData.append(key, value.toString().trim());
+          }
         }
-      });
+      }
 
-      console.log('Form data being sent to PayFast:', formData.toString().substring(0, 200) + '...');
+      console.log('Form data being sent to PayFast (first 200 chars):', formData.toString().substring(0, 200) + '...');
 
       const onsiteResponse = await fetch(onsiteUrl, {
         method: 'POST',
@@ -532,17 +533,18 @@ Deno.serve(async (req) => {
           responseBody: responseText.substring(0, 500)
         });
         
-        // For onsite payments, if we can't get the UUID, fall back to redirect method
-        console.log('Falling back to redirect method due to onsite API error');
+        // Check if it's a signature error
+        if (responseText.includes('signature') || responseText.includes('Signature')) {
+          console.error('Signature mismatch detected. Check parameter order and encoding.');
+        }
         
-        const redirectUrl = isTestMode
-          ? 'https://sandbox.payfast.co.za/eng/process'
-          : 'https://www.payfast.co.za/eng/process';
+        // Fall back to redirect method
+        console.log('Falling back to redirect method due to onsite API error');
         
         return new Response(
           JSON.stringify({
             success: true,
-            redirect_url: redirectUrl,
+            redirect_url: payfastUrl,
             form_data: payfastData,
             fallback_mode: true
           }),
@@ -576,24 +578,24 @@ Deno.serve(async (req) => {
         throw new Error('PayFast did not return a valid UUID');
       }
 
-    console.log('PayFast onsite payment UUID received:', {
-      orderId,
-      uuid: onsiteResult.uuid.substring(0, 8) + '****',
-      mode: isTestMode ? 'sandbox' : 'live'
-    });
+      console.log('PayFast onsite payment UUID received:', {
+        orderId,
+        uuid: onsiteResult.uuid.substring(0, 8) + '****',
+        mode: isTestMode ? 'sandbox' : 'live'
+      });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        uuid: onsiteResult.uuid,
-        return_url: payfastData.return_url,
-        cancel_url: payfastData.cancel_url
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    )
+      return new Response(
+        JSON.stringify({
+          success: true,
+          uuid: onsiteResult.uuid,
+          return_url: payfastData["return_url"],
+          cancel_url: payfastData["cancel_url"]
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      )
 
     } catch (error) {
       console.error('PayFast onsite payment error:', error)
@@ -601,14 +603,10 @@ Deno.serve(async (req) => {
       // Fall back to redirect method if onsite fails
       console.log('Falling back to redirect method due to onsite error');
       
-      const redirectUrl = isTestMode
-        ? 'https://sandbox.payfast.co.za/eng/process'
-        : 'https://www.payfast.co.za/eng/process';
-      
       return new Response(
         JSON.stringify({
           success: true,
-          redirect_url: redirectUrl,
+          redirect_url: payfastUrl,
           form_data: payfastData,
           fallback_mode: true
         }),
@@ -620,7 +618,7 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('PayFast payment error:', error)
+    console.error('PayFast payment function error:', error)
     
     // Return more specific error information
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
