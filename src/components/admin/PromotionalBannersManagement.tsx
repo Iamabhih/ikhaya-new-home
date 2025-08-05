@@ -280,12 +280,12 @@ export const PromotionalBannersManagement = () => {
                 <TabsContent value="content" className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="title">Title *</Label>
+                      <Label htmlFor="title">Title</Label>
                       <Input
                         id="title"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        required
+                        placeholder="Optional banner title"
                       />
                     </div>
                     <div>
@@ -818,7 +818,7 @@ export const PromotionalBannersManagement = () => {
                 <div className="relative z-10">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-xl font-bold">{banner.title}</h3>
+                      <h3 className="text-xl font-bold">{banner.title || "Untitled Banner"}</h3>
                       {banner.subtitle && (
                         <p className="text-sm opacity-90">{banner.subtitle}</p>
                       )}
