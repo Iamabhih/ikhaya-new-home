@@ -245,15 +245,15 @@ function md5(string: string): string {
   return temp.toLowerCase();
 }
 
-// Generate signature exactly like PayFast's Node.js example
+// Generate signature exactly like PayFast's official specification
 function generateSignature(data: any, passPhrase: string | null = null): string {
-  // Create parameter string
+  // CRITICAL: PayFast requires alphabetical sorting of all parameters
+  const sortedKeys = Object.keys(data).sort();
+  
   let pfOutput = "";
-  for (let key in data) {
-    if(data.hasOwnProperty(key)){
-      if (data[key] !== "") {
-        pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, "+")}&`;
-      }
+  for (const key of sortedKeys) {
+    if (data[key] !== "") {
+      pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, "+")}&`;
     }
   }
   
@@ -266,6 +266,7 @@ function generateSignature(data: any, passPhrase: string | null = null): string 
   }
   
   console.log('PayFast signature generation:');
+  console.log('- Sorted keys:', sortedKeys.join(', '));
   console.log('- Parameter string:', getString);
   console.log('- Has passphrase:', !!(passPhrase && passPhrase !== ""));
   
