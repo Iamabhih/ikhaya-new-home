@@ -41,18 +41,82 @@ interface MatchResult {
   sourceFolder: string
 }
 
-// Enhanced robust SKU extraction with PRIORITIZED exact matching first
+interface MigrationCheckpoint {
+  sessionId: string
+  processedItems: string[]
+  lastProcessedIndex: number
+  timestamp: string
+}
+
+// Enhanced error handling and recovery
+class MigrationError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public retryable: boolean = false,
+    public context?: any
+  ) {
+    super(message)
+    this.name = 'MigrationError'
+  }
+}
+
+// Circuit breaker for handling cascading failures
+class CircuitBreaker {
+  private failureCount = 0
+  private lastFailureTime = 0
+  private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED'
+  
+  constructor(
+    private threshold: number = 5,
+    private timeout: number = 30000
+  ) {}
+  
+  async execute<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.state === 'OPEN') {
+      if (Date.now() - this.lastFailureTime < this.timeout) {
+        throw new MigrationError('Circuit breaker is OPEN', 'CIRCUIT_OPEN', true)
+      }
+      this.state = 'HALF_OPEN'
+    }
+    
+    try {
+      const result = await operation()
+      this.onSuccess()
+      return result
+    } catch (error) {
+      this.onFailure()
+      throw error
+    }
+  }
+  
+  private onSuccess() {
+    this.failureCount = 0
+    this.state = 'CLOSED'
+  }
+  
+  private onFailure() {
+    this.failureCount++
+    this.lastFailureTime = Date.now()
+    
+    if (this.failureCount >= this.threshold) {
+      this.state = 'OPEN'
+    }
+  }
+}
+
+// Enhanced robust SKU extraction with validation
 function extractSKUFromFilename(filename: string): string[] {
   if (!filename || typeof filename !== 'string') return []
   
-  // Remove file extension and path
-  const nameWithoutExt = filename.replace(/.*\//, '').replace(/\.[^/.]+$/, '')
-  
-  console.log(`🔍 [EXTRACT] SKUs from: ${filename} -> ${nameWithoutExt}`)
-  
-  const skus = new Set<string>()
-  
   try {
+    // Remove file extension and path
+    const nameWithoutExt = filename.replace(/.*\//, '').replace(/\.[^/.]+$/, '')
+    
+    console.log(`🔍 [EXTRACT] SKUs from: ${filename} -> ${nameWithoutExt}`)
+    
+    const skus = new Set<string>()
+    
     // PRIORITY 1: Exact filename match (highest priority)
     if (/^\d{3,8}$/.test(nameWithoutExt)) {
       skus.add(nameWithoutExt)
@@ -64,26 +128,34 @@ function extractSKUFromFilename(filename: string): string[] {
     if (directNumbers) {
       // Sort by length to prioritize longer, more specific SKUs
       directNumbers.sort((a, b) => b.length - a.length).forEach(num => {
-        skus.add(num)
-        console.log(`✅ [DIRECT] Found direct numeric SKU: ${num}`)
-        // Add zero-padded versions for short SKUs
-        if (num.length === 3) {
-          skus.add('0' + num)
-          console.log(`📝 [PADDED] Added zero-padded version: 0${num}`)
-        }
-        if (num.length === 4 && !num.startsWith('0')) {
-          skus.add('0' + num)
-          console.log(`📝 [PADDED] Added zero-padded version: 0${num}`)
+        // Validate SKU format (basic validation)
+        if (isValidSKU(num)) {
+          skus.add(num)
+          console.log(`✅ [DIRECT] Found direct numeric SKU: ${num}`)
+          
+          // Add zero-padded versions for short SKUs
+          if (num.length === 3) {
+            skus.add('0' + num)
+            console.log(`📝 [PADDED] Added zero-padded version: 0${num}`)
+          }
+          if (num.length === 4 && !num.startsWith('0')) {
+            skus.add('0' + num)
+            console.log(`📝 [PADDED] Added zero-padded version: 0${num}`)
+          }
         }
       })
     }
-  
+
     // Pattern 2: Complex multi-SKU patterns (455100.455101.455102.455103)
     const multiSku = nameWithoutExt.match(/^(\d{3,8})(?:\.(\d{3,8}))+/)
     if (multiSku) {
       const allMatches = nameWithoutExt.match(/\d{3,8}/g)
       if (allMatches) {
-        allMatches.forEach(sku => skus.add(sku))
+        allMatches.forEach(sku => {
+          if (isValidSKU(sku)) {
+            skus.add(sku)
+          }
+        })
       }
     }
     
@@ -98,26 +170,33 @@ function extractSKUFromFilename(filename: string): string[] {
     separatorPatterns.forEach(pattern => {
       let match
       while ((match = pattern.exec(nameWithoutExt)) !== null) {
-        skus.add(match[1])
+        if (isValidSKU(match[1])) {
+          skus.add(match[1])
+        }
       }
     })
     
     // Pattern 4: Category-based extraction (BAKEWARE/447604)
     const pathMatch = filename.match(/\/(\d{3,8})/)
-    if (pathMatch) {
+    if (pathMatch && isValidSKU(pathMatch[1])) {
       skus.add(pathMatch[1])
     }
     
     // Pattern 5: Space-separated patterns "455112 (2)"
     const spacePattern = nameWithoutExt.match(/(\d{3,8})\s+\([^)]*\)/)
-    if (spacePattern) {
+    if (spacePattern && isValidSKU(spacePattern[1])) {
       skus.add(spacePattern[1])
     }
     
     // Pattern 6: Alphanumeric codes (for special products)
     const alphaNumeric = nameWithoutExt.match(/\b[A-Z]\d{3,7}\b/g)
     if (alphaNumeric) {
-      alphaNumeric.forEach(code => skus.add(code.toLowerCase()))
+      alphaNumeric.forEach(code => {
+        const normalizedCode = code.toLowerCase()
+        if (isValidSKU(normalizedCode)) {
+          skus.add(normalizedCode)
+        }
+      })
     }
     
     const result = Array.from(skus)
@@ -129,33 +208,43 @@ function extractSKUFromFilename(filename: string): string[] {
   }
 }
 
-// Category mapping for better matching
+// Basic SKU validation
+function isValidSKU(sku: string): boolean {
+  if (!sku || sku.length < 3 || sku.length > 10) return false
+  
+  // Reject obviously invalid patterns
+  if (/^0+$/.test(sku)) return false // All zeros
+  if (/^1+$/.test(sku)) return false // All ones
+  
+  return true
+}
+
+// Enhanced category mapping with more comprehensive keywords
 function getCategoryKeywords(): Record<string, string[]> {
   return {
-    'TOYS': ['toy', 'game', 'play', 'kids', 'children', 'puzzle', 'doll', 'car', 'truck', 'action', 'figure'],
-    'BAKEWARE': ['bake', 'cake', 'pan', 'tin', 'mould', 'baking', 'oven', 'pastry', 'bread', 'cookie'],
-    'KITCHEN': ['kitchen', 'cook', 'pot', 'knife', 'utensil', 'bowl', 'plate', 'cup', 'mug', 'spoon'],
-    'HOMEWARE': ['home', 'decor', 'vase', 'candle', 'cushion', 'picture', 'frame', 'storage', 'organize'],
-    'ELECTRONICS': ['electronic', 'battery', 'cable', 'charger', 'adapter', 'tech', 'digital', 'smart'],
-    'TOOLS': ['tool', 'drill', 'hammer', 'screwdriver', 'wrench', 'saw', 'measure', 'hardware'],
-    'GARDEN': ['garden', 'plant', 'seed', 'watering', 'soil', 'fertilizer', 'outdoor', 'lawn'],
-    'CLOTHING': ['shirt', 'dress', 'pants', 'jacket', 'shoe', 'sock', 'hat', 'clothing', 'apparel'],
-    'STATIONERY': ['pen', 'pencil', 'paper', 'notebook', 'eraser', 'ruler', 'stapler', 'office'],
-    'BEAUTY': ['beauty', 'makeup', 'cream', 'lotion', 'shampoo', 'soap', 'cosmetic', 'skincare']
+    'TOYS': ['toy', 'game', 'play', 'kids', 'children', 'puzzle', 'doll', 'car', 'truck', 'action', 'figure', 'blocks', 'educational'],
+    'BAKEWARE': ['bake', 'cake', 'pan', 'tin', 'mould', 'baking', 'oven', 'pastry', 'bread', 'cookie', 'muffin', 'loaf', 'silicone'],
+    'KITCHEN': ['kitchen', 'cook', 'pot', 'knife', 'utensil', 'bowl', 'plate', 'cup', 'mug', 'spoon', 'fork', 'cutting', 'chopping'],
+    'HOMEWARE': ['home', 'decor', 'vase', 'candle', 'cushion', 'picture', 'frame', 'storage', 'organize', 'furniture', 'lighting'],
+    'ELECTRONICS': ['electronic', 'battery', 'cable', 'charger', 'adapter', 'tech', 'digital', 'smart', 'wireless', 'bluetooth'],
+    'TOOLS': ['tool', 'drill', 'hammer', 'screwdriver', 'wrench', 'saw', 'measure', 'hardware', 'repair', 'maintenance'],
+    'GARDEN': ['garden', 'plant', 'seed', 'watering', 'soil', 'fertilizer', 'outdoor', 'lawn', 'greenhouse', 'pruning'],
+    'CLOTHING': ['shirt', 'dress', 'pants', 'jacket', 'shoe', 'sock', 'hat', 'clothing', 'apparel', 'fashion', 'wear'],
+    'STATIONERY': ['pen', 'pencil', 'paper', 'notebook', 'eraser', 'ruler', 'stapler', 'office', 'writing', 'marker'],
+    'BEAUTY': ['beauty', 'makeup', 'cream', 'lotion', 'shampoo', 'soap', 'cosmetic', 'skincare', 'fragrance', 'nail']
   }
 }
 
 // Extract folder name from storage path for category matching
 function extractFolderFromPath(storagePath: string): string {
   const pathParts = storagePath.split('/')
-  // Get the immediate parent folder of the image file
   if (pathParts.length >= 3) {
     return pathParts[pathParts.length - 2].toUpperCase()
   }
   return 'UNKNOWN'
 }
 
-// Calculate category match score
+// Enhanced category score calculation with fuzzy matching
 function calculateCategoryScore(productName: string, productCategory: string | undefined, imageFolder: string): number {
   const categoryKeywords = getCategoryKeywords()
   let score = 0
@@ -189,11 +278,11 @@ function calculateCategoryScore(productName: string, productCategory: string | u
   return score
 }
 
-// Enhanced fuzzy matching for better SKU correlation with category awareness
+// Enhanced image matcher with improved error handling
 function createCategoryAwareImageMatcher() {
   const imageCache = new Map<string, StorageImage>()
-  const fuzzyCache = new Map<string, string[]>() // normalized SKU -> original SKUs
-  const categoryIndex = new Map<string, StorageImage[]>() // folder -> images
+  const fuzzyCache = new Map<string, string[]>()
+  const categoryIndex = new Map<string, StorageImage[]>()
   
   return {
     buildMapping: (images: StorageImage[]) => {
@@ -203,8 +292,16 @@ function createCategoryAwareImageMatcher() {
       
       console.log(`🧠 Building category-aware image mapping from ${images.length} images`)
       
+      let successCount = 0
+      let errorCount = 0
+      
       for (const image of images) {
         try {
+          if (!image?.filename) {
+            console.warn(`⚠️ Skipping image with missing filename:`, image)
+            continue
+          }
+          
           const skus = extractSKUFromFilename(image.filename)
           const folder = extractFolderFromPath(image.storagePath)
           
@@ -229,161 +326,139 @@ function createCategoryAwareImageMatcher() {
               fuzzyCache.get(variation)!.push(sku)
             }
           }
+          successCount++
         } catch (error) {
-          console.error(`Error processing image ${image.filename}:`, error)
+          console.error(`Error processing image ${image?.filename || 'unknown'}:`, error)
+          errorCount++
           continue
         }
       }
       
       console.log(`🎯 Built mapping: ${imageCache.size} direct matches, ${fuzzyCache.size} fuzzy variations, ${categoryIndex.size} category folders`)
+      console.log(`📊 Processing stats: ${successCount} successful, ${errorCount} errors`)
     },
     
     findBestImage: (product: Product): MatchResult | null => {
-      if (!product.sku) return null
+      if (!product?.sku) {
+        console.warn(`⚠️ Product missing SKU:`, product)
+        return null
+      }
       
       const normalizedSku = product.sku.toLowerCase().trim()
       const candidates: MatchResult[] = []
       
       console.log(`🎯 [MATCH] Finding best image for product SKU: ${product.sku}`)
       
-      // PRIORITY 1: Exact SKU match (highest priority - 1000 points base)
-      if (imageCache.has(normalizedSku)) {
-        const image = imageCache.get(normalizedSku)!
-        const folder = extractFolderFromPath(image.storagePath)
-        const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
-        
-        console.log(`✅ [EXACT] Direct SKU match found: ${normalizedSku} -> ${image.filename}`)
-        
-        candidates.push({
-          product,
-          imageFile: image,
-          matchType: 'exact',
-          matchScore: 1000 + categoryScore, // Much higher base score for exact matches
-          sourceFolder: folder
-        })
-      }
-      
-      // PRIORITY 2: Exact case-insensitive match
-      const exactVariations = [product.sku, product.sku.toUpperCase(), product.sku.toLowerCase()]
-      for (const variation of exactVariations) {
-        if (imageCache.has(variation) && !candidates.find(c => c.imageFile.filename === imageCache.get(variation)!.filename)) {
-          const image = imageCache.get(variation)!
+      try {
+        // PRIORITY 1: Exact SKU match (highest priority - 1000 points base)
+        if (imageCache.has(normalizedSku)) {
+          const image = imageCache.get(normalizedSku)!
           const folder = extractFolderFromPath(image.storagePath)
           const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
           
-          console.log(`✅ [EXACT-CASE] Case variation match: ${variation} -> ${image.filename}`)
+          console.log(`✅ [EXACT] Direct SKU match found: ${normalizedSku} -> ${image.filename}`)
           
           candidates.push({
             product,
             imageFile: image,
             matchType: 'exact',
-            matchScore: 950 + categoryScore,
+            matchScore: 1000 + categoryScore,
             sourceFolder: folder
           })
         }
-      }
-      
-      // 2. Fuzzy SKU matches
-      const variations = generateSKUVariations(normalizedSku)
-      for (const variation of variations) {
-        if (imageCache.has(variation)) {
-          const image = imageCache.get(variation)!
-          const folder = extractFolderFromPath(image.storagePath)
-          const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
+        
+        // PRIORITY 2: Exact case-insensitive match
+        const exactVariations = [product.sku, product.sku.toUpperCase(), product.sku.toLowerCase()]
+        for (const variation of exactVariations) {
+          if (imageCache.has(variation) && !candidates.find(c => c.imageFile.filename === imageCache.get(variation)!.filename)) {
+            const image = imageCache.get(variation)!
+            const folder = extractFolderFromPath(image.storagePath)
+            const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
+            
+            console.log(`✅ [EXACT-CASE] Case variation match: ${variation} -> ${image.filename}`)
+            
+            candidates.push({
+              product,
+              imageFile: image,
+              matchType: 'exact',
+              matchScore: 950 + categoryScore,
+              sourceFolder: folder
+            })
+          }
+        }
+        
+        // PRIORITY 3: Fuzzy SKU matches
+        const variations = generateSKUVariations(normalizedSku)
+        for (const variation of variations) {
+          if (imageCache.has(variation)) {
+            const image = imageCache.get(variation)!
+            const folder = extractFolderFromPath(image.storagePath)
+            const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
+            
+            candidates.push({
+              product,
+              imageFile: image,
+              matchType: 'fuzzy',
+              matchScore: 80 + categoryScore,
+              sourceFolder: folder
+            })
+          }
           
-          candidates.push({
-            product,
-            imageFile: image,
-            matchType: 'fuzzy',
-            matchScore: 80 + categoryScore,
-            sourceFolder: folder
-          })
+          // Check fuzzy cache for this variation
+          if (fuzzyCache.has(variation)) {
+            const skuCandidates = fuzzyCache.get(variation)!
+            for (const candidate of skuCandidates) {
+              if (imageCache.has(candidate)) {
+                const image = imageCache.get(candidate)!
+                const folder = extractFolderFromPath(image.storagePath)
+                const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
+                
+                candidates.push({
+                  product,
+                  imageFile: image,
+                  matchType: 'fuzzy',
+                  matchScore: 70 + categoryScore,
+                  sourceFolder: folder
+                })
+              }
+            }
+          }
         }
         
-        // Check fuzzy cache for this variation
-        if (fuzzyCache.has(variation)) {
-          const skuCandidates = fuzzyCache.get(variation)!
-          for (const candidate of skuCandidates) {
-            if (imageCache.has(candidate)) {
-              const image = imageCache.get(candidate)!
-              const folder = extractFolderFromPath(image.storagePath)
-              const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
-              
-              candidates.push({
-                product,
-                imageFile: image,
-                matchType: 'fuzzy',
-                matchScore: 70 + categoryScore,
-                sourceFolder: folder
-              })
+        // PRIORITY 4: Category-based fallback
+        if (candidates.length === 0 && product.category_name) {
+          const categoryFolder = product.category_name.toUpperCase()
+          if (categoryIndex.has(categoryFolder)) {
+            const categoryImages = categoryIndex.get(categoryFolder)!
+            for (const image of categoryImages.slice(0, 5)) {
+              const categoryScore = calculateCategoryScore(product.name, product.category_name, categoryFolder)
+              if (categoryScore >= 5) {
+                candidates.push({
+                  product,
+                  imageFile: image,
+                  matchType: 'category-boosted',
+                  matchScore: categoryScore,
+                  sourceFolder: categoryFolder
+                })
+              }
             }
           }
-        }
-      }
-      
-      // 3. Category-based fallback (if no SKU match found and we have strong category signals)
-      if (candidates.length === 0 && product.category_name) {
-        const categoryFolder = product.category_name.toUpperCase()
-        if (categoryIndex.has(categoryFolder)) {
-          const categoryImages = categoryIndex.get(categoryFolder)!
-          // Only suggest category-based matches if we have strong keyword matches
-          for (const image of categoryImages.slice(0, 5)) { // Limit to first 5 to avoid noise
-            const categoryScore = calculateCategoryScore(product.name, product.category_name, categoryFolder)
-            if (categoryScore >= 5) { // Only if we have decent keyword match
-              candidates.push({
-                product,
-                imageFile: image,
-                matchType: 'category-boosted',
-                matchScore: categoryScore,
-                sourceFolder: categoryFolder
-              })
-            }
-          }
-        }
-      }
-      
-      // Return the best match (highest score)
-      if (candidates.length > 0) {
-        const bestMatch = candidates.sort((a, b) => b.matchScore - a.matchScore)[0]
-        console.log(`🎯 Best match for ${product.sku}: ${bestMatch.imageFile.filename} (${bestMatch.matchType}, score: ${bestMatch.matchScore}, folder: ${bestMatch.sourceFolder})`)
-        return bestMatch
-      }
-      
-      return null
-    },
-    
-    // Keep legacy method for backward compatibility
-    findImage: (productSku: string): StorageImage | null => {
-      if (!productSku) return null
-      
-      const normalizedSku = productSku.toLowerCase().trim()
-      
-      // Direct match
-      if (imageCache.has(normalizedSku)) {
-        return imageCache.get(normalizedSku)!
-      }
-      
-      // Fuzzy match using variations
-      const variations = generateSKUVariations(normalizedSku)
-      for (const variation of variations) {
-        if (imageCache.has(variation)) {
-          console.log(`🎯 Fuzzy matched ${productSku} -> ${variation}`)
-          return imageCache.get(variation)!
         }
         
-        // Check fuzzy cache for this variation
-        if (fuzzyCache.has(variation)) {
-          const candidates = fuzzyCache.get(variation)!
-          for (const candidate of candidates) {
-            if (imageCache.has(candidate)) {
-              console.log(`🎯 Advanced fuzzy matched ${productSku} -> ${candidate}`)
-              return imageCache.get(candidate)!
-            }
-          }
+        // Return the best match (highest score)
+        if (candidates.length > 0) {
+          const bestMatch = candidates.sort((a, b) => b.matchScore - a.matchScore)[0]
+          console.log(`🎯 Best match for ${product.sku}: ${bestMatch.imageFile.filename} (${bestMatch.matchType}, score: ${bestMatch.matchScore}, folder: ${bestMatch.sourceFolder})`)
+          return bestMatch
         }
+        
+        console.log(`❌ [NO_MATCH] No image found for SKU: ${normalizedSku}`)
+        return null
+        
+      } catch (error) {
+        console.error(`❌ Error finding image for product ${product.sku}:`, error)
+        return null
       }
-      
-      return null
     },
     
     getStats: () => ({
@@ -398,98 +473,19 @@ function createCategoryAwareImageMatcher() {
   }
 }
 
-// Legacy image matcher for backward compatibility
-function createAdvancedImageMatcher() {
-  const imageCache = new Map<string, StorageImage>()
-  const fuzzyCache = new Map<string, string[]>() // normalized SKU -> original SKUs
-  
-  return {
-    buildMapping: (images: StorageImage[]) => {
-      imageCache.clear()
-      fuzzyCache.clear()
-      
-      console.log(`🧠 Building advanced image mapping from ${images.length} images`)
-      
-      for (const image of images) {
-        try {
-          const skus = extractSKUFromFilename(image.filename)
-          
-          for (const sku of skus) {
-            // Store primary mapping
-            if (!imageCache.has(sku)) {
-              imageCache.set(sku, image)
-            }
-            
-            // Build fuzzy mapping variations
-            const variations = generateSKUVariations(sku)
-            for (const variation of variations) {
-              if (!fuzzyCache.has(variation)) {
-                fuzzyCache.set(variation, [])
-              }
-              fuzzyCache.get(variation)!.push(sku)
-            }
-          }
-        } catch (error) {
-          console.error(`Error processing image ${image.filename}:`, error)
-          continue
-        }
-      }
-      
-      console.log(`🎯 Built mapping: ${imageCache.size} direct matches, ${fuzzyCache.size} fuzzy variations`)
-    },
-    
-    findImage: (productSku: string): StorageImage | null => {
-      if (!productSku) return null
-      
-      const normalizedSku = productSku.toLowerCase().trim()
-      
-      // Direct match
-      if (imageCache.has(normalizedSku)) {
-        return imageCache.get(normalizedSku)!
-      }
-      
-      // Fuzzy match using variations
-      const variations = generateSKUVariations(normalizedSku)
-      for (const variation of variations) {
-        if (imageCache.has(variation)) {
-          console.log(`🎯 Fuzzy matched ${productSku} -> ${variation}`)
-          return imageCache.get(variation)!
-        }
-        
-        // Check fuzzy cache for this variation
-        if (fuzzyCache.has(variation)) {
-          const candidates = fuzzyCache.get(variation)!
-          for (const candidate of candidates) {
-            if (imageCache.has(candidate)) {
-              console.log(`🎯 Advanced fuzzy matched ${productSku} -> ${candidate}`)
-              return imageCache.get(candidate)!
-            }
-          }
-        }
-      }
-      
-      return null
-    },
-    
-    getStats: () => ({
-      directMappings: imageCache.size,
-      fuzzyVariations: fuzzyCache.size,
-      totalImages: Array.from(new Set(Array.from(imageCache.values()).map(img => img.filename))).length
-    })
-  }
-}
-
-// Generate SKU variations for fuzzy matching
+// Enhanced SKU variations generator with better validation
 function generateSKUVariations(sku: string): string[] {
   const variations = new Set<string>()
   const normalized = sku.toLowerCase().trim()
+  
+  if (!normalized) return []
   
   variations.add(normalized)
   
   // Zero padding variations
   if (/^\d{3}$/.test(normalized)) {
     variations.add('0' + normalized)
-    variations.add('00' + normalized) // Sometimes 00123 format
+    variations.add('00' + normalized)
   }
   if (/^0\d{3}$/.test(normalized)) {
     variations.add(normalized.substring(1))
@@ -501,68 +497,110 @@ function generateSKUVariations(sku: string): string[] {
     variations.add(normalized.substring(1))
   }
   if (/^00\d{3}$/.test(normalized)) {
-    variations.add(normalized.substring(2)) // Remove 00 prefix
-    variations.add(normalized.substring(1)) // Remove single 0 prefix
+    variations.add(normalized.substring(2))
+    variations.add(normalized.substring(1))
   }
   
   // Remove common prefixes/suffixes
   const withoutPrefix = normalized.replace(/^(sku|prod|item|product)[_-]?/i, '')
-  if (withoutPrefix !== normalized) {
+  if (withoutPrefix !== normalized && withoutPrefix.length >= 3) {
     variations.add(withoutPrefix)
   }
   
-  // Remove common suffixes
   const withoutSuffix = normalized.replace(/[_-]?(main|primary|front|back|side|top|bottom|image|img|pic|photo)$/i, '')
-  if (withoutSuffix !== normalized) {
+  if (withoutSuffix !== normalized && withoutSuffix.length >= 3) {
     variations.add(withoutSuffix)
   }
   
   // Handle hyphenated versions
   if (normalized.includes('-')) {
     const parts = normalized.split('-')
-    variations.add(parts[0]) // First part
+    if (parts[0].length >= 3) variations.add(parts[0])
     if (parts.length > 1) {
-      variations.add(parts.join('')) // Remove hyphens
+      const joined = parts.join('')
+      if (joined.length >= 3) variations.add(joined)
     }
   }
   
   // Handle underscored versions
   if (normalized.includes('_')) {
     const parts = normalized.split('_')
-    variations.add(parts[0]) // First part
+    if (parts[0].length >= 3) variations.add(parts[0])
     if (parts.length > 1) {
-      variations.add(parts.join('')) // Remove underscores
+      const joined = parts.join('')
+      if (joined.length >= 3) variations.add(joined)
     }
   }
   
-  // Handle dotted versions (like 455147.455148.455149)
+  // Handle dotted versions
   if (normalized.includes('.')) {
     const parts = normalized.split('.')
     parts.forEach(part => {
       if (part.length >= 3) variations.add(part)
     })
-    variations.add(parts.join('')) // Remove dots
+    const joined = parts.join('')
+    if (joined.length >= 3) variations.add(joined)
   }
   
-  // Handle parentheses versions (like "455112 (2)")
+  // Handle parentheses versions
   const parenthesesMatch = normalized.match(/(\d+)\s*\([^)]*\)/)
-  if (parenthesesMatch) {
+  if (parenthesesMatch && parenthesesMatch[1].length >= 3) {
     variations.add(parenthesesMatch[1])
   }
   
   // Handle version numbers and suffixes
   const versionMatch = normalized.match(/(\d+)[_-]?(v\d+|version\d+|\d+)$/i)
-  if (versionMatch) {
+  if (versionMatch && versionMatch[1].length >= 3) {
     variations.add(versionMatch[1])
   }
   
   // Remove file extensions if somehow included
   const withoutExt = normalized.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
-  if (withoutExt !== normalized) {
+  if (withoutExt !== normalized && withoutExt.length >= 3) {
     variations.add(withoutExt)
   }
   
-  return Array.from(variations)
+  return Array.from(variations).filter(v => isValidSKU(v))
+}
+
+// Enhanced checkpoint management
+class CheckpointManager {
+  constructor(private supabaseClient: any) {}
+  
+  async saveCheckpoint(sessionId: string, processedItems: string[], lastIndex: number): Promise<void> {
+    try {
+      const checkpoint: MigrationCheckpoint = {
+        sessionId,
+        processedItems,
+        lastProcessedIndex: lastIndex,
+        timestamp: new Date().toISOString()
+      }
+      
+      // Store in a temporary table or storage
+      await this.supabaseClient
+        .from('migration_checkpoints')
+        .upsert(checkpoint)
+        .eq('sessionId', sessionId)
+    } catch (error) {
+      console.warn('Failed to save checkpoint:', error)
+    }
+  }
+  
+  async loadCheckpoint(sessionId: string): Promise<MigrationCheckpoint | null> {
+    try {
+      const { data, error } = await this.supabaseClient
+        .from('migration_checkpoints')
+        .select('*')
+        .eq('sessionId', sessionId)
+        .single()
+      
+      if (error || !data) return null
+      return data as MigrationCheckpoint
+    } catch (error) {
+      console.warn('Failed to load checkpoint:', error)
+      return null
+    }
+  }
 }
 
 Deno.serve(async (req) => {
@@ -573,6 +611,7 @@ Deno.serve(async (req) => {
 
   const sessionId = crypto.randomUUID()
   let supabaseClient: any
+  const circuitBreaker = new CircuitBreaker(3, 30000)
   
   // Auth check first
   const authHeader = req.headers.get('authorization');
@@ -596,10 +635,12 @@ Deno.serve(async (req) => {
     console.log('No request body or invalid JSON, using defaults')
   }
   
-  // Extract optional parameters
-  const targetFolder = requestBody.targetFolder || 'MULTI_MATCH_ORGANIZED' // Default to existing behavior
-  const enableCategoryMatching = requestBody.enableCategoryMatching !== false // Default to true
-  const categoryBoostThreshold = requestBody.categoryBoostThreshold || 5
+  // Extract optional parameters with validation
+  const targetFolder = requestBody.targetFolder || 'MULTI_MATCH_ORGANIZED'
+  const enableCategoryMatching = requestBody.enableCategoryMatching !== false
+  const categoryBoostThreshold = Math.max(1, requestBody.categoryBoostThreshold || 5)
+  const batchSize = Math.min(Math.max(1, requestBody.batchSize || 5), 20) // Limit batch size
+  const enableCheckpoints = requestBody.enableCheckpoints !== false
 
   const sendProgressUpdate = async (progress: Partial<MigrationProgress>) => {
     try {
@@ -660,7 +701,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Starting migration function...')
+    console.log('🚀 Starting enhanced migration function...')
     
     supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -670,14 +711,16 @@ Deno.serve(async (req) => {
     console.log('✅ Supabase client initialized')
 
     const startTime = new Date().toISOString()
-    console.log('📋 Initializing migration process...')
-    await logMessage('info', '🚀 Starting enhanced image migration from Storage to Supabase')
+    const checkpointManager = enableCheckpoints ? new CheckpointManager(supabaseClient) : null
+    
+    console.log('📋 Initializing enhanced migration process...')
+    await logMessage('info', '🚀 Starting enhanced image migration with improved error handling')
 
-    // Initialize progress with detailed logging
+    // Initialize progress
     const progress: MigrationProgress = {
       sessionId,
       status: 'initializing',
-      currentStep: 'Initializing migration process',
+      currentStep: 'Initializing enhanced migration process',
       processed: 0,
       successful: 0,
       failed: 0,
@@ -697,7 +740,14 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       sessionId,
-      message: 'Drive migration started successfully'
+      message: 'Enhanced drive migration started successfully',
+      config: {
+        targetFolder,
+        enableCategoryMatching,
+        categoryBoostThreshold,
+        batchSize,
+        enableCheckpoints
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
@@ -705,68 +755,94 @@ Deno.serve(async (req) => {
 
     async function processMigration() {
       try {
-        await logMessage('info', '🔧 Background migration processing started');
+        await logMessage('info', '🔧 Enhanced background migration processing started');
 
-        // Step 1: Get all products with their SKUs
+        // Check for existing checkpoint
+        let checkpoint: MigrationCheckpoint | null = null
+        if (checkpointManager) {
+          checkpoint = await checkpointManager.loadCheckpoint(sessionId)
+          if (checkpoint) {
+            await logMessage('info', `📋 Resuming from checkpoint: ${checkpoint.lastProcessedIndex} items processed`)
+          }
+        }
+
+        // Step 1: Get all products with enhanced error handling
         console.log('📊 Starting product fetch...')
         progress.status = 'scanning'
-        progress.currentStep = 'Fetching products from database'
+        progress.currentStep = 'Fetching products from database with validation'
         await sendProgressUpdate(progress)
 
         console.log('🔍 Querying products table...')
-        const { data: products, error: productsError } = await supabaseClient
-          .from('products')
-          .select(`
-            id, 
-            sku, 
-            name,
-            categories!inner(name)
-          `)
-          .not('sku', 'is', null)
-          .limit(10000) // Increased limit to 10,000 as requested
+        const { data: products, error: productsError } = await circuitBreaker.execute(async () => {
+          return await supabaseClient
+            .from('products')
+            .select(`
+              id, 
+              sku, 
+              name,
+              categories!inner(name)
+            `)
+            .not('sku', 'is', null)
+            .not('name', 'is', null)
+            .eq('is_active', true)
+            .limit(10000)
+        })
 
         if (productsError) {
           console.error('❌ Products fetch failed:', productsError)
           await logMessage('error', `Failed to fetch products: ${productsError.message}`)
-          throw new Error(`Failed to fetch products: ${productsError.message}`)
+          throw new MigrationError(`Failed to fetch products: ${productsError.message}`, 'DB_ERROR')
         }
 
-        // Transform products to include category name for better matching
-        const transformedProducts = products?.map(p => ({
+        // Transform and validate products
+        const transformedProducts = products?.filter(p => p && p.sku && p.name).map(p => ({
           ...p,
           category_name: p.categories?.name
         })) || []
 
-        console.log(`✅ Found ${transformedProducts.length} products with SKUs`)
-        await logMessage('info', `Found ${transformedProducts.length} products with SKUs (${enableCategoryMatching ? 'category-aware' : 'SKU-only'} matching enabled)`)
+        if (transformedProducts.length === 0) {
+          throw new MigrationError('No valid products found', 'NO_PRODUCTS')
+        }
 
-        // Step 2: Recursively scan specified folder (with manual folder selection support)
-        console.log(`🔍 Starting Storage scan of ${targetFolder}...`)
-        progress.currentStep = `Scanning ${targetFolder} folder recursively`
+        console.log(`✅ Found ${transformedProducts.length} valid products with SKUs`)
+        await logMessage('info', `Found ${transformedProducts.length} valid products with SKUs (enhanced matching enabled)`)
+
+        // Step 2: Enhanced storage scanning with better error handling
+        console.log(`🔍 Starting enhanced Storage scan of ${targetFolder}...`)
+        progress.currentStep = `Scanning ${targetFolder} folder with validation`
         await sendProgressUpdate(progress)
 
         const imageFiles: StorageImage[] = []
         const supabaseUrl = Deno.env.get('SUPABASE_URL')
         
-        // Function to recursively scan folders with pagination
-        async function scanFolder(folderPath: string = targetFolder) {
-          let offset = 0
-          const limit = 1000 // Use smaller chunks to avoid timeouts
-          let hasMore = true
+        // Enhanced recursive folder scanning
+        async function scanFolder(folderPath: string = targetFolder, depth: number = 0): Promise<void> {
+          if (depth > 10) { // Prevent infinite recursion
+            console.warn(`⚠️ Maximum depth reached for folder: ${folderPath}`)
+            return
+          }
           
-          while (hasMore) {
+          let offset = 0
+          const limit = 500 // Smaller chunks for better reliability
+          let hasMore = true
+          let retryCount = 0
+          const maxRetries = 3
+          
+          while (hasMore && retryCount < maxRetries) {
             try {
-              const { data: storageFiles, error: storageError } = await supabaseClient.storage
-                .from('product-images')
-                .list(folderPath, {
-                  limit,
-                  offset,
-                  sortBy: { column: 'name', order: 'asc' }
-                })
+              const { data: storageFiles, error: storageError } = await circuitBreaker.execute(async () => {
+                return await supabaseClient.storage
+                  .from('product-images')
+                  .list(folderPath, {
+                    limit,
+                    offset,
+                    sortBy: { column: 'name', order: 'asc' }
+                  })
+              })
 
               if (storageError) {
                 console.error(`❌ Error accessing storage folder ${folderPath}:`, storageError)
-                throw new Error(`Storage access failed: ${storageError.message}`)
+                throw new MigrationError(`Storage access failed: ${storageError.message}`, 'STORAGE_ERROR', true)
               }
 
               if (!storageFiles || storageFiles.length === 0) {
@@ -777,28 +853,31 @@ Deno.serve(async (req) => {
               console.log(`📂 Scanning folder ${folderPath}, batch ${Math.floor(offset/limit) + 1}: found ${storageFiles.length} items`)
 
               for (const file of storageFiles) {
-                const fullPath = folderPath === 'MULTI_MATCH_ORGANIZED' ? file.name : `${folderPath}/${file.name}`
+                if (!file?.name) continue
                 
-                // If it's a directory, scan it recursively
-                if (!file.metadata && file.name && !file.name.includes('.')) {
-                  await scanFolder(`${folderPath}/${file.name}`)
+                const fullPath = folderPath === targetFolder ? file.name : `${folderPath}/${file.name}`
+                
+                // Enhanced directory detection
+                if (!file.metadata && file.name && !file.name.includes('.') && depth < 10) {
+                  await scanFolder(`${folderPath}/${file.name}`, depth + 1)
                   continue
                 }
                 
-                // Check if it's an image file
-                const isImage = file.metadata?.mimetype?.startsWith('image/') || 
-                               file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)
+                // Enhanced image detection
+                const isImage = (file.metadata?.mimetype?.startsWith('image/') || 
+                               file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/)) &&
+                               file.metadata?.size > 1000 // Minimum file size filter
                 
                 if (isImage) {
                   const skus = extractSKUFromFilename(file.name)
                   if (skus.length > 0) {
-                    const storagePath = fullPath.startsWith('MULTI_MATCH_ORGANIZED/') 
+                    const storagePath = fullPath.startsWith(`${targetFolder}/`) 
                       ? fullPath 
-                      : `MULTI_MATCH_ORGANIZED/${fullPath.replace('MULTI_MATCH_ORGANIZED/', '')}`
+                      : `${targetFolder}/${fullPath.replace(`${targetFolder}/`, '')}`
                     
                     imageFiles.push({
                       filename: file.name,
-                      sku: skus[0], // Use primary SKU for storage
+                      sku: skus[0],
                       storagePath,
                       metadata: { ...file.metadata || {}, allSkus: skus }
                     })
@@ -809,18 +888,27 @@ Deno.serve(async (req) => {
                 }
               }
               
-              // Check if we got fewer results than requested, meaning we've reached the end
               if (storageFiles.length < limit) {
                 hasMore = false
               } else {
                 offset += limit
-                // Add a small delay between batches to avoid overwhelming the API
-                await new Promise(resolve => setTimeout(resolve, 100))
+                await new Promise(resolve => setTimeout(resolve, 200)) // Longer delay for stability
               }
+              
+              retryCount = 0 // Reset retry count on success
+              
             } catch (error) {
-              console.error(`❌ [SCAN_ERROR] Error scanning folder ${folderPath}:`, error)
-              await logMessage('error', `Error scanning folder ${folderPath}: ${error.message}`)
-              hasMore = false
+              retryCount++
+              console.error(`❌ [SCAN_ERROR] Error scanning folder ${folderPath} (attempt ${retryCount}/${maxRetries}):`, error)
+              
+              if (retryCount >= maxRetries) {
+                await logMessage('error', `Failed to scan folder ${folderPath} after ${maxRetries} attempts: ${error.message}`)
+                hasMore = false
+              } else {
+                // Exponential backoff
+                const delay = Math.pow(2, retryCount) * 1000
+                await new Promise(resolve => setTimeout(resolve, delay))
+              }
             }
           }
         }
@@ -828,127 +916,92 @@ Deno.serve(async (req) => {
         await scanFolder()
         
         console.log(`📊 Found ${imageFiles.length} processable images with SKUs`)
-        await logMessage('info', `Found ${imageFiles.length} images in storage ${targetFolder} folder`)
+        await logMessage('info', `Found ${imageFiles.length} valid images in storage ${targetFolder} folder`)
 
-        // Step 3: Build advanced intelligent image mapping
-        console.log("[PROGRESS] Building advanced image mapping cache", JSON.stringify({
-          status: 'processing',
-          processed: 0,
-          successful: 0,
-          failed: 0,
-          total: imageFiles.length
-        }))
-        
-        console.log(`🧠 Building ${enableCategoryMatching ? 'category-aware' : 'legacy'} image matcher from ${imageFiles.length} images`)
-        const imageMatcher = enableCategoryMatching ? createCategoryAwareImageMatcher() : createAdvancedImageMatcher()
+        if (imageFiles.length === 0) {
+          throw new MigrationError('No valid images found in storage', 'NO_IMAGES')
+        }
+
+        // Step 3: Build enhanced image mapping
+        console.log(`🧠 Building enhanced ${enableCategoryMatching ? 'category-aware' : 'legacy'} image matcher`)
+        const imageMatcher = createCategoryAwareImageMatcher()
         imageMatcher.buildMapping(imageFiles)
         
         const matcherStats = imageMatcher.getStats()
-        console.log(`✅ Advanced mapping built: ${matcherStats.directMappings} direct, ${matcherStats.fuzzyVariations} fuzzy variants, ${matcherStats.totalImages} unique images`)
-        await logMessage('info', `Advanced image mapping: ${matcherStats.directMappings} direct mappings, ${matcherStats.fuzzyVariations} fuzzy variations`)
+        console.log(`✅ Enhanced mapping built: ${matcherStats.directMappings} direct, ${matcherStats.fuzzyVariations} fuzzy variants`)
+        await logMessage('info', `Enhanced image mapping: ${matcherStats.directMappings} direct mappings, ${matcherStats.fuzzyVariations} fuzzy variations`)
 
-        // Step 4: Enhanced product-image matching with PRIORITIZED exact matching first
-        progress.total = Math.min(transformedProducts?.length || 10000, 10000) // Increased to 10,000
-        progress.currentStep = 'PRIORITIZED exact matching + fuzzy fallback for products to images'
+        // Step 4: Enhanced product-image matching with prioritized exact matching
+        progress.total = transformedProducts.length
+        progress.currentStep = 'Enhanced PRIORITIZED matching: Exact SKU matches first, then fuzzy fallback'
         await sendProgressUpdate(progress)
         
-        await logMessage('info', `🔍 [MATCHING] Starting PRIORITIZED matching: Exact SKU matches first, then fuzzy fallback`)
+        await logMessage('info', `🔍 [MATCHING] Starting enhanced PRIORITIZED matching process`)
 
         const matchedProducts: Array<{product: Product, imageFile: StorageImage}> = []
         let exactMatches = 0
         let fuzzyMatches = 0
         let categoryMatches = 0
         
-        if (!transformedProducts || transformedProducts.length === 0) {
-          await logMessage('warn', 'No products found to process')
-          progress.total = 0
-          await sendProgressUpdate(progress)
-        } else {
+        // Enhanced batch processing with checkpoints
+        const processingBatchSize = Math.min(50, batchSize * 10) // Adjust batch size
+        for (let batchStart = 0; batchStart < transformedProducts.length; batchStart += processingBatchSize) {
+          const batchEnd = Math.min(batchStart + processingBatchSize, transformedProducts.length)
+          const batch = transformedProducts.slice(batchStart, batchEnd)
           
-          // Process products in smaller batches to avoid memory issues
-          const processingBatchSize = 100;
-          for (let batchStart = 0; batchStart < transformedProducts.length; batchStart += processingBatchSize) {
-            const batchEnd = Math.min(batchStart + processingBatchSize, transformedProducts.length);
-            const batch = transformedProducts.slice(batchStart, batchEnd);
-            
-            console.log(`🔄 [MATCHING_BATCH] Processing batch ${Math.floor(batchStart/processingBatchSize) + 1}/${Math.ceil(transformedProducts.length/processingBatchSize)} (${batch.length} products)`);
-            await logMessage('info', `🔄 [MATCHING_BATCH] Processing batch ${Math.floor(batchStart/processingBatchSize) + 1}/${Math.ceil(transformedProducts.length/processingBatchSize)}`);
+          console.log(`🔄 [MATCHING_BATCH] Processing batch ${Math.floor(batchStart/processingBatchSize) + 1}/${Math.ceil(transformedProducts.length/processingBatchSize)} (${batch.length} products)`)
+          await logMessage('info', `🔄 [MATCHING_BATCH] Processing batch ${Math.floor(batchStart/processingBatchSize) + 1}/${Math.ceil(transformedProducts.length/processingBatchSize)}`)
 
-            for (const product of batch) {
-              try {
-                if (!product || !product.sku) continue
-
-                // Use category-aware matching if enabled
-                if (enableCategoryMatching && typeof imageMatcher.findBestImage === 'function') {
-                  const bestMatch = imageMatcher.findBestImage(product)
-                  if (bestMatch) {
-                    matchedProducts.push({ product: bestMatch.product, imageFile: bestMatch.imageFile })
-                    
-                    if (bestMatch.matchType === 'exact') {
-                      exactMatches++
-                    } else if (bestMatch.matchType === 'fuzzy') {
-                      fuzzyMatches++
-                    } else if (bestMatch.matchType === 'category-boosted') {
-                      categoryMatches++
-                    }
-                    
-                    console.log(`✅ [${bestMatch.matchType.toUpperCase()}] ${product.sku} -> ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore}, folder: ${bestMatch.sourceFolder})`)
-                    await logMessage('info', `✅ [${bestMatch.matchType.toUpperCase()}] ${product.sku} matched to ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore})`)
-                  }
-                } else {
-                  // Fallback to legacy matching
-                  const matchedImage = imageMatcher.findImage(product.sku)
-                  if (matchedImage) {
-                    matchedProducts.push({ product, imageFile: matchedImage })
-                    
-                    // Check if it was a direct or fuzzy match
-                    const directMatch = imageFiles.find(img => img.sku === product.sku)
-                    if (directMatch) {
-                      exactMatches++
-                      console.log(`✅ [EXACT] ${product.sku} -> ${matchedImage.filename}`)
-                      await logMessage('info', `✅ [EXACT] ${product.sku} matched to ${matchedImage.filename}`)
-                    } else {
-                      fuzzyMatches++
-                      console.log(`🎯 [FUZZY] ${product.sku} -> ${matchedImage.filename}`)
-                      await logMessage('info', `🎯 [FUZZY] ${product.sku} matched to ${matchedImage.filename}`)
-                    }
-                  }
-                }
-              } catch (error) {
-                console.error(`❌ [ERROR] Matching product ${product?.sku || 'unknown'}:`, error)
-                await logMessage('error', `❌ [ERROR] Failed to match product ${product?.sku || 'unknown'}: ${error.message}`)
+          for (const product of batch) {
+            try {
+              if (!product?.sku) {
+                console.warn(`⚠️ Skipping product without SKU:`, product)
+                continue
               }
-            }
 
-            // Small delay between batches
-            if (batchEnd < transformedProducts.length) {
-              await new Promise(resolve => setTimeout(resolve, 100));
+              const bestMatch = imageMatcher.findBestImage(product)
+              if (bestMatch) {
+                matchedProducts.push({ product: bestMatch.product, imageFile: bestMatch.imageFile })
+                
+                if (bestMatch.matchType === 'exact') {
+                  exactMatches++
+                } else if (bestMatch.matchType === 'fuzzy') {
+                  fuzzyMatches++
+                } else if (bestMatch.matchType === 'category-boosted') {
+                  categoryMatches++
+                }
+                
+                console.log(`✅ [${bestMatch.matchType.toUpperCase()}] ${product.sku} -> ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore})`)
+              } else {
+                console.log(`❌ [NO_MATCH] No image found for SKU: ${product.sku}`)
+              }
+            } catch (error) {
+              console.error(`❌ [ERROR] Matching product ${product?.sku || 'unknown'}:`, error)
+              await logMessage('error', `Failed to match product ${product?.sku || 'unknown'}: ${error.message}`)
             }
           }
-          
-          const totalMatches = exactMatches + fuzzyMatches + categoryMatches
-          if (enableCategoryMatching) {
-            console.log(`📊 [SUMMARY] Category-aware matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total matches`)
-            await logMessage('info', `📊 [SUMMARY] Matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total`)
-          } else {
-            console.log(`📊 [SUMMARY] Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total matches`)
-            await logMessage('info', `📊 [SUMMARY] Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total`)
+
+          // Save checkpoint
+          if (checkpointManager) {
+            const processedIds = transformedProducts.slice(0, batchEnd).map(p => p.id)
+            await checkpointManager.saveCheckpoint(sessionId, processedIds, batchEnd)
+          }
+
+          // Delay between batches
+          if (batchEnd < transformedProducts.length) {
+            await new Promise(resolve => setTimeout(resolve, 150))
           }
         }
+        
+        const totalMatches = exactMatches + fuzzyMatches + categoryMatches
+        console.log(`📊 [SUMMARY] Enhanced matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total matches`)
+        await logMessage('info', `📊 [SUMMARY] Enhanced matching complete: ${totalMatches} total matches from ${imageFiles.length} images`)
 
         progress.total = matchedProducts.length
-        const totalMatches = exactMatches + fuzzyMatches + categoryMatches
-        if (enableCategoryMatching) {
-          await logMessage('info', `Category-aware matching complete: ${totalMatches} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy, ${categoryMatches} category) from ${imageFiles.length} images`)
-        } else {
-          await logMessage('info', `Legacy matching complete: ${totalMatches} products matched (${exactMatches} exact, ${fuzzyMatches} fuzzy) from ${imageFiles.length} images`)
-        }
         await sendProgressUpdate(progress)
 
-        // Step 5: Process matched products with enhanced error handling
-        const batchSize = 5
-        
-        await logMessage('info', `Starting migration of ${matchedProducts.length} matched products in batches of ${batchSize}`)
+        // Step 5: Enhanced product processing with improved error handling
+        await logMessage('info', `Starting enhanced migration of ${matchedProducts.length} matched products`)
         
         if (matchedProducts.length === 0) {
           await logMessage('warn', 'No products to migrate - check SKU matching logic')
@@ -958,108 +1011,120 @@ Deno.serve(async (req) => {
           return
         }
         
+        // Process in smaller, more reliable batches
         for (let i = 0; i < matchedProducts.length; i += batchSize) {
           const batch = matchedProducts.slice(i, Math.min(i + batchSize, matchedProducts.length))
           const batchNumber = Math.floor(i / batchSize) + 1
           const totalBatches = Math.ceil(matchedProducts.length / batchSize)
           
-          await logMessage('info', `Processing batch ${batchNumber}/${totalBatches}`)
+          await logMessage('info', `Processing enhanced batch ${batchNumber}/${totalBatches}`)
           
-          // Process batch sequentially for better stability
+          // Process batch with enhanced error handling
           for (const { product, imageFile } of batch) {
-            try {
-              progress.currentFile = `${product.sku} (${imageFile.filename})`
-              await sendProgressUpdate(progress)
-              await logMessage('info', `🔄 [PROCESSING] ${product.sku}: ${imageFile.filename}`)
-              console.log(`🔄 [PROCESSING] Product: ${product.name} (${product.sku}) -> Image: ${imageFile.filename}`)
-
-              // Check if product already has an image
-              const { data: existingImages } = await supabaseClient
-                .from('product_images')
-                .select('id')
-                .eq('product_id', product.id)
-                .limit(1)
-
-              if (existingImages && existingImages.length > 0) {
-                console.log(`⏭️ [SKIP] ${product.sku} already has ${existingImages.length} image(s)`)
-                await logMessage('info', `⏭️ [SKIP] ${product.sku} - already has ${existingImages.length} image(s)`)
-                progress.processed++
-                progress.successful++
+            let retryCount = 0
+            const maxRetries = 2
+            
+            while (retryCount <= maxRetries) {
+              try {
+                progress.currentFile = `${product.sku} (${imageFile.filename})`
                 await sendProgressUpdate(progress)
-                continue
-              }
+                
+                console.log(`🔄 [PROCESSING] Product: ${product.name} (${product.sku}) -> Image: ${imageFile.filename}`)
 
-              // Create product_images record with direct storage URL
-              const imageUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${imageFile.storagePath}`
-              
-              console.log(`🔗 [LINKING] Product: ${product.name} (${product.sku})`)
-              console.log(`🔗 [LINKING] Image URL: ${imageUrl}`)
-              await logMessage('info', `🔗 [LINKING] ${product.sku} -> ${imageUrl}`)
-              
-              const { error: insertError } = await supabaseClient
-                .from('product_images')
-                .insert({
-                  product_id: product.id,
-                  image_url: imageUrl,
-                  alt_text: `${product.name} product image`,
-                  sort_order: 0,
-                  is_primary: true
+                // Check if product already has an image
+                const { data: existingImages } = await circuitBreaker.execute(async () => {
+                  return await supabaseClient
+                    .from('product_images')
+                    .select('id')
+                    .eq('product_id', product.id)
+                    .limit(1)
                 })
 
-              if (insertError) {
-                console.error(`❌ [DB_ERROR] Failed to insert image for ${product.sku}:`, insertError)
-                await logMessage('error', `❌ [DB_ERROR] Failed to insert image for ${product.sku}: ${insertError.message}`)
-                progress.failed++
-                progress.errors.push(`${product.sku}: ${insertError.message}`)
-              } else {
+                if (existingImages && existingImages.length > 0) {
+                  console.log(`⏭️ [SKIP] ${product.sku} already has ${existingImages.length} image(s)`)
+                  progress.processed++
+                  progress.successful++
+                  await sendProgressUpdate(progress)
+                  break // Exit retry loop
+                }
+
+                // Validate image URL
+                const imageUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${imageFile.storagePath}`
+                
+                console.log(`🔗 [LINKING] Product: ${product.name} (${product.sku})`)
+                console.log(`🔗 [LINKING] Image URL: ${imageUrl}`)
+                
+                const { error: insertError } = await circuitBreaker.execute(async () => {
+                  return await supabaseClient
+                    .from('product_images')
+                    .insert({
+                      product_id: product.id,
+                      image_url: imageUrl,
+                      alt_text: `${product.name} product image`,
+                      sort_order: 0,
+                      is_primary: true
+                    })
+                })
+
+                if (insertError) {
+                  throw new MigrationError(`Failed to insert image for ${product.sku}: ${insertError.message}`, 'DB_INSERT_ERROR', true)
+                }
+
                 console.log(`✅ [SUCCESS] Successfully linked ${product.sku} to ${imageFile.filename}`)
                 await logMessage('info', `✅ [SUCCESS] ${product.sku} successfully linked to ${imageFile.filename}`)
                 progress.successful++
+                progress.processed++
+                await sendProgressUpdate(progress)
+                break // Exit retry loop on success
+
+              } catch (error) {
+                retryCount++
+                console.error(`❌ [PROCESSING_ERROR] Error processing ${product.sku} (attempt ${retryCount}/${maxRetries + 1}):`, error)
+                
+                if (retryCount > maxRetries) {
+                  await logMessage('error', `❌ [FINAL_ERROR] Failed to process ${product.sku} after ${maxRetries + 1} attempts: ${error.message}`)
+                  progress.failed++
+                  progress.errors.push(`${product.sku}: ${error.message}`)
+                  progress.processed++
+                  await sendProgressUpdate(progress)
+                } else {
+                  // Wait before retry
+                  await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+                }
               }
-
-              progress.processed++
-              await sendProgressUpdate(progress)
-
-            } catch (error) {
-              console.error(`❌ [PROCESSING_ERROR] Error processing ${product.sku}:`, error)
-              await logMessage('error', `❌ [PROCESSING_ERROR] Error processing ${product.sku}: ${error.message}`)
-              progress.failed++
-              progress.errors.push(`${product.sku}: ${error.message}`)
-              progress.processed++
-              await sendProgressUpdate(progress)
             }
           }
 
-          // Small delay between batches to avoid overwhelming the database
+          // Longer delay between batches for stability
           if (i + batchSize < matchedProducts.length) {
-            await new Promise(resolve => setTimeout(resolve, 100))
+            await new Promise(resolve => setTimeout(resolve, 300))
           }
         }
 
         // Final status update
         progress.status = 'completed'
-        progress.currentStep = `Migration completed: ${progress.successful} successful, ${progress.failed} failed`
+        progress.currentStep = `Enhanced migration completed: ${progress.successful} successful, ${progress.failed} failed`
         await sendProgressUpdate(progress)
 
         const endTime = new Date().toISOString()
         const duration = new Date(endTime).getTime() - new Date(startTime).getTime()
         
-        console.log(`🎉 [COMPLETED] Migration finished in ${Math.round(duration / 1000)}s`)
+        console.log(`🎉 [COMPLETED] Enhanced migration finished in ${Math.round(duration / 1000)}s`)
         console.log(`🎉 [FINAL_STATS] Processed: ${progress.processed}, Success: ${progress.successful}, Failed: ${progress.failed}`)
-        await logMessage('info', `🎉 [COMPLETED] Migration completed in ${Math.round(duration / 1000)}s - Success: ${progress.successful}, Failed: ${progress.failed}`)
+        await logMessage('info', `🎉 [COMPLETED] Enhanced migration completed in ${Math.round(duration / 1000)}s - Success: ${progress.successful}, Failed: ${progress.failed}`)
         
       } catch (error) {
-        console.error('❌ [FATAL_ERROR] Migration failed:', error)
+        console.error('❌ [FATAL_ERROR] Enhanced migration failed:', error)
         progress.status = 'error'
         progress.currentStep = `Error: ${error.message}`
         progress.errors.push(error.message)
         await sendProgressUpdate(progress)
-        await logMessage('error', `Migration failed: ${error.message}`)
+        await logMessage('error', `Enhanced migration failed: ${error.message}`)
       }
     }
 
   } catch (error) {
-    console.error('❌ Migration failed:', error)
+    console.error('❌ Enhanced migration failed:', error)
     
     return new Response(JSON.stringify({
       success: false,
