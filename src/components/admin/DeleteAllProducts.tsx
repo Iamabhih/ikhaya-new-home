@@ -44,25 +44,25 @@ export const DeleteAllProducts = () => {
       // First, delete all related data that references products
       const deleteOperations = [
         // Delete order items referencing products - this will prevent orders from being deleted
-        supabase.from('order_items').delete().neq('id', ''),
+        supabase.from('order_items').delete().gte('created_at', '1900-01-01'),
         // Delete cart items
-        supabase.from('cart_items').delete().neq('id', ''),
+        supabase.from('cart_items').delete().gte('created_at', '1900-01-01'),
         // Delete product images
-        supabase.from('product_images').delete().neq('id', ''),
+        supabase.from('product_images').delete().gte('created_at', '1900-01-01'),
         // Delete homepage featured products
-        supabase.from('homepage_featured_products').delete().neq('id', ''),
+        supabase.from('homepage_featured_products').delete().gte('created_at', '1900-01-01'),
         // Delete wishlists with products
-        supabase.from('wishlists').delete().neq('id', ''),
+        supabase.from('wishlists').delete().gte('created_at', '1900-01-01'),
         // Delete reviews
-        supabase.from('reviews').delete().neq('id', ''),
+        supabase.from('reviews').delete().gte('created_at', '1900-01-01'),
         // Delete product variants
-        supabase.from('product_variants').delete().neq('id', ''),
+        supabase.from('product_variants').delete().gte('created_at', '1900-01-01'),
         // Delete stock movements
-        supabase.from('stock_movements').delete().neq('id', ''),
+        supabase.from('stock_movements').delete().gte('created_at', '1900-01-01'),
         // Delete product import errors
-        supabase.from('product_import_errors').delete().neq('id', ''),
+        supabase.from('product_import_errors').delete().gte('created_at', '1900-01-01'),
         // Delete product imports
-        supabase.from('product_imports').delete().neq('id', ''),
+        supabase.from('product_imports').delete().gte('created_at', '1900-01-01'),
       ];
 
       // Execute all related deletions
@@ -81,7 +81,7 @@ export const DeleteAllProducts = () => {
       const { error: productsError } = await supabase
         .from('products')
         .delete()
-        .neq('id', ''); // This will delete ALL products
+        .gte('created_at', '1900-01-01'); // This will delete ALL products
       
       if (productsError) {
         console.error('Error deleting products:', productsError);
