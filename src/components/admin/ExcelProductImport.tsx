@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -43,6 +44,7 @@ interface ImportResult {
     total: number;
     successful: number;
     failed: number;
+    updated: number;
     sheets: number;
     errors: Array<{ sheet?: string; row?: number; error: string }>;
   };
@@ -56,6 +58,7 @@ export const ExcelProductImport = () => {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [activeImportId, setActiveImportId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("import");
+  const [updateDuplicates, setUpdateDuplicates] = useState(false);
 
   // Fetch import history
   const { data: importHistory, refetch: refetchHistory } = useQuery({
@@ -102,6 +105,7 @@ export const ExcelProductImport = () => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('action', 'import');
+      formData.append('updateDuplicates', updateDuplicates.toString());
 
       // Set longer timeout for imports
       const { data, error } = await supabase.functions.invoke('import-excel-products', {
@@ -119,7 +123,10 @@ export const ExcelProductImport = () => {
       setActiveImportId(data.importId);
       refetchHistory();
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success(`Import completed: ${data.results.successful} products imported from ${data.results.sheets} sheets`);
+      const message = data.results.updated > 0 
+        ? `Import completed: ${data.results.successful} products processed (${data.results.updated} updated) from ${data.results.sheets} sheets`
+        : `Import completed: ${data.results.successful} products imported from ${data.results.sheets} sheets`;
+      toast.success(message);
     },
     onError: (error: any) => {
       console.error('Import error:', error);
@@ -261,6 +268,19 @@ export const ExcelProductImport = () => {
                   </Alert>
                 )}
 
+                {previewData && (
+                  <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
+                    <Checkbox 
+                      id="update-duplicates"
+                      checked={updateDuplicates}
+                      onCheckedChange={(checked) => setUpdateDuplicates(!!checked)}
+                    />
+                    <Label htmlFor="update-duplicates" className="text-sm">
+                      Update existing products with duplicate SKUs instead of skipping them
+                    </Label>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <Button 
                     onClick={handlePreview}
@@ -365,7 +385,7 @@ export const ExcelProductImport = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">{importResult.results.successful}</div>
                     <div className="text-sm text-muted-foreground">Successful</div>
@@ -374,6 +394,12 @@ export const ExcelProductImport = () => {
                     <div className="text-2xl font-bold text-red-600">{importResult.results.failed}</div>
                     <div className="text-sm text-muted-foreground">Failed</div>
                   </div>
+                  {importResult.results.updated > 0 && (
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{importResult.results.updated}</div>
+                      <div className="text-sm text-muted-foreground">Updated</div>
+                    </div>
+                  )}
                   <div className="text-center">
                     <div className="text-2xl font-bold">{importResult.results.sheets}</div>
                     <div className="text-sm text-muted-foreground">Sheets</div>

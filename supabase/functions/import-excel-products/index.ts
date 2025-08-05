@@ -161,6 +161,7 @@ Deno.serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const action = formData.get('action') as string;
+    const updateDuplicates = formData.get('updateDuplicates') === 'true';
 
     if (!file) {
       return new Response(
@@ -227,6 +228,7 @@ Deno.serve(async (req) => {
 
       let totalSuccessful = 0;
       let totalFailed = 0;
+      let totalUpdated = 0;
       let allErrors: any[] = [];
 
       // Process each sheet
@@ -260,7 +262,8 @@ Deno.serve(async (req) => {
               
               const batchPromise = supabase.rpc('bulk_insert_products', {
                 products_data: batch,
-                import_id_param: importRecord.id
+                import_id_param: importRecord.id,
+                update_duplicates: updateDuplicates
               });
               
               const { data: result, error: processError } = await Promise.race([
@@ -282,6 +285,7 @@ Deno.serve(async (req) => {
               console.log('Batch result:', result);
               totalSuccessful += result.successful || 0;
               totalFailed += result.failed || 0;
+              totalUpdated += result.updated || 0;
               allErrors = allErrors.concat(result.errors || []);
               
             } catch (error) {
@@ -342,13 +346,14 @@ Deno.serve(async (req) => {
         JSON.stringify({
           success: true,
           importId: importRecord.id,
-          results: {
-            total: totalProducts,
-            successful: totalSuccessful,
-            failed: totalFailed,
-            sheets: sheetsData.length,
-            errors: allErrors.slice(0, 20)
-          }
+            results: {
+              total: totalProducts,
+              successful: totalSuccessful,
+              failed: totalFailed,
+              updated: totalUpdated,
+              sheets: sheetsData.length,
+              errors: allErrors.slice(0, 20)
+            }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

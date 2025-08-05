@@ -2166,7 +2166,13 @@ export type Database = {
         Returns: boolean
       }
       bulk_insert_products: {
-        Args: { products_data: Json; import_id_param: string }
+        Args:
+          | { products_data: Json; import_id_param: string }
+          | {
+              products_data: Json
+              import_id_param: string
+              update_duplicates?: boolean
+            }
         Returns: Json
       }
       bulk_update_order_status: {
