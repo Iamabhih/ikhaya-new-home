@@ -79,8 +79,21 @@ export const useWishlist = () => {
       const savedWishlist = localStorage.getItem('wishlist');
       if (!savedWishlist) return;
 
+      // Check if migration was already attempted for this user
+      const migrationKey = `wishlist_migrated_${user.id}`;
+      const alreadyMigrated = localStorage.getItem(migrationKey);
+      if (alreadyMigrated) {
+        // Clean up old wishlist data if migration was already completed
+        localStorage.removeItem('wishlist');
+        return;
+      }
+
       const localItems = JSON.parse(savedWishlist) as WishlistItem[];
-      if (localItems.length === 0) return;
+      if (localItems.length === 0) {
+        localStorage.removeItem('wishlist');
+        localStorage.setItem(migrationKey, 'true');
+        return;
+      }
 
       // Get existing database items to avoid duplicates
       const { data: existingItems } = await supabase
@@ -106,19 +119,21 @@ export const useWishlist = () => {
 
         if (error) throw error;
 
-        // Clear localStorage after successful migration
-        localStorage.removeItem('wishlist');
-        
-        if (itemsToMigrate.length > 0) {
-          toast.success(`Migrated ${itemsToMigrate.length} item${itemsToMigrate.length !== 1 ? 's' : ''} to your account`);
-        }
-      } else {
-        // Clear localStorage if no new items to migrate
-        localStorage.removeItem('wishlist');
+        toast.success(`Migrated ${itemsToMigrate.length} item${itemsToMigrate.length !== 1 ? 's' : ''} to your account`);
       }
+
+      // Clear localStorage and mark migration as completed
+      localStorage.removeItem('wishlist');
+      localStorage.setItem(migrationKey, 'true');
+      
     } catch (error) {
       console.error('Failed to migrate wishlist:', error);
-      toast.error('Failed to sync your wishlist');
+      // Only show error toast if it's not a network connectivity issue
+      if (error instanceof Error && !error.message.includes('fetch')) {
+        toast.error('Failed to sync your wishlist');
+      }
+      // Mark migration as attempted to prevent repeated errors
+      localStorage.setItem(`wishlist_migrated_${user.id}`, 'attempted');
     }
   };
 
