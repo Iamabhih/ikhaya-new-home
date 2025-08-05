@@ -246,71 +246,43 @@ function md5(string: string): string {
 }
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Create parameter string following PayFast's exact rules
-  let pfOutput = "";
+  // PayFast requires parameters in alphabetical order for signature generation
+  const orderedData: Record<string, string> = {};
   
-  // CRITICAL: PayFast requires parameters in the ORDER they appear in the form, NOT alphabetical!
-  // Process in the exact order we're building the form
-  const orderedKeys = [
-    'merchant_id',
-    'merchant_key', 
-    'return_url',
-    'cancel_url',
-    'notify_url',
-    'name_first',
-    'name_last',
-    'email_address',
-    'cell_number',
-    'm_payment_id',
-    'amount',
-    'item_name',
-    'item_description'
-  ];
-  
-  // Add parameters in exact order, only including non-blank fields
-  for (const key of orderedKeys) {
-    if (data.hasOwnProperty(key)) {
-      const value = data[key];
-      // Only include non-blank fields as per PayFast documentation
-      if (value !== null && value !== undefined && value !== '') {
-        // URL encode exactly as PayFast expects: uppercase hex, spaces as +
-        const encodedValue = encodeURIComponent(value.trim())
-          .replace(/!/g, '%21')
-          .replace(/'/g, '%27')
-          .replace(/\(/g, '%28')
-          .replace(/\)/g, '%29')
-          .replace(/\*/g, '%2A')
-          .replace(/%20/g, '+')
-          .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
-        
-        pfOutput += `${key}=${encodedValue}&`;
+  // Sort keys alphabetically
+  Object.keys(data)
+    .sort()
+    .forEach(key => {
+      // Only include non-empty values
+      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+        orderedData[key] = data[key];
       }
-    }
+    });
+  
+  // Build the parameter string
+  const params = new URLSearchParams();
+  
+  // Add sorted parameters
+  Object.entries(orderedData).forEach(([key, value]) => {
+    params.append(key, value);
+  });
+  
+  // Get the string representation
+  let paramString = params.toString();
+  
+  // Add passphrase if provided
+  if (passphrase && passphrase !== '') {
+    paramString += `&passphrase=${encodeURIComponent(passphrase)}`;
   }
   
-  // Remove last ampersand
-  let getString = pfOutput.slice(0, -1);
+  console.log('PayFast signature generation:');
+  console.log('- Sorted keys:', Object.keys(orderedData).join(', '));
+  console.log('- Parameter string (first 200 chars):', paramString.substring(0, 200) + '...');
+  console.log('- Full parameter string:', paramString);
+  console.log('- Has passphrase:', !!(passphrase && passphrase !== ''));
   
-  // Add passphrase if provided (also with uppercase encoding)
-  if (passphrase !== null && passphrase !== undefined && passphrase !== "") {
-    const encodedPassphrase = encodeURIComponent(passphrase.trim())
-      .replace(/!/g, '%21')
-      .replace(/'/g, '%27')
-      .replace(/\(/g, '%28')
-      .replace(/\)/g, '%29')
-      .replace(/\*/g, '%2A')
-      .replace(/%20/g, '+')
-      .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
-    getString += `&passphrase=${encodedPassphrase}`;
-  }
-  
-  console.log('PayFast signature generation (corrected):');
-  console.log('- Parameter string (first 200 chars):', getString.substring(0, 200) + '...');
-  console.log('- Full string length:', getString.length);
-  console.log('- Has passphrase:', !!(passphrase && passphrase !== ""));
-
   // Generate MD5 hash
-  const md5Hash = md5(getString);
+  const md5Hash = md5(paramString);
   
   console.log('- Generated signature:', md5Hash);
   return md5Hash;
@@ -454,6 +426,7 @@ Deno.serve(async (req) => {
       hasMerchantId: !!merchantId,
       hasMerchantKey: !!merchantKey,
       hasPassphrase: !!passphrase,
+      passphraseLength: passphrase.length,
       isTestMode: isTestMode,
       fromDatabase: true
     })
@@ -482,35 +455,33 @@ Deno.serve(async (req) => {
 
     console.log('PayFast URL determined:', { payfastUrl, isTestMode });
 
-    // Prepare PayFast parameters in PayFast's required order
-    const payfastData: Record<string, string> = {};
-    
-    // Add parameters in PayFast's exact required order
-    payfastData.merchant_id = merchantId;
-    payfastData.merchant_key = merchantKey;
-    payfastData.return_url = `${req.headers.get('origin')}/checkout/success?order_id=${orderId}`;
-    payfastData.cancel_url = `${req.headers.get('origin')}/checkout?cancelled=true`;
-    payfastData.notify_url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/payfast-webhook`;
-    
-    // Only add non-empty customer details
+    // Prepare PayFast parameters
+    const payfastData: Record<string, string> = {
+      merchant_id: merchantId,
+      merchant_key: merchantKey,
+      return_url: `${req.headers.get('origin')}/checkout/success?order_id=${orderId}`,
+      cancel_url: `${req.headers.get('origin')}/checkout?cancelled=true`,
+      notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payfast-webhook`,
+      email_address: customerEmail,
+      m_payment_id: orderId,
+      amount: amount.toFixed(2),
+      item_name: items.map(item => item.name).join(', ').substring(0, 100),
+      item_description: `Order ${orderId} - ${items.length} items`
+    };
+
+    // Add customer name if provided
     const firstName = customerName.split(' ')[0] || '';
     const lastName = customerName.split(' ').slice(1).join(' ') || '';
-    
+
     if (firstName) payfastData.name_first = firstName;
     if (lastName) payfastData.name_last = lastName;
-    
-    payfastData.email_address = customerEmail;
-    
+
+    // Add phone if provided
     if (customerPhone) {
       payfastData.cell_number = customerPhone;
     }
-    
-    payfastData.m_payment_id = orderId;
-    payfastData.amount = amount.toFixed(2);
-    payfastData.item_name = items.map(item => item.name).join(', ').substring(0, 100);
-    payfastData.item_description = `Order ${orderId} - ${items.length} items`;
 
-    // Generate signature using the exact data object
+    // Generate signature using alphabetically sorted parameters
     const signature = await generateSignature(payfastData, passphrase);
     
     // Add signature to the data

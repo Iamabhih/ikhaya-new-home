@@ -232,56 +232,45 @@ function md5(string: string): string {
 }
 
 async function generateSignature(data: Record<string, string>, passphrase?: string): Promise<string> {
-  // Create parameter string following PayFast's exact rules
-  let pfOutput = "";
+  // For webhooks, PayFast sends data in alphabetical order
+  // We need to sort alphabetically for signature verification
+  const orderedData: Record<string, string> = {};
   
-  // CRITICAL: For webhooks, PayFast sends data in their order, not alphabetical
-  // We need to process in the order received from the webhook
-  // Only include non-blank fields as per PayFast documentation
-  for (let key in data) {
-    if (data.hasOwnProperty(key)) {
-      const value = data[key];
-      // Only include non-blank fields
-      if (value !== null && value !== undefined && value !== '') {
-        // URL encode exactly as PayFast expects: uppercase hex, spaces as +
-        const encodedValue = encodeURIComponent(value.trim())
-          .replace(/!/g, '%21')
-          .replace(/'/g, '%27')
-          .replace(/\(/g, '%28')
-          .replace(/\)/g, '%29')
-          .replace(/\*/g, '%2A')
-          .replace(/%20/g, '+')
-          .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
-        
-        pfOutput += `${key}=${encodedValue}&`;
+  // Sort keys alphabetically (excluding 'signature')
+  Object.keys(data)
+    .filter(key => key !== 'signature')
+    .sort()
+    .forEach(key => {
+      // Only include non-empty values
+      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+        orderedData[key] = data[key];
       }
-    }
+    });
+  
+  // Build the parameter string using URLSearchParams
+  const params = new URLSearchParams();
+  
+  // Add sorted parameters
+  Object.entries(orderedData).forEach(([key, value]) => {
+    params.append(key, value);
+  });
+  
+  // Get the string representation
+  let paramString = params.toString();
+  
+  // Add passphrase if provided
+  if (passphrase && passphrase !== '') {
+    paramString += `&passphrase=${encodeURIComponent(passphrase)}`;
   }
   
-  // Remove last ampersand
-  let getString = pfOutput.slice(0, -1);
+  console.log('Webhook signature verification:');
+  console.log('- Sorted keys:', Object.keys(orderedData).join(', '));
+  console.log('- Parameter string (first 300 chars):', paramString.substring(0, 300) + '...');
+  console.log('- Full parameter string:', paramString);
+  console.log('- Has passphrase:', !!(passphrase && passphrase !== ''));
   
-  // Add passphrase if provided (also with uppercase encoding)
-  if (passphrase !== null && passphrase !== undefined && passphrase !== "") {
-    const encodedPassphrase = encodeURIComponent(passphrase.trim())
-      .replace(/!/g, '%21')
-      .replace(/'/g, '%27')
-      .replace(/\(/g, '%28')
-      .replace(/\)/g, '%29')
-      .replace(/\*/g, '%2A')
-      .replace(/%20/g, '+')
-      .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
-    getString += `&passphrase=${encodedPassphrase}`;
-  }
-  
-  console.log('Webhook signature verification (corrected):');
-  console.log('- Parameter string (first 300 chars):', getString.substring(0, 300) + '...');
-  console.log('- Full string length:', getString.length);
-  console.log('- Has passphrase:', !!(passphrase && passphrase !== ""));
-  console.log('- Fields included:', Object.keys(data).filter(k => data[k] !== '').join(', '));
-
   // Generate MD5 hash
-  const md5Hash = md5(getString);
+  const md5Hash = md5(paramString);
   
   console.log('- Calculated signature:', md5Hash);
   return md5Hash;
@@ -309,14 +298,12 @@ Deno.serve(async (req) => {
     // Parse form data from PayFast
     const formData = await req.formData();
     
-    // Create ordered data structure - preserving the order PayFast sends
+    // Create data structure
     const payfastData: Record<string, string> = {};
-    const fieldOrder: string[] = [];
     
-    // Process form data in the order received
+    // Process form data
     for (const [key, value] of formData) {
       payfastData[key] = value.toString();
-      fieldOrder.push(key);
     }
 
     console.log('PayFast webhook received data:', {
@@ -325,20 +312,16 @@ Deno.serve(async (req) => {
       pf_payment_id: payfastData.pf_payment_id,
       amount_gross: payfastData.amount_gross,
       signature: payfastData.signature ? payfastData.signature.substring(0, 8) + '...' : 'missing',
-      totalFields: fieldOrder.length,
-      fieldOrder: fieldOrder.slice(0, 10).join(', ') + '...',
-      blankFields: fieldOrder.filter(k => !payfastData[k] || payfastData[k] === '').length
+      totalFields: Object.keys(payfastData).length,
+      allFields: Object.keys(payfastData).join(', ')
     });
 
     // Verify signature
     const receivedSignature = payfastData.signature;
     
-    // Create ordered object for verification (excluding signature)
-    const dataForVerification: Record<string, string> = {};
-    for (const field of fieldOrder) {
-      if (field !== 'signature') {
-        dataForVerification[field] = payfastData[field];
-      }
+    if (!receivedSignature) {
+      console.error('No signature received from PayFast');
+      return new Response('No signature provided', { status: 400 });
     }
 
     // Get PayFast configuration from database to match payment function
@@ -366,22 +349,31 @@ Deno.serve(async (req) => {
     
     console.log('PayFast config loaded for webhook:', {
       hasPassphrase: !!passphrase,
+      passphraseLength: passphrase.length,
       isTestMode: paymentSettings.is_test_mode,
       fromDatabase: true
     });
 
-    const calculatedSignature = await generateSignature(dataForVerification, passphrase);
+    const calculatedSignature = await generateSignature(payfastData, passphrase);
 
     if (receivedSignature !== calculatedSignature) {
       console.error('Invalid PayFast signature:', {
         received: receivedSignature,
         calculated: calculatedSignature,
         receivedLength: receivedSignature?.length,
-        calculatedLength: calculatedSignature?.length
+        calculatedLength: calculatedSignature?.length,
+        firstCharMatch: receivedSignature?.[0] === calculatedSignature?.[0],
+        lastCharMatch: receivedSignature?.[receivedSignature.length - 1] === calculatedSignature?.[calculatedSignature.length - 1]
       });
       
       // Debug: Log the exact data being used
-      console.error('Data for verification:', JSON.stringify(dataForVerification, null, 2));
+      console.error('Data for verification (all non-signature fields):', 
+        Object.entries(payfastData)
+          .filter(([key]) => key !== 'signature')
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([k, v]) => `${k}=${v}`)
+          .join(', ')
+      );
       console.error('Passphrase present:', !!passphrase);
       
       return new Response('Invalid signature', { status: 400 })
