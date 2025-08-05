@@ -92,7 +92,7 @@ export const ImageLinkingTool = () => {
       // Get available images in storage with pagination
       let allStorageFiles: any[] = [];
       let offset = 0;
-      const limit = 1000;
+      const limit = 5000;
       let hasMore = true;
 
       while (hasMore) {
@@ -143,7 +143,7 @@ export const ImageLinkingTool = () => {
         `)
         .eq('is_active', true)
         .not('sku', 'is', null)
-        .limit(10000);
+        .limit(20000);
 
       if (error) throw error;
 
@@ -151,7 +151,7 @@ export const ImageLinkingTool = () => {
       const { data: productsWithImages } = await supabase
         .from('product_images')
         .select('product_id, products!inner(sku)')
-        .limit(10000);
+        .limit(20000);
 
       const linkedSkus = new Set(productsWithImages?.map(p => p.products?.sku).filter(Boolean) || []);
       
@@ -177,7 +177,7 @@ export const ImageLinkingTool = () => {
       // Get all storage files with pagination
       let allStorageFiles: any[] = [];
       let offset = 0;
-      const limit = 1000;
+      const limit = 5000;
       let hasMore = true;
 
       while (hasMore) {
