@@ -2,8 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 export const HeroSection = () => {
-  return (
-    <section className="relative bg-background py-20 lg:py-32 overflow-hidden">
+  return <section className="relative bg-background py-20 lg:py-32 overflow-hidden">
       {/* Subtle background elements */}
       <div className="absolute inset-0">
         <div className="absolute top-20 right-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
@@ -60,20 +59,17 @@ export const HeroSection = () => {
               <div className="text-muted-foreground">Quality Products</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">
-                50+
-              </div>
+              <div className="text-3xl font-bold text-primary mb-2">8+</div>
               <div className="text-muted-foreground">Categories</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-primary mb-2">
                 24/7
               </div>
-              <div className="text-muted-foreground">Customer Support</div>
+              <div className="text-muted-foreground">Shopping</div>
             </div>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
