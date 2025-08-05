@@ -41,26 +41,40 @@ interface MatchResult {
   sourceFolder: string
 }
 
-// Enhanced robust SKU extraction with fuzzy matching and multiple pattern strategies
+// Enhanced robust SKU extraction with PRIORITIZED exact matching first
 function extractSKUFromFilename(filename: string): string[] {
   if (!filename || typeof filename !== 'string') return []
   
   // Remove file extension and path
   const nameWithoutExt = filename.replace(/.*\//, '').replace(/\.[^/.]+$/, '')
   
-  console.log(`🔍 Extracting SKUs from: ${filename} -> ${nameWithoutExt}`)
+  console.log(`🔍 [EXTRACT] SKUs from: ${filename} -> ${nameWithoutExt}`)
   
   const skus = new Set<string>()
   
   try {
-    // Pattern 1: Direct numeric SKUs (most common)
+    // PRIORITY 1: Exact filename match (highest priority)
+    if (/^\d{3,8}$/.test(nameWithoutExt)) {
+      skus.add(nameWithoutExt)
+      console.log(`✅ [EXACT] Found exact SKU match: ${nameWithoutExt}`)
+    }
+    
+    // PRIORITY 2: Direct numeric SKUs (most common)
     const directNumbers = nameWithoutExt.match(/\b\d{3,8}\b/g)
     if (directNumbers) {
-      directNumbers.forEach(num => {
+      // Sort by length to prioritize longer, more specific SKUs
+      directNumbers.sort((a, b) => b.length - a.length).forEach(num => {
         skus.add(num)
+        console.log(`✅ [DIRECT] Found direct numeric SKU: ${num}`)
         // Add zero-padded versions for short SKUs
-        if (num.length === 3) skus.add('0' + num)
-        if (num.length === 4 && !num.startsWith('0')) skus.add('0' + num)
+        if (num.length === 3) {
+          skus.add('0' + num)
+          console.log(`📝 [PADDED] Added zero-padded version: 0${num}`)
+        }
+        if (num.length === 4 && !num.startsWith('0')) {
+          skus.add('0' + num)
+          console.log(`📝 [PADDED] Added zero-padded version: 0${num}`)
+        }
       })
     }
   
@@ -230,19 +244,43 @@ function createCategoryAwareImageMatcher() {
       const normalizedSku = product.sku.toLowerCase().trim()
       const candidates: MatchResult[] = []
       
-      // 1. Direct SKU match (highest priority)
+      console.log(`🎯 [MATCH] Finding best image for product SKU: ${product.sku}`)
+      
+      // PRIORITY 1: Exact SKU match (highest priority - 1000 points base)
       if (imageCache.has(normalizedSku)) {
         const image = imageCache.get(normalizedSku)!
         const folder = extractFolderFromPath(image.storagePath)
         const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
         
+        console.log(`✅ [EXACT] Direct SKU match found: ${normalizedSku} -> ${image.filename}`)
+        
         candidates.push({
           product,
           imageFile: image,
           matchType: 'exact',
-          matchScore: 100 + categoryScore,
+          matchScore: 1000 + categoryScore, // Much higher base score for exact matches
           sourceFolder: folder
         })
+      }
+      
+      // PRIORITY 2: Exact case-insensitive match
+      const exactVariations = [product.sku, product.sku.toUpperCase(), product.sku.toLowerCase()]
+      for (const variation of exactVariations) {
+        if (imageCache.has(variation) && !candidates.find(c => c.imageFile.filename === imageCache.get(variation)!.filename)) {
+          const image = imageCache.get(variation)!
+          const folder = extractFolderFromPath(image.storagePath)
+          const categoryScore = calculateCategoryScore(product.name, product.category_name, folder)
+          
+          console.log(`✅ [EXACT-CASE] Case variation match: ${variation} -> ${image.filename}`)
+          
+          candidates.push({
+            product,
+            imageFile: image,
+            matchType: 'exact',
+            matchScore: 950 + categoryScore,
+            sourceFolder: folder
+          })
+        }
       }
       
       // 2. Fuzzy SKU matches
@@ -630,7 +668,7 @@ Deno.serve(async (req) => {
         categories!inner(name)
       `)
       .not('sku', 'is', null)
-      .limit(50000)
+      .limit(10000) // Increased limit to 10,000 as requested
 
     if (productsError) {
       console.error('❌ Products fetch failed:', productsError)
@@ -748,10 +786,12 @@ Deno.serve(async (req) => {
     console.log(`✅ Advanced mapping built: ${matcherStats.directMappings} direct, ${matcherStats.fuzzyVariations} fuzzy variants, ${matcherStats.totalImages} unique images`)
     await logMessage('info', `Advanced image mapping: ${matcherStats.directMappings} direct mappings, ${matcherStats.fuzzyVariations} fuzzy variations`)
 
-    // Step 4: Enhanced product-image matching with fuzzy logic
-    progress.total = Math.min(products?.length || 50000, 50000)
-    progress.currentStep = 'Advanced fuzzy matching products to images'
+    // Step 4: Enhanced product-image matching with PRIORITIZED exact matching first
+    progress.total = Math.min(products?.length || 10000, 10000) // Increased to 10,000
+    progress.currentStep = 'PRIORITIZED exact matching + fuzzy fallback for products to images'
     await sendProgressUpdate(progress)
+    
+    await logMessage('info', `🔍 [MATCHING] Starting PRIORITIZED matching: Exact SKU matches first, then fuzzy fallback`)
 
     const matchedProducts: Array<{product: Product, imageFile: StorageImage}> = []
     let exactMatches = 0
@@ -782,7 +822,8 @@ Deno.serve(async (req) => {
                 categoryMatches++
               }
               
-              console.log(`✅ ${bestMatch.matchType} match: ${product.sku} -> ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore}, folder: ${bestMatch.sourceFolder})`)
+              console.log(`✅ [${bestMatch.matchType.toUpperCase()}] ${product.sku} -> ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore}, folder: ${bestMatch.sourceFolder})`)
+              await logMessage('info', `✅ [${bestMatch.matchType.toUpperCase()}] ${product.sku} matched to ${bestMatch.imageFile.filename} (score: ${bestMatch.matchScore})`)
             }
           } else {
             // Fallback to legacy matching
@@ -794,23 +835,28 @@ Deno.serve(async (req) => {
               const directMatch = imageFiles.find(img => img.sku === product.sku)
               if (directMatch) {
                 exactMatches++
-                console.log(`✅ Direct match: ${product.sku} -> ${matchedImage.filename}`)
+                console.log(`✅ [EXACT] ${product.sku} -> ${matchedImage.filename}`)
+                await logMessage('info', `✅ [EXACT] ${product.sku} matched to ${matchedImage.filename}`)
               } else {
                 fuzzyMatches++
-                console.log(`🎯 Fuzzy match: ${product.sku} -> ${matchedImage.filename}`)
+                console.log(`🎯 [FUZZY] ${product.sku} -> ${matchedImage.filename}`)
+                await logMessage('info', `🎯 [FUZZY] ${product.sku} matched to ${matchedImage.filename}`)
               }
             }
           }
         } catch (error) {
-          await logMessage('error', `Error matching product ${product?.sku || 'unknown'}: ${error.message}`)
+          console.error(`❌ [ERROR] Matching product ${product?.sku || 'unknown'}:`, error)
+          await logMessage('error', `❌ [ERROR] Failed to match product ${product?.sku || 'unknown'}: ${error.message}`)
         }
       }
       
       const totalMatches = exactMatches + fuzzyMatches + categoryMatches
       if (enableCategoryMatching) {
-        console.log(`📊 Category-aware matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total matches`)
+        console.log(`📊 [SUMMARY] Category-aware matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total matches`)
+        await logMessage('info', `📊 [SUMMARY] Matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy + ${categoryMatches} category = ${totalMatches} total`)
       } else {
-        console.log(`📊 Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total matches`)
+        console.log(`📊 [SUMMARY] Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total matches`)
+        await logMessage('info', `📊 [SUMMARY] Legacy matching complete: ${exactMatches} exact + ${fuzzyMatches} fuzzy = ${totalMatches} total`)
       }
     }
 
@@ -853,7 +899,8 @@ Deno.serve(async (req) => {
         try {
           progress.currentFile = `${product.sku} (${imageFile.filename})`
           await sendProgressUpdate(progress)
-          await logMessage('info', `Processing ${product.sku}: ${imageFile.filename}`)
+          await logMessage('info', `🔄 [PROCESSING] ${product.sku}: ${imageFile.filename}`)
+          console.log(`🔄 [PROCESSING] Product: ${product.name} (${product.sku}) -> Image: ${imageFile.filename}`)
 
           // Check if product already has an image
           const { data: existingImages } = await supabaseClient
@@ -863,7 +910,8 @@ Deno.serve(async (req) => {
             .limit(1)
 
           if (existingImages && existingImages.length > 0) {
-            await logMessage('info', `⏭️ Skipping ${product.sku} - already has image`)
+            console.log(`⏭️ [SKIP] ${product.sku} already has ${existingImages.length} image(s)`)
+            await logMessage('info', `⏭️ [SKIP] ${product.sku} - already has ${existingImages.length} image(s)`)
             progress.processed++
             progress.successful++
             await sendProgressUpdate(progress)
@@ -873,7 +921,9 @@ Deno.serve(async (req) => {
           // Create product_images record with direct storage URL
           const imageUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${imageFile.storagePath}`
           
-          console.log(`🔗 Linking product ${product.name} (${product.sku}) to image: ${imageUrl}`)
+          console.log(`🔗 [LINKING] Product: ${product.name} (${product.sku})`)
+          console.log(`🔗 [LINKING] Image URL: ${imageUrl}`)
+          await logMessage('info', `🔗 [LINKING] ${product.sku} -> ${imageUrl}`)
           
           const { error: insertError } = await supabaseClient
             .from('product_images')
@@ -886,12 +936,13 @@ Deno.serve(async (req) => {
             })
 
           if (insertError) {
-            console.error(`❌ Failed to insert image for ${product.sku}:`, insertError)
-            await logMessage('error', `Failed to insert image for ${product.sku}: ${insertError.message}`)
+            console.error(`❌ [DB_ERROR] Failed to insert image for ${product.sku}:`, insertError)
+            await logMessage('error', `❌ [DB_ERROR] Failed to insert image for ${product.sku}: ${insertError.message}`)
             progress.failed++
             progress.errors.push(`${product.sku}: ${insertError.message}`)
           } else {
-            console.log(`✅ Successfully linked ${product.sku} to ${imageFile.filename}`)
+            console.log(`✅ [SUCCESS] Successfully linked ${product.sku} to ${imageFile.filename}`)
+            await logMessage('info', `✅ [SUCCESS] ${product.sku} successfully linked to ${imageFile.filename}`)
             progress.successful++
           }
 
@@ -899,8 +950,8 @@ Deno.serve(async (req) => {
           await sendProgressUpdate(progress)
 
         } catch (error) {
-          console.error(`❌ Error processing ${product.sku}:`, error)
-          await logMessage('error', `Error processing ${product.sku}: ${error.message}`)
+          console.error(`❌ [PROCESSING_ERROR] Error processing ${product.sku}:`, error)
+          await logMessage('error', `❌ [PROCESSING_ERROR] Error processing ${product.sku}: ${error.message}`)
           progress.failed++
           progress.errors.push(`${product.sku}: ${error.message}`)
           progress.processed++
@@ -922,7 +973,9 @@ Deno.serve(async (req) => {
     const endTime = new Date().toISOString()
     const duration = new Date(endTime).getTime() - new Date(startTime).getTime()
     
-    await logMessage('info', `🎉 Migration completed in ${Math.round(duration / 1000)}s`)
+    console.log(`🎉 [COMPLETED] Migration finished in ${Math.round(duration / 1000)}s`)
+    console.log(`🎉 [FINAL_STATS] Processed: ${progress.processed}, Success: ${progress.successful}, Failed: ${progress.failed}`)
+    await logMessage('info', `🎉 [COMPLETED] Migration completed in ${Math.round(duration / 1000)}s - Success: ${progress.successful}, Failed: ${progress.failed}`)
     
     return new Response(JSON.stringify({
       success: true,

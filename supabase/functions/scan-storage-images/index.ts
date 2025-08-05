@@ -77,25 +77,42 @@ function extractProductCodes(filename: string): string[] {
     const codes = new Set<string>()
     const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i, '')
     
-    // Simple approach: extract any alphanumeric sequences that could be SKUs
-    const allMatches = nameWithoutExt.match(/\b[a-zA-Z0-9]{3,10}\b/g) || []
+    console.log(`🔍 [EXTRACT_CODES] Processing: ${filename} -> ${nameWithoutExt}`)
     
-    for (const match of allMatches) {
+    // PRIORITY 1: Check for exact numeric filename (highest priority)
+    if (/^\d{3,8}$/.test(nameWithoutExt)) {
+      codes.add(nameWithoutExt)
+      console.log(`✅ [EXACT_FILENAME] Found exact code: ${nameWithoutExt}`)
+    }
+    
+    // PRIORITY 2: Extract numeric sequences, prioritizing longer ones
+    const allMatches = nameWithoutExt.match(/\b[a-zA-Z0-9]{3,10}\b/g) || []
+    const numericMatches = allMatches.filter(match => /\d+/.test(match))
+    
+    // Sort by length to prioritize longer, more specific codes
+    numericMatches.sort((a, b) => b.length - a.length)
+    
+    for (const match of numericMatches) {
       const code = match.toLowerCase()
       codes.add(code)
+      console.log(`✅ [NUMERIC_CODE] Found numeric sequence: ${match} -> ${code}`)
       
-      // Handle zero-padding for numeric codes
+      // Handle zero-padding for numeric codes only
       if (/^\d{3}$/.test(code)) {
         codes.add('0' + code)
+        console.log(`📝 [PADDED] Added zero-padded: 0${code}`)
       }
       if (/^0\d{3}$/.test(code)) {
         codes.add(code.substring(1))
+        console.log(`📝 [UNPADDED] Added unpadded: ${code.substring(1)}`)
       }
     }
     
-    return Array.from(codes)
+    const result = Array.from(codes)
+    console.log(`✅ [RESULT] Extracted codes [${result.join(', ')}] from "${filename}"`)
+    return result
   } catch (error) {
-    console.error('Error extracting codes from:', filename, error)
+    console.error(`❌ [ERROR] extracting codes from: ${filename}`, error)
     return []
   }
 }
@@ -137,36 +154,57 @@ function createImageCache() {
       
       const normalizedSku = sku.toLowerCase().trim()
       
-      // Direct match
+      console.log(`🔍 [SEARCH] Looking for SKU: ${normalizedSku}`)
+      
+      // PRIORITY 1: Direct exact match (highest priority)
       if (skuToImages.has(normalizedSku)) {
-        return skuToImages.get(normalizedSku)![0]
+        const image = skuToImages.get(normalizedSku)![0]
+        console.log(`✅ [EXACT_MATCH] Found direct match: ${normalizedSku} -> ${image.name}`)
+        return image
       }
       
-      // Try with zero padding variations
+      // PRIORITY 2: Case variations
+      const caseVariations = [normalizedSku.toUpperCase(), normalizedSku.toLowerCase()]
+      for (const variation of caseVariations) {
+        if (skuToImages.has(variation)) {
+          const image = skuToImages.get(variation)![0]
+          console.log(`✅ [CASE_MATCH] Found case variation: ${variation} -> ${image.name}`)
+          return image
+        }
+      }
+      
+      // PRIORITY 3: Zero padding variations
       if (/^\d{3}$/.test(normalizedSku)) {
         const paddedSku = '0' + normalizedSku
         if (skuToImages.has(paddedSku)) {
-          return skuToImages.get(paddedSku)![0]
+          const image = skuToImages.get(paddedSku)![0]
+          console.log(`✅ [PADDED_MATCH] Found padded variation: ${paddedSku} -> ${image.name}`)
+          return image
         }
       }
       
       if (/^0\d{3}$/.test(normalizedSku)) {
         const unpaddedSku = normalizedSku.substring(1)
         if (skuToImages.has(unpaddedSku)) {
-          return skuToImages.get(unpaddedSku)![0]
+          const image = skuToImages.get(unpaddedSku)![0]
+          console.log(`✅ [UNPADDED_MATCH] Found unpadded variation: ${unpaddedSku} -> ${image.name}`)
+          return image
         }
       }
       
-      // Word boundary search through all filenames
+      // PRIORITY 4: Word boundary search through all filenames (fuzzy fallback)
+      console.log(`🔍 [FUZZY_SEARCH] Attempting fuzzy match for: ${normalizedSku}`)
       for (const [cachedSku, images] of skuToImages.entries()) {
         for (const image of images) {
           const regex = new RegExp(`\\b${normalizedSku}\\b`, 'i')
           if (regex.test(image.name)) {
+            console.log(`🎯 [FUZZY_MATCH] Found fuzzy match: ${normalizedSku} -> ${image.name}`)
             return image
           }
         }
       }
       
+      console.log(`❌ [NO_MATCH] No image found for SKU: ${normalizedSku}`)
       return null
     },
     
@@ -272,12 +310,16 @@ Deno.serve(async (req) => {
       .from('products')
       .select('id, sku, name, categories (name)')
       .not('sku', 'is', null)
+      .limit(10000) // Increased limit to 10,000 as requested
 
     if (productsError) {
+      console.error(`❌ [DB_ERROR] Failed to fetch products:`, productsError)
+      await logMessage('error', `Failed to fetch products: ${productsError.message}`)
       throw new Error(`Failed to fetch products: ${productsError.message}`)
     }
 
-    await logMessage('info', `Found ${products.length} products with SKUs`)
+    console.log(`✅ [PRODUCTS] Found ${products.length} products with SKUs`)
+    await logMessage('info', `Found ${products.length} products with SKUs (limit: 10,000)`)
 
     // Step 2: Recursively scan storage bucket for all images
     progress.currentStep = 'Scanning storage bucket for images'
@@ -288,7 +330,7 @@ Deno.serve(async (req) => {
       const allFiles: StorageFile[] = []
       let hasMore = true
       let offset = 0
-      const limit = 50 // Reduced limit for better memory management
+      const limit = 1000 // Increased limit for better performance (was 50)
       
       await logMessage('info', `📂 Scanning directory: "${prefix || 'root'}"`)
 
@@ -303,6 +345,7 @@ Deno.serve(async (req) => {
             })
 
           if (error) {
+            console.error(`❌ [STORAGE_ERROR] Failed to list files in "${prefix}":`, error)
             await logMessage('error', `Failed to list files in "${prefix}": ${error.message}`)
             break
           }
@@ -312,7 +355,7 @@ Deno.serve(async (req) => {
             break
           }
 
-          await logMessage('info', `   Found ${files.length} items in "${prefix}" (offset: ${offset})`)
+          await logMessage('info', `📂 [SCAN] Found ${files.length} items in "${prefix}" (offset: ${offset})`)
 
           for (const file of files) {
             if (!file.name) continue
@@ -323,13 +366,16 @@ Deno.serve(async (req) => {
             const isDirectory = !file.id && !file.metadata && !file.name.includes('.')
             
             if (isDirectory) {
-              await logMessage('info', `   📁 Found subdirectory: ${fullPath}`)
+              console.log(`📁 [DIRECTORY] Found subdirectory: ${fullPath}`)
+              await logMessage('info', `📁 [DIRECTORY] Found subdirectory: ${fullPath}`)
               try {
                 const subFiles = await scanStorageDirectory(fullPath)
                 allFiles.push(...subFiles)
-                await logMessage('info', `   ✅ Scanned ${subFiles.length} files from ${fullPath}`)
+                console.log(`✅ [SUBDIRECTORY] Scanned ${subFiles.length} files from ${fullPath}`)
+                await logMessage('info', `✅ [SUBDIRECTORY] Scanned ${subFiles.length} files from ${fullPath}`)
               } catch (subError) {
-                await logMessage('warn', `   ⚠️ Failed to scan subdirectory ${fullPath}: ${subError.message}`)
+                console.error(`⚠️ [SUBDIRECTORY_ERROR] Failed to scan ${fullPath}:`, subError)
+                await logMessage('warn', `⚠️ [SUBDIRECTORY_ERROR] Failed to scan subdirectory ${fullPath}: ${subError.message}`)
               }
             } else if (isImageFile(file.name)) {
               // This is an image file
@@ -342,9 +388,10 @@ Deno.serve(async (req) => {
                 metadata: file.metadata || {}
               })
               
-              // Log every 10th image to avoid spam
-              if (allFiles.length % 10 === 0) {
-                await logMessage('info', `   📸 Found ${allFiles.length} images so far...`)
+              // Log every 100th image to avoid spam but provide progress
+              if (allFiles.length % 100 === 0) {
+                console.log(`📸 [PROGRESS] Found ${allFiles.length} images so far...`)
+                await logMessage('info', `📸 [PROGRESS] Found ${allFiles.length} images so far...`)
               }
             }
           }
@@ -387,7 +434,8 @@ Deno.serve(async (req) => {
     }
     
     progress.foundImages = storageImages.length
-    await logMessage('info', `✅ Completed storage scan: Found ${storageImages.length} images in all directories`)
+    console.log(`✅ [SCAN_COMPLETE] Found ${storageImages.length} total images in all directories`)
+    await logMessage('info', `✅ [SCAN_COMPLETE] Found ${storageImages.length} images in all directories`)
 
     // Step 3: Analyze folder structure and implement hybrid matching
     progress.status = 'processing'
@@ -421,9 +469,11 @@ Deno.serve(async (req) => {
       progress.folderStructures[folderKey].count++
     }
 
-    await logMessage('info', `📊 Folder structure analysis:`)
+    console.log(`📊 [FOLDER_ANALYSIS] Analyzing ${folderAnalysis.size} folder structures`)
+    await logMessage('info', `📊 [FOLDER_ANALYSIS] Folder structure analysis:`)
     for (const [folder, info] of folderAnalysis.entries()) {
-      await logMessage('info', `   • ${folder}: ${info.type} structure, ${info.images.length} images`)
+      console.log(`   • ${folder}: ${info.type} structure, ${info.images.length} images, ${info.productIds.size} unique product IDs`)
+      await logMessage('info', `   • ${folder}: ${info.type} structure, ${info.images.length} images, ${info.productIds.size} unique product IDs`)
     }
 
     // Create product maps for efficient lookup
@@ -448,10 +498,16 @@ Deno.serve(async (req) => {
     // Build SKU cache for non-UUID folders
     const imageCache = createImageCache()
     const skuImages = storageImages.filter(img => analyzeFolderStructure(img.name).type === 'sku')
-    await logMessage('info', `Building SKU cache from ${skuImages.length} SKU-based images`)
+    console.log(`🧠 [CACHE_BUILD] Building SKU cache from ${skuImages.length} SKU-based images`)
+    await logMessage('info', `🧠 [CACHE_BUILD] Building SKU cache from ${skuImages.length} SKU-based images`)
     imageCache.buildMapping(skuImages)
+    
+    const cacheStats = imageCache.getStats()
+    console.log(`✅ [CACHE_STATS] Built cache: ${cacheStats.totalMappings} mappings from ${cacheStats.processed} images`)
+    await logMessage('info', `✅ [CACHE_STATS] Cache built: ${cacheStats.totalMappings} mappings, ${cacheStats.matched} matched, ${cacheStats.failed} failed`)
 
-    await logMessage('info', `🔍 Starting hybrid matching process...`)
+    console.log(`🔍 [MATCHING_START] Starting PRIORITIZED hybrid matching process...`)
+    await logMessage('info', `🔍 [MATCHING_START] Starting PRIORITIZED hybrid matching: UUID first, then SKU exact, then fuzzy`)
 
     // Process each product
     for (let i = 0; i < products.length; i++) {
@@ -483,15 +539,20 @@ Deno.serve(async (req) => {
           matchedImage = uuidImages[0] // Take first image from the product's folder
           matchType = 'uuid'
           progress.uuidMatches++
+          console.log(`✅ [UUID_MATCH] ${product.sku} -> ${matchedImage.name} (UUID-based)`)
         }
       }
 
-      // Strategy 2: SKU-based matching (for other folders)
+      // Strategy 2: SKU-based matching (for other folders) - PRIORITIZED exact matching
       if (!matchedImage && product.sku) {
+        console.log(`🔍 [SKU_SEARCH] Searching for SKU: ${product.sku}`)
         matchedImage = imageCache.findImageForSKU(product.sku)
         if (matchedImage) {
           matchType = 'sku'
           progress.skuMatches++
+          console.log(`✅ [SKU_MATCH] ${product.sku} -> ${matchedImage.name} (SKU-based)`)
+        } else {
+          console.log(`❌ [NO_SKU_MATCH] No image found for SKU: ${product.sku}`)
         }
       }
 
@@ -506,9 +567,10 @@ Deno.serve(async (req) => {
         })
         progress.matchedProducts++
         
-        // Log every 10th match to reduce spam
-        if (progress.matchedProducts % 10 === 0 || progress.matchedProducts === 1) {
-          await logMessage('info', `✅ ${matchType.toUpperCase()}: ${product.sku} → ${matchedImage.name}`)
+        // Log every 25th match to reduce spam but show progress
+        if (progress.matchedProducts % 25 === 0 || progress.matchedProducts === 1) {
+          console.log(`✅ [MATCH_PROGRESS] ${matchType.toUpperCase()}: ${product.sku} → ${matchedImage.name} (${progress.matchedProducts} matches so far)`)
+          await logMessage('info', `✅ [MATCH_PROGRESS] ${matchType.toUpperCase()}: ${product.sku} → ${matchedImage.name} (${progress.matchedProducts} matches)`)
         }
       } else {
         const categoryName = product.categories?.name || 'Uncategorized'
@@ -518,9 +580,10 @@ Deno.serve(async (req) => {
           category: categoryName
         })
         
-        // Log first 10 missing items
-        if (missingSkus.length <= 10) {
-          await logMessage('warn', `❌ No match: ${product.sku || product.id}`)
+        // Log first 5 missing items, then every 50th to avoid spam
+        if (missingSkus.length <= 5 || missingSkus.length % 50 === 0) {
+          console.log(`❌ [NO_MATCH] No image found for: ${product.sku || product.id} (${missingSkus.length} total missing)`)
+          await logMessage('warn', `❌ [NO_MATCH] ${product.sku || product.id} (${missingSkus.length} total missing)`)
         }
       }
 
@@ -533,7 +596,14 @@ Deno.serve(async (req) => {
     const notFoundCount = missingSkus.length
     const successRate = Math.round((foundCount / totalProducts) * 100)
     
-    await logMessage('info', `📊 Results Summary:`)
+    console.log(`📊 [FINAL_SUMMARY] Matching Results:`)
+    console.log(`   • Total products: ${totalProducts}`)
+    console.log(`   • Found: ${foundCount} (UUID: ${progress.uuidMatches}, SKU: ${progress.skuMatches})`)
+    console.log(`   • Not found: ${notFoundCount}`)
+    console.log(`   • Success rate: ${successRate}%`)
+    console.log(`   • Folder structures: ${Object.keys(progress.folderStructures).join(', ')}`)
+    
+    await logMessage('info', `📊 [FINAL_SUMMARY] Results Summary:`)
     await logMessage('info', `   • Total products: ${totalProducts}`)
     await logMessage('info', `   • Found: ${foundCount} (UUID: ${progress.uuidMatches}, SKU: ${progress.skuMatches})`)
     await logMessage('info', `   • Not found: ${notFoundCount}`)
@@ -550,7 +620,8 @@ Deno.serve(async (req) => {
     for (let i = 0; i < matches.length; i += batchSize) {
       const batch = matches.slice(i, Math.min(i + batchSize, matches.length))
       
-      await logMessage('info', `📝 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(matches.length/batchSize)} (${batch.length} items)`)
+      console.log(`📝 [BATCH_PROCESS] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(matches.length/batchSize)} (${batch.length} items)`)
+      await logMessage('info', `📝 [BATCH_PROCESS] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(matches.length/batchSize)} (${batch.length} items)`)
       
       for (const { product, image } of batch) {
         try {
@@ -605,15 +676,17 @@ Deno.serve(async (req) => {
           } else {
             progress.successful++
             
-            // Log only every 10th success to reduce noise
-            if (progress.successful % 10 === 0 || progress.successful === 1) {
-              await logMessage('info', `✅ Updated image record for ${product.sku}`)
+            // Log every 25th success to reduce noise but show progress
+            if (progress.successful % 25 === 0 || progress.successful === 1) {
+              console.log(`✅ [DB_SUCCESS] Updated image record for ${product.sku} (${progress.successful} total successful)`)
+              await logMessage('info', `✅ [DB_SUCCESS] Updated image record for ${product.sku} (${progress.successful} total)`)
             }
           }
 
         } catch (error) {
           progress.failed++
-          const errorMsg = `❌ ${product.sku}: ${error.message}`
+          const errorMsg = `❌ [DB_ERROR] ${product.sku}: ${error.message}`
+          console.error(`❌ [DB_ERROR] Processing error for ${product.sku}:`, error)
           progress.errors.push(errorMsg)
           await logMessage('error', errorMsg)
         }
@@ -634,8 +707,17 @@ Deno.serve(async (req) => {
       await sendProgressUpdate(progress);
 
       // Final report
-      await logMessage('info', `🎉 Storage scan completed!`);
-      await logMessage('info', `📈 Final Results:`);
+      console.log(`🎉 [COMPLETED] Storage scan and image linking completed!`);
+      console.log(`📈 [FINAL_RESULTS] Complete Summary:`);
+      console.log(`   • Total products: ${products.length}`);
+      console.log(`   • Images found: ${matches.length}`);
+      console.log(`   • Images not found: ${missingSkus.length}`);
+      console.log(`   • Success rate: ${Math.round((matches.length / products.length) * 100)}%`);
+      console.log(`   • Database records updated: ${progress.successful}`);
+      console.log(`   • Failed updates: ${progress.failed}`);
+      
+      await logMessage('info', `🎉 [COMPLETED] Storage scan completed!`);
+      await logMessage('info', `📈 [FINAL_RESULTS] Complete Results:`);
       await logMessage('info', `   • Total products: ${products.length}`);
       await logMessage('info', `   • Images found: ${matches.length}`);
       await logMessage('info', `   • Images not found: ${missingSkus.length}`);
