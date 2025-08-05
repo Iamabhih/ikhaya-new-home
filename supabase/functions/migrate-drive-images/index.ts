@@ -630,7 +630,7 @@ Deno.serve(async (req) => {
         categories!inner(name)
       `)
       .not('sku', 'is', null)
-      .limit(10000)
+      .limit(50000)
 
     if (productsError) {
       console.error('❌ Products fetch failed:', productsError)
@@ -658,7 +658,7 @@ Deno.serve(async (req) => {
     // Function to recursively scan folders with pagination
     async function scanFolder(folderPath: string = targetFolder) {
       let offset = 0
-      const limit = 1000 // Use smaller chunks to avoid server limits
+      const limit = 5000 // Use larger chunks for better performance
       let hasMore = true
       
       while (hasMore) {
@@ -749,7 +749,7 @@ Deno.serve(async (req) => {
     await logMessage('info', `Advanced image mapping: ${matcherStats.directMappings} direct mappings, ${matcherStats.fuzzyVariations} fuzzy variations`)
 
     // Step 4: Enhanced product-image matching with fuzzy logic
-    progress.total = Math.min(products?.length || 10000, 10000)
+    progress.total = Math.min(products?.length || 50000, 50000)
     progress.currentStep = 'Advanced fuzzy matching products to images'
     await sendProgressUpdate(progress)
 
