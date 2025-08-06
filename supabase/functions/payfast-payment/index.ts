@@ -11,13 +11,25 @@ interface PaymentRequest {
   amount: number
   customerEmail: string
   customerName: string
-  customerPhone: string
+  customerPhone?: string
   items: Array<{
     name: string
     description?: string
     quantity: number
     amount: number
   }>
+}
+
+// Get the correct domain based on environment
+function getAppDomain(): string {
+  const env = Deno.env.get('ENVIRONMENT') || 'development';
+  
+  if (env === 'production') {
+    return 'https://ikhayahomeware.online';
+  } else {
+    // For development, use localhost
+    return 'http://localhost:3000';
+  }
 }
 
 // Pure JavaScript MD5 implementation
@@ -139,37 +151,18 @@ function md5(string: string): string {
 
   let x = [];
   let k, AA, BB, CC, DD, a, b, c, d;
-  const S11 = 7,
-    S12 = 12,
-    S13 = 17,
-    S14 = 22;
-  const S21 = 5,
-    S22 = 9,
-    S23 = 14,
-    S24 = 20;
-  const S31 = 4,
-    S32 = 11,
-    S33 = 16,
-    S34 = 23;
-  const S41 = 6,
-    S42 = 10,
-    S43 = 15,
-    S44 = 21;
+  const S11 = 7, S12 = 12, S13 = 17, S14 = 22;
+  const S21 = 5, S22 = 9, S23 = 14, S24 = 20;
+  const S31 = 4, S32 = 11, S33 = 16, S34 = 23;
+  const S41 = 6, S42 = 10, S43 = 15, S44 = 21;
 
   string = Utf8Encode(string);
-
   x = ConvertToWordArray(string);
 
-  a = 0x67452301;
-  b = 0xEFCDAB89;
-  c = 0x98BADCFE;
-  d = 0x10325476;
+  a = 0x67452301; b = 0xEFCDAB89; c = 0x98BADCFE; d = 0x10325476;
 
   for (k = 0; k < x.length; k += 16) {
-    AA = a;
-    BB = b;
-    CC = c;
-    DD = d;
+    AA = a; BB = b; CC = c; DD = d;
     a = FF(a, b, c, d, x[k + 0], S11, 0xD76AA478);
     d = FF(d, a, b, c, x[k + 1], S12, 0xE8C7B756);
     c = FF(c, d, a, b, x[k + 2], S13, 0x242070DB);
@@ -234,46 +227,46 @@ function md5(string: string): string {
     d = II(d, a, b, c, x[k + 11], S42, 0xBD3AF235);
     c = II(c, d, a, b, x[k + 2], S43, 0x2AD7D2BB);
     b = II(b, c, d, a, x[k + 9], S44, 0xEB86D391);
-    a = AddUnsigned(a, AA);
-    b = AddUnsigned(b, BB);
-    c = AddUnsigned(c, CC);
-    d = AddUnsigned(d, DD);
+    a = AddUnsigned(a, AA); b = AddUnsigned(b, BB); 
+    c = AddUnsigned(c, CC); d = AddUnsigned(d, DD);
   }
 
   const temp = WordToHex(a) + WordToHex(b) + WordToHex(c) + WordToHex(d);
-
   return temp.toLowerCase();
 }
 
-// PayFast signature generation function following the exact specification
-function generateSignature(data: Record<string, string>, passPhrase: string = ''): string {
-  try {
-    // Create a string of all values in the payment data
-    let pfOutput = '';
-    for (const key of Object.keys(data).sort()) {
-      if (key !== 'signature' && data[key] !== '') {
-        pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, '+')}&`;
-      }
-    }
-    // Remove last ampersand
-    pfOutput = pfOutput.slice(0, -1);
-    
-    // Add passphrase if it exists
-    if (passPhrase !== '') {
-      pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
-    }
-    
-    console.log('PayFast signature string to hash:', pfOutput);
-    
-    // Generate MD5 hash
-    const signature = md5(pfOutput);
-    
-    console.log('PayFast generated signature:', signature);
-    return signature;
-  } catch (error) {
-    console.error('Error generating signature:', error);
-    throw new Error('Failed to generate payment signature');
+// Generate signature exactly like PayFast's specification
+function generateSignature(data: Record<string, any>, passPhrase: string = ''): string {
+  // Sort keys alphabetically (excluding signature field)
+  const sortedKeys = Object.keys(data)
+    .filter(key => key !== 'signature' && data[key] !== undefined && data[key] !== null && data[key] !== '')
+    .sort();
+  
+  let pfOutput = '';
+  
+  // Build parameter string in alphabetical order
+  for (const key of sortedKeys) {
+    const value = data[key].toString().trim();
+    pfOutput += `${key}=${encodeURIComponent(value).replace(/%20/g, '+')}&`;
   }
+  
+  // Remove last ampersand
+  pfOutput = pfOutput.slice(0, -1);
+  
+  // Add passphrase if provided
+  if (passPhrase && passPhrase.trim() !== '') {
+    pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
+  }
+  
+  console.log('PayFast signature generation:');
+  console.log('- Parameter string:', pfOutput);
+  console.log('- Has passphrase:', !!(passPhrase && passPhrase.trim()));
+  
+  // Generate MD5 hash
+  const signature = md5(pfOutput);
+  console.log('- Generated signature:', signature);
+  
+  return signature;
 }
 
 Deno.serve(async (req) => {
@@ -284,8 +277,6 @@ Deno.serve(async (req) => {
 
   try {
     console.log('PayFast payment function called');
-    console.log('Request method:', req.method);
-    console.log('Authorization header present:', !!req.headers.get('Authorization'));
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -312,34 +303,20 @@ Deno.serve(async (req) => {
 
     console.log('User authentication check:', { 
       hasUser: !!user, 
-      userId: user?.id || 'guest', 
-      userEmail: user?.email?.substring(0, 3) + '***' || 'guest',
-      userError: userError?.message 
+      userId: user?.id || 'guest'
     });
 
-    // Allow both authenticated and guest users to make payments
-    // Only log userError for debugging, don't fail the request
-
     const requestBody = await req.json()
-    console.log('Raw request body (sanitized):', JSON.stringify({
-      ...requestBody,
-      customerEmail: requestBody.customerEmail?.substring(0, 3) + '***',
-      customerPhone: requestBody.customerPhone ? '***' : undefined
-    }))
+    console.log('Request received for order:', requestBody.orderId);
     
     const { orderId, amount, customerEmail, customerName, customerPhone, items }: PaymentRequest = requestBody
 
     if (!orderId || !amount || !customerEmail || !customerName) {
-      console.error('Missing required payment parameters:', { 
-        orderId: !!orderId, 
-        amount: !!amount, 
-        customerEmail: !!customerEmail, 
-        customerName: !!customerName 
-      })
+      console.error('Missing required payment parameters');
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Missing required payment parameters: orderId, amount, customerEmail, and customerName are required'
+          error: 'Missing required payment parameters'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -348,68 +325,25 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Get PayFast configuration from database first, then fall back to environment
-    console.log('Loading PayFast configuration from database...');
-    
-    const { data: paymentSettings, error: settingsError } = await supabaseClient
-      .from('payment_settings')
-      .select('*')
-      .eq('gateway_name', 'payfast')
-      .eq('is_enabled', true)
-      .maybeSingle();
+    // Get PayFast configuration from environment variables
+    const merchantId = Deno.env.get('PAYFAST_MERCHANT_ID')
+    const merchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
+    const passphrase = Deno.env.get('PAYFAST_PASSPHRASE') || ''
+    const isTestMode = Deno.env.get('PAYFAST_TEST_MODE') === 'true'
 
-    if (settingsError) {
-      console.error('Error loading payment settings:', settingsError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Failed to load payment configuration'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        }
-      )
-    }
-
-    if (!paymentSettings) {
-      console.error('PayFast gateway not enabled or configured');
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'PayFast payment gateway is not enabled or configured'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        }
-      )
-    }
-
-    const settings = paymentSettings.settings as any;
-    const merchantId = settings?.merchant_id || Deno.env.get('PAYFAST_MERCHANT_ID')
-    const merchantKey = settings?.merchant_key || Deno.env.get('PAYFAST_MERCHANT_KEY')
-    const passphrase = settings?.passphrase || Deno.env.get('PAYFAST_PASSPHRASE') || ''
-    const isTestMode = paymentSettings.is_test_mode
-
-    console.log('PayFast config loaded:', {
+    console.log('PayFast config:', {
       hasMerchantId: !!merchantId,
       hasMerchantKey: !!merchantKey,
       hasPassphrase: !!passphrase,
-      passphraseLength: passphrase.length,
-      isTestMode: isTestMode,
-      fromDatabase: true
-    })
+      isTestMode: isTestMode
+    });
 
     if (!merchantId || !merchantKey) {
-      console.error('PayFast configuration missing:', {
-        merchantId: merchantId ? 'present' : 'missing',
-        merchantKey: merchantKey ? 'present' : 'missing'
-      })
+      console.error('PayFast configuration missing');
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'PayFast configuration is incomplete. Please check merchant credentials.'
+          error: 'PayFast configuration is incomplete'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -418,80 +352,61 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Determine PayFast URL based on test mode - use official payfast.co.za domains per documentation
-    const payfastUrl = !isTestMode
-      ? 'https://www.payfast.co.za/eng/process'
-      : 'https://sandbox.payfast.co.za/eng/process'
+    // Get the correct app domain
+    const appDomain = getAppDomain();
+    console.log('Using app domain:', appDomain);
 
-    console.log('PayFast URL determined:', { payfastUrl, isTestMode });
+    // Determine PayFast URLs - use correct payfast.io domains as per documentation
+    const payfastBaseUrl = isTestMode 
+      ? 'https://sandbox.payfast.io'
+      : 'https://www.payfast.io';
+    
+    const onsiteUrl = `${payfastBaseUrl}/onsite/process`;
 
-    // Build PayFast data in the EXACT order required by PayFast
-    const payfastData: any = {};
-    
-    // Merchant details (MUST be first)
-    payfastData["merchant_id"] = merchantId;
-    payfastData["merchant_key"] = merchantKey;
-    
-    // URLs
-    payfastData["return_url"] = `${req.headers.get('origin')}/checkout/success?order_id=${orderId}`;
-    payfastData["cancel_url"] = `${req.headers.get('origin')}/checkout?cancelled=true`;
-    payfastData["notify_url"] = `${Deno.env.get('SUPABASE_URL')}/functions/v1/payfast-webhook`;
-    
-    // Buyer details
-    const firstName = customerName.split(' ')[0] || '';
-    const lastName = customerName.split(' ').slice(1).join(' ') || '';
-    
-    if (firstName) payfastData["name_first"] = firstName;
-    if (lastName) payfastData["name_last"] = lastName;
-    payfastData["email_address"] = customerEmail;
+    console.log('PayFast URLs:', { payfastBaseUrl, onsiteUrl, isTestMode });
+
+    // Build PayFast data with correct URLs
+    const payfastData: Record<string, string> = {
+      merchant_id: merchantId,
+      merchant_key: merchantKey,
+      return_url: `${appDomain}/checkout/success?order_id=${orderId}`,
+      cancel_url: `${appDomain}/checkout?cancelled=true`,
+      notify_url: `${supabaseUrl}/functions/v1/payfast-webhook`,
+      name_first: customerName.split(' ')[0] || '',
+      name_last: customerName.split(' ').slice(1).join(' ') || '',
+      email_address: customerEmail,
+      m_payment_id: orderId,
+      amount: amount.toFixed(2),
+      item_name: items.map(item => item.name).join(', ').substring(0, 100),
+      item_description: `Order ${orderId}`
+    };
+
     if (customerPhone) {
-      payfastData["cell_number"] = customerPhone;
+      payfastData.cell_number = customerPhone;
     }
-    
-    // Transaction details
-    payfastData["m_payment_id"] = orderId;
-    payfastData["amount"] = amount.toFixed(2);
-    payfastData["item_name"] = items.map(item => item.name).join(', ').substring(0, 100);
-    payfastData["item_description"] = `Order ${orderId} - ${items.length} items`;
 
-    // Generate signature (passphrase is only used for signature, not included in form data)
+    // Generate signature
     const signature = generateSignature(payfastData, passphrase);
-    
-    // Add signature to the data AFTER generating it
-    payfastData["signature"] = signature;
+    payfastData.signature = signature;
 
-    // For Onsite Payments, we need to get an identifier from PayFast - use official payfast.co.za domains
-    const onsiteUrl = isTestMode 
-      ? 'https://sandbox.payfast.co.za/onsite/process'
-      : 'https://www.payfast.co.za/onsite/process';
-
-    console.log('Requesting PayFast identifier for onsite payment:', {
+    console.log('PayFast configuration:', {
       orderId,
       amount,
-      merchant_id: merchantId.substring(0, 4) + '****',
-      mode: isTestMode ? 'sandbox' : 'live',
-      onsiteUrl,
-      dataKeys: Object.keys(payfastData)
+      appDomain,
+      returnUrl: payfastData.return_url,
+      cancelUrl: payfastData.cancel_url,
+      notifyUrl: payfastData.notify_url,
+      mode: isTestMode ? 'sandbox' : 'live'
     });
 
     try {
-      // Create form data maintaining the exact order
+      // Create form data for PayFast
       const formData = new URLSearchParams();
-      
-      // Add fields in the exact order for PayFast
-      const orderedFields = [
-        'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
-        'name_first', 'name_last', 'email_address', 'cell_number',
-        'm_payment_id', 'amount', 'item_name', 'item_description', 'signature'
-      ];
-      
-      for (const key of orderedFields) {
-        if (payfastData[key] !== undefined && payfastData[key] !== null && payfastData[key] !== "") {
-          formData.append(key, payfastData[key].toString().trim());
-        }
-      }
+      Object.entries(payfastData).forEach(([key, value]) => {
+        if (value) formData.append(key, value);
+      });
 
-      console.log('Form data being sent to PayFast (first 200 chars):', formData.toString().substring(0, 200) + '...');
+      console.log('Sending request to PayFast onsite...');
 
       const onsiteResponse = await fetch(onsiteUrl, {
         method: 'POST',
@@ -508,67 +423,47 @@ Deno.serve(async (req) => {
         const responseText = await onsiteResponse.text();
         console.error('PayFast onsite API error:', {
           status: onsiteResponse.status,
-          statusText: onsiteResponse.statusText,
           responseBody: responseText.substring(0, 500)
         });
         
-        // Check if it's a signature error
-        if (responseText.includes('signature') || responseText.includes('Signature')) {
-          console.error('Signature mismatch detected. Check parameter order and encoding.');
-        }
-        
-        // Fall back to redirect method
-        console.log('Falling back to redirect method due to onsite API error');
-        
-        return new Response(
-          JSON.stringify({
-            success: true,
-            redirect_url: payfastUrl,
-            form_data: payfastData,
-            fallback_mode: true
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
-        );
+        throw new Error(`PayFast API error: ${onsiteResponse.status}`);
       }
 
-      const contentType = onsiteResponse.headers.get('content-type');
-      console.log('PayFast response content-type:', contentType);
+      const responseText = await onsiteResponse.text();
+      console.log('PayFast response received, length:', responseText.length);
 
-      let onsiteResult;
-      if (contentType?.includes('application/json')) {
-        onsiteResult = await onsiteResponse.json();
-      } else {
-        const responseText = await onsiteResponse.text();
-        console.log('Non-JSON response from PayFast:', responseText.substring(0, 200));
-        // Try to extract UUID from HTML response if present
+      // Try to parse JSON or extract UUID from HTML response
+      let uuid;
+      try {
+        const jsonResponse = JSON.parse(responseText);
+        uuid = jsonResponse.uuid;
+        console.log('UUID from JSON response:', uuid);
+      } catch {
+        console.log('Response not JSON, trying to extract UUID from HTML');
         const uuidMatch = responseText.match(/uuid['":\s]*([a-f0-9-]+)/i);
         if (uuidMatch) {
-          onsiteResult = { uuid: uuidMatch[1] };
-        } else {
-          throw new Error('Could not extract UUID from PayFast response');
+          uuid = uuidMatch[1];
+          console.log('UUID extracted from HTML:', uuid);
         }
       }
       
-      if (!onsiteResult.uuid) {
-        console.error('PayFast onsite response missing UUID:', onsiteResult);
+      if (!uuid) {
+        console.error('PayFast onsite response missing UUID');
         throw new Error('PayFast did not return a valid UUID');
       }
 
       console.log('PayFast onsite payment UUID received:', {
         orderId,
-        uuid: onsiteResult.uuid.substring(0, 8) + '****',
+        uuid: uuid.substring(0, 8) + '****',
         mode: isTestMode ? 'sandbox' : 'live'
       });
 
       return new Response(
         JSON.stringify({
           success: true,
-          uuid: onsiteResult.uuid,
-          return_url: payfastData["return_url"],
-          cancel_url: payfastData["cancel_url"]
+          uuid: uuid,
+          return_url: payfastData.return_url,
+          cancel_url: payfastData.cancel_url
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -577,33 +472,14 @@ Deno.serve(async (req) => {
       )
 
     } catch (error) {
-      console.error('PayFast onsite payment error:', error)
-      
-      // Fall back to redirect method if onsite fails
-      console.log('Falling back to redirect method due to onsite error');
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          redirect_url: payfastUrl,
-          form_data: payfastData,
-          fallback_mode: true
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
+      console.error('PayFast onsite payment error:', error);
+      throw error;
     }
 
   } catch (error) {
     console.error('PayFast payment function error:', error)
     
-    // Return more specific error information
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const statusCode = error.message?.includes('configuration') ? 500 :
-                      error.message?.includes('Authentication') ? 401 :
-                      error.message?.includes('required') ? 400 : 500;
     
     return new Response(
       JSON.stringify({
@@ -612,7 +488,7 @@ Deno.serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: statusCode,
+        status: 500,
       }
     )
   }
