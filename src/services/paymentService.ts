@@ -21,7 +21,7 @@ export interface ProcessPaymentParams {
 }
 
 /**
- * Process PayFast payment (RnR-Live style)
+ * Process PayFast payment - Simple direct submission approach
  */
 export const processPayfastPayment = async (
   { formData, cartItems, totalAmount, orderId, paymentMethod, deliveryOption }: ProcessPaymentParams & { orderId: string }
@@ -35,7 +35,7 @@ export const processPayfastPayment = async (
       `${item.product?.name || 'Product'}${item.size ? ` (${item.size})` : ''} x${item.quantity}`
     ).join(", ");
     
-    // Initialize PayFast payment data (exactly like RnR-Live)
+    // Initialize PayFast payment data
     const { formAction, formData: payfastFormData } = initializePayfastPayment(
       orderId,
       `${formData.firstName} ${formData.lastName}`,
@@ -56,11 +56,11 @@ export const processPayfastPayment = async (
       Sandbox Mode: ${PAYFAST_CONFIG.useSandbox ? 'Yes' : 'No'}
     `);
     
-    // Create a form element for submission (exactly like RnR-Live)
+    // Create a form element for submission
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = formAction;
-    form.target = '_top'; // Ensure form targets the whole window, not an iframe
+    form.target = '_top';
     form.style.display = 'none';
     
     // Add all parameters as input fields
@@ -77,11 +77,11 @@ export const processPayfastPayment = async (
     // Append the form to the body 
     document.body.appendChild(form);
     
-    // Log a console message immediately before submission for debugging
+    // Log form submission
     console.log('Submitting PayFast form with signature');
     console.log('Form data:', JSON.stringify(payfastFormData, null, 2));
     
-    // Add a small delay to ensure logs are visible before redirect
+    // Show user feedback
     toast.info(PAYFAST_CONFIG.useSandbox 
       ? 'Redirecting to PayFast sandbox payment gateway...' 
       : 'Redirecting to PayFast payment gateway...');
@@ -94,7 +94,6 @@ export const processPayfastPayment = async (
       } catch (submitError) {
         console.error('Error submitting form:', submitError);
         toast.error('Failed to redirect to payment gateway. Please try again.');
-        // Remove the form if submission fails
         document.body.removeChild(form);
       }
     }, 800);
@@ -145,7 +144,7 @@ export const processEftPayment = async (orderId: string): Promise<PaymentResult>
 };
 
 /**
- * Process payment based on the selected payment method (RnR-Live style)
+ * Process payment based on the selected payment method
  */
 export const processPayment = async ({
   paymentMethod,
@@ -158,7 +157,7 @@ export const processPayment = async ({
   console.log(`PayFast environment: ${PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
   
   try {
-    // Generate a random order ID (like RnR-Live)
+    // Generate a random order ID
     const orderId = Math.floor(Math.random() * 1000000).toString();
     console.log(`Generated order ID: ${orderId}`);
     
@@ -183,7 +182,6 @@ export const processPayment = async ({
         return processEftPayment(orderId);
         
       default:
-        // For any other payment methods
         console.log(`Unsupported payment method: ${paymentMethod}, treating as successful`);
         toast.success('Order placed successfully!');
         return {
