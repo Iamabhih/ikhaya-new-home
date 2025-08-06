@@ -7,6 +7,19 @@ import { initializePayfastPayment } from "@/utils/payment/payfast";
 import { PAYFAST_CONFIG } from "@/utils/payment/constants";
 
 interface PayfastPaymentProps {
+  orderData?: {
+    orderId: string;
+    amount: number;
+    customerEmail: string;
+    customerName: string;
+    customerPhone: string;
+    items: Array<{
+      name: string;
+      description?: string;
+      quantity: number;
+      amount: number;
+    }>;
+  };
   formData: {
     email: string;
     firstName: string;
@@ -20,13 +33,18 @@ interface PayfastPaymentProps {
   cartItems: any[];
   cartTotal: number;
   deliveryFee: number;
+  selectedDeliveryZone?: string;
+  user?: any | null;
 }
 
 export const PayfastPayment = ({ 
+  orderData,
   formData, 
   cartItems, 
   cartTotal, 
-  deliveryFee 
+  deliveryFee,
+  selectedDeliveryZone,
+  user
 }: PayfastPaymentProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -34,9 +52,9 @@ export const PayfastPayment = ({
     setIsProcessing(true);
     
     try {
-      // Generate order ID
-      const orderId = Math.floor(Math.random() * 1000000).toString();
-      const totalAmount = cartTotal + deliveryFee;
+      // Generate order ID (use orderData if provided, otherwise generate new)
+      const orderId = orderData?.orderId || Math.floor(Math.random() * 1000000).toString();
+      const totalAmount = orderData?.amount || (cartTotal + deliveryFee);
       
       // Create cart summary
       const cartSummary = cartItems.map(item => 
@@ -59,7 +77,7 @@ export const PayfastPayment = ({
         formData
       );
       
-      // Create and submit form (exactly like RnR-Live)
+      // Create and submit form
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = formAction;
@@ -88,7 +106,6 @@ export const PayfastPayment = ({
         try {
           form.submit();
           console.log('PayFast form submitted successfully');
-          // PayFast will redirect to payment.payfast.io automatically
         } catch (submitError) {
           console.error('Error submitting form:', submitError);
           toast.error('Failed to redirect to payment gateway. Please try again.');
