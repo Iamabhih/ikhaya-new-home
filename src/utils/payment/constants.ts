@@ -23,7 +23,7 @@ export const PAYFAST_CONFIG = {
     host: 'https://sandbox.payfast.co.za/eng/process',
   },
   // Set to true for testing, false for production
-  useSandbox: true, // CHANGE THIS TO true FOR TESTING
+  useSandbox: false, // CHANGE THIS TO true FOR TESTING
   // Email to receive payment notifications
   merchant_notification_email: 'info@ikhayahomeware.online',
   // Site URL for consistent callback URLs
