@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, CreditCard } from "lucide-react";
-import { initializePayfastPayment } from "@/utils/payment/payfast";
+import { Loader2, CreditCard, ShieldCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { PAYFAST_CONFIG } from "@/utils/payment/constants";
 
 interface PayfastPaymentProps {
   orderData: {
@@ -37,13 +38,10 @@ interface PayfastPaymentProps {
 }
 
 export const PayfastPayment = ({ 
-  orderData, 
   formData, 
   cartItems, 
   cartTotal, 
-  deliveryFee, 
-  selectedDeliveryZone, 
-  user 
+  deliveryFee 
 }: PayfastPaymentProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -55,67 +53,47 @@ export const PayfastPayment = ({
       const orderId = Math.floor(Math.random() * 1000000).toString();
       const totalAmount = cartTotal + deliveryFee;
       
-      // Create cart summary for PayFast
-      const cartSummary = cartItems.map(item => 
-        `${item.product?.name || item.product_name || 'Product'}${item.size ? ` (${item.size})` : ''} x ${item.quantity}`
-      ).join(", ");
-      
       console.log('Processing PayFast payment for order:', orderId);
-      console.log('Total amount:', totalAmount);
-      console.log('Cart summary:', cartSummary);
+      console.log('Total amount: R', totalAmount.toFixed(2));
+      console.log('Environment:', PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION');
       
-      // Initialize PayFast payment
-      const { formAction, formData: payfastFormData } = initializePayfastPayment(
-        orderId,
-        `${formData.firstName} ${formData.lastName}`,
-        formData.email,
-        totalAmount,
-        cartSummary,
-        formData
-      );
-      
-      console.log('PayFast form action:', formAction);
-      console.log('PayFast form data:', payfastFormData);
-      
-      // Create and submit form directly
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = formAction;
-      form.target = '_top'; // Ensure form targets the whole window
-      form.style.display = 'none';
-      
-      // Add all parameters as input fields
-      Object.entries(payfastFormData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = String(value);
-          form.appendChild(input);
+      // Call the Supabase Edge Function to create PayFast payment session
+      const { data, error } = await supabase.functions.invoke('payfast-payment', {
+        body: {
+          orderId,
+          amount: totalAmount,
+          customerEmail: formData.email,
+          customerName: `${formData.firstName} ${formData.lastName}`,
+          customerPhone: formData.phone || '',
+          items: cartItems.map(item => ({
+            name: item.product?.name || item.product_name || 'Product',
+            description: item.size || '',
+            quantity: item.quantity,
+            amount: item.product?.price || item.price || 0
+          }))
         }
       });
-      
-      // Append the form to the body
-      document.body.appendChild(form);
-      
-      // Show user feedback
-      toast.info('Redirecting to PayFast payment gateway...');
-      
-      // Submit form after delay
-      setTimeout(() => {
-        try {
-          form.submit();
-          console.log('PayFast form submitted successfully');
-        } catch (submitError) {
-          console.error('Error submitting form:', submitError);
-          toast.error('Failed to redirect to payment gateway. Please try again.');
-          document.body.removeChild(form);
-          setIsProcessing(false);
-        }
-      }, 800);
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to initialize payment');
+      }
+
+      if (data?.success && data?.redirectUrl) {
+        console.log('Got PayFast redirect URL:', data.redirectUrl);
+        toast.success('Redirecting to PayFast payment gateway...');
+        
+        // Small delay for user to see the message
+        setTimeout(() => {
+          window.location.href = data.redirectUrl;
+        }, 1000);
+      } else {
+        console.error('Invalid response from payment API:', data);
+        throw new Error(data?.error || 'Failed to get payment URL from PayFast');
+      }
       
     } catch (error: any) {
-      console.error('💥 Payment error:', error);
+      console.error('Payment error:', error);
       const errorMessage = error.message || 'Failed to initiate payment. Please try again.';
       toast.error(errorMessage);
       setIsProcessing(false);
@@ -135,25 +113,37 @@ export const PayfastPayment = ({
           <h4 className="font-medium mb-2">Payment Summary</h4>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
-              <span>Amount:</span>
-              <span className="font-medium">R {(cartTotal + deliveryFee).toFixed(2)}</span>
+              <span>Subtotal:</span>
+              <span>R {cartTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Email:</span>
-              <span>{formData.email}</span>
+              <span>Delivery:</span>
+              <span>R {deliveryFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-bold">
+              <span>Total Amount:</span>
+              <span className="text-lg">R {(cartTotal + deliveryFee).toFixed(2)}</span>
             </div>
           </div>
         </div>
 
         <div className="text-center space-y-2">
           <p className="text-sm text-muted-foreground">
-            You will be redirected to PayFast to complete your payment
+            You will be securely redirected to PayFast to complete your payment
           </p>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <span>🔒</span>
+            <ShieldCheck className="w-4 h-4" />
             <span>Secured by PayFast - South Africa's leading payment gateway</span>
           </div>
         </div>
+
+        {PAYFAST_CONFIG.useSandbox && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-sm text-amber-800 font-medium">
+              ⚠️ Test Mode Active - No real payments will be processed
+            </p>
+          </div>
+        )}
 
         <Button
           onClick={handlePayment}
@@ -164,12 +154,12 @@ export const PayfastPayment = ({
           {isProcessing ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Redirecting to PayFast...
+              Processing Payment...
             </>
           ) : (
             <>
               <CreditCard className="w-4 h-4 mr-2" />
-              Pay with PayFast
+              Pay Now with PayFast
             </>
           )}
         </Button>
@@ -181,9 +171,9 @@ export const PayfastPayment = ({
             <span>•</span>
             <span className="font-medium">MasterCard</span>
             <span>•</span>
-            <span className="font-medium">EFT</span>
-            <span>•</span>
             <span className="font-medium">Instant EFT</span>
+            <span>•</span>
+            <span className="font-medium">Bank EFT</span>
           </div>
         </div>
       </CardContent>
