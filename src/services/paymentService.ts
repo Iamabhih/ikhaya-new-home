@@ -1,5 +1,5 @@
 import { FormData, DeliveryOption } from '@/types/checkout';
-import { CartItem } from '@/contexts/CartContext';
+import { CartItem } from '@/hooks/useCart';
 import { initializePayfastPayment } from '@/utils/payment/payfast';
 import { PAYFAST_CONFIG } from '@/utils/payment/constants';
 import { toast } from 'sonner';
@@ -32,7 +32,7 @@ export const processPayfastPayment = async (
   try {
     // Create a cart summary for PayFast
     const cartSummary = cartItems.map(item => 
-      `${item.product?.name || 'Product'}${item.size ? ` (${item.size})` : ''} x${item.quantity}`
+      `${item.product?.name || 'Product'} x${item.quantity}`
     ).join(", ");
     
     // Initialize PayFast payment data

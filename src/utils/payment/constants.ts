@@ -27,7 +27,7 @@ export const PAYFAST_CONFIG = {
   // Email to receive payment notifications
   merchant_notification_email: 'info@ikhayahomeware.online',
   // Site URL for consistent callback URLs
-  siteUrl: https://ikhaya.home,
+  siteUrl: 'https://ikhaya.shop',
 };
 
 // Helper to get the current PayFast environment configuration

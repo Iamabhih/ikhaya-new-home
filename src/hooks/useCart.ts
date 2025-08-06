@@ -246,6 +246,7 @@ export const useCart = () => {
 
   return {
     items: items || [],
+    cartItems: items || [], // Add alias for compatibility
     isLoading,
     addToCart: addToCart.mutate,
     updateQuantity: updateQuantity.mutate,

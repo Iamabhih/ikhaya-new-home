@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '@/contexts/CartContext';
+import { useCart } from '@/hooks/useCart';
 import { useCheckoutForm } from '@/hooks/useCheckoutForm';
 import { useCheckoutOptions } from '@/hooks/useCheckoutOptions';
 import { FormData, DeliveryOption, PaymentMethod } from '@/types/checkout';
@@ -73,7 +73,7 @@ export function useCheckout() {
                 
                 // Create cart summary
                 const cartSummary = cartItems.map(item => 
-                    `${item.product.name}${item.size ? ` (${item.size})` : ''} x${item.quantity}`
+                    `${item.product.name} x${item.quantity}`
                 ).join(", ");
                 
                 // Call initializePayfastPayment to get the form details (like RnR-Live)
@@ -139,7 +139,7 @@ export function useCheckout() {
         }
 
         // Get the selected payment method object
-        const paymentMethodObj = paymentMethods.find(m => m.id === selectedPaymentMethod);
+        const paymentMethodObj = paymentMethods.find(m => m.id === (typeof selectedPaymentMethod === 'string' ? selectedPaymentMethod : selectedPaymentMethod.id));
         
         if (!paymentMethodObj) {
             toast.error('Invalid payment method selected');
