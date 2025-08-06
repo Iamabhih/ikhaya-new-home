@@ -1,16 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, CreditCard } from "lucide-react";
 import { initializePayfastPayment } from "@/utils/payment/payfast";
-
-// Extend window object to include PayFast function
-declare global {
-  interface Window {
-    payfast_do_onsite_payment?: (params: { uuid: string; return_url?: string; cancel_url?: string }, callback?: (result: boolean) => void) => void;
-  }
-}
 
 interface PayfastPaymentProps {
   orderData: {
@@ -43,45 +36,22 @@ interface PayfastPaymentProps {
   user: any | null;
 }
 
-export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deliveryFee, selectedDeliveryZone, user }: PayfastPaymentProps) => {
+export const PayfastPayment = ({ 
+  orderData, 
+  formData, 
+  cartItems, 
+  cartTotal, 
+  deliveryFee, 
+  selectedDeliveryZone, 
+  user 
+}: PayfastPaymentProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [payfastScriptLoaded, setPayfastScriptLoaded] = useState(false);
-
-  // Load PayFast onsite script
-  useEffect(() => {
-    const loadPayfastScript = () => {
-      if (window.payfast_do_onsite_payment) {
-        setPayfastScriptLoaded(true);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://www.payfast.co.za/onsite/engine.js';
-      script.async = true;
-      script.onload = () => {
-        console.log('PayFast onsite script loaded');
-        setPayfastScriptLoaded(true);
-      };
-      script.onerror = () => {
-        console.error('Failed to load PayFast onsite script');
-        toast.error('Failed to load payment script. Please refresh and try again.');
-      };
-      document.head.appendChild(script);
-    };
-
-    loadPayfastScript();
-  }, []);
 
   const handlePayment = async () => {
-    if (!payfastScriptLoaded) {
-      toast.error('Payment system is still loading. Please wait a moment and try again.');
-      return;
-    }
-
     setIsProcessing(true);
     
     try {
-      // Generate order ID like RnR-Live
+      // Generate order ID
       const orderId = Math.floor(Math.random() * 1000000).toString();
       const totalAmount = cartTotal + deliveryFee;
       
@@ -94,7 +64,7 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
       console.log('Total amount:', totalAmount);
       console.log('Cart summary:', cartSummary);
       
-      // Use the exact RnR-Live approach
+      // Initialize PayFast payment
       const { formAction, formData: payfastFormData } = initializePayfastPayment(
         orderId,
         `${formData.firstName} ${formData.lastName}`,
@@ -107,11 +77,11 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
       console.log('PayFast form action:', formAction);
       console.log('PayFast form data:', payfastFormData);
       
-      // Create and submit form directly (exactly like RnR-Live)
+      // Create and submit form directly
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = formAction;
-      form.target = '_top'; // Ensure form targets the whole window, not an iframe
+      form.target = '_top'; // Ensure form targets the whole window
       form.style.display = 'none';
       
       // Add all parameters as input fields
@@ -131,7 +101,7 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
       // Show user feedback
       toast.info('Redirecting to PayFast payment gateway...');
       
-      // Submit form after delay (like RnR-Live)
+      // Submit form after delay
       setTimeout(() => {
         try {
           form.submit();
@@ -187,7 +157,7 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
 
         <Button
           onClick={handlePayment}
-          disabled={isProcessing || !payfastScriptLoaded}
+          disabled={isProcessing}
           className="w-full"
           size="lg"
         >
@@ -196,11 +166,6 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Redirecting to PayFast...
             </>
-          ) : !payfastScriptLoaded ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Loading Payment System...
-            </>
           ) : (
             <>
               <CreditCard className="w-4 h-4 mr-2" />
@@ -208,14 +173,6 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
             </>
           )}
         </Button>
-
-        {!payfastScriptLoaded && (
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">
-              Loading secure payment system...
-            </p>
-          </div>
-        )}
 
         <div className="text-center">
           <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
