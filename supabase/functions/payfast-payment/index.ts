@@ -352,14 +352,14 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Get the correct app domain
-    const appDomain = getAppDomain();
+    // Use the correct production domains
+    const appDomain = 'https://ikhaya.shop'; // Main production domain
     console.log('Using app domain:', appDomain);
 
-    // Determine PayFast URLs - use correct payfast.io domains as per documentation
+    // Determine PayFast URLs - use payfast.co.za as per official documentation
     const payfastBaseUrl = isTestMode 
-      ? 'https://sandbox.payfast.io'
-      : 'https://www.payfast.io';
+      ? 'https://sandbox.payfast.co.za'
+      : 'https://www.payfast.co.za';
     
     const onsiteUrl = `${payfastBaseUrl}/onsite/process`;
 

@@ -65,13 +65,17 @@ export const initializePayfastPayment = (
   // Format the amount to 2 decimal places
   const formattedAmount = amount.toFixed(2);
   
-  // Create merchant details
+  // Create merchant details with correct domains
+  const baseUrl = window.location.hostname.includes('ikhayahomeware.online') 
+    ? 'https://ikhayahomeware.online' 
+    : 'https://ikhaya.shop';
+    
   const merchantData = {
     merchant_id: config.merchant_id,
     merchant_key: config.merchant_key,
-    return_url: `${window.location.origin}/order-success`,
-    cancel_url: `${window.location.origin}/checkout`,
-    notify_url: `${window.location.origin}/api/payfast/notify`,
+    return_url: `${baseUrl}/checkout/success`,
+    cancel_url: `${baseUrl}/checkout`,
+    notify_url: `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`,
   };
   
   // Create customer details
