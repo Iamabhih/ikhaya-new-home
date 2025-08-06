@@ -56,7 +56,7 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
       }
 
       const script = document.createElement('script');
-      script.src = 'https://www.payfast.io/onsite/engine.js';
+      script.src = 'https://www.payfast.co.za/onsite/engine.js';
       script.async = true;
       script.onload = () => {
         console.log('PayFast onsite script loaded');
