@@ -12,7 +12,6 @@ export interface FormData {
 /**
  * Generate a PayFast payment signature
  */
-
 export const generateSignature = (data: Record<string, string>, passPhrase: string): string => {
   try {
     // Create a string of all values in the payment data
@@ -40,7 +39,7 @@ export const generateSignature = (data: Record<string, string>, passPhrase: stri
 export const calculatePayfastSignature = generateSignature;
 
 /**
- * Initialize PayFast payment with required signature
+ * Initialize PayFast payment with required signature (RnR-Live style)
  */
 export const initializePayfastPayment = (
   orderId: string,
@@ -65,10 +64,8 @@ export const initializePayfastPayment = (
   // Format the amount to 2 decimal places
   const formattedAmount = amount.toFixed(2);
   
-  // Create merchant details with correct domains
-  const baseUrl = window.location.hostname.includes('ikhayahomeware.online') 
-    ? 'https://ikhayahomeware.online' 
-    : 'https://ikhaya.shop';
+  // Create merchant details with Ikhaya domain
+  const baseUrl = 'https://ikhayahomeware.online';
     
   const merchantData = {
     merchant_id: config.merchant_id,
@@ -102,7 +99,7 @@ export const initializePayfastPayment = (
     ...customerData
   };
   
-  // Generate signature (THIS WAS MISSING)
+  // Generate signature
   const signature = generateSignature(
     pfData as Record<string, string>, 
     config.passphrase || ''

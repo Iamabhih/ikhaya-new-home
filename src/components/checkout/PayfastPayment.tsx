@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, CreditCard } from "lucide-react";
+import { initializePayfastPayment } from "@/utils/payment/payfast";
 
 // Extend window object to include PayFast function
 declare global {
@@ -78,139 +78,72 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
       return;
     }
 
-    if (!window.payfast_do_onsite_payment) {
-      toast.error('Payment system not available. Please refresh the page.');
-      return;
-    }
-
     setIsProcessing(true);
     
     try {
-      // Generate temporary order ID for PayFast tracking
-      const tempOrderId = `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      // Generate order ID like RnR-Live
+      const orderId = Math.floor(Math.random() * 1000000).toString();
+      const totalAmount = cartTotal + deliveryFee;
       
-      // Store order data in sessionStorage for webhook processing
-      const pendingOrderData = {
-        tempOrderId,
-        user_id: user?.id || null,
-        email: formData.email,
-        billing_address: {
-          address: formData.address,
-          city: formData.city,
-          province: formData.province,
-          postal_code: formData.postalCode
-        },
-        shipping_address: {
-          address: formData.address,
-          city: formData.city,
-          province: formData.province,
-          postal_code: formData.postalCode
-        },
-        subtotal: cartTotal,
-        shipping_amount: deliveryFee,
-        total_amount: cartTotal + deliveryFee,
-        delivery_zone_id: selectedDeliveryZone,
-        cartItems: cartItems.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.product.price,
-          total_price: item.product.price * item.quantity,
-          product_name: item.product.name,
-          product_sku: item.product.sku
-        }))
-      };
-
-      // Store pending order data for webhook processing
-      sessionStorage.setItem(`pending_order_${tempOrderId}`, JSON.stringify(pendingOrderData));
-
-      // Process payment with temporary order ID
-      const paymentOrderData = {
-        ...orderData,
-        orderId: tempOrderId
-      };
-
-      // Get current session for authentication
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Create cart summary for PayFast
+      const cartSummary = cartItems.map(item => 
+        `${item.product?.name || item.product_name || 'Product'}${item.size ? ` (${item.size})` : ''} x ${item.quantity}`
+      ).join(", ");
       
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error('Authentication required. Please sign in.');
-      }
+      console.log('Processing PayFast payment for order:', orderId);
+      console.log('Total amount:', totalAmount);
+      console.log('Cart summary:', cartSummary);
       
-      console.log('🔄 Calling PayFast onsite payment with order data:', {
-        ...paymentOrderData,
-        customerEmail: paymentOrderData.customerEmail.substring(0, 3) + '***'
-      });
+      // Use the exact RnR-Live approach
+      const { formAction, formData: payfastFormData } = initializePayfastPayment(
+        orderId,
+        `${formData.firstName} ${formData.lastName}`,
+        formData.email,
+        totalAmount,
+        cartSummary,
+        formData
+      );
       
-      const { data, error } = await supabase.functions.invoke('payfast-payment', {
-        body: paymentOrderData,
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`
+      console.log('PayFast form action:', formAction);
+      console.log('PayFast form data:', payfastFormData);
+      
+      // Create and submit form directly (exactly like RnR-Live)
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = formAction;
+      form.target = '_top'; // Ensure form targets the whole window, not an iframe
+      form.style.display = 'none';
+      
+      // Add all parameters as input fields
+      Object.entries(payfastFormData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = String(value);
+          form.appendChild(input);
         }
       });
-
-      console.log('✅ PayFast function response:', { success: data?.success, hasUuid: !!data?.uuid });
-
-      if (error) {
-        console.error('❌ Edge function error:', error);
-        throw new Error(error.message || 'Payment service error');
-      }
-
-      if (data?.success) {
-        // Check if we need to fallback to redirect method
-        if (data?.fallback_mode) {
-          console.log('🔄 Using fallback redirect method');
-          
-          // Create a form and submit it for redirect
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = data.redirect_url;
-          form.style.display = 'none';
-          
-          // Add all form data as hidden inputs
-          Object.entries(data.form_data).forEach(([key, value]) => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = value as string;
-            form.appendChild(input);
-          });
-          
-          document.body.appendChild(form);
+      
+      // Append the form to the body
+      document.body.appendChild(form);
+      
+      // Show user feedback
+      toast.info('Redirecting to PayFast payment gateway...');
+      
+      // Submit form after delay (like RnR-Live)
+      setTimeout(() => {
+        try {
           form.submit();
-          return;
+          console.log('PayFast form submitted successfully');
+        } catch (submitError) {
+          console.error('Error submitting form:', submitError);
+          toast.error('Failed to redirect to payment gateway. Please try again.');
+          document.body.removeChild(form);
+          setIsProcessing(false);
         }
-        
-        if (data?.uuid) {
-          console.log('🎯 PayFast UUID received, launching onsite payment...');
-          
-          // Use PayFast onsite payment with callback
-          window.payfast_do_onsite_payment(
-            {
-              uuid: data.uuid,
-              return_url: data.return_url,
-              cancel_url: data.cancel_url
-            },
-            (result: boolean) => {
-              console.log('PayFast onsite payment result:', result);
-              if (result) {
-                // Payment completed
-                toast.success('Payment completed successfully!');
-                // Redirect to success page
-                window.location.href = data.return_url || '/checkout/success';
-              } else {
-                // Payment window closed or cancelled
-                toast.error('Payment was cancelled or failed. Please try again.');
-                setIsProcessing(false);
-              }
-            }
-          );
-        } else {
-          throw new Error('PayFast did not return payment identifier');
-        }
-      } else {
-        throw new Error(data?.error || 'Failed to initiate payment');
-      }
+      }, 800);
+      
     } catch (error: any) {
       console.error('💥 Payment error:', error);
       const errorMessage = error.message || 'Failed to initiate payment. Please try again.';
@@ -232,23 +165,19 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
           <h4 className="font-medium mb-2">Payment Summary</h4>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
-              <span>Order:</span>
-              <span>{orderData.orderId}</span>
-            </div>
-            <div className="flex justify-between">
               <span>Amount:</span>
-              <span className="font-medium">R {orderData.amount.toFixed(2)}</span>
+              <span className="font-medium">R {(cartTotal + deliveryFee).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Email:</span>
-              <span>{orderData.customerEmail}</span>
+              <span>{formData.email}</span>
             </div>
           </div>
         </div>
 
         <div className="text-center space-y-2">
           <p className="text-sm text-muted-foreground">
-            Secure payment will open on this page - no redirects needed
+            You will be redirected to PayFast to complete your payment
           </p>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>🔒</span>
@@ -265,7 +194,7 @@ export const PayfastPayment = ({ orderData, formData, cartItems, cartTotal, deli
           {isProcessing ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Processing...
+              Redirecting to PayFast...
             </>
           ) : !payfastScriptLoaded ? (
             <>
