@@ -4,10 +4,20 @@ import { initializePayfastPayment } from '@/utils/payment/payfast';
 import { PAYFAST_CONFIG } from '@/utils/payment/constants';
 import { toast } from 'sonner';
 
+export interface BankDetails {
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  branchCode: string;
+  accountType: string;
+}
+
 export interface PaymentResult {
   success: boolean;
   orderId?: string;
   error?: string;
+  bankDetails?: BankDetails; // Added bankDetails property
+  redirectUrl?: string;
 }
 
 export interface ProcessPaymentParams {
@@ -19,7 +29,7 @@ export interface ProcessPaymentParams {
 }
 
 /**
- * Process PayFast payment (RnR-Live style - direct form submission)
+ * Process PayFast payment (direct form submission)
  */
 export const processPayfastPayment = async (
   { formData, cartItems, totalAmount, orderId }: ProcessPaymentParams & { orderId: string }
@@ -28,10 +38,12 @@ export const processPayfastPayment = async (
   console.log(`Environment: ${PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
   
   try {
-    // Create cart summary
-    const cartSummary = cartItems.map(item => 
-      `${item.product?.name || 'Product'}${item.size ? ` (${item.size})` : ''} x${item.quantity}`
-    ).join(", ");
+    // Create cart summary - handle both 'size' property and without
+    const cartSummary = cartItems.map(item => {
+      const productName = item.product?.name || 'Product';
+      const sizeInfo = (item as any).size ? ` (${(item as any).size})` : '';
+      return `${productName}${sizeInfo} x${item.quantity}`;
+    }).join(", ");
     
     // Get PayFast form data
     const { formAction, formData: payfastFormData } = initializePayfastPayment(
@@ -69,7 +81,6 @@ export const processPayfastPayment = async (
     setTimeout(() => {
       try {
         form.submit();
-        // PayFast handles the redirect to payment.payfast.io
       } catch (error) {
         console.error('Form submission error:', error);
         document.body.removeChild(form);
@@ -91,6 +102,38 @@ export const processPayfastPayment = async (
 };
 
 /**
+ * Process EFT payment
+ */
+export const processEftPayment = async (orderId: string): Promise<PaymentResult> => {
+  try {
+    console.log('Processing EFT payment for order:', orderId);
+    
+    // Bank details for Ikhaya Homeware
+    const bankDetails: BankDetails = {
+      bankName: 'Standard Bank',
+      accountHolder: 'Ikhaya Homeware',
+      accountNumber: '123456789', // Replace with actual
+      branchCode: '051001', // Replace with actual
+      accountType: 'Current'
+    };
+    
+    toast.success('EFT payment instructions will be sent to your email.');
+    
+    return {
+      success: true,
+      orderId,
+      bankDetails
+    };
+  } catch (error) {
+    console.error('Error in EFT payment processing:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to process EFT payment'
+    };
+  }
+};
+
+/**
  * Main payment processor
  */
 export const processPayment = async ({
@@ -101,6 +144,8 @@ export const processPayment = async ({
   totalAmount
 }: ProcessPaymentParams): Promise<PaymentResult> => {
   const orderId = Math.floor(Math.random() * 1000000).toString();
+  
+  console.log(`Processing ${paymentMethod} payment for amount: R${totalAmount.toFixed(2)}`);
   
   switch (paymentMethod) {
     case 'payfast':
@@ -114,14 +159,10 @@ export const processPayment = async ({
       });
       
     case 'eft':
-      // Handle EFT payment
-      toast.success('EFT payment instructions will be sent to your email.');
-      return {
-        success: true,
-        orderId
-      };
+      return processEftPayment(orderId);
       
     default:
+      toast.error('Invalid payment method selected');
       return {
         success: false,
         error: 'Invalid payment method'
