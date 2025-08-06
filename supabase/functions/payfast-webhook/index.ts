@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Pure JavaScript MD5 implementation (same as payment function)
+// Pure JavaScript MD5 implementation
 function md5(string: string): string {
   function RotateLeft(lValue: number, iShiftBits: number) {
     return (lValue << iShiftBits) | (lValue >>> (32 - iShiftBits));
@@ -209,34 +209,29 @@ function md5(string: string): string {
   return temp.toLowerCase();
 }
 
-// Generate signature for webhook verification (same as payment function)
+// Generate signature for webhook verification
 function generateSignature(data: Record<string, any>, passPhrase: string = ''): string {
-  // Sort keys alphabetically (excluding signature field)
   const sortedKeys = Object.keys(data)
     .filter(key => key !== 'signature' && data[key] !== undefined && data[key] !== null && data[key] !== '')
     .sort();
   
   let pfOutput = '';
   
-  // Build parameter string in alphabetical order
   for (const key of sortedKeys) {
     const value = data[key].toString().trim();
     pfOutput += `${key}=${encodeURIComponent(value).replace(/%20/g, '+')}&`;
   }
   
-  // Remove last ampersand
   pfOutput = pfOutput.slice(0, -1);
   
-  // Add passphrase if provided
   if (passPhrase && passPhrase.trim() !== '') {
     pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
   }
   
   console.log('Webhook signature verification:');
-  console.log('- Parameter string:', pfOutput);
+  console.log('- Parameter string length:', pfOutput.length);
   console.log('- Has passphrase:', !!(passPhrase && passPhrase.trim()));
   
-  // Generate MD5 hash
   const signature = md5(pfOutput);
   console.log('- Calculated signature:', signature);
   
@@ -244,17 +239,19 @@ function generateSignature(data: Record<string, any>, passPhrase: string = ''): 
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
+
+  console.log('=== PayFast Webhook Called for Ikhaya Homeware ===');
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
-      throw new Error('Missing Supabase environment variables');
+      console.error('❌ Missing Supabase environment variables');
+      return new Response('Server configuration error', { status: 500 });
     }
 
     const supabaseClient = createClient(
@@ -262,25 +259,21 @@ Deno.serve(async (req) => {
       supabaseServiceRoleKey
     )
 
-    console.log('PayFast webhook called');
-
     // Parse form data from PayFast
     const formData = await req.formData();
-    
-    // Create data structure preserving the order PayFast sends
     const payfastData: Record<string, string> = {};
     
-    // Process form data in the order received
     for (const [key, value] of formData) {
       payfastData[key] = value.toString();
     }
 
-    console.log('PayFast webhook received data:', {
+    console.log('PayFast webhook data received:', {
       payment_status: payfastData.payment_status,
       m_payment_id: payfastData.m_payment_id,
       pf_payment_id: payfastData.pf_payment_id,
       amount_gross: payfastData.amount_gross,
-      signature: payfastData.signature ? payfastData.signature.substring(0, 8) + '...' : 'missing',
+      email_address: payfastData.email_address ? payfastData.email_address.substring(0, 3) + '***' : 'missing',
+      signature: payfastData.signature ? 'present' : 'missing',
       totalFields: Object.keys(payfastData).length
     });
 
@@ -288,46 +281,48 @@ Deno.serve(async (req) => {
     const receivedSignature = payfastData.signature;
     
     if (!receivedSignature) {
-      console.error('No signature received from PayFast');
+      console.error('❌ No signature received from PayFast');
       return new Response('No signature provided', { status: 400 });
     }
 
-    // Get PayFast configuration from environment variables (same as payment function)
+    // Get PayFast passphrase from environment
     const passphrase = Deno.env.get('PAYFAST_PASSPHRASE') || '';
     
-    console.log('PayFast config for webhook:', {
-      hasPassphrase: !!passphrase,
-      passphraseLength: passphrase.length
+    console.log('PayFast webhook config:', {
+      hasPassphrase: !!passphrase
     });
 
-    // Generate signature for verification (excluding the signature field itself)
+    // Generate signature for verification
     const calculatedSignature = generateSignature(payfastData, passphrase);
 
     if (receivedSignature !== calculatedSignature) {
-      console.error('Invalid PayFast signature:', {
-        received: receivedSignature,
-        calculated: calculatedSignature
+      console.error('❌ Invalid PayFast signature:', {
+        received: receivedSignature.substring(0, 8) + '...',
+        calculated: calculatedSignature.substring(0, 8) + '...'
       });
       
       return new Response('Invalid signature', { status: 400 })
     }
 
-    console.log('Signature verified successfully');
+    console.log('✅ Signature verified successfully');
 
     const paymentStatus = payfastData.payment_status
     const orderId = payfastData.m_payment_id
     const amount = parseFloat(payfastData.amount_gross || '0')
 
-    console.log(`PayFast webhook: Order ${orderId}, Status: ${paymentStatus}, Amount: ${amount}`)
+    console.log(`PayFast webhook processing: Order ${orderId}, Status: ${paymentStatus}, Amount: R${amount}`)
 
-    // Handle payment status - simple order creation/update
+    // Handle payment completion (create order like RnR-Live)
     if (paymentStatus === 'COMPLETE') {
-      console.log(`Payment successful for order ${orderId}, processing...`);
+      console.log(`✅ Payment successful for order ${orderId}, creating order...`);
       
-      // Create or update order based on your database structure
+      // Create order from PayFast webhook data (like RnR-Live)
       const orderData = {
         order_number: orderId,
         email: payfastData.email_address || '',
+        first_name: payfastData.name_first || '',
+        last_name: payfastData.name_last || '',
+        phone: payfastData.cell_number || '',
         total_amount: amount,
         status: 'confirmed',
         payment_status: 'paid',
@@ -338,79 +333,32 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString()
       };
 
-      // Try to update existing order first, then create if not exists
-      const { data: existingOrder } = await supabaseClient
+      const { data: newOrder, error: orderError } = await supabaseClient
         .from('orders')
-        .select('id')
-        .eq('order_number', orderId)
-        .maybeSingle();
+        .insert(orderData)
+        .select()
+        .single();
 
-      if (existingOrder) {
-        // Update existing order
-        const { error: updateError } = await supabaseClient
-          .from('orders')
-          .update({
-            status: 'confirmed',
-            payment_status: 'paid',
-            payment_gateway: 'payfast',
-            payment_reference: payfastData.pf_payment_id,
-            payment_gateway_response: payfastData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingOrder.id);
-
-        if (updateError) {
-          console.error('Failed to update existing order:', updateError);
-          return new Response('Database update failed', { status: 500 });
-        }
-
-        console.log(`Existing order ${existingOrder.id} updated successfully`);
-      } else {
-        // Create new order (simplified version)
-        const { data: newOrder, error: orderError } = await supabaseClient
-          .from('orders')
-          .insert(orderData)
-          .select()
-          .single();
-
-        if (orderError) {
-          console.error('Failed to create order:', orderError);
-          return new Response('Failed to create order', { status: 500 });
-        }
-
-        console.log(`New order ${newOrder.id} created successfully`);
+      if (orderError) {
+        console.error('❌ Failed to create order:', orderError);
+        return new Response('Failed to create order', { status: 500 });
       }
+
+      console.log(`✅ Order ${newOrder.id} created successfully for Ikhaya Homeware`);
 
     } else if (paymentStatus === 'CANCELLED' || paymentStatus === 'FAILED') {
-      console.log(`Payment ${paymentStatus.toLowerCase()} for order ${orderId}`);
+      console.log(`❌ Payment ${paymentStatus.toLowerCase()} for order ${orderId}`);
+      // Could log failed payment attempts if needed
       
-      // Update order status to cancelled/failed
-      const { error: updateError } = await supabaseClient
-        .from('orders')
-        .update({
-          status: 'cancelled',
-          payment_status: 'failed',
-          payment_gateway: 'payfast',
-          payment_gateway_response: payfastData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('order_number', orderId);
-
-      if (updateError) {
-        console.error('Failed to update order:', updateError);
-        return new Response('Database update failed', { status: 500 });
-      }
-
-      console.log(`Order ${orderId} marked as ${paymentStatus.toLowerCase()}`);
     } else {
-      // Pending or other status
-      console.log(`Order ${orderId} has status: ${paymentStatus} - no action taken`);
+      console.log(`⏳ Order ${orderId} has status: ${paymentStatus} - no action taken`);
     }
 
+    console.log('✅ PayFast webhook processed successfully for Ikhaya Homeware');
     return new Response('OK', { status: 200 })
 
   } catch (error) {
-    console.error('PayFast webhook error:', error)
+    console.error('❌ PayFast webhook error:', error)
     return new Response('Internal Server Error', { status: 500 })
   }
 })
