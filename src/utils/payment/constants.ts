@@ -19,15 +19,15 @@ export const PAYFAST_CONFIG = {
   sandbox: {
     merchant_id: '10000100',
     merchant_key: '46f0cd694581a',
-    passphrase: 'jt7NOE43FZPn',
+    passphrase: '',
     host: 'https://sandbox.payfast.co.za/eng/process',
   },
   // Set to true for testing, false for production
-  useSandbox: false, // CHANGE THIS TO true FOR TESTING
+  useSandbox: true, // CHANGE THIS TO true FOR TESTING
   // Email to receive payment notifications
   merchant_notification_email: 'info@ikhayahomeware.online',
   // Site URL for consistent callback URLs
-  siteUrl: SITE_URL,
+  siteUrl: https://ikhaya.home,
 };
 
 // Helper to get the current PayFast environment configuration
