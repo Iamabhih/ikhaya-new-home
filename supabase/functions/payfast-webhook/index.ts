@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Pure JavaScript MD5 implementation (same as in payment function)
+// Pure JavaScript MD5 implementation (same as payment function)
 function md5(string: string): string {
   function RotateLeft(lValue: number, iShiftBits: number) {
     return (lValue << iShiftBits) | (lValue >>> (32 - iShiftBits));
@@ -125,37 +125,18 @@ function md5(string: string): string {
 
   let x = [];
   let k, AA, BB, CC, DD, a, b, c, d;
-  const S11 = 7,
-    S12 = 12,
-    S13 = 17,
-    S14 = 22;
-  const S21 = 5,
-    S22 = 9,
-    S23 = 14,
-    S24 = 20;
-  const S31 = 4,
-    S32 = 11,
-    S33 = 16,
-    S34 = 23;
-  const S41 = 6,
-    S42 = 10,
-    S43 = 15,
-    S44 = 21;
+  const S11 = 7, S12 = 12, S13 = 17, S14 = 22;
+  const S21 = 5, S22 = 9, S23 = 14, S24 = 20;
+  const S31 = 4, S32 = 11, S33 = 16, S34 = 23;
+  const S41 = 6, S42 = 10, S43 = 15, S44 = 21;
 
   string = Utf8Encode(string);
-
   x = ConvertToWordArray(string);
 
-  a = 0x67452301;
-  b = 0xEFCDAB89;
-  c = 0x98BADCFE;
-  d = 0x10325476;
+  a = 0x67452301; b = 0xEFCDAB89; c = 0x98BADCFE; d = 0x10325476;
 
   for (k = 0; k < x.length; k += 16) {
-    AA = a;
-    BB = b;
-    CC = c;
-    DD = d;
+    AA = a; BB = b; CC = c; DD = d;
     a = FF(a, b, c, d, x[k + 0], S11, 0xD76AA478);
     d = FF(d, a, b, c, x[k + 1], S12, 0xE8C7B756);
     c = FF(c, d, a, b, x[k + 2], S13, 0x242070DB);
@@ -220,48 +201,45 @@ function md5(string: string): string {
     d = II(d, a, b, c, x[k + 11], S42, 0xBD3AF235);
     c = II(c, d, a, b, x[k + 2], S43, 0x2AD7D2BB);
     b = II(b, c, d, a, x[k + 9], S44, 0xEB86D391);
-    a = AddUnsigned(a, AA);
-    b = AddUnsigned(b, BB);
-    c = AddUnsigned(c, CC);
-    d = AddUnsigned(d, DD);
+    a = AddUnsigned(a, AA); b = AddUnsigned(b, BB); 
+    c = AddUnsigned(c, CC); d = AddUnsigned(d, DD);
   }
 
   const temp = WordToHex(a) + WordToHex(b) + WordToHex(c) + WordToHex(d);
-
   return temp.toLowerCase();
 }
 
-// Generate signature for webhook verification (exactly like PayFast's official specification)
-function generateSignature(data: any, passPhrase: string | null = null): string {
-  // CRITICAL: PayFast requires alphabetical sorting of all parameters
+// Generate signature for webhook verification (same as payment function)
+function generateSignature(data: Record<string, any>, passPhrase: string = ''): string {
+  // Sort keys alphabetically (excluding signature field)
   const sortedKeys = Object.keys(data)
-    .filter(key => key !== 'signature') // Skip signature field for verification
+    .filter(key => key !== 'signature' && data[key] !== undefined && data[key] !== null && data[key] !== '')
     .sort();
   
-  let pfOutput = "";
+  let pfOutput = '';
+  
+  // Build parameter string in alphabetical order
   for (const key of sortedKeys) {
-    if (data[key] !== "") {
-      pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, "+")}&`;
-    }
+    const value = data[key].toString().trim();
+    pfOutput += `${key}=${encodeURIComponent(value).replace(/%20/g, '+')}&`;
   }
   
   // Remove last ampersand
-  let getString = pfOutput.slice(0, -1);
+  pfOutput = pfOutput.slice(0, -1);
   
   // Add passphrase if provided
-  if (passPhrase !== null && passPhrase !== "") {
-    getString += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, "+")}`;
+  if (passPhrase && passPhrase.trim() !== '') {
+    pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
   }
   
   console.log('Webhook signature verification:');
-  console.log('- Sorted keys:', sortedKeys.join(', '));
-  console.log('- Parameter string:', getString);
-  console.log('- Has passphrase:', !!(passPhrase && passPhrase !== ""));
+  console.log('- Parameter string:', pfOutput);
+  console.log('- Has passphrase:', !!(passPhrase && passPhrase.trim()));
   
   // Generate MD5 hash
-  const signature = md5(getString);
-  
+  const signature = md5(pfOutput);
   console.log('- Calculated signature:', signature);
+  
   return signature;
 }
 
@@ -284,18 +262,13 @@ Deno.serve(async (req) => {
       supabaseServiceRoleKey
     )
 
-    console.log('PayFast webhook called - Raw request details:', {
-      method: req.method,
-      url: req.url,
-      headers: Object.fromEntries(req.headers.entries()),
-      contentType: req.headers.get('content-type')
-    });
+    console.log('PayFast webhook called');
 
     // Parse form data from PayFast
     const formData = await req.formData();
     
     // Create data structure preserving the order PayFast sends
-    const payfastData: any = {};
+    const payfastData: Record<string, string> = {};
     
     // Process form data in the order received
     for (const [key, value] of formData) {
@@ -308,8 +281,7 @@ Deno.serve(async (req) => {
       pf_payment_id: payfastData.pf_payment_id,
       amount_gross: payfastData.amount_gross,
       signature: payfastData.signature ? payfastData.signature.substring(0, 8) + '...' : 'missing',
-      totalFields: Object.keys(payfastData).length,
-      allFields: Object.keys(payfastData).join(', ')
+      totalFields: Object.keys(payfastData).length
     });
 
     // Verify signature
@@ -320,34 +292,12 @@ Deno.serve(async (req) => {
       return new Response('No signature provided', { status: 400 });
     }
 
-    // Get PayFast configuration from database to match payment function
-    console.log('Loading PayFast configuration from database for signature verification...');
+    // Get PayFast configuration from environment variables (same as payment function)
+    const passphrase = Deno.env.get('PAYFAST_PASSPHRASE') || '';
     
-    const { data: paymentSettings, error: settingsError } = await supabaseClient
-      .from('payment_settings')
-      .select('*')
-      .eq('gateway_name', 'payfast')
-      .eq('is_enabled', true)
-      .maybeSingle();
-
-    if (settingsError) {
-      console.error('Error loading payment settings for webhook:', settingsError);
-      return new Response('Failed to load payment configuration', { status: 500 });
-    }
-
-    if (!paymentSettings) {
-      console.error('PayFast gateway not enabled or configured for webhook');
-      return new Response('PayFast payment gateway is not enabled', { status: 500 });
-    }
-
-    const settings = paymentSettings.settings as any;
-    const passphrase = settings?.passphrase || Deno.env.get('PAYFAST_PASSPHRASE') || '';
-    
-    console.log('PayFast config loaded for webhook:', {
+    console.log('PayFast config for webhook:', {
       hasPassphrase: !!passphrase,
-      passphraseLength: passphrase.length,
-      isTestMode: paymentSettings.is_test_mode,
-      fromDatabase: true
+      passphraseLength: passphrase.length
     });
 
     // Generate signature for verification (excluding the signature field itself)
@@ -356,20 +306,8 @@ Deno.serve(async (req) => {
     if (receivedSignature !== calculatedSignature) {
       console.error('Invalid PayFast signature:', {
         received: receivedSignature,
-        calculated: calculatedSignature,
-        receivedLength: receivedSignature?.length,
-        calculatedLength: calculatedSignature?.length,
-        firstCharMatch: receivedSignature?.[0] === calculatedSignature?.[0],
-        lastCharMatch: receivedSignature?.[receivedSignature.length - 1] === calculatedSignature?.[calculatedSignature.length - 1]
+        calculated: calculatedSignature
       });
-      
-      // Debug: Log the parameters being used
-      const debugParams = Object.entries(payfastData)
-        .filter(([key]) => key !== 'signature')
-        .map(([k, v]) => `${k}=${v}`)
-        .join(', ');
-      console.error('Data for verification (excluding signature):', debugParams);
-      console.error('Passphrase present:', !!passphrase);
       
       return new Response('Invalid signature', { status: 400 })
     }
@@ -382,80 +320,33 @@ Deno.serve(async (req) => {
 
     console.log(`PayFast webhook: Order ${orderId}, Status: ${paymentStatus}, Amount: ${amount}`)
 
-    // Handle payment status - CREATE ORDER ONLY AFTER SUCCESSFUL PAYMENT
+    // Handle payment status - simple order creation/update
     if (paymentStatus === 'COMPLETE') {
       console.log(`Payment successful for order ${orderId}, processing...`);
       
-      // Check if this is a temporary order ID that needs order creation
-      if (orderId.startsWith('TEMP-')) {
-        try {
-          // This is a new payment - create the order
-          const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-          
-          // Create order with confirmed status since payment is complete
-          const orderData = {
-            user_id: null, // Will be filled from frontend session data if available
-            email: payfastData.email_address,
-            order_number: orderNumber,
-            billing_address: {
-              address: `${payfastData.name_first || ''} ${payfastData.name_last || ''}`.trim(),
-              city: 'Unknown',
-              province: 'Unknown',
-              postal_code: 'Unknown'
-            },
-            shipping_address: {
-              address: `${payfastData.name_first || ''} ${payfastData.name_last || ''}`.trim(),
-              city: 'Unknown', 
-              province: 'Unknown',
-              postal_code: 'Unknown'
-            },
-            subtotal: amount,
-            shipping_amount: 0,
-            total_amount: amount,
-            status: 'confirmed',
-            payment_status: 'paid',
-            payment_gateway: 'payfast',
-            payment_reference: payfastData.pf_payment_id,
-            payment_gateway_response: payfastData
-          };
+      // Create or update order based on your database structure
+      const orderData = {
+        order_number: orderId,
+        email: payfastData.email_address || '',
+        total_amount: amount,
+        status: 'confirmed',
+        payment_status: 'paid',
+        payment_gateway: 'payfast',
+        payment_reference: payfastData.pf_payment_id,
+        payment_gateway_response: payfastData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
 
-          const { data: newOrder, error: orderError } = await supabaseClient
-            .from('orders')
-            .insert(orderData)
-            .select()
-            .single();
+      // Try to update existing order first, then create if not exists
+      const { data: existingOrder } = await supabaseClient
+        .from('orders')
+        .select('id')
+        .eq('order_number', orderId)
+        .maybeSingle();
 
-          if (orderError) {
-            console.error('Failed to create order:', orderError);
-            return new Response('Failed to create order', { status: 500 });
-          }
-
-          console.log(`Order ${newOrder.id} created successfully for temp order ${orderId}`);
-          
-          // Send confirmation email (optional)
-          try {
-            await supabaseClient.functions.invoke('send-email', {
-              body: {
-                to: newOrder.email,
-                template: 'order-confirmation',
-                data: {
-                  orderId: newOrder.order_number,
-                  amount,
-                  paymentReference: payfastData.pf_payment_id
-                }
-              }
-            });
-          } catch (emailError) {
-            console.error('Failed to send confirmation email:', emailError);
-            // Don't fail the webhook if email fails
-          }
-
-        } catch (error) {
-          console.error('Error creating order for successful payment:', error);
-          return new Response('Order creation failed', { status: 500 });
-        }
-      } else {
-        // This is an existing order - just update it
+      if (existingOrder) {
+        // Update existing order
         const { error: updateError } = await supabaseClient
           .from('orders')
           .update({
@@ -466,42 +357,51 @@ Deno.serve(async (req) => {
             payment_gateway_response: payfastData,
             updated_at: new Date().toISOString()
           })
-          .eq('id', orderId);
+          .eq('id', existingOrder.id);
 
         if (updateError) {
           console.error('Failed to update existing order:', updateError);
           return new Response('Database update failed', { status: 500 });
         }
 
-        console.log(`Existing order ${orderId} marked as paid`);
+        console.log(`Existing order ${existingOrder.id} updated successfully`);
+      } else {
+        // Create new order (simplified version)
+        const { data: newOrder, error: orderError } = await supabaseClient
+          .from('orders')
+          .insert(orderData)
+          .select()
+          .single();
+
+        if (orderError) {
+          console.error('Failed to create order:', orderError);
+          return new Response('Failed to create order', { status: 500 });
+        }
+
+        console.log(`New order ${newOrder.id} created successfully`);
       }
 
     } else if (paymentStatus === 'CANCELLED' || paymentStatus === 'FAILED') {
       console.log(`Payment ${paymentStatus.toLowerCase()} for order ${orderId}`);
       
-      // For temporary orders, we don't create anything - just log
-      if (orderId.startsWith('TEMP-')) {
-        console.log(`Temporary order ${orderId} payment failed - no order created`);
-      } else {
-        // For existing orders, mark as failed
-        const { error: updateError } = await supabaseClient
-          .from('orders')
-          .update({
-            status: 'cancelled',
-            payment_status: 'failed',
-            payment_gateway: 'payfast',
-            payment_gateway_response: payfastData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', orderId);
+      // Update order status to cancelled/failed
+      const { error: updateError } = await supabaseClient
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          payment_status: 'failed',
+          payment_gateway: 'payfast',
+          payment_gateway_response: payfastData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('order_number', orderId);
 
-        if (updateError) {
-          console.error('Failed to update order:', updateError);
-          return new Response('Database update failed', { status: 500 });
-        }
-
-        console.log(`Order ${orderId} marked as failed/cancelled`);
+      if (updateError) {
+        console.error('Failed to update order:', updateError);
+        return new Response('Database update failed', { status: 500 });
       }
+
+      console.log(`Order ${orderId} marked as ${paymentStatus.toLowerCase()}`);
     } else {
       // Pending or other status
       console.log(`Order ${orderId} has status: ${paymentStatus} - no action taken`);
