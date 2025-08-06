@@ -1,14 +1,12 @@
 import { FormData, DeliveryOption } from '@/types/checkout';
 import { CartItem } from '@/contexts/CartContext';
+import { initializePayfastPayment } from '@/utils/payment/payfast';
 import { PAYFAST_CONFIG } from '@/utils/payment/constants';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface PaymentResult {
   success: boolean;
   orderId?: string;
-  redirectUrl?: string;
-  bankDetails?: any;
   error?: string;
 }
 
@@ -21,88 +19,79 @@ export interface ProcessPaymentParams {
 }
 
 /**
- * Process PayFast payment using the new API approach
+ * Process PayFast payment (RnR-Live style - direct form submission)
  */
 export const processPayfastPayment = async (
-  { formData, cartItems, totalAmount, orderId, deliveryOption }: ProcessPaymentParams & { orderId: string }
+  { formData, cartItems, totalAmount, orderId }: ProcessPaymentParams & { orderId: string }
 ): Promise<PaymentResult> => {
   console.log('Processing PayFast payment for order:', orderId);
   console.log(`Environment: ${PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
   
   try {
-    // Call the Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke('payfast-payment', {
-      body: {
-        orderId,
-        amount: totalAmount,
-        customerEmail: formData.email,
-        customerName: `${formData.firstName} ${formData.lastName}`,
-        customerPhone: formData.phone || '',
-        items: cartItems.map(item => ({
-          name: item.product?.name || 'Product',
-          description: item.product?.short_description || '',
-          quantity: item.quantity,
-          amount: item.product?.price || 0
-        }))
+    // Create cart summary
+    const cartSummary = cartItems.map(item => 
+      `${item.product?.name || 'Product'}${item.size ? ` (${item.size})` : ''} x${item.quantity}`
+    ).join(", ");
+    
+    // Get PayFast form data
+    const { formAction, formData: payfastFormData } = initializePayfastPayment(
+      orderId,
+      `${formData.firstName} ${formData.lastName}`,
+      formData.email,
+      totalAmount,
+      cartSummary,
+      formData
+    );
+    
+    // Create form element
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = formAction;
+    form.target = '_top';
+    form.style.display = 'none';
+    
+    // Add all parameters
+    Object.entries(payfastFormData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(value);
+        form.appendChild(input);
       }
     });
-
-    if (error) throw error;
-
-    if (data?.success && data?.redirectUrl) {
-      // Redirect to PayFast
-      window.location.href = data.redirectUrl;
-      return {
-        success: true,
-        orderId,
-        redirectUrl: data.redirectUrl
-      };
-    } else {
-      throw new Error(data?.error || 'Failed to initialize payment');
-    }
-  } catch (error) {
-    console.error('Error in PayFast payment processing:', error);
-    toast.error('There was an issue connecting to the payment gateway. Please try again.');
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'PayFast payment processing failed'
-    };
-  }
-};
-
-/**
- * Process EFT payment
- */
-export const processEftPayment = async (orderId: string): Promise<PaymentResult> => {
-  try {
-    console.log('Processing EFT payment for order:', orderId);
     
-    // Your bank details for Ikhaya Homeware
-    const bankDetails = {
-      bankName: 'Standard Bank',
-      accountHolder: 'Ikhaya Homeware',
-      accountNumber: '123456789', // Replace with actual
-      branchCode: '051001', // Replace with actual
-      accountType: 'Current'
-    };
+    // Append and submit
+    document.body.appendChild(form);
+    
+    toast.info('Redirecting to PayFast...');
+    
+    setTimeout(() => {
+      try {
+        form.submit();
+        // PayFast handles the redirect to payment.payfast.io
+      } catch (error) {
+        console.error('Form submission error:', error);
+        document.body.removeChild(form);
+        throw error;
+      }
+    }, 500);
     
     return {
       success: true,
-      orderId,
-      bankDetails
+      orderId
     };
   } catch (error) {
-    console.error('Error in EFT payment processing:', error);
-    toast.error('There was an issue retrieving bank details. Please try again.');
+    console.error('PayFast payment error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to process EFT payment'
+      error: error instanceof Error ? error.message : 'Payment failed'
     };
   }
 };
 
 /**
- * Main payment processing function
+ * Main payment processor
  */
 export const processPayment = async ({
   paymentMethod,
@@ -111,45 +100,31 @@ export const processPayment = async ({
   deliveryOption,
   totalAmount
 }: ProcessPaymentParams): Promise<PaymentResult> => {
-  console.log(`Processing ${paymentMethod} payment for amount: R${totalAmount.toFixed(2)}`);
-  console.log(`PayFast environment: ${PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
+  const orderId = Math.floor(Math.random() * 1000000).toString();
   
-  try {
-    // Generate order ID
-    const orderId = Math.floor(Math.random() * 1000000).toString();
-    console.log(`Generated order ID: ${orderId}`);
-    
-    switch (paymentMethod) {
-      case 'payfast':
-        console.log('Processing PayFast payment');
-        toast.info('Initializing secure payment...');
-        return processPayfastPayment({ 
-          paymentMethod, 
-          formData, 
-          cartItems, 
-          deliveryOption, 
-          totalAmount, 
-          orderId 
-        });
-        
-      case 'eft':
-        console.log('Processing EFT payment');
-        return processEftPayment(orderId);
-        
-      default:
-        console.log(`Unsupported payment method: ${paymentMethod}`);
-        toast.error('Selected payment method is not available');
-        return {
-          success: false,
-          error: 'Payment method not supported'
-        };
-    }
-  } catch (error) {
-    console.error('Error in payment processing:', error);
-    toast.error('Payment processing failed. Please try again.');
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Payment processing failed'
-    };
+  switch (paymentMethod) {
+    case 'payfast':
+      return processPayfastPayment({ 
+        paymentMethod, 
+        formData, 
+        cartItems, 
+        deliveryOption, 
+        totalAmount, 
+        orderId 
+      });
+      
+    case 'eft':
+      // Handle EFT payment
+      toast.success('EFT payment instructions will be sent to your email.');
+      return {
+        success: true,
+        orderId
+      };
+      
+    default:
+      return {
+        success: false,
+        error: 'Invalid payment method'
+      };
   }
 };
