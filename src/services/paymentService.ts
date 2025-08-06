@@ -40,7 +40,7 @@ export const processPayfastPayment = async (
         customerPhone: formData.phone || '',
         items: cartItems.map(item => ({
           name: item.product?.name || 'Product',
-          description: item.size || '',
+          description: item.product?.short_description || '',
           quantity: item.quantity,
           amount: item.product?.price || 0
         }))
