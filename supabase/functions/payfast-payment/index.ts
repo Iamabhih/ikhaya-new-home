@@ -245,53 +245,35 @@ function md5(string: string): string {
   return temp.toLowerCase();
 }
 
-// Generate signature exactly like PayFast's official specification
-// For onsite payments, we use the field ORDER as specified in PayFast docs, NOT alphabetical
-function generateSignature(data: any, passPhrase: string | null = null): string {
-  // PayFast field order for onsite payments (from their docs)
-  const fieldOrder = [
-    'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
-    'name_first', 'name_last', 'email_address', 'cell_number',
-    'm_payment_id', 'amount', 'item_name', 'item_description',
-    'custom_int1', 'custom_int2', 'custom_int3', 'custom_int4', 'custom_int5',
-    'custom_str1', 'custom_str2', 'custom_str3', 'custom_str4', 'custom_str5',
-    'email_confirmation', 'confirmation_address', 'payment_method'
-  ];
-  
-  let pfOutput = "";
-  
-  // Process fields in the specified order
-  for (const key of fieldOrder) {
-    if (data[key] !== undefined && data[key] !== null && data[key] !== "") {
-      pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, "+")}&`;
+// PayFast signature generation function following the exact specification
+function generateSignature(data: Record<string, string>, passPhrase: string = ''): string {
+  try {
+    // Create a string of all values in the payment data
+    let pfOutput = '';
+    for (const key of Object.keys(data).sort()) {
+      if (key !== 'signature' && data[key] !== '') {
+        pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, '+')}&`;
+      }
     }
-  }
-  
-  // Add any remaining fields not in the standard order (shouldn't happen but safety)
-  for (const key of Object.keys(data)) {
-    if (!fieldOrder.includes(key) && data[key] !== undefined && data[key] !== null && data[key] !== "") {
-      pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, "+")}&`;
+    // Remove last ampersand
+    pfOutput = pfOutput.slice(0, -1);
+    
+    // Add passphrase if it exists
+    if (passPhrase !== '') {
+      pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
     }
+    
+    console.log('PayFast signature string to hash:', pfOutput);
+    
+    // Generate MD5 hash
+    const signature = md5(pfOutput);
+    
+    console.log('PayFast generated signature:', signature);
+    return signature;
+  } catch (error) {
+    console.error('Error generating signature:', error);
+    throw new Error('Failed to generate payment signature');
   }
-  
-  // Remove last ampersand
-  let getString = pfOutput.slice(0, -1);
-  
-  // Add passphrase if provided
-  if (passPhrase !== null && passPhrase !== "") {
-    getString += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, "+")}`;
-  }
-  
-  console.log('PayFast signature generation:');
-  console.log('- Field order used:', fieldOrder.filter(f => data[f] !== undefined && data[f] !== null && data[f] !== "").join(', '));
-  console.log('- Parameter string:', getString);
-  console.log('- Has passphrase:', !!(passPhrase && passPhrase !== ""));
-  
-  // Generate MD5 hash
-  const signature = md5(getString);
-  
-  console.log('- Generated signature:', signature);
-  return signature;
 }
 
 Deno.serve(async (req) => {
