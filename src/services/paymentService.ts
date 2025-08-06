@@ -1,8 +1,8 @@
 import { FormData, DeliveryOption } from '@/types/checkout';
-import { CartItem } from '@/hooks/useCart';
-import { initializePayfastPayment } from '@/utils/payment/payfast';
+import { CartItem } from '@/contexts/CartContext';
 import { PAYFAST_CONFIG } from '@/utils/payment/constants';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface PaymentResult {
   success: boolean;
@@ -21,87 +21,45 @@ export interface ProcessPaymentParams {
 }
 
 /**
- * Process PayFast payment - Simple direct submission approach
+ * Process PayFast payment using the new API approach
  */
 export const processPayfastPayment = async (
-  { formData, cartItems, totalAmount, orderId, paymentMethod, deliveryOption }: ProcessPaymentParams & { orderId: string }
+  { formData, cartItems, totalAmount, orderId, deliveryOption }: ProcessPaymentParams & { orderId: string }
 ): Promise<PaymentResult> => {
   console.log('Processing PayFast payment for order:', orderId);
   console.log(`Environment: ${PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
   
   try {
-    // Create a cart summary for PayFast
-    const cartSummary = cartItems.map(item => 
-      `${item.product?.name || 'Product'} x${item.quantity}`
-    ).join(", ");
-    
-    // Initialize PayFast payment data
-    const { formAction, formData: payfastFormData } = initializePayfastPayment(
-      orderId,
-      `${formData.firstName} ${formData.lastName}`,
-      formData.email,
-      totalAmount,
-      cartSummary,
-      formData
-    );
-    
-    // Log payment details for debugging
-    console.log(`PayFast payment initialization:
-      Order ID: ${orderId}
-      Amount: R${totalAmount.toFixed(2)}
-      Customer: ${formData.firstName} ${formData.lastName} (${formData.email})
-      Delivery: ${deliveryOption.name}
-      Payment URL: ${formAction}
-      Merchant ID: ${payfastFormData.merchant_id}
-      Sandbox Mode: ${PAYFAST_CONFIG.useSandbox ? 'Yes' : 'No'}
-    `);
-    
-    // Create a form element for submission
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = formAction;
-    form.target = '_top';
-    form.style.display = 'none';
-    
-    // Add all parameters as input fields
-    Object.entries(payfastFormData).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = String(value);
-        form.appendChild(input);
+    // Call the Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('payfast-payment', {
+      body: {
+        orderId,
+        amount: totalAmount,
+        customerEmail: formData.email,
+        customerName: `${formData.firstName} ${formData.lastName}`,
+        customerPhone: formData.phone || '',
+        items: cartItems.map(item => ({
+          name: item.product?.name || 'Product',
+          description: item.size || '',
+          quantity: item.quantity,
+          amount: item.product?.price || 0
+        }))
       }
     });
-    
-    // Append the form to the body 
-    document.body.appendChild(form);
-    
-    // Log form submission
-    console.log('Submitting PayFast form with signature');
-    console.log('Form data:', JSON.stringify(payfastFormData, null, 2));
-    
-    // Show user feedback
-    toast.info(PAYFAST_CONFIG.useSandbox 
-      ? 'Redirecting to PayFast sandbox payment gateway...' 
-      : 'Redirecting to PayFast payment gateway...');
-    
-    // Submit form - this will redirect the user to PayFast
-    setTimeout(() => {
-      try {
-        form.submit();
-        console.log('Form submitted successfully');
-      } catch (submitError) {
-        console.error('Error submitting form:', submitError);
-        toast.error('Failed to redirect to payment gateway. Please try again.');
-        document.body.removeChild(form);
-      }
-    }, 800);
-    
-    return {
-      success: true,
-      orderId
-    };
+
+    if (error) throw error;
+
+    if (data?.success && data?.redirectUrl) {
+      // Redirect to PayFast
+      window.location.href = data.redirectUrl;
+      return {
+        success: true,
+        orderId,
+        redirectUrl: data.redirectUrl
+      };
+    } else {
+      throw new Error(data?.error || 'Failed to initialize payment');
+    }
   } catch (error) {
     console.error('Error in PayFast payment processing:', error);
     toast.error('There was an issue connecting to the payment gateway. Please try again.');
@@ -119,12 +77,12 @@ export const processEftPayment = async (orderId: string): Promise<PaymentResult>
   try {
     console.log('Processing EFT payment for order:', orderId);
     
-    // Mock bank details for Ikhaya Homeware
+    // Your bank details for Ikhaya Homeware
     const bankDetails = {
       bankName: 'Standard Bank',
       accountHolder: 'Ikhaya Homeware',
-      accountNumber: '123456789',
-      branchCode: '051001',
+      accountNumber: '123456789', // Replace with actual
+      branchCode: '051001', // Replace with actual
       accountType: 'Current'
     };
     
@@ -144,7 +102,7 @@ export const processEftPayment = async (orderId: string): Promise<PaymentResult>
 };
 
 /**
- * Process payment based on the selected payment method
+ * Main payment processing function
  */
 export const processPayment = async ({
   paymentMethod,
@@ -157,17 +115,14 @@ export const processPayment = async ({
   console.log(`PayFast environment: ${PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
   
   try {
-    // Generate a random order ID
+    // Generate order ID
     const orderId = Math.floor(Math.random() * 1000000).toString();
     console.log(`Generated order ID: ${orderId}`);
     
-    // Handle different payment methods
-    console.log(`Processing payment with method: ${paymentMethod}`);
-    
     switch (paymentMethod) {
       case 'payfast':
-        console.log('Sending to PayFast payment processor');
-        toast.info('Redirecting to payment gateway...');
+        console.log('Processing PayFast payment');
+        toast.info('Initializing secure payment...');
         return processPayfastPayment({ 
           paymentMethod, 
           formData, 
@@ -182,11 +137,11 @@ export const processPayment = async ({
         return processEftPayment(orderId);
         
       default:
-        console.log(`Unsupported payment method: ${paymentMethod}, treating as successful`);
-        toast.success('Order placed successfully!');
+        console.log(`Unsupported payment method: ${paymentMethod}`);
+        toast.error('Selected payment method is not available');
         return {
-          success: true,
-          orderId
+          success: false,
+          error: 'Payment method not supported'
         };
     }
   } catch (error) {
