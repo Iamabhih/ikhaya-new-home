@@ -1,8 +1,6 @@
-// Import js-md5
 import { md5 } from 'js-md5';
 import { PAYFAST_CONFIG, getCurrentPayfastConfig } from './constants';
 
-// Define the FormData interface
 export interface FormData {
   firstName?: string;
   lastName?: string;
@@ -10,36 +8,42 @@ export interface FormData {
 }
 
 /**
- * Generate a PayFast payment signature
+ * Generate PayFast signature exactly as PayFast expects
  */
 export const generateSignature = (data: Record<string, string>, passPhrase: string): string => {
   try {
-    // Create a string of all values in the payment data
+    // Sort keys alphabetically
+    const sortedKeys = Object.keys(data).sort();
+    
+    // Build parameter string
     let pfOutput = '';
-    for (const key of Object.keys(data).sort()) {
-      if (key !== 'signature' && data[key] !== '') {
+    for (const key of sortedKeys) {
+      if (key !== 'signature' && data[key] !== undefined && data[key] !== null && data[key] !== '') {
         pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, '+')}&`;
       }
     }
+    
     // Remove last ampersand
     pfOutput = pfOutput.slice(0, -1);
-    // Add passphrase if it exists
-    if (passPhrase !== '') {
+    
+    // Add passphrase if provided
+    if (passPhrase && passPhrase !== '') {
       pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
     }
-    // Use md5 directly
-    return md5(pfOutput);
+    
+    console.log('Signature string:', pfOutput);
+    const signature = md5(pfOutput);
+    console.log('Generated signature:', signature);
+    
+    return signature;
   } catch (error) {
     console.error('Error generating PayFast signature:', error);
     return '';
   }
 };
 
-// Export for backward compatibility
-export const calculatePayfastSignature = generateSignature;
-
 /**
- * Initialize PayFast payment with required signature
+ * Initialize PayFast payment (RnR-Live style)
  */
 export const initializePayfastPayment = (
   orderId: string,
@@ -47,74 +51,49 @@ export const initializePayfastPayment = (
   customerEmail: string,
   amount: number,
   itemName: string,
-  formData?: {
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-  }
+  formData?: FormData
 ) => {
-  // Get current PayFast config based on environment
   const config = getCurrentPayfastConfig();
-  
-  // Set base URL for PayFast API based on sandbox mode
-  const formAction = PAYFAST_CONFIG.useSandbox
-    ? 'https://sandbox.payfast.co.za/eng/process'
-    : 'https://www.payfast.co.za/eng/process';
-  
-  // Format the amount to 2 decimal places
+  const formAction = config.host;
   const formattedAmount = amount.toFixed(2);
+  const baseUrl = PAYFAST_CONFIG.siteUrl;
   
-  // Use consistent domain from config
-  const baseUrl = PAYFAST_CONFIG.siteUrl; // https://ikhayahomeware.online
-    
-  const merchantData = {
-    merchant_id: config.merchant_id,
-    merchant_key: config.merchant_key,
-    return_url: `${baseUrl}/checkout/success`,
-    cancel_url: `${baseUrl}/checkout`,
-    notify_url: `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`,
-  };
+  // Build PayFast data in correct order
+  const pfData: Record<string, string> = {};
   
-  // Create customer details
-  const customerData = {
-    name_first: formData?.firstName || customerName.split(' ')[0] || '',
-    name_last: formData?.lastName || customerName.split(' ').slice(1).join(' ') || '',
-    email_address: customerEmail,
-    cell_number: formData?.phone || ''
-  };
+  // Merchant details
+  pfData.merchant_id = config.merchant_id;
+  pfData.merchant_key = config.merchant_key;
+  pfData.return_url = `${baseUrl}/checkout/success`;
+  pfData.cancel_url = `${baseUrl}/checkout`;
+  pfData.notify_url = `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`;
   
-  // Create transaction details
-  const transactionData = {
-    m_payment_id: orderId,
-    amount: formattedAmount,
-    item_name: itemName.substring(0, 100), // PayFast limits to 100 chars
-    item_description: `Order #${orderId}`,
-    custom_str1: orderId
-  };
+  // Customer details
+  pfData.name_first = formData?.firstName || customerName.split(' ')[0] || '';
+  pfData.name_last = formData?.lastName || customerName.split(' ').slice(1).join(' ') || '';
+  pfData.email_address = customerEmail;
   
-  // Combine all data
-  const pfData = {
-    ...merchantData,
-    ...transactionData,
-    ...customerData
-  };
+  if (formData?.phone) {
+    pfData.cell_number = formData.phone;
+  }
+  
+  // Transaction details
+  pfData.m_payment_id = orderId;
+  pfData.amount = formattedAmount;
+  pfData.item_name = itemName.substring(0, 100);
+  pfData.item_description = `Order #${orderId}`;
   
   // Generate signature
-  const signature = generateSignature(
-    pfData as Record<string, string>, 
-    config.passphrase || ''
-  );
+  const signature = generateSignature(pfData, config.passphrase || '');
   
-  // Add signature to the payment data
+  // Add signature to data
   const pfDataWithSignature = {
     ...pfData,
     signature: signature
   };
   
-  // Log the complete data object with signature
-  console.log("PayFast Data:", JSON.stringify(pfDataWithSignature, null, 2));
+  console.log('PayFast payment data:', pfDataWithSignature);
   
-  // Return data needed for form submission including signature
   return {
     formAction,
     formData: pfDataWithSignature
