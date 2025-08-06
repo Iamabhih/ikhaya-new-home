@@ -436,10 +436,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Determine PayFast URL based on test mode from database
+    // Determine PayFast URL based on test mode - ALWAYS use payfast.io domain
     const payfastUrl = !isTestMode
-      ? 'https://www.payfast.co.za/eng/process'
-      : 'https://sandbox.payfast.co.za/eng/process'
+      ? 'https://www.payfast.io/eng/process'
+      : 'https://sandbox.payfast.io/eng/process'
 
     console.log('PayFast URL determined:', { payfastUrl, isTestMode });
 
@@ -478,10 +478,10 @@ Deno.serve(async (req) => {
     // Add signature to the data AFTER generating it
     payfastData["signature"] = signature;
 
-    // For Onsite Payments, we need to get an identifier from PayFast first
+    // For Onsite Payments, we need to get an identifier from PayFast - ALWAYS use payfast.io domain
     const onsiteUrl = isTestMode 
-      ? 'https://sandbox.payfast.co.za/onsite/process'
-      : 'https://www.payfast.co.za/onsite/process';
+      ? 'https://sandbox.payfast.io/onsite/process'
+      : 'https://www.payfast.io/onsite/process';
 
     console.log('Requesting PayFast identifier for onsite payment:', {
       orderId,
