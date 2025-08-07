@@ -14,13 +14,13 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-16"> {/* Add padding-top to account for fixed header */}
-        <HeroSection />
-        
         <MobileSafeComponent name="Promotional Banners">
           <Suspense fallback={<UniversalLoading size="lg" />}>
             <PromotionalBanners />
           </Suspense>
         </MobileSafeComponent>
+        
+        <HeroSection />
         
         <MobileSafeComponent name="Featured Products">
           <Suspense fallback={<UniversalLoading size="lg" />}>
