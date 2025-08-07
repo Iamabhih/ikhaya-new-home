@@ -46,9 +46,9 @@ Deno.serve(async (req) => {
       console.log('Starting storage image scan...');
       
       try {
-        // List all images in the product-images bucket
+        // List all images in the public-images bucket
         const { data: images, error: listError } = await supabase.storage
-          .from('product-images')
+          .from('public-images')
           .list('', {
             limit: 1000,
             sortBy: { column: 'name', order: 'asc' }
@@ -84,17 +84,22 @@ Deno.serve(async (req) => {
                 const filename = image.name.toLowerCase();
                 const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
                 
-                // Look for product matches by SKU or name
+                // Look for product matches by SKU (prioritize exact SKU matches)
                 const matchingProduct = products?.find(product => {
                   const productSku = product.sku?.toLowerCase() || '';
-                  const productName = product.name?.toLowerCase() || '';
-                  const productSlug = product.slug?.toLowerCase() || '';
                   
-                  return nameWithoutExt.includes(productSku) ||
-                         nameWithoutExt.includes(productName) ||
-                         nameWithoutExt.includes(productSlug) ||
-                         productSku.includes(nameWithoutExt) ||
-                         productSlug.includes(nameWithoutExt);
+                  // First try exact SKU match
+                  if (productSku && nameWithoutExt === productSku) {
+                    return true;
+                  }
+                  
+                  // Then try if filename starts with SKU
+                  if (productSku && nameWithoutExt.startsWith(productSku)) {
+                    return true;
+                  }
+                  
+                  // Finally check if SKU is contained in filename
+                  return productSku && nameWithoutExt.includes(productSku);
                 });
 
                 if (matchingProduct) {
@@ -107,7 +112,7 @@ Deno.serve(async (req) => {
 
                   if (!existingImage || existingImage.length === 0) {
                     // Create product image record
-                    const imageUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${image.name}`;
+                    const imageUrl = `${supabaseUrl}/storage/v1/object/public/public-images/${image.name}`;
                     
                     const { error: insertError } = await supabase
                       .from('product_images')
