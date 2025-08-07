@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+// src/components/admin/ImageLinkingTool.tsx
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -29,8 +30,11 @@ import {
   Zap,
   Target,
   FolderOpen,
-  Link
+  Link,
+  Download,
+  Upload
 } from "lucide-react";
+import { SKUMatcher, ExtractedSKU, MatchResult } from "@/utils/skuMatcher";
 
 interface LinkingProgress {
   status: 'idle' | 'scanning' | 'linking' | 'completed' | 'error';
@@ -55,10 +59,11 @@ interface ProcessLog {
 interface StorageImage {
   filename: string;
   path: string;
-  extractedSkus: string[];
+  extractedSkus: ExtractedSKU[];
   size?: number;
   lastModified?: string;
   url?: string;
+  bestMatch?: MatchResult;
 }
 
 interface ProductWithoutImage {
@@ -70,12 +75,14 @@ interface ProductWithoutImage {
 
 interface LinkingConfig {
   scanAllFolders: boolean;
-  targetFolders: string[];
-  matchingStrategy: 'exact' | 'fuzzy' | 'aggressive';
+  targetFolder: string;
+  matchingStrategy: 'exact' | 'fuzzy' | 'smart';
   batchSize: number;
   skipExisting: boolean;
   autoSetPrimary: boolean;
   confidenceThreshold: number;
+  useEdgeFunction: boolean;
+  maxImages: number;
 }
 
 interface StorageStats {
@@ -83,6 +90,7 @@ interface StorageStats {
   totalFolders: number;
   imagesPerFolder: Record<string, number>;
   lastScanTime?: string;
+  skuDistribution: Record<string, number>;
 }
 
 export const ImageLinkingTool = () => {
@@ -116,15 +124,19 @@ export const ImageLinkingTool = () => {
 
   const [config, setConfig] = useState<LinkingConfig>({
     scanAllFolders: true,
-    targetFolders: ['MULTI_MATCH_ORGANIZED', ''],
-    matchingStrategy: 'fuzzy',
+    targetFolder: '',
+    matchingStrategy: 'smart',
     batchSize: 10,
     skipExisting: true,
     autoSetPrimary: true,
-    confidenceThreshold: 70
+    confidenceThreshold: 60,
+    useEdgeFunction: false,
+    maxImages: 5000
   });
 
-  const [realtimeChannel, setRealtimeChannel] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState('control');
+  const skuMatcher = useRef(new SKUMatcher());
+  const abortController = useRef<AbortController | null>(null);
 
   // Add log entry
   const addLog = useCallback((level: ProcessLog['level'], message: string, details?: any) => {
@@ -134,114 +146,28 @@ export const ImageLinkingTool = () => {
       message,
       details
     };
-    setProcessLogs(prev => [newLog, ...prev.slice(0, 499)]); // Keep last 500 logs
+    setProcessLogs(prev => [newLog, ...prev.slice(0, 999)]); // Keep last 1000 logs
+    
+    // Also log to console for debugging
+    const logMethod = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log';
+    console[logMethod](`[${level.toUpperCase()}] ${message}`, details || '');
   }, []);
 
-  // Extract SKUs from filename with multiple strategies
-  const extractSKUsFromFilename = useCallback((filename: string, filepath: string): string[] => {
-    const skus = new Set<string>();
-    if (!filename) return [];
-    
-    // Remove file extension
-    const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i, '');
-    
-    // Strategy 1: Exact numeric filename (highest priority)
-    if (/^\d{3,8}$/.test(nameWithoutExt)) {
-      skus.add(nameWithoutExt);
-      // Add zero-padded variations
-      if (nameWithoutExt.length === 5) {
-        skus.add('0' + nameWithoutExt);
-      }
-      if (nameWithoutExt.startsWith('0')) {
-        skus.add(nameWithoutExt.substring(1));
-      }
-    }
-    
-    // Strategy 2: Multi-SKU files (e.g., "445033.446723.png")
-    const multiSkuPatterns = [
-      /(\d{3,8})\.(\d{3,8})/g,
-      /(\d{3,8})_(\d{3,8})/g,
-      /(\d{3,8})-(\d{3,8})/g,
-    ];
-    
-    for (const pattern of multiSkuPatterns) {
-      const matches = [...nameWithoutExt.matchAll(pattern)];
-      for (const match of matches) {
-        for (let i = 1; i < match.length; i++) {
-          if (match[i]) {
-            skus.add(match[i]);
-          }
-        }
-      }
-    }
-    
-    // Strategy 3: Extract from path segments
-    const pathSegments = filepath.split('/');
-    for (const segment of pathSegments) {
-      if (/^\d{3,8}$/.test(segment)) {
-        skus.add(segment);
-      }
-    }
-    
-    // Strategy 4: SKU with prefixes/suffixes
-    const patterns = [
-      /(?:SKU|sku|item|ITEM|product|PRODUCT)[-_]?(\d{3,8})/g,
-      /(\d{3,8})(?:[-_][a-zA-Z]+)?$/g,
-    ];
-    
-    for (const pattern of patterns) {
-      const matches = [...nameWithoutExt.matchAll(pattern)];
-      for (const match of matches) {
-        if (match[1]) {
-          skus.add(match[1]);
-        }
-      }
-    }
-    
-    return Array.from(skus);
-  }, []);
-
-  // Calculate match confidence
-  const calculateConfidence = useCallback((productSku: string, imageSku: string, filename: string): number => {
-    if (!productSku || !imageSku) return 0;
-    
-    const skuLower = productSku.toLowerCase();
-    const imageSkuLower = imageSku.toLowerCase();
-    const filenameLower = filename.toLowerCase();
-    
-    // Exact match = 100%
-    if (skuLower === imageSkuLower) return 100;
-    
-    // Case-insensitive match = 95%
-    if (productSku === imageSku) return 95;
-    
-    // Filename is exactly the SKU = 90%
-    if (filenameLower.replace(/\.[^.]+$/, '') === skuLower) return 90;
-    
-    // SKU appears at start of filename = 80%
-    if (filenameLower.startsWith(skuLower)) return 80;
-    
-    // Zero-padding variations = 75%
-    if ((skuLower === '0' + imageSkuLower) || (imageSkuLower === '0' + skuLower)) return 75;
-    
-    // SKU appears anywhere in filename = 60%
-    if (filenameLower.includes(skuLower)) return 60;
-    
-    return 50;
-  }, []);
-
-  // Comprehensive storage scan without limits
-  const scanCompleteStorage = useCallback(async () => {
-    addLog('info', '🔍 Starting comprehensive storage scan (no limits)...');
+  // Comprehensive storage scan
+  const scanCompleteStorage = useCallback(async (signal?: AbortSignal) => {
+    addLog('info', '🔍 Starting comprehensive storage scan...');
     setProgress(prev => ({ ...prev, status: 'scanning', currentStep: 'Scanning storage bucket' }));
     
     const allImages: StorageImage[] = [];
     const folderStats: Record<string, number> = {};
+    const skuDistribution: Record<string, number> = {};
     let totalFolders = 0;
     
     try {
       // Recursive function to scan all directories
       const scanDirectory = async (path: string = '', depth: number = 0): Promise<void> => {
+        if (signal?.aborted) throw new Error('Scan aborted by user');
+        
         if (depth > 10) {
           addLog('warn', `Max depth reached at path: ${path}`);
           return;
@@ -249,10 +175,12 @@ export const ImageLinkingTool = () => {
         
         let offset = 0;
         let hasMore = true;
-        const limit = 1000;
+        const limit = 100; // Smaller batches for better progress tracking
         let folderImageCount = 0;
         
-        while (hasMore) {
+        while (hasMore && allImages.length < config.maxImages) {
+          if (signal?.aborted) throw new Error('Scan aborted by user');
+          
           try {
             const { data: files, error } = await supabase.storage
               .from('product-images')
@@ -278,7 +206,7 @@ export const ImageLinkingTool = () => {
               
               const fullPath = path ? `${path}/${file.name}` : file.name;
               
-              // Check if it's a directory
+              // Check if it's a directory (no file ID and no extension)
               const isDirectory = !file.id && !file.metadata && !file.name.includes('.');
               
               if (isDirectory) {
@@ -288,32 +216,43 @@ export const ImageLinkingTool = () => {
                 await scanDirectory(fullPath, depth + 1);
               } else if (file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
                 // It's an image file
-                const extractedSkus = extractSKUsFromFilename(file.name, fullPath);
+                const extractedSkus = skuMatcher.current.extractSKUs(file.name, fullPath);
                 
-                // Get public URL
-                const { data: urlData } = supabase.storage
-                  .from('product-images')
-                  .getPublicUrl(fullPath);
-                
-                allImages.push({
-                  filename: file.name,
-                  path: fullPath,
-                  extractedSkus,
-                  size: file.metadata?.size,
-                  lastModified: file.updated_at || file.created_at,
-                  url: urlData?.publicUrl
-                });
-                
-                folderImageCount++;
-                
-                // Log progress every 100 images
-                if (allImages.length % 100 === 0) {
-                  addLog('info', `📸 Found ${allImages.length} images so far...`);
-                  setProgress(prev => ({ 
-                    ...prev, 
-                    currentStep: `Scanning: ${allImages.length} images found`,
-                    total: allImages.length 
-                  }));
+                if (extractedSkus.length > 0) {
+                  // Get public URL
+                  const { data: urlData } = supabase.storage
+                    .from('product-images')
+                    .getPublicUrl(fullPath);
+                  
+                  allImages.push({
+                    filename: file.name,
+                    path: fullPath,
+                    extractedSkus,
+                    size: file.metadata?.size,
+                    lastModified: file.updated_at || file.created_at,
+                    url: urlData?.publicUrl
+                  });
+                  
+                  folderImageCount++;
+                  
+                  // Update SKU distribution stats
+                  extractedSkus.forEach(sku => {
+                    skuDistribution[sku.value] = (skuDistribution[sku.value] || 0) + 1;
+                  });
+                  
+                  // Log detailed extraction for debugging
+                  if (extractedSkus.length > 1) {
+                    addLog('info', `📸 Multi-SKU image: ${file.name} → [${extractedSkus.map(s => `${s.value}(${s.confidence}%)`).join(', ')}]`);
+                  }
+                  
+                  // Update progress every 50 images
+                  if (allImages.length % 50 === 0) {
+                    setProgress(prev => ({ 
+                      ...prev, 
+                      currentStep: `Scanning: ${allImages.length} images found`,
+                      total: allImages.length 
+                    }));
+                  }
                 }
               }
             }
@@ -328,8 +267,9 @@ export const ImageLinkingTool = () => {
             if (hasMore) {
               await new Promise(resolve => setTimeout(resolve, 50));
             }
-          } catch (error) {
+          } catch (error: any) {
             addLog('error', `Error scanning at offset ${offset}: ${error.message}`);
+            if (error.message === 'Scan aborted by user') throw error;
             hasMore = false;
           }
         }
@@ -340,12 +280,10 @@ export const ImageLinkingTool = () => {
       };
       
       // Start scanning based on configuration
-      if (config.scanAllFolders) {
+      if (config.scanAllFolders || !config.targetFolder) {
         await scanDirectory('');
       } else {
-        for (const folder of config.targetFolders) {
-          await scanDirectory(folder);
-        }
+        await scanDirectory(config.targetFolder);
       }
       
       setStorageImages(allImages);
@@ -353,10 +291,11 @@ export const ImageLinkingTool = () => {
         totalImages: allImages.length,
         totalFolders,
         imagesPerFolder: folderStats,
-        lastScanTime: new Date().toISOString()
+        lastScanTime: new Date().toISOString(),
+        skuDistribution
       });
       
-      addLog('success', `✅ Storage scan complete: ${allImages.length} images found across ${totalFolders} folders`);
+      addLog('success', `✅ Storage scan complete: ${allImages.length} images with SKUs found across ${totalFolders} folders`);
       
       // Log folder statistics
       Object.entries(folderStats).forEach(([folder, count]) => {
@@ -365,28 +304,42 @@ export const ImageLinkingTool = () => {
         }
       });
       
+      // Log top SKUs found
+      const topSkus = Object.entries(skuDistribution)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      if (topSkus.length > 0) {
+        addLog('info', `🔝 Top SKUs: ${topSkus.map(([sku, count]) => `${sku}(${count})`).join(', ')}`);
+      }
+      
       return allImages;
-    } catch (error) {
-      addLog('error', `Storage scan failed: ${error.message}`);
+    } catch (error: any) {
+      if (error.message === 'Scan aborted by user') {
+        addLog('warn', '⏹️ Storage scan aborted by user');
+      } else {
+        addLog('error', `Storage scan failed: ${error.message}`);
+      }
       throw error;
     }
-  }, [config, addLog, extractSKUsFromFilename]);
+  }, [config, addLog]);
 
   // Load products without images
   const loadProductsWithoutImages = useCallback(async () => {
-    addLog('info', '📦 Loading products without images...');
+    addLog('info', '📦 Loading products from database...');
     
     try {
-      // Get all products
+      // Get all active products with SKUs
       const { data: allProducts, error: productsError } = await supabase
         .from('products')
         .select('id, sku, name, categories(name)')
         .not('sku', 'is', null)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('sku', { ascending: true });
       
       if (productsError) throw productsError;
       
-      // Get products that have images
+      // Get products that already have images
       const { data: productsWithImages, error: imagesError } = await supabase
         .from('product_images')
         .select('product_id')
@@ -396,9 +349,9 @@ export const ImageLinkingTool = () => {
       
       const productsWithImageIds = new Set(productsWithImages?.map(p => p.product_id) || []);
       
-      // Filter out products that already have images
-      const productsWithoutImgs = allProducts?.filter(p => 
-        !productsWithImageIds.has(p.id) && p.sku
+      // Filter out products that already have images (if skipExisting is true)
+      const productsNeedingImages = allProducts?.filter(p => 
+        config.skipExisting ? !productsWithImageIds.has(p.id) && p.sku : p.sku
       ).map(p => ({
         id: p.id,
         sku: p.sku,
@@ -406,29 +359,87 @@ export const ImageLinkingTool = () => {
         category: p.categories?.name
       })) || [];
       
-      setProductsWithoutImages(productsWithoutImgs);
+      setProductsWithoutImages(productsNeedingImages);
+      
+      // Build product index for fast lookup
+      skuMatcher.current.buildProductIndex(allProducts || []);
       
       setStats({
         totalProducts: allProducts?.length || 0,
         productsWithImages: productsWithImageIds.size,
-        productsWithoutImages: productsWithoutImgs.length,
+        productsWithoutImages: productsNeedingImages.length,
         totalStorageImages: storageImages.length
       });
       
-      addLog('success', `✅ Found ${productsWithoutImgs.length} products without images`);
+      addLog('success', `✅ Found ${allProducts?.length || 0} total products, ${productsNeedingImages.length} need images`);
       
-      return productsWithoutImgs;
-    } catch (error) {
+      return productsNeedingImages;
+    } catch (error: any) {
       addLog('error', `Failed to load products: ${error.message}`);
       throw error;
     }
-  }, [storageImages.length, addLog]);
+  }, [config.skipExisting, storageImages.length, addLog]);
 
-  // Main linking process
+  // Use Edge Function for linking
+  const linkUsingEdgeFunction = useCallback(async () => {
+    addLog('info', '🚀 Starting image linking via Edge Function...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('link-product-images', {
+        body: {
+          bucketName: 'product-images',
+          confidenceThreshold: config.confidenceThreshold,
+          batchSize: config.batchSize,
+          skipExisting: config.skipExisting,
+          scanPath: config.targetFolder || '',
+          limit: config.maxImages
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        addLog('success', `✅ Edge Function completed: ${data.stats.successfulLinks} products linked`);
+        
+        setStats({
+          totalProducts: data.stats.productsFound,
+          productsWithImages: data.stats.successfulLinks,
+          productsWithoutImages: data.stats.productsFound - data.stats.successfulLinks,
+          totalStorageImages: data.stats.imagesScanned
+        });
+        
+        setProgress({
+          status: 'completed',
+          currentStep: `Completed: ${data.stats.successfulLinks} products linked`,
+          processed: data.stats.matchesFound,
+          successful: data.stats.successfulLinks,
+          failed: data.stats.errors,
+          total: data.stats.matchesFound,
+          errors: data.errors || []
+        });
+        
+        // Log any errors from the Edge Function
+        if (data.errors && data.errors.length > 0) {
+          data.errors.forEach((error: string) => addLog('error', error));
+        }
+        
+        toast.success(`Successfully linked ${data.stats.successfulLinks} products to images!`);
+      } else {
+        throw new Error(data?.error || 'Edge Function failed');
+      }
+    } catch (error: any) {
+      addLog('error', `Edge Function error: ${error.message}`);
+      throw error;
+    }
+  }, [config, addLog]);
+
+  // Main linking process (local)
   const startLinkingProcess = useCallback(async () => {
     if (isRunning) return;
     
     setIsRunning(true);
+    abortController.current = new AbortController();
+    
     setProgress({
       status: 'scanning',
       currentStep: 'Initializing...',
@@ -441,11 +452,19 @@ export const ImageLinkingTool = () => {
     });
     
     try {
-      // Step 1: Scan storage completely
-      addLog('info', '🚀 Starting enhanced image linking process...');
-      const images = await scanCompleteStorage();
+      // Use Edge Function if enabled
+      if (config.useEdgeFunction) {
+        await linkUsingEdgeFunction();
+        return;
+      }
       
-      // Step 2: Load products without images
+      // Otherwise, run locally
+      addLog('info', '🚀 Starting local image linking process...');
+      
+      // Step 1: Scan storage
+      const images = await scanCompleteStorage(abortController.current.signal);
+      
+      // Step 2: Load products
       const products = await loadProductsWithoutImages();
       
       if (products.length === 0) {
@@ -454,155 +473,127 @@ export const ImageLinkingTool = () => {
         return;
       }
       
-      // Step 3: Create SKU to image mapping
-      addLog('info', '🧠 Building SKU to image mapping...');
-      const skuToImages = new Map<string, StorageImage[]>();
-      
-      for (const image of images) {
-        for (const sku of image.extractedSkus) {
-          if (!skuToImages.has(sku)) {
-            skuToImages.set(sku, []);
-          }
-          skuToImages.get(sku)!.push(image);
-          
-          // Also add case variations
-          const skuLower = sku.toLowerCase();
-          const skuUpper = sku.toUpperCase();
-          
-          if (!skuToImages.has(skuLower)) {
-            skuToImages.set(skuLower, []);
-          }
-          skuToImages.get(skuLower)!.push(image);
-          
-          if (!skuToImages.has(skuUpper)) {
-            skuToImages.set(skuUpper, []);
-          }
-          skuToImages.get(skuUpper)!.push(image);
-        }
-      }
-      
-      addLog('info', `📊 Created ${skuToImages.size} SKU mappings from ${images.length} images`);
-      
-      // Step 4: Link products to images
+      // Step 3: Match products to images
+      addLog('info', '🧠 Building intelligent SKU matches...');
       setProgress(prev => ({ 
         ...prev, 
         status: 'linking',
-        currentStep: 'Linking products to images',
+        currentStep: 'Matching products to images',
         total: products.length 
+      }));
+      
+      const matches: Array<{product: ProductWithoutImage, image: StorageImage, score: number}> = [];
+      
+      for (const product of products) {
+        if (abortController.current.signal.aborted) {
+          throw new Error('Process aborted by user');
+        }
+        
+        let bestMatch: StorageImage | null = null;
+        let bestScore = 0;
+        
+        for (const image of images) {
+          const score = skuMatcher.current.calculateMatchScore(product.sku, image.extractedSkus);
+          
+          if (score > bestScore && score >= config.confidenceThreshold) {
+            bestScore = score;
+            bestMatch = image;
+          }
+        }
+        
+        if (bestMatch) {
+          matches.push({ product, image: bestMatch, score: bestScore });
+          addLog('success', `✅ Matched ${product.sku} → ${bestMatch.filename} (confidence: ${bestScore}%)`);
+        } else {
+          addLog('warn', `❌ No match found for ${product.sku}`);
+        }
+      }
+      
+      addLog('info', `📊 Found ${matches.length} matches above ${config.confidenceThreshold}% threshold`);
+      
+      // Step 4: Process matches in batches
+      setProgress(prev => ({ 
+        ...prev, 
+        currentStep: 'Creating image links in database',
+        total: matches.length 
       }));
       
       let successCount = 0;
       let failCount = 0;
-      const batchSize = config.batchSize;
       
-      for (let i = 0; i < products.length; i += batchSize) {
-        const batch = products.slice(i, Math.min(i + batchSize, products.length));
+      for (let i = 0; i < matches.length; i += config.batchSize) {
+        if (abortController.current.signal.aborted) {
+          throw new Error('Process aborted by user');
+        }
         
-        await Promise.all(batch.map(async (product) => {
+        const batch = matches.slice(i, Math.min(i + config.batchSize, matches.length));
+        
+        await Promise.all(batch.map(async (match) => {
           try {
             setProgress(prev => ({ 
               ...prev, 
-              currentItem: `Processing ${product.sku}`,
+              currentItem: `Processing ${match.product.sku}`,
               processed: prev.processed + 1
             }));
             
-            // Find matching images
-            const matchingImages = skuToImages.get(product.sku) || 
-                                 skuToImages.get(product.sku.toLowerCase()) ||
-                                 skuToImages.get(product.sku.toUpperCase()) ||
-                                 [];
-            
-            if (matchingImages.length === 0) {
-              // Try fuzzy matching if enabled
-              if (config.matchingStrategy !== 'exact') {
-                for (const [sku, imgs] of skuToImages.entries()) {
-                  const confidence = calculateConfidence(product.sku, sku, imgs[0]?.filename || '');
-                  if (confidence >= config.confidenceThreshold) {
-                    matchingImages.push(...imgs);
-                    break;
-                  }
-                }
-              }
-            }
-            
-            if (matchingImages.length > 0) {
-              // Sort by confidence and take the best match
-              const bestMatch = matchingImages.sort((a, b) => {
-                const confA = Math.max(...a.extractedSkus.map(s => 
-                  calculateConfidence(product.sku, s, a.filename)
-                ));
-                const confB = Math.max(...b.extractedSkus.map(s => 
-                  calculateConfidence(product.sku, s, b.filename)
-                ));
-                return confB - confA;
-              })[0];
+            // Check if product already has an image
+            if (config.skipExisting) {
+              const { data: existing } = await supabase
+                .from('product_images')
+                .select('id')
+                .eq('product_id', match.product.id)
+                .eq('image_url', match.image.url)
+                .maybeSingle();
               
-              if (bestMatch && bestMatch.url) {
-                // Check if image already exists
-                if (config.skipExisting) {
-                  const { data: existing } = await supabase
-                    .from('product_images')
-                    .select('id')
-                    .eq('product_id', product.id)
-                    .eq('image_url', bestMatch.url)
-                    .maybeSingle();
-                  
-                  if (existing) {
-                    addLog('info', `⏭️ Skipping ${product.sku} - image already linked`);
-                    successCount++;
-                    return;
-                  }
-                }
-                
-                // Check if product has primary image
-                const { data: hasPrimary } = await supabase
-                  .from('product_images')
-                  .select('id')
-                  .eq('product_id', product.id)
-                  .eq('is_primary', true)
-                  .maybeSingle();
-                
-                // Insert the image link
-                const { error: insertError } = await supabase
-                  .from('product_images')
-                  .insert({
-                    product_id: product.id,
-                    image_url: bestMatch.url,
-                    alt_text: `${product.name} - ${product.sku}`,
-                    is_primary: config.autoSetPrimary && !hasPrimary,
-                    sort_order: 0
-                  });
-                
-                if (insertError) {
-                  throw insertError;
-                }
-                
+              if (existing) {
+                addLog('info', `⏭️ Skipping ${match.product.sku} - image already linked`);
                 successCount++;
-                addLog('success', `✅ Linked ${product.sku} to ${bestMatch.filename}`);
                 setProgress(prev => ({ ...prev, successful: prev.successful + 1 }));
-              } else {
-                failCount++;
-                addLog('warn', `❌ No URL for image matching ${product.sku}`);
-                setProgress(prev => ({ ...prev, failed: prev.failed + 1 }));
+                return;
               }
-            } else {
-              failCount++;
-              addLog('warn', `❌ No matching image found for ${product.sku}`);
-              setProgress(prev => ({ ...prev, failed: prev.failed + 1 }));
             }
-          } catch (error) {
+            
+            // Check if product has primary image
+            const { data: hasPrimary } = await supabase
+              .from('product_images')
+              .select('id')
+              .eq('product_id', match.product.id)
+              .eq('is_primary', true)
+              .maybeSingle();
+            
+            // Insert the image link
+            const { error: insertError } = await supabase
+              .from('product_images')
+              .insert({
+                product_id: match.product.id,
+                image_url: match.image.url,
+                alt_text: `${match.product.name} - ${match.product.sku}`,
+                is_primary: config.autoSetPrimary && !hasPrimary,
+                sort_order: 0
+              });
+            
+            if (insertError) {
+              throw insertError;
+            }
+            
+            successCount++;
+            addLog('success', `✅ Linked ${match.product.sku} to ${match.image.filename}`);
+            setProgress(prev => ({ ...prev, successful: prev.successful + 1 }));
+            
+          } catch (error: any) {
             failCount++;
-            addLog('error', `Failed to link ${product.sku}: ${error.message}`);
+            const errorMsg = `${match.product.sku}: ${error.message}`;
+            addLog('error', `Failed to link ${errorMsg}`);
             setProgress(prev => ({ 
               ...prev, 
               failed: prev.failed + 1,
-              errors: [...prev.errors, `${product.sku}: ${error.message}`]
+              errors: [...prev.errors, errorMsg]
             }));
           }
         }));
         
         // Small delay between batches
-        if (i + batchSize < products.length) {
+        if (i + config.batchSize < matches.length) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
@@ -614,49 +605,65 @@ export const ImageLinkingTool = () => {
         currentStep: `Linking complete: ${successCount} successful, ${failCount} failed`
       }));
       
-      addLog('success', '🎉 Image linking process completed!');
-      addLog('info', `📊 Final results: ${successCount} linked, ${failCount} failed out of ${products.length} products`);
-      
+      addLog('success', `🎉 Image linking process completed! ${successCount} linked, ${failCount} failed`);
       toast.success(`Successfully linked ${successCount} products to images!`);
       
       // Reload stats
       await loadProductsWithoutImages();
       
-    } catch (error) {
-      addLog('error', `Fatal error: ${error.message}`);
-      setProgress(prev => ({ 
-        ...prev, 
-        status: 'error',
-        currentStep: `Error: ${error.message}`
-      }));
+    } catch (error: any) {
+      if (error.message === 'Process aborted by user') {
+        addLog('warn', '⏹️ Linking process aborted by user');
+        setProgress(prev => ({ 
+          ...prev, 
+          status: 'idle',
+          currentStep: 'Process aborted'
+        }));
+      } else {
+        addLog('error', `Fatal error: ${error.message}`);
+        setProgress(prev => ({ 
+          ...prev, 
+          status: 'error',
+          currentStep: `Error: ${error.message}`
+        }));
+      }
       toast.error(`Linking failed: ${error.message}`);
     } finally {
       setIsRunning(false);
+      abortController.current = null;
     }
-  }, [isRunning, config, addLog, scanCompleteStorage, loadProductsWithoutImages, calculateConfidence]);
+  }, [isRunning, config, addLog, scanCompleteStorage, loadProductsWithoutImages, linkUsingEdgeFunction]);
 
-  // Setup realtime subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel(`image-linking-${Date.now()}`)
-      .on('broadcast', { event: 'linking_progress' }, (payload) => {
-        if (payload.payload) {
-          setProgress(payload.payload);
-        }
-      })
-      .on('broadcast', { event: 'linking_log' }, (payload) => {
-        if (payload.payload) {
-          addLog(payload.payload.level, payload.payload.message, payload.payload.details);
-        }
-      })
-      .subscribe();
-    
-    setRealtimeChannel(channel);
-    
-    return () => {
-      channel.unsubscribe();
-    };
+  // Stop the process
+  const stopProcess = useCallback(() => {
+    if (abortController.current) {
+      abortController.current.abort();
+      addLog('warn', '🛑 Stopping process...');
+    }
   }, [addLog]);
+
+  // Clear logs
+  const clearLogs = useCallback(() => {
+    setProcessLogs([]);
+    addLog('info', '🧹 Logs cleared');
+  }, [addLog]);
+
+  // Export logs
+  const exportLogs = useCallback(() => {
+    const logsText = processLogs.map(log => 
+      `[${new Date(log.timestamp).toLocaleString()}] [${log.level.toUpperCase()}] ${log.message}`
+    ).join('\n');
+    
+    const blob = new Blob([logsText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `image-linking-logs-${new Date().toISOString()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast.success('Logs exported successfully');
+  }, [processLogs]);
 
   // Load initial data
   useEffect(() => {
@@ -731,7 +738,7 @@ export const ImageLinkingTool = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="control" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="control">Control</TabsTrigger>
           <TabsTrigger value="config">Configuration</TabsTrigger>
@@ -745,14 +752,29 @@ export const ImageLinkingTool = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5" />
-                Image Linking Control Panel
+                Enhanced Image Linking Control Panel
               </CardTitle>
               <CardDescription>
-                Link products to images from storage with intelligent SKU matching
+                Intelligently link products to images from storage with advanced SKU matching
               </CardDescription>
             </CardHeader>
             
             <CardContent className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Enhanced Features:</strong>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Multi-SKU file support (e.g., "319027.319026.PNG")</li>
+                    <li>Zero-padding variations (123 ↔ 0123 ↔ 00123)</li>
+                    <li>Pattern recognition (SKU-123, ITEM_123, [123])</li>
+                    <li>Path-based SKU extraction from folder names</li>
+                    <li>Confidence-based matching with configurable threshold</li>
+                    <li>Edge Function support for server-side processing</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+
               <div className="flex items-center gap-4">
                 <Button 
                   onClick={startLinkingProcess} 
@@ -773,11 +795,22 @@ export const ImageLinkingTool = () => {
                   )}
                 </Button>
                 
+                {isRunning && (
+                  <Button 
+                    onClick={stopProcess}
+                    variant="destructive"
+                    className="flex items-center gap-2"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Stop
+                  </Button>
+                )}
+                
                 <Button 
                   variant="outline"
                   onClick={async () => {
-                    await scanCompleteStorage();
                     await loadProductsWithoutImages();
+                    toast.success('Data refreshed');
                   }}
                   disabled={isRunning}
                 >
@@ -824,7 +857,7 @@ export const ImageLinkingTool = () => {
                   </div>
 
                   {progress.errors.length > 0 && (
-                    <Alert>
+                    <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
                         <div className="text-sm">
@@ -834,6 +867,9 @@ export const ImageLinkingTool = () => {
                               <li key={i}>{error}</li>
                             ))}
                           </ul>
+                          {progress.errors.length > 5 && (
+                            <p className="mt-1">...and {progress.errors.length - 5} more</p>
+                          )}
                         </div>
                       </AlertDescription>
                     </Alert>
@@ -853,96 +889,139 @@ export const ImageLinkingTool = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Scan All Folders</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Use Edge Function</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Process on server for better performance
+                      </p>
+                    </div>
+                    <Switch
+                      checked={config.useEdgeFunction}
+                      onCheckedChange={(checked) => setConfig(prev => ({ ...prev, useEdgeFunction: checked }))}
+                      disabled={isRunning}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Scan All Folders</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Scan entire storage bucket recursively
+                      </p>
+                    </div>
+                    <Switch
+                      checked={config.scanAllFolders}
+                      onCheckedChange={(checked) => setConfig(prev => ({ ...prev, scanAllFolders: checked }))}
+                      disabled={isRunning}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Target Folder (optional)</Label>
+                    <Input
+                      placeholder="e.g., products/2024 or leave empty for all"
+                      value={config.targetFolder}
+                      onChange={(e) => setConfig(prev => ({ ...prev, targetFolder: e.target.value }))}
+                      disabled={isRunning || config.scanAllFolders}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Matching Strategy</Label>
+                    <Select 
+                      value={config.matchingStrategy} 
+                      onValueChange={(value: any) => setConfig(prev => ({ ...prev, matchingStrategy: value }))}
+                      disabled={isRunning}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="exact">Exact Match Only</SelectItem>
+                        <SelectItem value="fuzzy">Fuzzy Matching</SelectItem>
+                        <SelectItem value="smart">Smart Matching (Recommended)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Batch Size</Label>
+                    <Select 
+                      value={config.batchSize.toString()} 
+                      onValueChange={(value) => setConfig(prev => ({ ...prev, batchSize: parseInt(value) }))}
+                      disabled={isRunning}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5 (Slower, More Reliable)</SelectItem>
+                        <SelectItem value="10">10 (Balanced)</SelectItem>
+                        <SelectItem value="20">20 (Faster)</SelectItem>
+                        <SelectItem value="50">50 (Fastest)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Confidence Threshold (%)</Label>
+                    <Input
+                      type="number"
+                      min="30"
+                      max="100"
+                      value={config.confidenceThreshold}
+                      onChange={(e) => setConfig(prev => ({ ...prev, confidenceThreshold: parseInt(e.target.value) }))}
+                      disabled={isRunning}
+                    />
                     <p className="text-xs text-muted-foreground">
-                      Scan entire storage bucket recursively
+                      Minimum confidence score required for matching (lower = more matches)
                     </p>
                   </div>
-                  <Switch
-                    checked={config.scanAllFolders}
-                    onCheckedChange={(checked) => setConfig(prev => ({ ...prev, scanAllFolders: checked }))}
-                    disabled={isRunning}
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <Label>Matching Strategy</Label>
-                  <Select 
-                    value={config.matchingStrategy} 
-                    onValueChange={(value: any) => setConfig(prev => ({ ...prev, matchingStrategy: value }))}
-                    disabled={isRunning}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="exact">Exact Match Only</SelectItem>
-                      <SelectItem value="fuzzy">Fuzzy Matching (Recommended)</SelectItem>
-                      <SelectItem value="aggressive">Aggressive Matching</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Batch Size</Label>
-                  <Select 
-                    value={config.batchSize.toString()} 
-                    onValueChange={(value) => setConfig(prev => ({ ...prev, batchSize: parseInt(value) }))}
-                    disabled={isRunning}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5 (Slower, More Reliable)</SelectItem>
-                      <SelectItem value="10">10 (Balanced)</SelectItem>
-                      <SelectItem value="20">20 (Faster)</SelectItem>
-                      <SelectItem value="50">50 (Fastest)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Confidence Threshold (%)</Label>
-                  <Input
-                    type="number"
-                    min="50"
-                    max="100"
-                    value={config.confidenceThreshold}
-                    onChange={(e) => setConfig(prev => ({ ...prev, confidenceThreshold: parseInt(e.target.value) }))}
-                    disabled={isRunning}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Skip Existing Images</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Don't re-link products that already have images
-                    </p>
+                  <div className="space-y-2">
+                    <Label>Max Images to Process</Label>
+                    <Input
+                      type="number"
+                      min="100"
+                      max="10000"
+                      value={config.maxImages}
+                      onChange={(e) => setConfig(prev => ({ ...prev, maxImages: parseInt(e.target.value) }))}
+                      disabled={isRunning}
+                    />
                   </div>
-                  <Switch
-                    checked={config.skipExisting}
-                    onCheckedChange={(checked) => setConfig(prev => ({ ...prev, skipExisting: checked }))}
-                    disabled={isRunning}
-                  />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Auto-Set Primary</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Automatically set first image as primary
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Skip Existing Images</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Don't re-link products that already have images
+                      </p>
+                    </div>
+                    <Switch
+                      checked={config.skipExisting}
+                      onCheckedChange={(checked) => setConfig(prev => ({ ...prev, skipExisting: checked }))}
+                      disabled={isRunning}
+                    />
                   </div>
-                  <Switch
-                    checked={config.autoSetPrimary}
-                    onCheckedChange={(checked) => setConfig(prev => ({ ...prev, autoSetPrimary: checked }))}
-                    disabled={isRunning}
-                  />
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Auto-Set Primary</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Automatically set first image as primary
+                      </p>
+                    </div>
+                    <Switch
+                      checked={config.autoSetPrimary}
+                      onCheckedChange={(checked) => setConfig(prev => ({ ...prev, autoSetPrimary: checked }))}
+                      disabled={isRunning}
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -957,6 +1036,9 @@ export const ImageLinkingTool = () => {
                 Storage Images
                 <Badge variant="outline">{storageImages.length}</Badge>
               </CardTitle>
+              <CardDescription>
+                Images found in storage with extracted SKUs
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {storageStats && (
@@ -975,7 +1057,9 @@ export const ImageLinkingTool = () => {
                       <div className="text-muted-foreground">Active Folders</div>
                     </div>
                     <div>
-                      <div className="font-bold">{storageStats.lastScanTime ? new Date(storageStats.lastScanTime).toLocaleTimeString() : 'Never'}</div>
+                      <div className="font-bold">
+                        {storageStats.lastScanTime ? new Date(storageStats.lastScanTime).toLocaleTimeString() : 'Never'}
+                      </div>
                       <div className="text-muted-foreground">Last Scan</div>
                     </div>
                   </div>
@@ -984,28 +1068,44 @@ export const ImageLinkingTool = () => {
               
               <ScrollArea className="h-96">
                 <div className="space-y-2">
-                  {storageImages.slice(0, 100).map((image, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{image.filename}</div>
-                        <div className="text-xs text-muted-foreground">{image.path}</div>
-                        {image.extractedSkus.length > 0 && (
-                          <div className="flex gap-1 mt-1">
-                            {image.extractedSkus.slice(0, 5).map((sku, i) => (
-                              <Badge key={i} variant="secondary" className="text-xs">
-                                {sku}
-                              </Badge>
-                            ))}
-                            {image.extractedSkus.length > 5 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{image.extractedSkus.length - 5}
-                              </Badge>
-                            )}
-                          </div>
+                  {storageImages.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      No images scanned yet. Start the linking process to scan storage.
+                    </div>
+                  ) : (
+                    storageImages.slice(0, 100).map((image, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{image.filename}</div>
+                          <div className="text-xs text-muted-foreground">{image.path}</div>
+                          {image.extractedSkus.length > 0 && (
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                              {image.extractedSkus.slice(0, 5).map((sku, i) => (
+                                <Badge key={i} variant="secondary" className="text-xs">
+                                  {sku.value}
+                                  <span className="ml-1 opacity-60">({sku.confidence}%)</span>
+                                </Badge>
+                              ))}
+                              {image.extractedSkus.length > 5 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{image.extractedSkus.length - 5} more
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {image.url && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(image.url, '_blank')}
+                          >
+                            <Image className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                   {storageImages.length > 100 && (
                     <div className="text-center text-muted-foreground py-4">
                       Showing first 100 of {storageImages.length} images
@@ -1025,25 +1125,32 @@ export const ImageLinkingTool = () => {
                 Products Without Images
                 <Badge variant="outline">{productsWithoutImages.length}</Badge>
               </CardTitle>
+              <CardDescription>
+                Products that need image linking
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-96">
                 <div className="space-y-2">
-                  {productsWithoutImages.slice(0, 100).map((product, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <div className="font-medium">SKU: {product.sku}</div>
-                        <div className="text-sm text-muted-foreground">{product.name}</div>
-                        {product.category && (
-                          <Badge variant="outline" className="text-xs mt-1">{product.category}</Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {productsWithoutImages.length === 0 && (
+                  {productsWithoutImages.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
                       🎉 All products have images!
                     </div>
+                  ) : (
+                    productsWithoutImages.slice(0, 100).map((product, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
+                        <div>
+                          <div className="font-medium">
+                            <Badge variant="outline" className="mr-2">{product.sku}</Badge>
+                            {product.name}
+                          </div>
+                          {product.category && (
+                            <Badge variant="secondary" className="text-xs mt-1">{product.category}</Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))
                   )}
                   {productsWithoutImages.length > 100 && (
                     <div className="text-center text-muted-foreground py-4">
@@ -1059,33 +1166,66 @@ export const ImageLinkingTool = () => {
         <TabsContent value="logs">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Process Logs
-                <Badge variant="outline">{processLogs.length}</Badge>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Process Logs
+                  <Badge variant="outline">{processLogs.length}</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearLogs}
+                    disabled={processLogs.length === 0}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportLogs}
+                    disabled={processLogs.length === 0}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Export
+                  </Button>
+                </div>
               </CardTitle>
+              <CardDescription>
+                Detailed activity log of the linking process
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-96">
                 <div className="space-y-2">
-                  {processLogs.map((log, index) => (
-                    <div key={index} className="flex items-start gap-3 p-2 rounded-lg border text-sm">
-                      {log.level === 'success' && <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />}
-                      {log.level === 'error' && <XCircle className="h-4 w-4 text-red-500 mt-0.5" />}
-                      {log.level === 'warn' && <AlertCircle className="h-4 w-4 text-yellow-500 mt-0.5" />}
-                      {log.level === 'info' && <Activity className="h-4 w-4 text-blue-500 mt-0.5" />}
-                      <div className="flex-1">
-                        <div>{log.message}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(log.timestamp).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {processLogs.length === 0 && (
+                  {processLogs.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
                       No logs yet. Start the linking process to see activity.
                     </div>
+                  ) : (
+                    processLogs.map((log, index) => (
+                      <div key={index} className="flex items-start gap-3 p-2 rounded-lg border text-sm hover:bg-muted/50">
+                        {log.level === 'success' && <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />}
+                        {log.level === 'error' && <XCircle className="h-4 w-4 text-red-500 mt-0.5" />}
+                        {log.level === 'warn' && <AlertCircle className="h-4 w-4 text-yellow-500 mt-0.5" />}
+                        {log.level === 'info' && <Activity className="h-4 w-4 text-blue-500 mt-0.5" />}
+                        <div className="flex-1">
+                          <div className={
+                            log.level === 'error' ? 'text-red-600' :
+                            log.level === 'warn' ? 'text-yellow-600' :
+                            log.level === 'success' ? 'text-green-600' :
+                            'text-foreground'
+                          }>
+                            {log.message}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </ScrollArea>
