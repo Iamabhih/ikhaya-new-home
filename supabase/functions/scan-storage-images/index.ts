@@ -46,17 +46,54 @@ Deno.serve(async (req) => {
       console.log('Starting storage image scan...');
       
       try {
-        // List all images in the public-images bucket
-        const { data: images, error: listError } = await supabase.storage
-          .from('public-images')
-          .list('', {
+        // Scan product-images bucket recursively including MULTI_MATCH_ORGANIZED folder
+        const { data: folders, error: foldersError } = await supabase.storage
+          .from('product-images')
+          .list('MULTI_MATCH_ORGANIZED', {
             limit: 1000,
             sortBy: { column: 'name', order: 'asc' }
           });
 
-        if (listError) {
-          throw new Error(`Failed to list images: ${listError.message}`);
+        if (foldersError) {
+          throw new Error(`Failed to list folders: ${foldersError.message}`);
         }
+
+        let allImages: any[] = [];
+        
+        // Get images from all subfolders
+        if (folders) {
+          for (const folder of folders) {
+            if (folder.name && !folder.name.includes('.emptyFolderPlaceholder')) {
+              const { data: subImages, error: subError } = await supabase.storage
+                .from('product-images')
+                .list(`MULTI_MATCH_ORGANIZED/${folder.name}`, {
+                  limit: 1000,
+                  sortBy: { column: 'name', order: 'asc' }
+                });
+
+              if (subError) {
+                console.error(`Error listing images in ${folder.name}:`, subError.message);
+                continue;
+              }
+
+              if (subImages) {
+                // Add folder path to each image
+                subImages.forEach(img => {
+                  if (img.name && !img.name.includes('.emptyFolderPlaceholder')) {
+                    allImages.push({
+                      ...img,
+                      fullPath: `MULTI_MATCH_ORGANIZED/${folder.name}/${img.name}`,
+                      folderName: folder.name
+                    });
+                  }
+                });
+              }
+            }
+          }
+        }
+        
+        const images = allImages;
+
 
         result.foundImages = images?.length || 0;
         console.log(`Found ${result.foundImages} images in storage`);
@@ -80,27 +117,44 @@ Deno.serve(async (req) => {
           for (const image of images) {
             try {
               if (image.name && !image.name.includes('.emptyFolderPlaceholder')) {
-                // Try to match by filename patterns
+                // Extract SKUs from filename - handle multiple SKUs separated by dots or spaces
                 const filename = image.name.toLowerCase();
                 const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
                 
-                // Look for product matches by SKU (prioritize exact SKU matches)
-                const matchingProduct = products?.find(product => {
-                  const productSku = product.sku?.toLowerCase() || '';
+                // Extract potential SKUs - look for 4-6 digit numbers
+                const skuMatches = nameWithoutExt.match(/\b\d{4,6}\b/g) || [];
+                
+                console.log(`Processing ${image.name}, found potential SKUs: ${skuMatches.join(', ')}`);
+                
+                // Try to find matching product by any extracted SKU
+                let matchingProduct = null;
+                let matchedSku = '';
+                
+                for (const potentialSku of skuMatches) {
+                  const foundProduct = products?.find(product => {
+                    const productSku = product.sku?.toLowerCase() || '';
+                    return productSku === potentialSku;
+                  });
                   
-                  // First try exact SKU match
-                  if (productSku && nameWithoutExt === productSku) {
-                    return true;
+                  if (foundProduct) {
+                    matchingProduct = foundProduct;
+                    matchedSku = potentialSku;
+                    break; // Use first exact match found
                   }
-                  
-                  // Then try if filename starts with SKU
-                  if (productSku && nameWithoutExt.startsWith(productSku)) {
-                    return true;
-                  }
-                  
-                  // Finally check if SKU is contained in filename
-                  return productSku && nameWithoutExt.includes(productSku);
-                });
+                }
+                
+                // If no exact SKU match, try broader filename matching
+                if (!matchingProduct) {
+                  matchingProduct = products?.find(product => {
+                    const productSku = product.sku?.toLowerCase() || '';
+                    const productName = product.name?.toLowerCase() || '';
+                    const productSlug = product.slug?.toLowerCase() || '';
+                    
+                    return (productSku && nameWithoutExt.includes(productSku)) ||
+                           (productName && nameWithoutExt.includes(productName.slice(0, 10))) ||
+                           (productSlug && nameWithoutExt.includes(productSlug));
+                  });
+                }
 
                 if (matchingProduct) {
                   // Check if product already has an image
@@ -111,8 +165,10 @@ Deno.serve(async (req) => {
                     .limit(1);
 
                   if (!existingImage || existingImage.length === 0) {
-                    // Create product image record
-                    const imageUrl = `${supabaseUrl}/storage/v1/object/public/public-images/${image.name}`;
+                    // Create product image record using the full path
+                    const imageUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${image.fullPath}`;
+                    
+                    console.log(`Linking ${image.name} (SKU: ${matchedSku || 'name-based'}) to product ${matchingProduct.name} (${matchingProduct.sku})`);
                     
                     const { error: insertError } = await supabase
                       .from('product_images')
@@ -128,11 +184,13 @@ Deno.serve(async (req) => {
                       errors.push(`Failed to link ${image.name} to ${matchingProduct.name}: ${insertError.message}`);
                     } else {
                       matchedCount++;
-                      console.log(`Linked ${image.name} to product ${matchingProduct.name}`);
+                      console.log(`Successfully linked ${image.name} to product ${matchingProduct.name} via SKU: ${matchedSku || 'name-based'}`);
                     }
                   } else {
                     console.log(`Product ${matchingProduct.name} already has an image, skipping ${image.name}`);
                   }
+                } else {
+                  console.log(`No product match found for image: ${image.name} (potential SKUs: ${skuMatches.join(', ')})`);
                 }
               }
             } catch (error) {
