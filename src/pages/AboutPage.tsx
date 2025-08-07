@@ -1,11 +1,8 @@
-
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
-
 const AboutPage = () => {
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8">
         <Breadcrumb className="mb-6">
@@ -30,12 +27,7 @@ const AboutPage = () => {
             </p>
             
             <h2 className="text-2xl font-semibold mb-4">Our Story</h2>
-            <p className="mb-6">
-              Founded with a passion for beautiful living spaces, Ikhaya Homeware curates a 
-              carefully selected collection of home essentials that blend functionality with 
-              aesthetic appeal. From kitchen essentials to bedroom comfort, we offer everything 
-              you need to create spaces that truly feel like home.
-            </p>
+            <p className="mb-6">Founded with a passion for beautiful living spaces, Ikhaya Homeware curates a carefully selected collection of home essentials that blend functionality with aesthetic appeal. From kitchen essentials to bedroom comfort, we offer everything you need to create spaces that truly feel like home. Proudly by OZZ Cash and Carry</p>
             
             <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
             <p className="mb-6">
@@ -65,8 +57,6 @@ const AboutPage = () => {
         </div>
       </main>
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default AboutPage;
