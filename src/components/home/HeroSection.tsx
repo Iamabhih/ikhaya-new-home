@@ -2,7 +2,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 export const HeroSection = () => {
-  return <section className="relative bg-background py-20 lg:py-32 overflow-hidden">
+  return (
+    <section className="relative bg-background py-20 lg:py-32 overflow-hidden"
+      style={{ 
+        marginTop: 0,
+        paddingTop: 'max(5rem, calc(64px + 2rem))', // Account for header height
+        minHeight: 'calc(100vh - 64px)' // Viewport height minus header
+      }}
+    >
       {/* Subtle background elements */}
       <div className="absolute inset-0">
         <div className="absolute top-20 right-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
@@ -71,5 +78,6 @@ export const HeroSection = () => {
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
