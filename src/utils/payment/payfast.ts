@@ -9,30 +9,32 @@ export interface FormData {
 
 /**
  * Generate PayFast signature exactly as PayFast expects
- * CRITICAL: Do NOT sort alphabetically - use natural order as per PayFast docs
+ * Per PayFast docs: Sort keys alphabetically, exclude empty values and 'signature', encode values, then append passphrase
  */
 export const generateSignature = (data: Record<string, string>, passPhrase: string): string => {
   try {
-    // Build parameter string in natural order (NOT alphabetical)
+    // Build parameter string: sort keys alphabetically as per PayFast docs
+    const keys = Object.keys(data)
+      .filter((k) => k !== 'signature' && data[k] !== undefined && data[k] !== null && data[k] !== '')
+      .sort();
+
     let pfOutput = '';
-    for (const key in data) {
-      if (key !== 'signature' && data[key] !== undefined && data[key] !== null && data[key] !== '') {
-        pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, '+')}&`;
-      }
+    for (const key of keys) {
+      pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, '+')}&`;
     }
-    
+
     // Remove last ampersand
     pfOutput = pfOutput.slice(0, -1);
-    
+
     // Add passphrase if provided
     if (passPhrase && passPhrase !== '') {
       pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
     }
-    
+
     console.log('Signature string:', pfOutput);
     const signature = md5(pfOutput);
     console.log('Generated signature:', signature);
-    
+
     return signature;
   } catch (error) {
     console.error('Error generating PayFast signature:', error);
@@ -56,8 +58,7 @@ export const initializePayfastPayment = (
   const formattedAmount = amount.toFixed(2);
   const baseUrl = PAYFAST_CONFIG.siteUrl;
   
-  // Build PayFast data in the EXACT order as per PayFast documentation
-  // Order matters for signature generation - do NOT reorder these fields
+  // Build PayFast data with required fields; signature generation will sort alphabetically
   const pfData: Record<string, string> = {
     // Merchant details (MUST be first)
     merchant_id: config.merchant_id,

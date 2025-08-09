@@ -157,12 +157,15 @@ export function useCheckout() {
             form.style.display = 'none';
 
             for (const key in paymentResult.formData) {
-                if (paymentResult.formData.hasOwnProperty(key)) {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = paymentResult.formData[key];
-                    form.appendChild(input);
+                if (Object.prototype.hasOwnProperty.call(paymentResult.formData, key)) {
+                    const val = paymentResult.formData[key];
+                    if (val !== undefined && val !== null && String(val).trim() !== '') {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = String(val);
+                        form.appendChild(input);
+                    }
                 }
             }
 

@@ -86,7 +86,7 @@ export const PayfastPayment = ({
       
       // Add all parameters as input fields
       Object.entries(payfastFormData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
           const input = document.createElement('input');
           input.type = 'hidden';
           input.name = key;
