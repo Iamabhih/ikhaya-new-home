@@ -154,6 +154,7 @@ export function useCheckout() {
             form.action = paymentResult.formAction;
             form.method = 'POST';
             form.target = '_top'; // Important for PayFast
+            form.acceptCharset = 'UTF-8';
             form.style.display = 'none';
 
             for (const key in paymentResult.formData) {

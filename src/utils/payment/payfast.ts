@@ -65,8 +65,8 @@ export const initializePayfastPayment = (
     merchant_key: config.merchant_key,
     
     // Return/Cancel/Notify URLs
-    return_url: `${baseUrl}/checkout/success`,
-    cancel_url: `${baseUrl}/checkout`,
+    return_url: `${baseUrl}/checkout/success?order_id=${orderId}`,
+    cancel_url: `${baseUrl}/checkout?cancelled=true`,
     notify_url: `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`,
     
     // Customer details

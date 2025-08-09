@@ -82,6 +82,7 @@ export const PayfastPayment = ({
       form.method = 'POST';
       form.action = formAction;
       form.target = '_top';
+      form.acceptCharset = 'UTF-8';
       form.style.display = 'none';
       
       // Add all parameters as input fields
