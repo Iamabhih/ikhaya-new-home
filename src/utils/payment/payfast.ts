@@ -13,14 +13,13 @@ export interface FormData {
  */
 export const generateSignature = (data: Record<string, string>, passPhrase: string): string => {
   try {
-    // Build parameter string: sort keys alphabetically as per PayFast docs
-    const keys = Object.keys(data)
-      .filter((k) => k !== 'signature' && data[k] !== undefined && data[k] !== null && data[k] !== '')
-      .sort();
-
+    // Build parameter string in the natural (insertion) order
     let pfOutput = '';
-    for (const key of keys) {
-      pfOutput += `${key}=${encodeURIComponent(data[key].toString().trim()).replace(/%20/g, '+')}&`;
+    for (const key of Object.keys(data)) {
+      const val = data[key];
+      if (key !== 'signature' && val !== undefined && val !== null && val !== '') {
+        pfOutput += `${key}=${encodeURIComponent(val.toString().trim()).replace(/%20/g, '+')}&`;
+      }
     }
 
     // Remove last ampersand
