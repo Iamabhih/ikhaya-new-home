@@ -9,6 +9,7 @@ export interface FormData {
   address: string;
   city: string;
   postalCode: string;
+  province: string;
 }
 
 export interface DeliveryOption {
@@ -24,6 +25,7 @@ export interface PaymentMethod {
   name: string;
   description: string;
   imageUrl?: string;
+  icon?: string;
 }
 
 export interface BankAccount {
@@ -52,6 +54,7 @@ export const initialFormData: FormData = {
   address: '',
   city: '',
   postalCode: '',
+  province: '',
 };
 
 export const initialBankAccountFormData: BankAccountFormData = {

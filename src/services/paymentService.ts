@@ -60,11 +60,12 @@ export const processPayfastPayment = async (
     form.method = 'POST';
     form.action = formAction;
     form.target = '_blank';
+    form.acceptCharset = 'UTF-8';
     form.style.display = 'none';
     
     // Add all parameters
     Object.entries(payfastFormData).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = key;
