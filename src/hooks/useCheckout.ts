@@ -153,7 +153,7 @@ export function useCheckout() {
             const form = document.createElement('form');
             form.action = paymentResult.formAction;
             form.method = 'POST';
-            form.target = '_top'; // Important for PayFast
+            form.target = '_blank'; // Open in new tab to avoid sandbox top-navigation restrictions
             form.acceptCharset = 'UTF-8';
             form.style.display = 'none';
 

@@ -59,7 +59,7 @@ export const processPayfastPayment = async (
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = formAction;
-    form.target = '_top';
+    form.target = '_blank';
     form.style.display = 'none';
     
     // Add all parameters

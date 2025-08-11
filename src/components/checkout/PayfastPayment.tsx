@@ -81,7 +81,7 @@ export const PayfastPayment = ({
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = formAction;
-      form.target = '_top';
+      form.target = '_blank';
       form.acceptCharset = 'UTF-8';
       form.style.display = 'none';
       
