@@ -16,7 +16,7 @@ export const PAYFAST_CONFIG = {
     host: 'https://sandbox.payfast.co.za/eng/process',
   },
   // Start with sandbox for testing
-  useSandbox: true,
+  useSandbox: false,
   siteUrl: SITE_URL,
 };
 
