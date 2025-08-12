@@ -1,6 +1,6 @@
 import { FormData, DeliveryOption } from '@/types/checkout';
 import { CartItem } from '@/contexts/CartContext';
-import { initializePayfastPayment } from '@/utils/payment/payfast';
+import { initializePayfastPayment, submitPayfastForm } from '@/utils/payment/payfast';
 import { PAYFAST_CONFIG } from '@/utils/payment/constants';
 import { toast } from 'sonner';
 
@@ -55,39 +55,10 @@ export const processPayfastPayment = async (
       formData
     );
     
-    // Create form element
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = formAction;
-    form.target = '_blank';
-    form.acceptCharset = 'UTF-8';
-    form.style.display = 'none';
-    
-    // Add all parameters
-    Object.entries(payfastFormData).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && String(value).trim() !== '') {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = String(value);
-        form.appendChild(input);
-      }
-    });
-    
-    // Append and submit
-    document.body.appendChild(form);
-    
+    // Submit PayFast form consistently
+    submitPayfastForm(formAction, payfastFormData);
+
     toast.info('Redirecting to PayFast...');
-    
-    setTimeout(() => {
-      try {
-        form.submit();
-      } catch (error) {
-        console.error('Form submission error:', error);
-        document.body.removeChild(form);
-        throw error;
-      }
-    }, 500);
     
     return {
       success: true,

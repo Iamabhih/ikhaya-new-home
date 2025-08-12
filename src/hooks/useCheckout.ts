@@ -5,7 +5,7 @@ import { useCheckoutForm } from '@/hooks/useCheckoutForm';
 import { useCheckoutOptions } from '@/hooks/useCheckoutOptions';
 import { FormData, DeliveryOption, PaymentMethod } from '@/types/checkout';
 import { processPayment } from '@/services/paymentService';
-import { initializePayfastPayment } from '@/utils/payment/payfast';
+import { initializePayfastPayment, submitPayfastForm } from '@/utils/payment/payfast';
 import { toast } from 'sonner';
 
 export function useCheckout() {
@@ -149,36 +149,11 @@ export function useCheckout() {
         const paymentResult = await handlePayment(formData, paymentMethodObj, selectedDeliveryOption);
 
         if (paymentResult?.redirect) {
-            // Handle the PayFast form submission on the frontend (like RnR-Live)
-            const form = document.createElement('form');
-            form.action = paymentResult.formAction;
-            form.method = 'POST';
-            form.target = '_blank'; // Open in new tab to avoid sandbox top-navigation restrictions
-            form.acceptCharset = 'UTF-8';
-            form.style.display = 'none';
+            // Submit using shared helper to ensure consistency
+            submitPayfastForm(paymentResult.formAction, paymentResult.formData);
 
-            for (const key in paymentResult.formData) {
-                if (Object.prototype.hasOwnProperty.call(paymentResult.formData, key)) {
-                    const val = paymentResult.formData[key];
-                    if (val !== undefined && val !== null && String(val).trim() !== '') {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = key;
-                        input.value = String(val);
-                        form.appendChild(input);
-                    }
-                }
-            }
-
-            document.body.appendChild(form);
-            
             // Show feedback to user
             toast.info('Redirecting to PayFast payment gateway...');
-            
-            // Submit after delay (like RnR-Live)
-            setTimeout(() => {
-                form.submit();
-            }, 800);
         }
     };
 

@@ -13,13 +13,15 @@ export interface FormData {
  */
 export const generateSignature = (data: Record<string, string>, passPhrase: string): string => {
   try {
-    // Build parameter string in the natural (insertion) order
+    // Build parameter string sorted alphabetically by key as per PayFast docs
+    const keys = Object.keys(data)
+      .filter((key) => key !== 'signature' && data[key] !== undefined && data[key] !== null && data[key] !== '')
+      .sort();
+
     let pfOutput = '';
-    for (const key of Object.keys(data)) {
+    for (const key of keys) {
       const val = data[key];
-      if (key !== 'signature' && val !== undefined && val !== null && val !== '') {
-        pfOutput += `${key}=${encodeURIComponent(val.toString().trim()).replace(/%20/g, '+')}&`;
-      }
+      pfOutput += `${key}=${encodeURIComponent(val.toString().trim()).replace(/%20/g, '+')}&`;
     }
 
     // Remove last ampersand
@@ -80,9 +82,12 @@ export const initializePayfastPayment = (
     item_description: `Order #${orderId}`
   };
   
-  // Add optional phone number if provided
+  // Add optional phone number if provided (digits only per PayFast guidance)
   if (formData?.phone) {
-    pfData.cell_number = formData.phone;
+    const digitsOnly = formData.phone.replace(/\D/g, '');
+    if (digitsOnly) {
+      pfData.cell_number = digitsOnly;
+    }
   }
   
   // Generate signature with the ordered data
@@ -101,4 +106,31 @@ export const initializePayfastPayment = (
     formAction,
     formData: pfData
   };
+};
+
+// Shared helper to submit a PayFast form consistently across the app
+export const submitPayfastForm = (formAction: string, formData: Record<string, string>) => {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = formAction;
+  form.target = '_blank';
+  form.acceptCharset = 'UTF-8';
+  form.style.display = 'none';
+
+  Object.entries(formData).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = String(value);
+      form.appendChild(input);
+    }
+  });
+
+  document.body.appendChild(form);
+
+  // Submit with a tiny delay to ensure DOM is ready
+  setTimeout(() => {
+    form.submit();
+  }, 300);
 };

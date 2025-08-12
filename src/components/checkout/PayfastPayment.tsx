@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, CreditCard, ShieldCheck } from "lucide-react";
-import { initializePayfastPayment } from "@/utils/payment/payfast";
+import { initializePayfastPayment, submitPayfastForm } from "@/utils/payment/payfast";
 import { PAYFAST_CONFIG } from "@/utils/payment/constants";
 
 interface PayfastPaymentProps {
@@ -77,43 +77,11 @@ export const PayfastPayment = ({
         formData
       );
       
-      // Create and submit form
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = formAction;
-      form.target = '_blank';
-      form.acceptCharset = 'UTF-8';
-      form.style.display = 'none';
-      
-      // Add all parameters as input fields
-      Object.entries(payfastFormData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && String(value).trim() !== '') {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = String(value);
-          form.appendChild(input);
-        }
-      });
-      
-      // Append form to body
-      document.body.appendChild(form);
-      
+      // Submit using shared helper
+      submitPayfastForm(formAction, payfastFormData);
+
       // Show user feedback
       toast.info('Redirecting to PayFast payment gateway...');
-      
-      // Submit form after short delay
-      setTimeout(() => {
-        try {
-          form.submit();
-          console.log('PayFast form submitted successfully');
-        } catch (submitError) {
-          console.error('Error submitting form:', submitError);
-          toast.error('Failed to redirect to payment gateway. Please try again.');
-          document.body.removeChild(form);
-          setIsProcessing(false);
-        }
-      }, 500);
       
     } catch (error: any) {
       console.error('Payment error:', error);
