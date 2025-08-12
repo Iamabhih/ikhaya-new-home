@@ -5,9 +5,9 @@ const SITE_URL = 'https://ikhayahomeware.online';
 export const PAYFAST_CONFIG = {
   // Live PayFast values - REPLACE THESE WITH YOUR ACTUAL CREDENTIALS
   live: {
-    merchant_id: 'YOUR_LIVE_MERCHANT_ID', // Get from PayFast dashboard
-    merchant_key: 'YOUR_LIVE_MERCHANT_KEY', // Get from PayFast dashboard  
-    passphrase: 'YOUR_LIVE_PASSPHRASE', // Get from PayFast dashboard (Settings > Integration)
+    merchant_id: '13644558', // Get from PayFast dashboard
+    merchant_key: 'u6ksewx8j6xzx', // Get from PayFast dashboard  
+    passphrase: 'Khalid123@Ozz', // Get from PayFast dashboard (Settings > Integration)
     host: 'https://www.payfast.co.za/eng/process',
   },
   // Sandbox PayFast values for testing
