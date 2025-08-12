@@ -56,6 +56,47 @@ export const PayfastPayment = ({
       const orderId = orderData?.orderId || Math.floor(Math.random() * 1000000).toString();
       const totalAmount = orderData?.amount || (cartTotal + deliveryFee);
       
+      // Store pending order data in sessionStorage for webhook processing
+      const pendingOrderData = {
+        tempOrderId: orderId,
+        user_id: user?.id || null,
+        email: formData.email,
+        billing_address: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          province: formData.province,
+          postal_code: formData.postalCode
+        },
+        shipping_address: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          province: formData.province,
+          postal_code: formData.postalCode
+        },
+        subtotal: cartTotal,
+        shipping_amount: deliveryFee,
+        total_amount: totalAmount,
+        cartItems: cartItems.map(item => ({
+          product_id: item.product_id || item.product?.id,
+          quantity: item.quantity,
+          unit_price: item.product?.price || 0,
+          total_price: (item.product?.price || 0) * item.quantity,
+          product_name: item.product?.name || item.product_name || 'Product',
+          product_sku: item.product?.sku
+        }))
+      };
+      
+      // Store in sessionStorage
+      sessionStorage.setItem(`pending_order_${orderId}`, JSON.stringify(pendingOrderData));
+      
       // Create cart summary
       const cartSummary = cartItems.map(item => 
         `${item.product?.name || item.product_name || 'Product'}${item.size ? ` (${item.size})` : ''} x ${item.quantity}`

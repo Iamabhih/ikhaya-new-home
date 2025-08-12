@@ -11,15 +11,12 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { Shield, Lock, CreditCard, Truck, CheckCircle, Clock } from "lucide-react";
+
 const CheckoutPage = () => {
-  const {
-    items,
-    total
-  } = useCart();
-  const {
-    user
-  } = useAuth();
+  const { items, total } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
+
   useEffect(() => {
     if (items.length === 0) {
       navigate("/cart");
@@ -36,15 +33,17 @@ const CheckoutPage = () => {
       window.history.replaceState({}, '', '/checkout');
     }
   }, [items.length, navigate]);
+
   if (items.length === 0) {
     return null;
   }
-  return <div className="min-h-screen bg-background">
+
+  return (
+    <div className="min-h-screen bg-background">
       <Header />
       
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-secondary/30 to-background py-16 relative overflow-hidden">
-        {/* Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-10 left-10 w-48 h-48 bg-secondary/15 rounded-full blur-2xl animate-pulse" />
@@ -152,7 +151,7 @@ const CheckoutPage = () => {
           <div className="space-y-6">
             <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
               <CardContent className="p-6">
-                  <OrderSummary items={items} total={total} />
+                <OrderSummary items={items} total={total} />
               </CardContent>
             </Card>
 
@@ -208,7 +207,7 @@ const CheckoutPage = () => {
                     </p>
                     <p className="flex items-center justify-center gap-2">
                       <span>✉️</span>
-                      <span>info@ikhaya.shop</span>
+                      <span>info@ikhayahomeware.online</span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
                       Available Monday - Friday, 9AM - 5PM
@@ -238,6 +237,8 @@ const CheckoutPage = () => {
       </main>
       
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default CheckoutPage;

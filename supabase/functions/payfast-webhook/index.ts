@@ -118,13 +118,27 @@ Deno.serve(async (req) => {
     if (paymentStatus === 'COMPLETE') {
       console.log(`✅ Payment successful for order ${orderId}, creating order...`);
       
-      // Create order from PayFast webhook data
+      // Generate final order number
+      const finalOrderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      
+      // Create the main order record
       const orderData = {
-        order_number: orderId,
+        order_number: finalOrderNumber,
         email: payfastData.email_address || '',
-        first_name: payfastData.name_first || '',
-        last_name: payfastData.name_last || '',
-        phone: payfastData.cell_number || '',
+        billing_address: {
+          first_name: payfastData.name_first || '',
+          last_name: payfastData.name_last || '',
+          email: payfastData.email_address || '',
+          phone: payfastData.cell_number || ''
+        },
+        shipping_address: {
+          first_name: payfastData.name_first || '',
+          last_name: payfastData.name_last || '',
+          email: payfastData.email_address || '',
+          phone: payfastData.cell_number || ''
+        },
+        subtotal: amount,
+        shipping_amount: 0,
         total_amount: amount,
         status: 'confirmed',
         payment_status: 'paid',
@@ -135,6 +149,7 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString()
       };
 
+      // Insert the order
       const { data: newOrder, error: orderError } = await supabaseClient
         .from('orders')
         .insert(orderData)
