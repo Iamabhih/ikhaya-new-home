@@ -42,7 +42,7 @@ export const generateSignature = (data: Record<string, string>, passPhrase: stri
 };
 
 /**
- * Initialize PayFast payment
+ * Initialize PayFast payment - simplified version
  */
 export const initializePayfastPayment = (
   orderId: string,
@@ -56,30 +56,28 @@ export const initializePayfastPayment = (
   const formAction = config.host;
   const formattedAmount = amount.toFixed(2);
   
-  // Build PayFast data - ONLY PayFast-recognized fields
+  // Build PayFast data with ONLY required fields
   const pfData: Record<string, string> = {
-    // Merchant details
+    // Required merchant details
     merchant_id: config.merchant_id,
     merchant_key: config.merchant_key,
     
-    // URLs
-    return_url: `${PAYFAST_CONFIG.siteUrl}/checkout/success`,
+    // Required URLs - simplified return URL with order ID
+    return_url: `${PAYFAST_CONFIG.siteUrl}/checkout/success?order_id=${orderId}&from=payfast`,
     cancel_url: `${PAYFAST_CONFIG.siteUrl}/checkout?cancelled=true`,
-    notify_url: `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`,
     
-    // Customer details (NO province field!)
+    // Required customer details
     name_first: formData?.firstName || customerName.split(' ')[0] || '',
     name_last: formData?.lastName || customerName.split(' ').slice(1).join(' ') || '',
     email_address: customerEmail,
     
-    // Transaction details
+    // Required transaction details
     m_payment_id: orderId,
     amount: formattedAmount,
-    item_name: itemName.substring(0, 100),
-    item_description: `Order #${orderId}`
+    item_name: itemName.substring(0, 100)
   };
   
-  // Add phone if provided
+  // Add optional phone if provided
   if (formData?.phone) {
     const digitsOnly = formData.phone.replace(/\D/g, '');
     if (digitsOnly.length >= 10) {
@@ -91,7 +89,7 @@ export const initializePayfastPayment = (
   const signature = generateSignature(pfData, config.passphrase || '');
   pfData.signature = signature;
   
-  console.log('PayFast initialized:', {
+  console.log('PayFast initialized (simplified):', {
     environment: PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION',
     orderId,
     amount: formattedAmount

@@ -37,7 +37,7 @@ export const PayfastPayment = ({
     setIsProcessing(true);
     
     try {
-      // Generate order ID
+      // Generate simple order ID
       const orderId = `IKH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       const totalAmount = cartTotal + deliveryFee;
       
@@ -47,14 +47,14 @@ export const PayfastPayment = ({
         .join(', ')
         .substring(0, 100);
       
-      console.log('Initiating PayFast payment:', {
+      console.log('Initiating simplified PayFast payment:', {
         orderId,
         amount: totalAmount,
         customer: `${formData.firstName} ${formData.lastName}`,
         environment: PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'
       });
       
-      // Store order data for later retrieval
+      // Store minimal order data in sessionStorage for fallback only
       const orderData = {
         orderId,
         formData,
@@ -62,8 +62,7 @@ export const PayfastPayment = ({
         cartTotal,
         deliveryFee,
         totalAmount,
-        userId: user?.id,
-        timestamp: new Date().toISOString()
+        userId: user?.id
       };
       sessionStorage.setItem(`pending_order_${orderId}`, JSON.stringify(orderData));
       
@@ -78,17 +77,14 @@ export const PayfastPayment = ({
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: formData.phone
-          // NOT sending province - it's not a PayFast field
         }
       );
       
       // Show user feedback
       toast.info('Redirecting to PayFast secure payment...');
       
-      // Submit form after small delay for UI feedback
-      setTimeout(() => {
-        submitPayfastForm(paymentDetails.formAction, paymentDetails.formData);
-      }, 500);
+      // Submit form immediately - no delay needed
+      submitPayfastForm(paymentDetails.formAction, paymentDetails.formData);
       
     } catch (error: any) {
       console.error('Payment error:', error);

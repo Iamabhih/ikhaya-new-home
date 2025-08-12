@@ -19,8 +19,10 @@ const CheckoutSuccessPage = () => {
   
   useEffect(() => {
     const processSuccessfulPayment = async () => {
-      // Get order ID from URL
+      // Get PayFast return parameters
       const orderId = searchParams.get('order_id');
+      const fromPayfast = searchParams.get('from');
+      const paymentStatus = searchParams.get('payment_status');
       
       if (!orderId) {
         console.error('No order ID in URL');
@@ -29,63 +31,73 @@ const CheckoutSuccessPage = () => {
         return;
       }
 
-      try {
-        // Get pending order from sessionStorage
-        const pendingOrderData = sessionStorage.getItem(`pending_order_${orderId}`);
-        
-        if (pendingOrderData) {
-          const orderData = JSON.parse(pendingOrderData);
-          
-          // Create order in database
-          const { data: order, error } = await supabase
-            .from('orders')
-            .insert({
-              order_number: orderId,
-              user_id: orderData.userId || null,
-              email: orderData.formData.email,
-              subtotal: orderData.cartTotal,
-              shipping_amount: orderData.deliveryFee,
-              total_amount: orderData.totalAmount,
-              status: 'processing',
-              payment_status: 'paid',
-              payment_gateway: 'payfast',
-              billing_address: {
-                first_name: orderData.formData.firstName,
-                last_name: orderData.formData.lastName,
-                email: orderData.formData.email,
-                phone: orderData.formData.phone,
-                address: orderData.formData.address,
-                city: orderData.formData.city,
-                province: orderData.formData.province,
-                postal_code: orderData.formData.postalCode
-              },
-              shipping_address: {
-                first_name: orderData.formData.firstName,
-                last_name: orderData.formData.lastName,
-                email: orderData.formData.email,
-                phone: orderData.formData.phone,
-                address: orderData.formData.address,
-                city: orderData.formData.city,
-                province: orderData.formData.province,
-                postal_code: orderData.formData.postalCode
-              }
-            })
-            .select()
-            .single();
+      console.log('Processing PayFast return:', { orderId, fromPayfast, paymentStatus });
 
-          if (error) {
-            console.error('Error creating order:', error);
-            // Order might already exist from webhook
-            const { data: existingOrder } = await supabase
-              .from('orders')
-              .select('*')
-              .eq('order_number', orderId)
-              .single();
+      try {
+        // Check if order already exists (avoid duplicate creation)
+        const { data: existingOrder } = await supabase
+          .from('orders')
+          .select('*, order_items(*)')
+          .eq('order_number', orderId)
+          .maybeSingle();
+        
+        if (existingOrder) {
+          console.log('Order already exists:', existingOrder.id);
+          setOrderDetails(existingOrder);
+          clearCart();
+          sessionStorage.removeItem(`pending_order_${orderId}`);
+          toast.success('Order confirmed!');
+        } else {
+          // Get order data from sessionStorage
+          const pendingOrderData = sessionStorage.getItem(`pending_order_${orderId}`);
+          
+          if (pendingOrderData) {
+            const orderData = JSON.parse(pendingOrderData);
             
-            if (existingOrder) {
-              setOrderDetails(existingOrder);
+            console.log('Creating new order from sessionStorage data');
+            
+            // Create order in database
+            const { data: order, error } = await supabase
+              .from('orders')
+              .insert({
+                order_number: orderId,
+                user_id: orderData.userId || null,
+                email: orderData.formData.email,
+                subtotal: orderData.cartTotal,
+                shipping_amount: orderData.deliveryFee,
+                total_amount: orderData.totalAmount,
+                status: 'processing',
+                payment_status: 'paid',
+                payment_gateway: 'payfast',
+                billing_address: {
+                  first_name: orderData.formData.firstName,
+                  last_name: orderData.formData.lastName,
+                  email: orderData.formData.email,
+                  phone: orderData.formData.phone,
+                  address: orderData.formData.address,
+                  city: orderData.formData.city,
+                  province: orderData.formData.province,
+                  postal_code: orderData.formData.postalCode
+                },
+                shipping_address: {
+                  first_name: orderData.formData.firstName,
+                  last_name: orderData.formData.lastName,
+                  email: orderData.formData.email,
+                  phone: orderData.formData.phone,
+                  address: orderData.formData.address,
+                  city: orderData.formData.city,
+                  province: orderData.formData.province,
+                  postal_code: orderData.formData.postalCode
+                }
+              })
+              .select()
+              .single();
+
+            if (error) {
+              console.error('Error creating order:', error);
+              throw error;
             }
-          } else {
+            
             setOrderDetails(order);
             
             // Create order items
@@ -99,34 +111,24 @@ const CheckoutSuccessPage = () => {
             }));
 
             await supabase.from('order_items').insert(orderItems);
-          }
-          
-          // Clear sessionStorage
-          sessionStorage.removeItem(`pending_order_${orderId}`);
-          
-          // Clear cart
-          clearCart();
-          
-          toast.success('Payment successful! Your order has been confirmed.');
-        } else {
-          // Try to fetch from database
-          const { data: order } = await supabase
-            .from('orders')
-            .select('*, order_items(*)')
-            .eq('order_number', orderId)
-            .single();
-          
-          if (order) {
-            setOrderDetails(order);
+            
+            // Clear sessionStorage
+            sessionStorage.removeItem(`pending_order_${orderId}`);
+            
+            // Clear cart
             clearCart();
+            
+            toast.success('Payment successful! Your order has been confirmed.');
           } else {
-            toast.error('Order not found');
+            console.error('No order data found in sessionStorage');
+            toast.error('Order data not found. Please contact support.');
             navigate('/');
           }
         }
       } catch (error) {
         console.error('Error processing order:', error);
-        toast.error('Error processing your order');
+        toast.error('Error processing your order. Please contact support.');
+        navigate('/');
       } finally {
         setLoading(false);
       }

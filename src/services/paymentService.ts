@@ -29,21 +29,20 @@ export interface ProcessPaymentParams {
 }
 
 /**
- * Process PayFast payment (direct form submission)
+ * Process PayFast payment (simplified direct form submission)
  */
 export const processPayfastPayment = async (
   { formData, cartItems, totalAmount, orderId }: ProcessPaymentParams & { orderId: string }
 ): Promise<PaymentResult> => {
-  console.log('Processing PayFast payment for order:', orderId);
+  console.log('Processing simplified PayFast payment for order:', orderId);
   console.log(`Environment: ${PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
   
   try {
-    // Create cart summary - handle both 'size' property and without
-    const cartSummary = cartItems.map(item => {
-      const productName = item.product?.name || 'Product';
-      const sizeInfo = (item as any).size ? ` (${(item as any).size})` : '';
-      return `${productName}${sizeInfo} x${item.quantity}`;
-    }).join(", ");
+    // Create simple cart summary
+    const cartSummary = cartItems
+      .map(item => `${item.product?.name || 'Product'} x${item.quantity}`)
+      .join(', ')
+      .substring(0, 100);
     
     // Get PayFast form data
     const { formAction, formData: payfastFormData } = initializePayfastPayment(
@@ -55,7 +54,7 @@ export const processPayfastPayment = async (
       formData
     );
     
-    // Submit PayFast form consistently
+    // Submit PayFast form directly
     submitPayfastForm(formAction, payfastFormData);
 
     toast.info('Redirecting to PayFast...');
