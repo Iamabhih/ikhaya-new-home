@@ -1,28 +1,29 @@
-// Payment service constants for Ikhaya Homeware
+// Production site URL - your actual domain
+const SITE_URL = 'https://ikhayahomeware.online';
 
-export const ADMIN_EMAIL = 'info@ikhayahomeware.online';
-export const SITE_URL = 'https://ikhayahomeware.online';
-
+// PayFast configuration
 export const PAYFAST_CONFIG = {
-  // Live PayFast values - YOUR ACTUAL CREDENTIALS
+  // Live PayFast values - REPLACE THESE WITH YOUR ACTUAL CREDENTIALS
   live: {
-    merchant_id: '13644558',
-    merchant_key: 'u6ksewx8j6xzx',
-    passphrase: 'Khalid123@Ozz',
+    merchant_id: 'YOUR_LIVE_MERCHANT_ID', // Get from PayFast dashboard
+    merchant_key: 'YOUR_LIVE_MERCHANT_KEY', // Get from PayFast dashboard  
+    passphrase: 'YOUR_LIVE_PASSPHRASE', // Get from PayFast dashboard (Settings > Integration)
     host: 'https://www.payfast.co.za/eng/process',
   },
   // Sandbox PayFast values for testing
   sandbox: {
     merchant_id: '10000100',
     merchant_key: '46f0cd694581a',
-    passphrase: '', // IMPORTANT: Empty for sandbox
+    passphrase: '', // Sandbox doesn't use passphrase - leave empty
     host: 'https://sandbox.payfast.co.za/eng/process',
   },
-  useSandbox: false, // SET TO false FOR PRODUCTION
-  merchant_notification_email: 'info@ikhayahomeware.online',
+  // START WITH TRUE FOR TESTING, then set to false for production
+  useSandbox: true,
+  // Your site URL for callbacks
   siteUrl: SITE_URL,
 };
 
+// Helper to get current PayFast config
 export const getCurrentPayfastConfig = () => {
   return PAYFAST_CONFIG.useSandbox ? PAYFAST_CONFIG.sandbox : PAYFAST_CONFIG.live;
 };
