@@ -248,3 +248,5 @@ const CheckoutSuccessPage = () => {
     </div>
   );
 };
+
+export default CheckoutSuccessPage;

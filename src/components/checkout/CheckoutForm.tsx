@@ -79,24 +79,10 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
   if (currentStep === 'payment' && orderId) {
     return (
       <PayfastPayment
-        orderData={{
-          orderId,
-          amount: cartTotal + deliveryFee,
-          customerEmail: formData.email,
-          customerName: `${formData.firstName} ${formData.lastName}`,
-          customerPhone: formData.phone,
-          items: items.map(item => ({
-            name: item.product.name,
-            description: item.product.short_description || '',
-            quantity: item.quantity,
-            amount: item.product.price * item.quantity
-          }))
-        }}
         formData={formData}
         cartItems={items}
         cartTotal={cartTotal}
         deliveryFee={deliveryFee}
-        selectedDeliveryZone={selectedDeliveryZone}
         user={user}
       />
     );
