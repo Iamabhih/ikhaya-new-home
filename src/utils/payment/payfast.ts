@@ -1,3 +1,4 @@
+
 import { md5 } from 'js-md5';
 import { PAYFAST_CONFIG, getCurrentPayfastConfig } from './constants';
 
@@ -5,38 +6,35 @@ export interface FormData {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  province?: string;
 }
 
 /**
- * Generate PayFast signature exactly as PayFast expects
- * Per PayFast docs: Sort keys alphabetically, exclude empty values and 'signature', encode values, then append passphrase
+ * Generate PayFast signature - matching rnr-live exactly
  */
-export const generateSignature = (data: Record<string, string>, passPhrase: string): string => {
+export const generateSignature = (data: Record<string, string>, passPhrase: string = ''): string => {
   try {
-    // Build parameter string sorted alphabetically by key as per PayFast docs
-    const keys = Object.keys(data)
-      .filter((key) => key !== 'signature' && data[key] !== undefined && data[key] !== null && data[key] !== '')
-      .sort();
-
+    // Build parameter string
     let pfOutput = '';
-    for (const key of keys) {
-      const val = data[key];
-      pfOutput += `${key}=${encodeURIComponent(val.toString().trim()).replace(/%20/g, '+')}&`;
+    for (const key of Object.keys(data).sort()) {
+      if (key !== 'signature' && data[key] !== '') {
+        pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, '+')}&`;
+      }
     }
-
     // Remove last ampersand
     pfOutput = pfOutput.slice(0, -1);
-
-    // Add passphrase if provided
-    if (passPhrase && passPhrase !== '') {
+    
+    // Add passphrase if it exists (production only)
+    if (passPhrase !== '') {
       pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
     }
-
-    console.log('Signature string:', pfOutput);
-    const signature = md5(pfOutput);
-    console.log('Generated signature:', signature);
-
-    return signature;
+    
+    // Generate MD5 hash
+    return md5(pfOutput);
   } catch (error) {
     console.error('Error generating PayFast signature:', error);
     return '';
@@ -44,7 +42,7 @@ export const generateSignature = (data: Record<string, string>, passPhrase: stri
 };
 
 /**
- * Initialize PayFast payment - Following PayFast documentation exactly
+ * Initialize PayFast payment
  */
 export const initializePayfastPayment = (
   orderId: string,
@@ -57,20 +55,19 @@ export const initializePayfastPayment = (
   const config = getCurrentPayfastConfig();
   const formAction = config.host;
   const formattedAmount = amount.toFixed(2);
-  const baseUrl = PAYFAST_CONFIG.siteUrl;
   
-  // Build PayFast data with required fields; signature generation will sort alphabetically
+  // Build PayFast data - ONLY PayFast-recognized fields
   const pfData: Record<string, string> = {
-    // Merchant details (MUST be first)
+    // Merchant details
     merchant_id: config.merchant_id,
     merchant_key: config.merchant_key,
     
-    // Return/Cancel/Notify URLs
-    return_url: `${baseUrl}/checkout/success?order_id=${orderId}`,
-    cancel_url: `${baseUrl}/checkout?cancelled=true`,
+    // URLs
+    return_url: `${PAYFAST_CONFIG.siteUrl}/checkout/success`,
+    cancel_url: `${PAYFAST_CONFIG.siteUrl}/checkout?cancelled=true`,
     notify_url: `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`,
     
-    // Customer details
+    // Customer details (NO province field!)
     name_first: formData?.firstName || customerName.split(' ')[0] || '',
     name_last: formData?.lastName || customerName.split(' ').slice(1).join(' ') || '',
     email_address: customerEmail,
@@ -82,24 +79,22 @@ export const initializePayfastPayment = (
     item_description: `Order #${orderId}`
   };
   
-  // Add optional phone number if provided (digits only per PayFast guidance)
+  // Add phone if provided
   if (formData?.phone) {
     const digitsOnly = formData.phone.replace(/\D/g, '');
-    if (digitsOnly) {
-      pfData.cell_number = digitsOnly;
+    if (digitsOnly.length >= 10) {
+      pfData.cell_number = digitsOnly.substring(0, 10);
     }
   }
   
-  // Generate signature with the ordered data
+  // Generate signature
   const signature = generateSignature(pfData, config.passphrase || '');
-  
-  // Add signature to data AFTER generation
   pfData.signature = signature;
   
-  console.log('PayFast payment data:', {
-    ...pfData,
+  console.log('PayFast initialized:', {
     environment: PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION',
-    action: formAction
+    orderId,
+    amount: formattedAmount
   });
   
   return {
@@ -108,29 +103,26 @@ export const initializePayfastPayment = (
   };
 };
 
-// Shared helper to submit a PayFast form consistently across the app
+/**
+ * Submit PayFast form
+ */
 export const submitPayfastForm = (formAction: string, formData: Record<string, string>) => {
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = formAction;
-  form.target = '_blank';
   form.acceptCharset = 'UTF-8';
   form.style.display = 'none';
-
+  
   Object.entries(formData).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && String(value).trim() !== '') {
+    if (value !== '' && value !== undefined && value !== null) {
       const input = document.createElement('input');
       input.type = 'hidden';
       input.name = key;
-      input.value = String(value);
+      input.value = value.toString();
       form.appendChild(input);
     }
   });
-
+  
   document.body.appendChild(form);
-
-  // Submit with a tiny delay to ensure DOM is ready
-  setTimeout(() => {
-    form.submit();
-  }, 300);
+  form.submit();
 };
