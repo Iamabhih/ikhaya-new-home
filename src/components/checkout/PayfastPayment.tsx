@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,24 +36,24 @@ export const PayfastPayment = ({
     setIsProcessing(true);
     
     try {
-      // Generate simple order ID
+      // Generate order ID
       const orderId = `IKH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       const totalAmount = cartTotal + deliveryFee;
       
-      // Create item name from cart
+      // Create item name
       const itemName = cartItems
         .map(item => `${item.product?.name || 'Item'} x${item.quantity}`)
         .join(', ')
         .substring(0, 100);
       
-      console.log('Initiating simplified PayFast payment:', {
+      console.log('Processing PayFast payment:', {
         orderId,
         amount: totalAmount,
         customer: `${formData.firstName} ${formData.lastName}`,
         environment: PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'
       });
       
-      // Store minimal order data in sessionStorage for fallback only
+      // Store order data for success page
       const orderData = {
         orderId,
         formData,
@@ -62,11 +61,12 @@ export const PayfastPayment = ({
         cartTotal,
         deliveryFee,
         totalAmount,
-        userId: user?.id
+        userId: user?.id,
+        timestamp: new Date().toISOString()
       };
       sessionStorage.setItem(`pending_order_${orderId}`, JSON.stringify(orderData));
       
-      // Get PayFast form data
+      // Get PayFast form data (NO SIGNATURE)
       const paymentDetails = initializePayfastPayment(
         orderId,
         `${formData.firstName} ${formData.lastName}`,
@@ -83,8 +83,10 @@ export const PayfastPayment = ({
       // Show user feedback
       toast.info('Redirecting to PayFast secure payment...');
       
-      // Submit form immediately - no delay needed
-      submitPayfastForm(paymentDetails.formAction, paymentDetails.formData);
+      // Submit form (PayFast will handle signature)
+      setTimeout(() => {
+        submitPayfastForm(paymentDetails.formAction, paymentDetails.formData);
+      }, 500);
       
     } catch (error: any) {
       console.error('Payment error:', error);
@@ -102,7 +104,6 @@ export const PayfastPayment = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Order Summary */}
         <div className="bg-secondary/10 p-4 rounded-lg">
           <h4 className="font-medium mb-2">Payment Summary</h4>
           <div className="space-y-1 text-sm">
@@ -121,7 +122,6 @@ export const PayfastPayment = ({
           </div>
         </div>
 
-        {/* Test Mode Warning */}
         {PAYFAST_CONFIG.useSandbox && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <div className="flex items-start gap-2">
@@ -129,14 +129,13 @@ export const PayfastPayment = ({
               <div className="text-sm">
                 <p className="font-medium text-amber-800">Test Mode Active</p>
                 <p className="text-amber-700 mt-1">
-                  Use test card: 4000 0000 0000 0002, CVV: 123, any future expiry
+                  Use test card: 4000 0000 0000 0002, CVV: 123
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Payment Button */}
         <Button
           onClick={handlePayment}
           disabled={isProcessing}
@@ -156,7 +155,6 @@ export const PayfastPayment = ({
           )}
         </Button>
 
-        {/* Security Badge */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <ShieldCheck className="w-4 h-4" />
           <span>Secured by PayFast | PCI DSS Compliant</span>
