@@ -1,6 +1,6 @@
 // ================================================
-// IMPROVED PAYFAST PAYMENT COMPONENT
-// Better formatted order descriptions
+// FIXED: src/components/checkout/PayfastPayment.tsx
+// Only import functions, don't redefine them
 // ================================================
 
 import { useState } from "react";
@@ -114,7 +114,7 @@ export const PayfastPayment = ({
       };
       sessionStorage.setItem(`pending_order_${orderId}`, JSON.stringify(orderData));
       
-      // Get PayFast form data
+      // Get PayFast form data - using the imported function
       const paymentDetails = initializePayfastPayment(
         orderId,
         `${formData.firstName} ${formData.lastName}`,
@@ -228,66 +228,4 @@ export const PayfastPayment = ({
       </CardContent>
     </Card>
   );
-};
-
-// ================================================
-// IMPROVED PAYFAST INITIALIZATION
-// Better order formatting
-// ================================================
-
-export const initializePayfastPayment = (
-  orderId: string,
-  customerName: string,
-  customerEmail: string,
-  amount: number,
-  itemName: string,
-  formData?: FormData
-) => {
-  const config = getCurrentPayfastConfig();
-  const formAction = config.host;
-  const formattedAmount = amount.toFixed(2);
-  
-  // Build PayFast data with better descriptions
-  const pfData: Record<string, string> = {
-    // Merchant details
-    merchant_id: config.merchant_id,
-    merchant_key: config.merchant_key,
-    
-    // URLs
-    return_url: `${PAYFAST_CONFIG.siteUrl}/checkout/success`,
-    cancel_url: `${PAYFAST_CONFIG.siteUrl}/checkout?cancelled=true`,
-    notify_url: `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`,
-    
-    // Customer details
-    name_first: formData?.firstName || customerName.split(' ')[0] || '',
-    name_last: formData?.lastName || customerName.split(' ').slice(1).join(' ') || '',
-    email_address: customerEmail,
-    
-    // Transaction details with better formatting
-    m_payment_id: orderId,
-    amount: formattedAmount,
-    item_name: itemName, // This will now be better formatted
-    item_description: `Ikhaya Homeware Order ${orderId}`
-  };
-  
-  // Add phone if provided
-  if (formData?.phone) {
-    const digitsOnly = formData.phone.replace(/\D/g, '');
-    if (digitsOnly.length >= 10) {
-      pfData.cell_number = digitsOnly.substring(0, 10);
-    }
-  }
-  
-  console.log('PayFast payment initialized:', {
-    environment: PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION',
-    orderId,
-    amount: formattedAmount,
-    merchantId: config.merchant_id,
-    itemDescription: itemName
-  });
-  
-  return {
-    formAction,
-    formData: pfData
-  };
 };
