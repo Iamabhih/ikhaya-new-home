@@ -30,7 +30,7 @@
     --muted-foreground: 220 8% 46%;
     
     /* Product image background */
-    --product-image-bg: 220 6% 94%;
+    --product-image-bg: 0 0% 100%;
 
     /* Accent colors - refined charcoal with slight warmth */
     --accent: 220 12% 88%;
@@ -116,7 +116,7 @@
     --muted-foreground: 220 8% 60%;
     
     /* Product image background for dark mode */
-    --product-image-bg: 220 15% 18%;
+    --product-image-bg: 0 0% 100%;
 
     --accent: 220 15% 18%;
     --accent-foreground: 220 8% 94%;

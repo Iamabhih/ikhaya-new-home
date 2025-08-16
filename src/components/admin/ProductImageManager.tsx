@@ -384,11 +384,11 @@ export const ProductImageManager = ({ productId }: ProductImageManagerProps) => 
                               snapshot.isDragging ? 'shadow-lg' : ''
                             }`}
                           >
-                            <div className="aspect-square relative">
+                            <div className="aspect-square relative bg-[hsl(var(--product-image-bg))]">
                               <img
                                 src={image.image_url}
                                 alt={image.alt_text || 'Product image'}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain"
                                 loading="lazy"
                               />
                               

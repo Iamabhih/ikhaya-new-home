@@ -42,7 +42,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
 
   if (!sortedImages.length) {
     return (
-      <div className="aspect-square bg-secondary/20 flex items-center justify-center rounded-lg">
+      <div className="aspect-square bg-[hsl(var(--product-image-bg))] flex items-center justify-center rounded-lg">
         <span className="text-muted-foreground">No image available</span>
       </div>
     );
@@ -51,7 +51,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative aspect-square overflow-hidden rounded-2xl bg-secondary/10 shadow-xl">
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-[hsl(var(--product-image-bg))] shadow-xl">
         <OptimizedImage
           src={currentImage.image_url}
           alt={currentImage.alt_text || productName}
@@ -110,12 +110,14 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
                   : 'border-transparent hover:border-border/50 hover:scale-102'
               }`}
             >
-              <OptimizedImage
-                src={image.image_url}
-                alt={image.alt_text || `${productName} thumbnail ${index + 1}`}
-                className="w-full h-full object-contain"
-                lazy={true}
-              />
+              <div className="w-full h-full bg-[hsl(var(--product-image-bg))] flex items-center justify-center">
+                <OptimizedImage
+                  src={image.image_url}
+                  alt={image.alt_text || `${productName} thumbnail ${index + 1}`}
+                  className="w-full h-full object-contain"
+                  lazy={true}
+                />
+              </div>
             </button>
           ))}
         </div>

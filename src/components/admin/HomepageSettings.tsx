@@ -377,12 +377,12 @@ export const HomepageSettings = () => {
                             />
                             
                             {/* Product image thumbnail or placeholder */}
-                            <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                            <div className="w-10 h-10 rounded-md overflow-hidden bg-[hsl(var(--product-image-bg))] flex items-center justify-center flex-shrink-0">
                               {hasImages && primaryImage?.image_url ? (
                                 <img 
                                   src={primaryImage.image_url} 
                                   alt={product.name || "Product"}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-contain"
                                 />
                               ) : (
                                 <ImageOff className="h-4 w-4 text-muted-foreground" />
