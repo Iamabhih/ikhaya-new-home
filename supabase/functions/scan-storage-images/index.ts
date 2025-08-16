@@ -239,9 +239,9 @@ Deno.serve(async (req) => {
                       .insert({
                         product_id: matchingProduct.id,
                         image_url: imageUrl,
-                        alt_text: matchingProduct.name,
+                        alt_text: `${matchingProduct.name} - ${matchingProduct.sku}`,
                         is_primary: true,
-                        display_order: 0
+                        sort_order: 0
                       });
 
                     if (insertError) {
