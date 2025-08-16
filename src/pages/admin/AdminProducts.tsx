@@ -292,13 +292,13 @@ const AdminProducts = () => {
 
               <TabsContent value="storage" className="space-y-6">
                 <ErrorBoundary>
-                  <StorageImageScanner />
+                  <StorageImageScanner onNavigateToLinking={() => setActiveTab('link-images')} />
                 </ErrorBoundary>
               </TabsContent>
 
               <TabsContent value="link-images" className="space-y-6">
                 <ErrorBoundary>
-                  <ImageLinkingTool />
+                  <ImageLinkingTool onNavigateToScanner={() => setActiveTab('storage')} />
                 </ErrorBoundary>
               </TabsContent>
 

@@ -46,49 +46,113 @@ Deno.serve(async (req) => {
       console.log('Starting storage image scan...');
       
       try {
-        // Scan product-images bucket recursively including MULTI_MATCH_ORGANIZED folder
-        const { data: folders, error: foldersError } = await supabase.storage
-          .from('product-images')
-          .list('MULTI_MATCH_ORGANIZED', {
-            limit: 1000,
-            sortBy: { column: 'name', order: 'asc' }
-          });
-
-        if (foldersError) {
-          throw new Error(`Failed to list folders: ${foldersError.message}`);
-        }
-
+        // Parse request body for scan configuration
+        const requestBody = await req.json().catch(() => ({}));
+        const scanPath = requestBody.scanPath || '';
+        const scanAllFolders = requestBody.scanAllFolders !== false; // Default to true
+        
+        console.log(`Scanning with config: scanPath="${scanPath}", scanAllFolders=${scanAllFolders}`);
+        
         let allImages: any[] = [];
         
-        // Get images from all subfolders
-        if (folders) {
-          for (const folder of folders) {
-            if (folder.name && !folder.name.includes('.emptyFolderPlaceholder')) {
-              const { data: subImages, error: subError } = await supabase.storage
-                .from('product-images')
-                .list(`MULTI_MATCH_ORGANIZED/${folder.name}`, {
-                  limit: 1000,
-                  sortBy: { column: 'name', order: 'asc' }
-                });
+        // Recursive function to scan directories
+        const scanDirectory = async (path: string = '', depth: number = 0): Promise<void> => {
+          if (depth > 10) {
+            console.warn(`Max depth reached at path: ${path}`);
+            return;
+          }
+          
+          const { data: items, error } = await supabase.storage
+            .from('product-images')
+            .list(path, {
+              limit: 1000,
+              sortBy: { column: 'name', order: 'asc' }
+            });
 
-              if (subError) {
-                console.error(`Error listing images in ${folder.name}:`, subError.message);
-                continue;
-              }
+          if (error) {
+            console.error(`Error listing items in "${path}":`, error.message);
+            return;
+          }
 
-              if (subImages) {
-                // Add folder path to each image
-                subImages.forEach(img => {
-                  if (img.name && !img.name.includes('.emptyFolderPlaceholder')) {
-                    allImages.push({
-                      ...img,
-                      fullPath: `MULTI_MATCH_ORGANIZED/${folder.name}/${img.name}`,
-                      folderName: folder.name
-                    });
-                  }
-                });
+          if (!items) return;
+
+          for (const item of items) {
+            if (!item.name || item.name.includes('.emptyFolderPlaceholder')) continue;
+            
+            const fullPath = path ? `${path}/${item.name}` : item.name;
+            
+            // Check if it's a directory (no file ID and no extension)
+            const isDirectory = !item.id && !item.metadata && !item.name.includes('.');
+            
+            if (isDirectory) {
+              console.log(`📁 Found directory: ${fullPath}`);
+              if (scanAllFolders) {
+                await scanDirectory(fullPath, depth + 1);
               }
+            } else if (item.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
+              // It's an image file
+              allImages.push({
+                ...item,
+                fullPath: fullPath,
+                folderName: path || 'root'
+              });
+              console.log(`📸 Found image: ${fullPath}`);
             }
+          }
+        };
+        
+        // Start scanning from specified path or root
+        if (scanAllFolders) {
+          await scanDirectory(scanPath);
+        } else if (scanPath) {
+          // Scan only the specified folder
+          const { data: images, error: imagesError } = await supabase.storage
+            .from('product-images')
+            .list(scanPath, {
+              limit: 1000,
+              sortBy: { column: 'name', order: 'asc' }
+            });
+            
+          if (imagesError) {
+            throw new Error(`Failed to list images in ${scanPath}: ${imagesError.message}`);
+          }
+          
+          if (images) {
+            images.forEach(img => {
+              if (img.name && !img.name.includes('.emptyFolderPlaceholder') && 
+                  img.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
+                allImages.push({
+                  ...img,
+                  fullPath: `${scanPath}/${img.name}`,
+                  folderName: scanPath
+                });
+              }
+            });
+          }
+        } else {
+          // Scan root directory only
+          const { data: images, error: imagesError } = await supabase.storage
+            .from('product-images')
+            .list('', {
+              limit: 1000,
+              sortBy: { column: 'name', order: 'asc' }
+            });
+            
+          if (imagesError) {
+            throw new Error(`Failed to list root images: ${imagesError.message}`);
+          }
+          
+          if (images) {
+            images.forEach(img => {
+              if (img.name && !img.name.includes('.emptyFolderPlaceholder') && 
+                  img.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
+                allImages.push({
+                  ...img,
+                  fullPath: img.name,
+                  folderName: 'root'
+                });
+              }
+            });
           }
         }
         

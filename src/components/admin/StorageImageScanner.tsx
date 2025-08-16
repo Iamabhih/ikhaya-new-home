@@ -8,8 +8,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Search, CheckCircle, AlertCircle, Activity, Pause, Play, Square, RefreshCw,
-  Database, FolderOpen, Image as ImageIcon, Link as LinkIcon
+  Database, FolderOpen, Image as ImageIcon, Link as LinkIcon, Settings
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
 interface ScanProgress {
@@ -35,12 +38,21 @@ interface LogEntry {
   type?: 'match' | 'progress' | 'error' | 'info';
 }
 
-export const StorageImageScanner = () => {
+interface StorageImageScannerProps {
+  onNavigateToLinking?: () => void;
+}
+
+export const StorageImageScanner = ({ onNavigateToLinking }: StorageImageScannerProps = {}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [logFilter, setLogFilter] = useState<'all' | 'matches' | 'progress' | 'errors'>('all');
+  const [scanConfig, setScanConfig] = useState({
+    scanAllFolders: true,
+    targetFolder: '',
+    bucketName: 'product-images'
+  });
   const { toast } = useToast();
   const logsEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -140,6 +152,11 @@ export const StorageImageScanner = () => {
       addLog('info', '🔐 Authentication verified, invoking scan function...');
 
       const { data, error } = await supabase.functions.invoke('scan-storage-images', {
+        body: {
+          scanPath: scanConfig.targetFolder,
+          scanAllFolders: scanConfig.scanAllFolders,
+          bucketName: scanConfig.bucketName
+        },
         headers: {
           'Authorization': `Bearer ${sessionData.session.access_token}`,
           'Content-Type': 'application/json',
@@ -285,6 +302,52 @@ export const StorageImageScanner = () => {
             </AlertDescription>
           </Alert>
 
+          {/* Configuration Section */}
+          <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+            <h4 className="font-semibold flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Scan Configuration
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bucketName">Storage Bucket</Label>
+                <Input
+                  id="bucketName"
+                  value={scanConfig.bucketName}
+                  onChange={(e) => setScanConfig(prev => ({ ...prev, bucketName: e.target.value }))}
+                  placeholder="e.g., product-images"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="targetFolder">Target Folder (optional)</Label>
+                <Input
+                  id="targetFolder"
+                  value={scanConfig.targetFolder}
+                  onChange={(e) => setScanConfig(prev => ({ ...prev, targetFolder: e.target.value }))}
+                  placeholder="e.g., MULTI_MATCH_ORGANIZED"
+                  disabled={scanConfig.scanAllFolders}
+                />
+              </div>
+              
+              <div className="space-y-2 flex items-end">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="scanAllFolders"
+                    checked={scanConfig.scanAllFolders}
+                    onCheckedChange={(checked) => setScanConfig(prev => ({ 
+                      ...prev, 
+                      scanAllFolders: checked,
+                      targetFolder: checked ? '' : prev.targetFolder
+                    }))}
+                  />
+                  <Label htmlFor="scanAllFolders">Scan All Folders</Label>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Control Buttons */}
           <div className="flex items-center gap-4">
             <Button 
@@ -315,6 +378,17 @@ export const StorageImageScanner = () => {
               <RefreshCw className="h-4 w-4" />
               Clear Logs
             </Button>
+            
+            {onNavigateToLinking && (
+              <Button 
+                onClick={onNavigateToLinking}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <LinkIcon className="h-4 w-4" />
+                Go to Image Linking
+              </Button>
+            )}
           </div>
 
           {/* Progress Section */}

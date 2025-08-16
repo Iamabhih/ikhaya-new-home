@@ -93,7 +93,11 @@ interface StorageStats {
   skuDistribution: Record<string, number>;
 }
 
-export const ImageLinkingTool = () => {
+interface ImageLinkingToolProps {
+  onNavigateToScanner?: () => void;
+}
+
+export const ImageLinkingTool = ({ onNavigateToScanner }: ImageLinkingToolProps = {}) => {
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState<LinkingProgress>({
     status: 'idle',
@@ -130,7 +134,7 @@ export const ImageLinkingTool = () => {
     skipExisting: true,
     autoSetPrimary: true,
     confidenceThreshold: 60,
-    useEdgeFunction: false,
+    useEdgeFunction: true,
     maxImages: 5000
   });
 
@@ -794,6 +798,17 @@ export const ImageLinkingTool = () => {
                     </>
                   )}
                 </Button>
+                
+                {onNavigateToScanner && (
+                  <Button 
+                    onClick={onNavigateToScanner}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Search className="h-4 w-4" />
+                    Storage Scanner
+                  </Button>
+                )}
                 
                 {isRunning && (
                   <Button 
