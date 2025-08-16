@@ -65,25 +65,28 @@ function extractSKUs(filename: string, fullPath?: string): ExtractedSKU[] {
     });
   }
   
-  // 3. NUMERIC PATTERNS anywhere in filename
+  // 3. NUMERIC PATTERNS anywhere in filename (should be early for broader matching)
   const numericMatches = cleanName.match(/\b\d{3,8}\b/g) || [];
-  numericMatches.forEach(num => {
-    // Check if not already added with higher confidence
-    if (!skus.some(s => s.value === num && s.confidence >= 70)) {
-      let confidence = 70;
-      
-      // Boost confidence based on position
-      if (cleanName.startsWith(num)) confidence = 85;
-      else if (numericMatches.length === 1) confidence = 80;
-      else if (cleanName.endsWith(num)) confidence = 75;
-      
-      skus.push({
-        value: num,
-        confidence,
-        source: 'numeric'
-      });
-    }
-  });
+  if (numericMatches.length > 0) {
+    numericMatches.forEach(num => {
+      // Check if not already added with higher confidence
+      if (!skus.some(s => s.value === num && s.confidence >= 70)) {
+        let confidence = 70;
+        
+        // Boost confidence based on position and context
+        if (cleanName === num) confidence = 100; // Pure numeric
+        else if (cleanName.startsWith(num)) confidence = 85;
+        else if (numericMatches.length === 1) confidence = 80;
+        else if (cleanName.endsWith(num)) confidence = 75;
+        
+        skus.push({
+          value: num,
+          confidence,
+          source: 'numeric'
+        });
+      }
+    });
+  }
   
   // 4. PATH-BASED EXTRACTION
   if (fullPath) {
@@ -456,17 +459,24 @@ Deno.serve(async (req) => {
             if (file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
               const extractedSkus = extractSKUs(file.name, fullPath);
               
-              if (extractedSkus.length > 0) {
-                allImages.push({
-                  filename: file.name,
-                  path: fullPath,
-                  extractedSkus
-                });
-                
-                if (allImages.length >= config.limit) {
-                  console.log(`Reached image limit of ${config.limit}`);
-                  break;
-                }
+              // Always add image to list, even if no SKUs extracted initially
+              // This ensures we don't miss images due to extraction failures
+              allImages.push({
+                filename: file.name,
+                path: fullPath,
+                extractedSkus: extractedSkus.length > 0 ? extractedSkus : [
+                  // Fallback: try simple numeric extraction like storage scanner
+                  ...((file.name.match(/\b\d{4,6}\b/g) || []).map(num => ({
+                    value: num,
+                    confidence: 50,
+                    source: 'fallback' as const
+                  })))
+                ]
+              });
+              
+              if (allImages.length >= config.limit) {
+                console.log(`Reached image limit of ${config.limit}`);
+                break;
               }
             }
           }
