@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ProgressiveImage } from "@/components/common/ProgressiveImage";
+import { OptimizedImage } from "@/components/common/OptimizedImage";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 
 interface ProductImage {
@@ -52,10 +52,12 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
     <div className="space-y-4">
       {/* Main Image */}
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-secondary/10 shadow-xl">
-        <ProgressiveImage
+        <OptimizedImage
           src={currentImage.image_url}
           alt={currentImage.alt_text || productName}
           className="w-full h-full object-contain transition-transform duration-500 hover:scale-105"
+          lazy={false}
+          priority={true}
         />
         
         {/* Loading progress indicator */}
@@ -108,10 +110,11 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
                   : 'border-transparent hover:border-border/50 hover:scale-102'
               }`}
             >
-              <ProgressiveImage
+              <OptimizedImage
                 src={image.image_url}
                 alt={image.alt_text || `${productName} thumbnail ${index + 1}`}
                 className="w-full h-full object-contain"
+                lazy={true}
               />
             </button>
           ))}
