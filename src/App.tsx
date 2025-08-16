@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SecurityProvider } from "@/contexts/SecurityContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { WishlistProvider } from "@/contexts/WishlistContext";
 import { BrowserCompatibilityChecker } from "@/components/common/BrowserCompatibilityChecker";
 import { ConditionalScriptLoader } from "@/components/common/ConditionalScriptLoader";
 import { EmergencyLoader } from "@/components/common/EmergencyLoader";
@@ -65,7 +66,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <SecurityProvider>
         <AuthProvider>
-          <TooltipProvider>
+          <WishlistProvider>
+            <TooltipProvider>
             <Toaster />
             <SecurityMonitor />
             <BrowserRouter>
@@ -118,7 +120,8 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-          </TooltipProvider>
+            </TooltipProvider>
+          </WishlistProvider>
         </AuthProvider>
       </SecurityProvider>
     </QueryClientProvider>

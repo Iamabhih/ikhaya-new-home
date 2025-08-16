@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useCart } from "@/hooks/useCart";
-import { useWishlist } from "@/hooks/useWishlist";
+import { useWishlistContext } from "@/contexts/WishlistContext";
 import { ProductImage } from "./ProductImage";
 import { ProductDetails } from "./ProductDetails";
 import { ProductPrice } from "./ProductPrice";
@@ -39,7 +39,7 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   const { addToCart } = useCart();
-  const { isInWishlist, toggleWishlist, loading } = useWishlist();
+  const { isInWishlist, toggleWishlist, loading } = useWishlistContext();
   
   const inWishlist = isInWishlist(product.id);
   const isInStock = (product.stock_quantity || 0) > 0;
