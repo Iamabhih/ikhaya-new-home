@@ -85,12 +85,14 @@ export const ProductImageRefresh = () => {
         throw new Error('Authentication required. Please login and try again.');
       }
 
-      // Call the storage scanner with complete refresh config
+      // Call the enhanced storage scanner with complete refresh config
       const { data: scanResult, error: scanError } = await supabase.functions.invoke('scan-storage-images', {
         body: {
           scanPath: '', // Scan from root
-          scanAllFolders: true, // Scan all subdirectories
-          bucketName: 'product-images'
+          scanAllFolders: true, // Scan all subdirectories recursively
+          bucketName: 'product-images',
+          enhancedMatching: true, // Enable enhanced SKU pattern recognition
+          logLevel: 'detailed' // Get detailed logs for debugging
         },
         headers: {
           'Authorization': `Bearer ${sessionData.session.access_token}`,
@@ -167,15 +169,15 @@ export const ProductImageRefresh = () => {
           )}
         </CardTitle>
         <CardDescription>
-          Clear all existing product images and perform a fresh scan of the 'product-images' storage bucket to link images based on SKU filenames.
+          Clear all existing product images and perform a comprehensive scan of the 'product-images' storage bucket using enhanced SKU pattern recognition to link images based on various filename formats.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
           <Database className="h-4 w-4" />
           <AlertDescription>
-            <strong>Warning:</strong> This will delete ALL existing product images and re-scan the entire storage bucket. 
-            Images are automatically matched to products based on SKU patterns in filenames (e.g., "455123.png" matches SKU "455123").
+            <strong>Warning:</strong> This will delete ALL existing product images and re-scan the entire storage bucket with enhanced matching. 
+            The system now recognizes multiple SKU patterns including: exact numeric (455123.png), alphanumeric (444492b.png), multi-SKU (455123.455124.png), and folder-based naming.
           </AlertDescription>
         </Alert>
 
