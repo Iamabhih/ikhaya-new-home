@@ -170,21 +170,41 @@ export const StorageImageScanner = ({ onNavigateToLinking }: StorageImageScanner
         throw new Error(`Function error: ${error.message}`);
       }
 
-      if (data?.success) {
+      if (data?.sessionId) {
         setSessionId(data.sessionId);
         addLog('info', `✅ Scan initiated with session: ${data.sessionId}`);
+        addLog('info', `📊 Found ${data.foundImages || 0} images, matched ${data.matchedProducts || 0} products`);
         
-        // Setup realtime channel with delay to ensure function is ready
-        setTimeout(() => {
-          setupRealtimeChannel(data.sessionId);
-        }, 1000);
+        // Check if scan is already completed
+        if (data.status === 'completed') {
+          addLog('info', '✅ Scan completed successfully!');
+          setProgress({
+            sessionId: data.sessionId,
+            status: 'completed',
+            currentStep: 'Scan completed',
+            processed: data.foundImages || 0,
+            successful: data.matchedProducts || 0,
+            failed: 0,
+            total: data.foundImages || 0,
+            errors: data.errors || [],
+            startTime: new Date().toISOString(),
+            foundImages: data.foundImages || 0,
+            matchedProducts: data.matchedProducts || 0
+          });
+          setIsProcessing(false);
+        } else {
+          // Setup realtime channel with delay to ensure function is ready
+          setTimeout(() => {
+            setupRealtimeChannel(data.sessionId);
+          }, 1000);
+        }
         
         toast({
           title: "Storage Scan Started",
           description: "Real-time progress will be shown below",
         });
       } else {
-        throw new Error(data?.error || "Storage scan failed to start");
+        throw new Error("Storage scan failed to start");
       }
     } catch (error) {
       console.error('Storage scan error:', error);
