@@ -13,6 +13,149 @@ interface ScanResult {
   errors: string[];
 }
 
+interface ExtractedSKU {
+  sku: string;
+  confidence: number;
+  source: string;
+}
+
+// Enhanced SKU extraction function
+function extractSKUsFromFilename(filename: string, fullPath?: string): ExtractedSKU[] {
+  const skus: ExtractedSKU[] = [];
+  const cleanName = filename.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '');
+  
+  console.log(`Extracting SKUs from filename: ${filename}, clean: ${cleanName}`);
+  
+  // Strategy 1: Exact filename as SKU (highest confidence)
+  // Handle pure numeric SKUs (3+ digits)
+  const exactNumericMatch = cleanName.match(/^\d{3,}$/);
+  if (exactNumericMatch) {
+    skus.push({
+      sku: exactNumericMatch[0],
+      confidence: 95,
+      source: 'exact_numeric_filename'
+    });
+    console.log(`Found exact numeric SKU: ${exactNumericMatch[0]}`);
+  }
+  
+  // Strategy 2: Alphanumeric SKUs (digits + letters)
+  const alphanumericMatch = cleanName.match(/^(\d{3,}[a-zA-Z]+)$/);
+  if (alphanumericMatch) {
+    skus.push({
+      sku: alphanumericMatch[1],
+      confidence: 90,
+      source: 'exact_alphanumeric_filename'
+    });
+    console.log(`Found exact alphanumeric SKU: ${alphanumericMatch[1]}`);
+    
+    // Also extract base numeric portion
+    const baseNumeric = alphanumericMatch[1].match(/^(\d+)/);
+    if (baseNumeric && !skus.some(s => s.sku === baseNumeric[1])) {
+      skus.push({
+        sku: baseNumeric[1],
+        confidence: 85,
+        source: 'base_numeric_from_alphanumeric'
+      });
+      console.log(`Found base numeric from alphanumeric: ${baseNumeric[1]}`);
+    }
+  }
+  
+  // Strategy 3: Multiple SKUs separated by dots (e.g., 444492.444493.png)
+  const multiSKUMatch = cleanName.match(/^(\d{3,})\.(\d{3,})$/);
+  if (multiSKUMatch) {
+    skus.push({
+      sku: multiSKUMatch[1],
+      confidence: 88,
+      source: 'multi_sku_first'
+    });
+    skus.push({
+      sku: multiSKUMatch[2],
+      confidence: 83,
+      source: 'multi_sku_second'
+    });
+    console.log(`Found multi-SKU: ${multiSKUMatch[1]}, ${multiSKUMatch[2]}`);
+  }
+  
+  // Strategy 4: SKUs with suffixes (e.g., 444492b.png)
+  const skuWithSuffixMatch = cleanName.match(/^(\d{3,})[a-zA-Z]+$/);
+  if (skuWithSuffixMatch && !skus.some(s => s.sku === skuWithSuffixMatch[1])) {
+    skus.push({
+      sku: skuWithSuffixMatch[1],
+      confidence: 80,
+      source: 'numeric_with_suffix'
+    });
+    console.log(`Found SKU with suffix: ${skuWithSuffixMatch[1]}`);
+  }
+  
+  // Strategy 5: Any sequence of 3+ digits anywhere in filename
+  const allNumericPatterns = cleanName.match(/\d{3,}/g);
+  if (allNumericPatterns) {
+    allNumericPatterns.forEach(pattern => {
+      if (!skus.some(s => s.sku === pattern)) {
+        skus.push({
+          sku: pattern,
+          confidence: 60,
+          source: 'numeric_pattern'
+        });
+        console.log(`Found numeric pattern: ${pattern}`);
+      }
+    });
+  }
+  
+  // Strategy 6: Path-based extraction (folder names)
+  if (fullPath) {
+    const pathParts = fullPath.split('/');
+    for (const part of pathParts) {
+      // Check for numeric folder names
+      const pathNumericSKU = part.match(/^\d{3,}$/);
+      if (pathNumericSKU && !skus.some(s => s.sku === pathNumericSKU[0])) {
+        skus.push({
+          sku: pathNumericSKU[0],
+          confidence: 70,
+          source: 'path_folder_numeric'
+        });
+        console.log(`Found path numeric SKU: ${pathNumericSKU[0]}`);
+      }
+      
+      // Check for alphanumeric folder names
+      const pathAlphanumericSKU = part.match(/^(\d{3,}[a-zA-Z]+)$/);
+      if (pathAlphanumericSKU && !skus.some(s => s.sku === pathAlphanumericSKU[1])) {
+        skus.push({
+          sku: pathAlphanumericSKU[1],
+          confidence: 65,
+          source: 'path_folder_alphanumeric'
+        });
+        console.log(`Found path alphanumeric SKU: ${pathAlphanumericSKU[1]}`);
+      }
+    }
+  }
+  
+  // Strategy 7: Pattern-based matching with separators
+  const separatorPatterns = [
+    /^(\d{3,})[_-]/,           // SKU at start with separator
+    /[_-](\d{3,})[_-]/,        // SKU in middle with separators
+    /[_-](\d{3,})$/,           // SKU at end with separator
+    /^([a-zA-Z]*\d{3,}[a-zA-Z]*)[_-]/, // Alphanumeric SKU with separator
+  ];
+  
+  for (const pattern of separatorPatterns) {
+    const match = cleanName.match(pattern);
+    if (match && !skus.some(s => s.sku === match[1])) {
+      skus.push({
+        sku: match[1],
+        confidence: 45,
+        source: 'separator_pattern'
+      });
+      console.log(`Found separator pattern SKU: ${match[1]}`);
+    }
+  }
+  
+  const finalSkus = skus.sort((a, b) => b.confidence - a.confidence);
+  console.log(`Total SKUs extracted: ${finalSkus.length}`, finalSkus.map(s => `${s.sku} (${s.confidence}%)`));
+  
+  return finalSkus;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -181,43 +324,84 @@ Deno.serve(async (req) => {
           for (const image of images) {
             try {
               if (image.name && !image.name.includes('.emptyFolderPlaceholder')) {
-                // Extract SKUs from filename - handle multiple SKUs separated by dots or spaces
+                console.log(`\n=== Processing ${image.name} ===`);
+                
+                // Enhanced SKU extraction
                 const filename = image.name.toLowerCase();
                 const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
                 
-                // Extract potential SKUs - look for 4-6 digit numbers
-                const skuMatches = nameWithoutExt.match(/\b\d{4,6}\b/g) || [];
+                // Extract potential SKUs using multiple strategies
+                const potentialSKUs = extractSKUsFromFilename(nameWithoutExt, image.fullPath);
                 
-                console.log(`Processing ${image.name}, found potential SKUs: ${skuMatches.join(', ')}`);
+                console.log(`Found ${potentialSKUs.length} potential SKUs:`, potentialSKUs.map(s => `${s.sku} (${s.confidence}% - ${s.source})`));
                 
                 // Try to find matching product by any extracted SKU
                 let matchingProduct = null;
                 let matchedSku = '';
+                let matchSource = '';
                 
-                for (const potentialSku of skuMatches) {
+                // Try exact matches first (highest confidence)
+                for (const skuCandidate of potentialSKUs) {
                   const foundProduct = products?.find(product => {
-                    const productSku = product.sku?.toLowerCase() || '';
-                    return productSku === potentialSku;
+                    const productSku = (product.sku || '').toLowerCase();
+                    return productSku === skuCandidate.sku.toLowerCase();
                   });
                   
                   if (foundProduct) {
                     matchingProduct = foundProduct;
-                    matchedSku = potentialSku;
-                    break; // Use first exact match found
+                    matchedSku = skuCandidate.sku;
+                    matchSource = skuCandidate.source;
+                    console.log(`✅ Exact match found: ${skuCandidate.sku} → ${foundProduct.name}`);
+                    break;
                   }
                 }
                 
-                // If no exact SKU match, try broader filename matching
+                // If no exact match, try base numeric matches (for alphanumeric SKUs)
                 if (!matchingProduct) {
-                  matchingProduct = products?.find(product => {
-                    const productSku = product.sku?.toLowerCase() || '';
-                    const productName = product.name?.toLowerCase() || '';
-                    const productSlug = product.slug?.toLowerCase() || '';
+                  for (const skuCandidate of potentialSKUs) {
+                    // Extract base numeric part
+                    const baseNumeric = skuCandidate.sku.match(/^(\d+)/);
+                    if (baseNumeric) {
+                      const foundProduct = products?.find(product => {
+                        const productSku = (product.sku || '').toLowerCase();
+                        return productSku === baseNumeric[1] || productSku.startsWith(baseNumeric[1]);
+                      });
+                      
+                      if (foundProduct) {
+                        matchingProduct = foundProduct;
+                        matchedSku = skuCandidate.sku;
+                        matchSource = `${skuCandidate.source} (base_numeric)`;
+                        console.log(`✅ Base numeric match found: ${baseNumeric[1]} → ${foundProduct.name}`);
+                        break;
+                      }
+                    }
+                  }
+                }
+                
+                // If still no match, try partial matching
+                if (!matchingProduct) {
+                  for (const skuCandidate of potentialSKUs) {
+                    const foundProduct = products?.find(product => {
+                      const productSku = (product.sku || '').toLowerCase();
+                      const productName = (product.name || '').toLowerCase();
+                      const productSlug = (product.slug || '').toLowerCase();
+                      
+                      return (productSku && (
+                        productSku.includes(skuCandidate.sku.toLowerCase()) ||
+                        skuCandidate.sku.toLowerCase().includes(productSku)
+                      )) ||
+                      (productName && nameWithoutExt.includes(productName.slice(0, 10))) ||
+                      (productSlug && nameWithoutExt.includes(productSlug));
+                    });
                     
-                    return (productSku && nameWithoutExt.includes(productSku)) ||
-                           (productName && nameWithoutExt.includes(productName.slice(0, 10))) ||
-                           (productSlug && nameWithoutExt.includes(productSlug));
-                  });
+                    if (foundProduct) {
+                      matchingProduct = foundProduct;
+                      matchedSku = skuCandidate.sku;
+                      matchSource = `${skuCandidate.source} (partial)`;
+                      console.log(`✅ Partial match found: ${skuCandidate.sku} → ${foundProduct.name}`);
+                      break;
+                    }
+                  }
                 }
 
                 if (matchingProduct) {
@@ -254,7 +438,7 @@ Deno.serve(async (req) => {
                     console.log(`Product ${matchingProduct.name} already has an image, skipping ${image.name}`);
                   }
                 } else {
-                  console.log(`No product match found for image: ${image.name} (potential SKUs: ${skuMatches.join(', ')})`);
+                  console.log(`❌ No product match found for image: ${image.name} (potential SKUs: ${potentialSKUs.map(s => s.sku).join(', ')})`);
                 }
               }
             } catch (error) {
