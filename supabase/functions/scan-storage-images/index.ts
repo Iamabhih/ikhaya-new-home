@@ -19,7 +19,7 @@ interface ExtractedSKU {
   source: string;
 }
 
-// Enhanced SKU extraction function
+// Enhanced SKU extraction function - optimized for better matching
 function extractSKUsFromFilename(filename: string, fullPath?: string): ExtractedSKU[] {
   const skus: ExtractedSKU[] = [];
   const cleanName = filename.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '');
@@ -27,20 +27,67 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
   console.log(`Extracting SKUs from filename: ${filename}, clean: ${cleanName}`);
   
   // Strategy 1: Exact filename as SKU (highest confidence)
-  // Handle pure numeric SKUs (3+ digits)
+  // Handle pure numeric SKUs (3+ digits) - be more inclusive
   const exactNumericMatch = cleanName.match(/^\d{3,}$/);
   if (exactNumericMatch) {
     skus.push({
       sku: exactNumericMatch[0],
-      confidence: 95,
+      confidence: 100, // Increased from 95
       source: 'exact_numeric_filename'
     });
     console.log(`Found exact numeric SKU: ${exactNumericMatch[0]}`);
+    
+    // Add zero-padding variations for common patterns
+    const sku = exactNumericMatch[0];
+    if (sku.length === 5 && !sku.startsWith('0')) {
+      skus.push({
+        sku: '0' + sku,
+        confidence: 95,
+        source: 'zero_padded_variation'
+      });
+    }
+    
+    // Remove leading zeros variation
+    if (sku.startsWith('0') && sku.length > 3) {
+      const trimmed = sku.replace(/^0+/, '');
+      if (trimmed.length >= 3) {
+        skus.push({
+          sku: trimmed,
+          confidence: 95,
+          source: 'trimmed_zeros'
+        });
+      }
+    }
   }
   
-  // Strategy 2: Alphanumeric SKUs (digits + letters)
+  // Strategy 2: Multiple SKUs in filename (e.g., 455161.455162.455163.png)
+  const multiSKUPatterns = [
+    /^(\d{3,})\.(\d{3,})\.(\d{3,})$/, // Three SKUs
+    /^(\d{3,})\.(\d{3,})$/,          // Two SKUs
+    /^(\d{3,})[._-](\d{3,})[._-](\d{3,})$/, // Three with separators
+    /^(\d{3,})[._-](\d{3,})$/        // Two with separators
+  ];
+  
+  for (const pattern of multiSKUPatterns) {
+    const match = cleanName.match(pattern);
+    if (match) {
+      for (let i = 1; i < match.length; i++) {
+        if (match[i] && !skus.some(s => s.sku === match[i])) {
+          skus.push({
+            sku: match[i],
+            confidence: 95 - (i - 1) * 5, // First SKU gets highest confidence
+            source: 'multi_sku'
+          });
+          console.log(`Found multi-SKU ${i}: ${match[i]}`);
+        }
+      }
+      break; // Don't process other patterns if we found a multi-SKU
+    }
+  }
+  
+  // Strategy 3: Alphanumeric SKUs (digits + letters)
   const alphanumericMatch = cleanName.match(/^(\d{3,}[a-zA-Z]+)$/);
-  if (alphanumericMatch) {
+  if (alphanumericMatch && !skus.some(s => s.sku === alphanumericMatch[1])) {
     skus.push({
       sku: alphanumericMatch[1],
       confidence: 90,
@@ -60,22 +107,6 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     }
   }
   
-  // Strategy 3: Multiple SKUs separated by dots (e.g., 444492.444493.png)
-  const multiSKUMatch = cleanName.match(/^(\d{3,})\.(\d{3,})$/);
-  if (multiSKUMatch) {
-    skus.push({
-      sku: multiSKUMatch[1],
-      confidence: 88,
-      source: 'multi_sku_first'
-    });
-    skus.push({
-      sku: multiSKUMatch[2],
-      confidence: 83,
-      source: 'multi_sku_second'
-    });
-    console.log(`Found multi-SKU: ${multiSKUMatch[1]}, ${multiSKUMatch[2]}`);
-  }
-  
   // Strategy 4: SKUs with suffixes (e.g., 444492b.png)
   const skuWithSuffixMatch = cleanName.match(/^(\d{3,})[a-zA-Z]+$/);
   if (skuWithSuffixMatch && !skus.some(s => s.sku === skuWithSuffixMatch[1])) {
@@ -87,23 +118,33 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     console.log(`Found SKU with suffix: ${skuWithSuffixMatch[1]}`);
   }
   
-  // Strategy 5: Any sequence of 3+ digits anywhere in filename
-  const allNumericPatterns = cleanName.match(/\d{3,}/g);
-  if (allNumericPatterns) {
-    allNumericPatterns.forEach(pattern => {
-      if (!skus.some(s => s.sku === pattern)) {
-        skus.push({
-          sku: pattern,
-          confidence: 60,
-          source: 'numeric_pattern'
-        });
-        console.log(`Found numeric pattern: ${pattern}`);
-      }
-    });
+  // Strategy 5: Any sequence of 3+ digits anywhere in filename (more inclusive)
+  if (!skus.length) { // Only if no high-confidence matches found
+    const allNumericPatterns = cleanName.match(/\d{3,}/g);
+    if (allNumericPatterns) {
+      allNumericPatterns.forEach(pattern => {
+        if (!skus.some(s => s.sku === pattern)) {
+          let confidence = 50; // Lowered threshold
+          
+          // Boost confidence based on position and context
+          if (cleanName === pattern) confidence = 90;
+          else if (cleanName.startsWith(pattern)) confidence = 70;
+          else if (cleanName.endsWith(pattern)) confidence = 65;
+          else if (allNumericPatterns.length === 1) confidence = 60;
+          
+          skus.push({
+            sku: pattern,
+            confidence,
+            source: 'numeric_pattern'
+          });
+          console.log(`Found numeric pattern: ${pattern} (confidence: ${confidence}%)`);
+        }
+      });
+    }
   }
   
-  // Strategy 6: Path-based extraction (folder names)
-  if (fullPath) {
+  // Strategy 6: Path-based extraction (folder names) - only if needed
+  if (fullPath && skus.length === 0) {
     const pathParts = fullPath.split('/');
     for (const part of pathParts) {
       // Check for numeric folder names
@@ -111,42 +152,11 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
       if (pathNumericSKU && !skus.some(s => s.sku === pathNumericSKU[0])) {
         skus.push({
           sku: pathNumericSKU[0],
-          confidence: 70,
+          confidence: 60,
           source: 'path_folder_numeric'
         });
         console.log(`Found path numeric SKU: ${pathNumericSKU[0]}`);
       }
-      
-      // Check for alphanumeric folder names
-      const pathAlphanumericSKU = part.match(/^(\d{3,}[a-zA-Z]+)$/);
-      if (pathAlphanumericSKU && !skus.some(s => s.sku === pathAlphanumericSKU[1])) {
-        skus.push({
-          sku: pathAlphanumericSKU[1],
-          confidence: 65,
-          source: 'path_folder_alphanumeric'
-        });
-        console.log(`Found path alphanumeric SKU: ${pathAlphanumericSKU[1]}`);
-      }
-    }
-  }
-  
-  // Strategy 7: Pattern-based matching with separators
-  const separatorPatterns = [
-    /^(\d{3,})[_-]/,           // SKU at start with separator
-    /[_-](\d{3,})[_-]/,        // SKU in middle with separators
-    /[_-](\d{3,})$/,           // SKU at end with separator
-    /^([a-zA-Z]*\d{3,}[a-zA-Z]*)[_-]/, // Alphanumeric SKU with separator
-  ];
-  
-  for (const pattern of separatorPatterns) {
-    const match = cleanName.match(pattern);
-    if (match && !skus.some(s => s.sku === match[1])) {
-      skus.push({
-        sku: match[1],
-        confidence: 45,
-        source: 'separator_pattern'
-      });
-      console.log(`Found separator pattern SKU: ${match[1]}`);
     }
   }
   
@@ -335,23 +345,42 @@ Deno.serve(async (req) => {
                 
                 console.log(`Found ${potentialSKUs.length} potential SKUs:`, potentialSKUs.map(s => `${s.sku} (${s.confidence}% - ${s.source})`));
                 
-                // Try to find matching product by any extracted SKU
+                // Try to find matching product with improved matching logic
                 let matchingProduct = null;
                 let matchedSku = '';
                 let matchSource = '';
                 
+                // Helper function to normalize SKUs for comparison
+                const normalizeSKU = (sku: string) => (sku || '').toLowerCase().trim();
+                const removeLeadingZeros = (sku: string) => sku.replace(/^0+/, '') || '0';
+                
                 // Try exact matches first (highest confidence)
                 for (const skuCandidate of potentialSKUs) {
+                  if (skuCandidate.confidence < 30) break; // Skip very low confidence matches
+                  
+                  const candidateSku = normalizeSKU(skuCandidate.sku);
+                  
                   const foundProduct = products?.find(product => {
-                    const productSku = (product.sku || '').toLowerCase();
-                    return productSku === skuCandidate.sku.toLowerCase();
+                    const productSku = normalizeSKU(product.sku);
+                    
+                    // Exact match
+                    if (productSku === candidateSku) return true;
+                    
+                    // Zero-padding variations
+                    if (removeLeadingZeros(productSku) === removeLeadingZeros(candidateSku)) return true;
+                    
+                    // Check if one is zero-padded version of the other
+                    if (productSku === '0' + candidateSku || candidateSku === '0' + productSku) return true;
+                    if (productSku === '00' + candidateSku || candidateSku === '00' + productSku) return true;
+                    
+                    return false;
                   });
                   
                   if (foundProduct) {
                     matchingProduct = foundProduct;
                     matchedSku = skuCandidate.sku;
                     matchSource = skuCandidate.source;
-                    console.log(`✅ Exact match found: ${skuCandidate.sku} → ${foundProduct.name}`);
+                    console.log(`✅ Exact match found: ${skuCandidate.sku} (${skuCandidate.confidence}%) → ${foundProduct.name} (${foundProduct.sku})`);
                     break;
                   }
                 }
@@ -359,46 +388,56 @@ Deno.serve(async (req) => {
                 // If no exact match, try base numeric matches (for alphanumeric SKUs)
                 if (!matchingProduct) {
                   for (const skuCandidate of potentialSKUs) {
+                    if (skuCandidate.confidence < 30) break;
+                    
                     // Extract base numeric part
                     const baseNumeric = skuCandidate.sku.match(/^(\d+)/);
                     if (baseNumeric) {
                       const foundProduct = products?.find(product => {
-                        const productSku = (product.sku || '').toLowerCase();
-                        return productSku === baseNumeric[1] || productSku.startsWith(baseNumeric[1]);
+                        const productSku = normalizeSKU(product.sku);
+                        const baseNum = baseNumeric[1];
+                        
+                        return productSku === baseNum || 
+                               productSku.startsWith(baseNum) ||
+                               removeLeadingZeros(productSku) === removeLeadingZeros(baseNum);
                       });
                       
                       if (foundProduct) {
                         matchingProduct = foundProduct;
                         matchedSku = skuCandidate.sku;
                         matchSource = `${skuCandidate.source} (base_numeric)`;
-                        console.log(`✅ Base numeric match found: ${baseNumeric[1]} → ${foundProduct.name}`);
+                        console.log(`✅ Base numeric match found: ${baseNumeric[1]} → ${foundProduct.name} (${foundProduct.sku})`);
                         break;
                       }
                     }
                   }
                 }
                 
-                // If still no match, try partial matching
+                // If still no match, try more permissive matching for high-confidence candidates only
                 if (!matchingProduct) {
                   for (const skuCandidate of potentialSKUs) {
+                    if (skuCandidate.confidence < 60) break; // Only try permissive matching for high-confidence
+                    
+                    const candidateSku = normalizeSKU(skuCandidate.sku);
+                    
                     const foundProduct = products?.find(product => {
-                      const productSku = (product.sku || '').toLowerCase();
-                      const productName = (product.name || '').toLowerCase();
-                      const productSlug = (product.slug || '').toLowerCase();
+                      const productSku = normalizeSKU(product.sku);
                       
-                      return (productSku && (
-                        productSku.includes(skuCandidate.sku.toLowerCase()) ||
-                        skuCandidate.sku.toLowerCase().includes(productSku)
-                      )) ||
-                      (productName && nameWithoutExt.includes(productName.slice(0, 10))) ||
-                      (productSlug && nameWithoutExt.includes(productSlug));
+                      // One contains the other (for longer SKUs)
+                      if (productSku.length >= 4 && candidateSku.length >= 4) {
+                        if (productSku.includes(candidateSku) || candidateSku.includes(productSku)) {
+                          return true;
+                        }
+                      }
+                      
+                      return false;
                     });
                     
                     if (foundProduct) {
                       matchingProduct = foundProduct;
                       matchedSku = skuCandidate.sku;
-                      matchSource = `${skuCandidate.source} (partial)`;
-                      console.log(`✅ Partial match found: ${skuCandidate.sku} → ${foundProduct.name}`);
+                      matchSource = `${skuCandidate.source} (contains)`;
+                      console.log(`✅ Contains match found: ${skuCandidate.sku} → ${foundProduct.name} (${foundProduct.sku})`);
                       break;
                     }
                   }
