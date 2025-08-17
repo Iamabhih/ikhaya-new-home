@@ -36,6 +36,7 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     console.log('Starting background removal process...');
     const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', {
       device: 'webgpu',
+      dtype: 'fp16', // Specify fp16 for better performance on WebGPU
     });
     
     // Convert HTMLImageElement to canvas
