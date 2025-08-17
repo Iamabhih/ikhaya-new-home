@@ -130,12 +130,12 @@ export const ImageLinkingTool = ({ onNavigateToScanner }: ImageLinkingToolProps 
     scanAllFolders: true,
     targetFolder: '',
     matchingStrategy: 'smart',
-    batchSize: 10,
-    skipExisting: true,
+    batchSize: 20,
+    skipExisting: false, // Changed to allow multiple images
     autoSetPrimary: true,
-    confidenceThreshold: 60,
+    confidenceThreshold: 40, // Lowered threshold
     useEdgeFunction: true,
-    maxImages: 5000
+    maxImages: 10000 // Increased limit
   });
 
   const [activeTab, setActiveTab] = useState('control');
@@ -403,6 +403,9 @@ export const ImageLinkingTool = ({ onNavigateToScanner }: ImageLinkingToolProps 
           batchSize: config.batchSize,
           skipExisting: config.skipExisting,
           scanPath: config.targetFolder || '',
+          autoSetPrimary: config.autoSetPrimary,
+          allowMultipleImages: true,
+          maxImagesPerProduct: 10,
           limit: config.maxImages
         }
       });
