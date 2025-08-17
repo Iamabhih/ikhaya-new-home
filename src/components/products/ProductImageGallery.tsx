@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight, Maximize2, X, ZoomIn, ZoomOut } from "lucide
 import { Button } from "@/components/ui/button";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Badge } from "@/components/ui/badge";
 
 interface ProductImage {
@@ -203,6 +204,9 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
       {/* Fullscreen Modal */}
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95">
+          <VisuallyHidden>
+            <DialogTitle>Product Image Gallery - {productName}</DialogTitle>
+          </VisuallyHidden>
           <div className="relative w-full h-[95vh] flex items-center justify-center">
             {/* Close button */}
             <Button
