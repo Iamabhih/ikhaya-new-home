@@ -57,16 +57,46 @@ export class SKUMatcher {
       }
     }
     
-    // 2. MULTI-SKU FILES (e.g., "445033.446723.png", "319027.319026.PNG")
-    const multiSkuMatch = cleanName.match(/^(\d{3,8})(?:[._-](\d{3,8}))+$/);
+    // 2. MULTI-SKU FILES (e.g., "445033.446723.png", "455166.455167.455168.455169.455170.png")
+    // Enhanced to handle any number of SKUs separated by dots, dashes, or underscores
+    const multiSkuPattern = /^(\d{3,8})(?:[._-](\d{3,8}))+$/;
+    const multiSkuMatch = cleanName.match(multiSkuPattern);
+    
     if (multiSkuMatch) {
+      // Extract all numeric sequences that could be SKUs
       const allNumbers = cleanName.match(/\d{3,8}/g) || [];
-      allNumbers.forEach((num, index) => {
+      
+      // Deduplicate SKUs (same SKU might appear multiple times in filename)
+      const uniqueNumbers = [...new Set(allNumbers)];
+      
+      uniqueNumbers.forEach((num, index) => {
+        // First SKU gets highest confidence, subsequent ones get decreasing confidence
+        // But ensure all SKUs get reasonable confidence scores
+        const baseConfidence = Math.max(90 - (index * 3), 70); // Min 70% confidence
+        
         skus.push({
           value: num,
-          confidence: 90 - (index * 5), // First SKU has higher confidence
+          confidence: baseConfidence,
           source: 'multi'
         });
+        
+        // For multi-SKU files, also add zero-padded variations with slightly lower confidence
+        if (num.length === 5 && !num.startsWith('0')) {
+          skus.push({
+            value: '0' + num,
+            confidence: baseConfidence - 5,
+            source: 'multi'
+          });
+        }
+        
+        // Remove leading zeros variations for multi-SKU
+        if (num.startsWith('0') && num.length > 3) {
+          skus.push({
+            value: num.substring(1),
+            confidence: baseConfidence - 5,
+            source: 'multi'
+          });
+        }
       });
     }
     
