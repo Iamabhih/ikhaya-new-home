@@ -48,10 +48,10 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   const handleToggleWishlist = () => toggleWishlist(product.id);
   
   if (viewMode === "list") {
-    return (
-      <Card className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out">
-        <CardContent className="p-0">
-          <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 sm:gap-4 p-2 xs:p-3 sm:p-4">
+  return (
+    <Card className="group hover:shadow-premium hover:-translate-y-2 transition-all duration-500 ease-out glass-card border-gradient hover:border-primary/20">
+      <CardContent className="p-0">
+        <div className="flex flex-col xs:flex-row gap-3 xs:gap-4 sm:gap-6 p-3 xs:p-4 sm:p-6">
             <ProductImage
               product={product}
               inWishlist={inWishlist}
@@ -88,9 +88,9 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   }
   
   return (
-    <Card className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out h-full flex flex-col">
+    <Card className="group hover:shadow-premium hover:-translate-y-2 transition-all duration-500 ease-out glass-card border-gradient hover:border-primary/20 h-full flex flex-col overflow-hidden">
       <CardContent className="p-0 flex-1 flex flex-col">
-        <div className="relative flex-shrink-0">
+        <div className="relative flex-shrink-0 overflow-hidden">
           <ProductImage
             product={product}
             inWishlist={inWishlist}
@@ -100,7 +100,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           />
         </div>
         
-        <div className="p-2 xs:p-3 sm:p-4 flex-1 flex flex-col justify-between min-h-0">
+        <div className="p-3 xs:p-4 sm:p-6 flex-1 flex flex-col justify-between min-h-0">
           <div className="flex-1">
             <ProductDetails product={product} viewMode={viewMode} />
             <ProductPrice 
