@@ -12,9 +12,10 @@ import { ProductImageReport } from "@/components/admin/ProductImageReport";
 import { CategoryImageManager } from "@/components/admin/CategoryImageManager";
 import { ProductImageCandidates } from "@/components/admin/ProductImageCandidates";
 import BulkBackgroundRemover from "@/components/admin/BulkBackgroundRemover";
+import { BulkStockManager } from "@/components/admin/BulkStockManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors } from "lucide-react";
+import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors, Package } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -32,7 +33,7 @@ const SuperAdminSettings = () => {
             </div>
 
             <Tabs defaultValue="orders" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-11">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-12">
                 <TabsTrigger value="orders" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
                   Orders
@@ -80,6 +81,10 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="background-remover" className="flex items-center gap-2">
                   <Scissors className="h-4 w-4" />
                   BG Remover
+                </TabsTrigger>
+                <TabsTrigger value="stock-manager" className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Stock Manager
                 </TabsTrigger>
               </TabsList>
 
@@ -269,6 +274,20 @@ const SuperAdminSettings = () => {
                   </CardHeader>
                   <CardContent>
                     <BulkBackgroundRemover />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="stock-manager">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Bulk Stock Management</CardTitle>
+                    <CardDescription>
+                      Update stock quantities for all products at once. SuperAdmin only feature with full database access.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BulkStockManager />
                   </CardContent>
                 </Card>
               </TabsContent>
