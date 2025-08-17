@@ -40,13 +40,13 @@ export const ProductImage = ({
   const productUrl = `/products/${product.slug}`;
 
   const imageClasses = viewMode === "list" 
-    ? "w-full xs:w-20 sm:w-24 md:w-32 h-32 xs:h-20 sm:h-24 md:h-32 flex-shrink-0"
-    : "aspect-square w-full";
+    ? "w-20 xs:w-24 sm:w-28 md:w-32 lg:w-36 h-20 xs:h-24 sm:h-28 md:h-32 lg:h-36 flex-shrink-0"
+    : "w-full h-full";
 
   return (
-    <div className={`relative overflow-hidden rounded-lg ${viewMode === "grid" ? "rounded-t-lg" : ""}`}>
-      <Link to={productUrl}>
-        <div className={`${imageClasses} bg-[hsl(var(--product-image-bg))] flex items-center justify-center overflow-hidden`}>
+    <div className={`relative overflow-hidden ${viewMode === "grid" ? "w-full h-full" : "flex-shrink-0"} bg-[hsl(var(--product-image-bg))] rounded-lg`}>
+      <Link to={productUrl} className="block w-full h-full">
+        <div className={`${imageClasses} bg-[hsl(var(--product-image-bg))] flex items-center justify-center overflow-hidden rounded-lg`}>
           {primaryImage ? (
             <OptimizedImage
               src={primaryImage.image_url}
@@ -57,9 +57,9 @@ export const ProductImage = ({
               fallbackSrc="/placeholder.svg"
             />
           ) : (
-            <div className="flex flex-col items-center justify-center text-muted-foreground">
+            <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full">
               <div className={`${viewMode === "list" ? "w-6 h-6 sm:w-8 sm:h-8" : "w-12 h-12 sm:w-16 sm:h-16"} bg-muted rounded mb-2`}></div>
-              <span className={`${viewMode === "list" ? "text-xs" : "text-sm"}`}>No image</span>
+              <span className={`${viewMode === "list" ? "text-xs" : "text-sm"} text-center`}>No image</span>
             </div>
           )}
         </div>
@@ -69,26 +69,25 @@ export const ProductImage = ({
         <Button
           variant="ghost"
           size="icon"
-          className={`absolute top-1 xs:top-2 right-1 xs:right-2 h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 bg-background/80 hover:bg-background ${
-            inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground'
+          className={`absolute top-2 right-2 h-8 w-8 bg-background/90 hover:bg-background shadow-sm ${
+            inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'
           }`}
           onClick={onToggleWishlist}
           disabled={loading}
         >
-          <Heart className={`h-3 w-3 xs:h-3 xs:w-3 sm:h-4 sm:w-4 ${inWishlist ? 'fill-current' : ''}`} />
+          <Heart className={`h-4 w-4 ${inWishlist ? 'fill-current' : ''}`} />
         </Button>
       )}
       
       {hasDiscount && (
-        <div className={`absolute ${viewMode === "list" ? "top-1 xs:top-1 sm:top-2 left-1 xs:left-1 sm:left-2" : "top-1 xs:top-2 left-1 xs:left-2"} bg-destructive text-destructive-foreground px-1 xs:px-1.5 sm:px-2 py-0.5 xs:py-0.5 sm:py-1 rounded text-xs font-medium`}>
+        <div className={`absolute top-2 left-2 bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs font-medium shadow-sm`}>
           Sale
         </div>
       )}
       
       {!isInStock && (
-        <div className={`absolute ${viewMode === "list" ? "top-1 xs:top-1 sm:top-2 right-1 xs:right-1 sm:right-2" : "bottom-1 xs:bottom-2 left-1 xs:left-2"} bg-muted text-muted-foreground px-1 xs:px-1.5 sm:px-2 py-0.5 xs:py-0.5 sm:py-1 rounded text-xs font-medium`}>
-          <span className="xs:hidden">Out</span>
-          <span className="hidden xs:inline">{viewMode === "list" ? "Out of Stock" : "Out of Stock"}</span>
+        <div className={`absolute ${viewMode === "list" ? "top-2 right-2" : "bottom-2 left-2"} bg-muted text-muted-foreground px-2 py-1 rounded text-xs font-medium shadow-sm`}>
+          Out of Stock
         </div>
       )}
     </div>

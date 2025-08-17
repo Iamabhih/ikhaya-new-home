@@ -49,9 +49,9 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   
   if (viewMode === "list") {
   return (
-    <Card className="group hover:shadow-premium hover:-translate-y-2 transition-all duration-500 ease-out glass-card border-gradient hover:border-primary/20">
+    <Card className="group hover:shadow-premium hover:-translate-y-1 transition-all duration-300 ease-out glass-card border-gradient hover:border-primary/20 w-full">
       <CardContent className="p-0">
-        <div className="flex flex-col xs:flex-row gap-3 xs:gap-4 sm:gap-6 p-3 xs:p-4 sm:p-6">
+        <div className="flex flex-col xs:flex-row gap-3 xs:gap-4 sm:gap-6 p-3 xs:p-4 sm:p-6 min-h-[120px] xs:min-h-[140px] sm:min-h-[160px]">
             <ProductImage
               product={product}
               inWishlist={inWishlist}
@@ -60,25 +60,27 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
               viewMode={viewMode}
             />
             
-            <div className="flex-1 flex flex-col justify-between space-y-1 xs:space-y-2 sm:space-y-0">
+            <div className="flex-1 flex flex-col justify-between space-y-2 xs:space-y-3 min-w-0">
               <ProductDetails product={product} viewMode={viewMode} />
               
-              <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-1 xs:gap-2 pt-1 xs:pt-2 sm:pt-0">
+              <div className="flex flex-col xs:flex-row xs:items-end xs:justify-between gap-2 mt-auto">
                 <ProductPrice 
                   price={product.price} 
                   compareAtPrice={product.compare_at_price}
                   viewMode={viewMode}
                 />
                 
-                <ProductActions
-                  productId={product.id}
-                  inWishlist={inWishlist}
-                  onToggleWishlist={handleToggleWishlist}
-                  onAddToCart={handleAddToCart}
-                  isInStock={isInStock}
-                  wishlistLoading={loading}
-                  viewMode={viewMode}
-                />
+                <div className="flex-shrink-0">
+                  <ProductActions
+                    productId={product.id}
+                    inWishlist={inWishlist}
+                    onToggleWishlist={handleToggleWishlist}
+                    onAddToCart={handleAddToCart}
+                    isInStock={isInStock}
+                    wishlistLoading={loading}
+                    viewMode={viewMode}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -88,9 +90,9 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   }
   
   return (
-    <Card className="group hover:shadow-premium hover:-translate-y-2 transition-all duration-500 ease-out glass-card border-gradient hover:border-primary/20 h-full flex flex-col overflow-hidden">
-      <CardContent className="p-0 flex-1 flex flex-col">
-        <div className="relative flex-shrink-0 overflow-hidden">
+    <Card className="group hover:shadow-premium hover:-translate-y-1 transition-all duration-300 ease-out glass-card border-gradient hover:border-primary/20 h-full flex flex-col overflow-hidden w-full">
+      <CardContent className="p-0 flex-1 flex flex-col h-full">
+        <div className="relative flex-shrink-0 overflow-hidden aspect-square">
           <ProductImage
             product={product}
             inWishlist={inWishlist}
@@ -100,8 +102,8 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           />
         </div>
         
-        <div className="p-3 xs:p-4 sm:p-6 flex-1 flex flex-col justify-between min-h-0">
-          <div className="flex-1">
+        <div className="p-2 xs:p-3 sm:p-4 flex-1 flex flex-col justify-between min-h-0">
+          <div className="flex-1 space-y-1 xs:space-y-2">
             <ProductDetails product={product} viewMode={viewMode} />
             <ProductPrice 
               price={product.price} 
@@ -110,7 +112,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             />
           </div>
           
-          <div className="mt-2 xs:mt-3 sm:mt-4">
+          <div className="mt-2 xs:mt-3 pt-2 border-t border-border/50">
             <ProductActions
               productId={product.id}
               inWishlist={inWishlist}

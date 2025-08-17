@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Grid, List, Search } from "lucide-react";
 import { UniversalLoading } from "@/components/ui/universal-loading";
+import { ResponsiveGrid } from "@/components/ui/responsive-layout";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const CategoryProductsPage = () => {
@@ -283,15 +284,14 @@ const CategoryProductsPage = () => {
             }
           />
         ) : (
-          <div className={`grid gap-2 xs:gap-3 sm:gap-4 md:gap-6 ${
-            viewMode === "grid" 
-              ? "grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6" 
-              : "grid-cols-1"
-          }`}>
+          <ResponsiveGrid 
+            variant={viewMode === "grid" ? "standard" : "comfortable"}
+            className={viewMode === "list" ? "grid-cols-1" : ""}
+          >
             {products.map((product) => (
               <ProductCard key={product.id} product={product} viewMode={viewMode} />
             ))}
-          </div>
+          </ResponsiveGrid>
         )}
 
         {/* No Products Found */}

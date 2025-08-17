@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { ResponsiveGrid, ResponsiveContainer } from "@/components/ui/responsive-layout";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const FeaturedProducts = () => {
@@ -39,21 +40,21 @@ export const FeaturedProducts = () => {
   if (isLoading) {
     return (
       <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
+        <ResponsiveContainer>
           <h2 className="text-3xl font-bold text-center mb-12">Featured Products</h2>
-          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 xs:gap-3 sm:gap-4 md:gap-6">
+          <ResponsiveGrid variant="standard">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-48 xs:h-56 sm:h-64 bg-muted animate-pulse rounded-lg" />
+              <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
             ))}
-          </div>
-        </div>
+          </ResponsiveGrid>
+        </ResponsiveContainer>
       </section>
     );
   }
 
   return (
     <section className="py-16 bg-muted/30">
-      <div className="container mx-auto px-4">
+      <ResponsiveContainer>
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">Featured Products</h2>
           <p className="text-muted-foreground text-lg">
@@ -61,11 +62,11 @@ export const FeaturedProducts = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 xs:gap-3 sm:gap-4 md:gap-6 mb-8">
+        <ResponsiveGrid variant="standard" className="mb-8">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
-        </div>
+        </ResponsiveGrid>
 
         <div className="text-center">
           <Link to="/products">
@@ -74,7 +75,7 @@ export const FeaturedProducts = () => {
             </Button>
           </Link>
         </div>
-      </div>
+      </ResponsiveContainer>
     </section>
   );
 };
