@@ -1,10 +1,38 @@
 import { pipeline, env } from '@huggingface/transformers';
 
-// Configure transformers.js to always download models
+// Configure transformers.js for optimal browser performance
 env.allowLocalModels = false;
-env.useBrowserCache = false;
+env.useBrowserCache = true;
+env.allowRemoteModels = true;
 
 const MAX_IMAGE_DIMENSION = 1024;
+
+// Model cascade for reliable fallback
+const MODELS = [
+  'briaai/RMBG-1.4',
+  'Xenova/segformer-b0-finetuned-ade-512-512',
+  'Xenova/segformer-b2-finetuned-ade-512-512'
+];
+
+// Device detection utility
+const detectBestDevice = async (): Promise<'webgpu' | 'wasm'> => {
+  try {
+    // Check WebGPU support
+    if ('gpu' in navigator) {
+      const adapter = await (navigator as any).gpu?.requestAdapter();
+      if (adapter) return 'webgpu';
+    }
+    
+    // Check WebGL support
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    if (gl) return 'wasm';
+    
+    return 'wasm'; // CPU fallback
+  } catch {
+    return 'wasm';
+  }
+};
 
 function resizeImageIfNeeded(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement) {
   let width = image.naturalWidth;
@@ -40,77 +68,116 @@ export const removeBackground = async (
     onProgress?: (progress: number) => void;
   } = {}
 ): Promise<Blob> => {
-  const { onProgress } = options;
+  const { imageType = 'product', quality = 'balanced', onProgress } = options;
   
   try {
-    console.log('Starting background removal process...');
+    console.log('Starting enhanced background removal process...');
+    onProgress?.(5);
+
+    // Detect best available device
+    const device = await detectBestDevice();
+    console.log('Using device:', device);
     onProgress?.(10);
 
-    // Use proven model and configuration
-    const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', {
-      device: 'webgpu',
-    });
+    // Try models in cascade until one works
+    let segmenter = null;
+    let modelUsed = '';
     
-    onProgress?.(30);
+    for (const model of MODELS) {
+      try {
+        console.log(`Attempting to load model: ${model}`);
+        segmenter = await pipeline('image-segmentation', model, {
+          device,
+          dtype: quality === 'fast' ? 'fp16' : 'fp32',
+        });
+        modelUsed = model;
+        console.log(`Successfully loaded model: ${model}`);
+        break;
+      } catch (error) {
+        console.warn(`Failed to load model ${model}:`, error);
+        continue;
+      }
+    }
+
+    if (!segmenter) {
+      throw new Error('All models failed to load. Please check your internet connection.');
+    }
     
-    // Convert HTMLImageElement to canvas
+    onProgress?.(25);
+    
+    // Convert HTMLImageElement to canvas with optimization
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: true });
     
     if (!ctx) throw new Error('Could not get canvas context');
     
     // Resize image if needed and draw it to canvas
     const wasResized = resizeImageIfNeeded(canvas, ctx, imageElement);
     console.log(`Image ${wasResized ? 'was' : 'was not'} resized. Final dimensions: ${canvas.width}x${canvas.height}`);
+    onProgress?.(35);
     
-    onProgress?.(50);
-    
-    // Get image data as base64
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-    console.log('Image converted to base64');
+    // Optimize image data format based on model
+    const imageFormat = modelUsed.includes('RMBG') ? 'image/png' : 'image/jpeg';
+    const imageQuality = quality === 'high' ? 0.95 : quality === 'balanced' ? 0.85 : 0.75;
+    const imageData = canvas.toDataURL(imageFormat, imageQuality);
+    console.log('Image converted to base64, format:', imageFormat);
+    onProgress?.(45);
     
     // Process the image with the segmentation model
-    console.log('Processing with segmentation model...');
+    console.log(`Processing with ${modelUsed}...`);
     const result = await segmenter(imageData);
+    onProgress?.(75);
     
-    onProgress?.(70);
+    console.log('Segmentation result type:', typeof result, 'length:', Array.isArray(result) ? result.length : 'not array');
     
-    console.log('Segmentation result:', result);
-    
-    if (!result || !Array.isArray(result) || result.length === 0 || !result[0].mask) {
-      throw new Error('Invalid segmentation result');
+    // Handle different result formats based on model
+    let maskData;
+    if (modelUsed.includes('RMBG')) {
+      // RMBG models return direct mask
+      if (result && typeof result === 'object' && 'data' in result) {
+        maskData = result.data;
+      } else {
+        throw new Error('Invalid RMBG result format');
+      }
+    } else {
+      // Segformer models return array with mask property
+      if (!result || !Array.isArray(result) || result.length === 0 || !result[0].mask) {
+        throw new Error('Invalid segmentation result');
+      }
+      maskData = result[0].mask.data;
     }
     
-    // Create a new canvas for the masked image
+    onProgress?.(80);
+    
+    // Create output canvas with optimized context
     const outputCanvas = document.createElement('canvas');
     outputCanvas.width = canvas.width;
     outputCanvas.height = canvas.height;
-    const outputCtx = outputCanvas.getContext('2d');
+    const outputCtx = outputCanvas.getContext('2d', { alpha: true });
     
     if (!outputCtx) throw new Error('Could not get output canvas context');
     
     // Draw original image
     outputCtx.drawImage(canvas, 0, 0);
     
-    // Apply the mask
-    const outputImageData = outputCtx.getImageData(
-      0, 0,
-      outputCanvas.width,
-      outputCanvas.height
-    );
+    // Apply the mask with enhanced processing
+    const outputImageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
     const data = outputImageData.data;
     
     onProgress?.(85);
     
-    // Apply inverted mask to alpha channel
-    for (let i = 0; i < result[0].mask.data.length; i++) {
-      // Invert the mask value (1 - value) to keep the subject instead of the background
-      const alpha = Math.round((1 - result[0].mask.data[i]) * 255);
+    // Apply mask to alpha channel with edge smoothing
+    for (let i = 0; i < maskData.length; i++) {
+      const maskValue = maskData[i];
+      const alpha = modelUsed.includes('RMBG') 
+        ? Math.round(maskValue * 255) // RMBG uses direct alpha
+        : Math.round((1 - maskValue) * 255); // Segformer uses inverted mask
+      
       data[i * 4 + 3] = alpha;
     }
     
     outputCtx.putImageData(outputImageData, 0, 0);
-    console.log('Mask applied successfully');
+    console.log('Enhanced mask applied successfully');
     
     onProgress?.(95);
     

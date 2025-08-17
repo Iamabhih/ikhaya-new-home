@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
   },
   plugins: [
     react(),
@@ -18,5 +22,15 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  optimizeDeps: {
+    include: ['@huggingface/transformers'],
+    exclude: ['@huggingface/transformers/src/utils/wasm'],
+  },
+  define: {
+    global: 'globalThis',
+  },
+  worker: {
+    format: 'es',
   },
 }));
