@@ -1312,34 +1312,115 @@ export type Database = {
         }
         Relationships: []
       }
+      product_image_candidates: {
+        Row: {
+          alt_text: string | null
+          created_at: string | null
+          extracted_sku: string | null
+          id: string
+          image_url: string
+          match_confidence: number
+          match_metadata: Json | null
+          product_id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_filename: string | null
+          status: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string | null
+          extracted_sku?: string | null
+          id?: string
+          image_url: string
+          match_confidence?: number
+          match_metadata?: Json | null
+          product_id: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_filename?: string | null
+          status?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string | null
+          extracted_sku?: string | null
+          id?: string
+          image_url?: string
+          match_confidence?: number
+          match_metadata?: Json | null
+          product_id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_filename?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_image_candidates_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_performance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_image_candidates_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           alt_text: string | null
+          auto_matched: boolean | null
           created_at: string
           id: string
+          image_status: string | null
           image_url: string
           is_primary: boolean | null
+          match_confidence: number | null
+          match_metadata: Json | null
           product_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           sort_order: number | null
           updated_at: string | null
         }
         Insert: {
           alt_text?: string | null
+          auto_matched?: boolean | null
           created_at?: string
           id?: string
+          image_status?: string | null
           image_url: string
           is_primary?: boolean | null
+          match_confidence?: number | null
+          match_metadata?: Json | null
           product_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sort_order?: number | null
           updated_at?: string | null
         }
         Update: {
           alt_text?: string | null
+          auto_matched?: boolean | null
           created_at?: string
           id?: string
+          image_status?: string | null
           image_url?: string
           is_primary?: boolean | null
+          match_confidence?: number | null
+          match_metadata?: Json | null
           product_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sort_order?: number | null
           updated_at?: string | null
         }
@@ -2283,9 +2364,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      promote_image_candidate: {
+        Args: { candidate_id: string }
+        Returns: string
+      }
       refresh_category_counts: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      reject_image_candidate: {
+        Args: { candidate_id: string; reason?: string }
+        Returns: boolean
       }
       remove_user_role: {
         Args: {

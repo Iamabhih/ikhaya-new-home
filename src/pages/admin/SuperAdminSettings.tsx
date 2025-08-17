@@ -10,6 +10,7 @@ import { SystemStatusReport } from "@/components/admin/SystemStatusReport";
 import { DeleteAllOrders } from "@/components/admin/DeleteAllOrders";
 import { ProductImageReport } from "@/components/admin/ProductImageReport";
 import { CategoryImageManager } from "@/components/admin/CategoryImageManager";
+import { ProductImageCandidates } from "@/components/admin/ProductImageCandidates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder } from "lucide-react";
@@ -70,6 +71,10 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="category-images" className="flex items-center gap-2">
                   <Folder className="h-4 w-4" />
                   Category Images
+                </TabsTrigger>
+                <TabsTrigger value="image-candidates" className="flex items-center gap-2">
+                  <Image className="h-4 w-4" />
+                  Image Candidates
                 </TabsTrigger>
               </TabsList>
 
@@ -231,6 +236,20 @@ const SuperAdminSettings = () => {
                   </CardHeader>
                   <CardContent>
                     <CategoryImageManager />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="image-candidates">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Image Candidate Review</CardTitle>
+                    <CardDescription>
+                      Review and approve potential image matches found by the enhanced image linking system.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ProductImageCandidates />
                   </CardContent>
                 </Card>
               </TabsContent>
