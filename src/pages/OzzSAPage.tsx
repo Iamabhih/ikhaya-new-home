@@ -141,9 +141,7 @@ export default function OzzSAPage() {
                   <p className="text-xl font-medium text-primary">
                     From our family business to your family home
                   </p>
-                  <p className="text-lg text-muted-foreground mt-2">
-                    Welcome to Ikhaya—where tradition meets innovation
-                  </p>
+                  <p className="text-lg text-muted-foreground mt-2">Welcome to Ikhaya— Elegant, Affordable, Quality</p>
                   
                   <div className="mt-6">
                     <Link to="/products">
