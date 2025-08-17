@@ -61,31 +61,37 @@ export function useBatchProcessor<T>(
   }, []);
 
   const processItem = async (item: BatchItem<T>): Promise<any> => {
+    if (!isProcessing) return; // Check if processing was stopped
+    
     try {
       updateItemStatus(item.id, { status: 'processing', progress: 0 });
       options.onItemStart?.(item.id);
 
       const result = await processor(item.data, (progress) => {
-        updateItemStatus(item.id, { progress });
+        if (isProcessing) { // Only update if still processing
+          updateItemStatus(item.id, { progress });
+        }
       });
 
-      updateItemStatus(item.id, { 
-        status: 'completed', 
-        progress: 100, 
-        result 
-      });
-      
-      options.onItemComplete?.(item.id, result);
+      if (isProcessing) { // Only mark complete if still processing
+        updateItemStatus(item.id, { 
+          status: 'completed', 
+          progress: 100, 
+          result 
+        });
+        options.onItemComplete?.(item.id, result);
+      }
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      updateItemStatus(item.id, { 
-        status: 'error', 
-        progress: 0, 
-        error: errorMessage 
-      });
-      
-      options.onItemError?.(item.id, error as Error);
+      if (isProcessing) { // Only mark failed if still processing
+        updateItemStatus(item.id, { 
+          status: 'error', 
+          progress: 0, 
+          error: errorMessage 
+        });
+        options.onItemError?.(item.id, error as Error);
+      }
       throw error;
     }
   };

@@ -89,8 +89,12 @@ export const BackgroundRemovalProvider: React.FC<{ children: React.ReactNode }> 
       
       onProgress?.(40);
       
-      // Remove background
-      const processedBlob = await removeBackground(imageElement);
+      // Remove background with settings
+      const processedBlob = await removeBackground(imageElement, {
+        imageType: settings.imageType,
+        quality: settings.quality,
+        onProgress: (progress) => onProgress?.(40 + (progress * 0.3))
+      });
       
       onProgress?.(70);
       

@@ -136,7 +136,6 @@ export const EnhancedBackgroundRemover = ({ onProcessed, className }: EnhancedBa
       const processedBlob = await removeBackground(imageElement, {
         imageType,
         quality,
-        preserveDetails,
         onProgress: (progress) => {
           setProgress(progress);
           if (progress === 25) addLog('AI model loaded');

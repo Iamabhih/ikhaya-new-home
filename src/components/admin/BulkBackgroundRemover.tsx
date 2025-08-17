@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useBackgroundRemoval } from "@/contexts/BackgroundRemovalContext";
-import { Trash2, Image, Download, RefreshCw, Settings, Play, Square, RotateCcw, Info } from "lucide-react";
+import { Trash2, Download, RefreshCw, Settings, Play, Square, RotateCcw, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { BackgroundRemovalDiagnostics } from "./BackgroundRemovalDiagnostics";
 
 interface ProductImage {
   id: string;
@@ -24,13 +25,6 @@ interface ProductImage {
     name: string;
     sku: string;
   };
-}
-
-interface BatchSettings {
-  batchSize: number;
-  delayBetweenBatches: number;
-  delayBetweenItems: number;
-  maxRetries: number;
 }
 
 const BulkBackgroundRemover = () => {
@@ -169,6 +163,9 @@ const BulkBackgroundRemover = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* System Diagnostics */}
+      <BackgroundRemovalDiagnostics />
 
       {/* Main Control Panel */}
       <Card>
@@ -347,83 +344,85 @@ const BulkBackgroundRemover = () => {
       </Card>
 
       {/* Processing Queue Display */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Processing Queue</CardTitle>
-          <CardDescription>
-            Monitor individual image processing status in the current batch
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {items.slice(0, 50).map((item) => {
-              const image = item.data;
-              const isProcessed = image.image_status === 'background_removed';
-              
-              return (
-                <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={image.image_url} 
-                      alt={image.alt_text} 
-                      className="w-12 h-12 object-cover rounded"
-                    />
-                    <div>
-                      <p className="font-medium text-sm">
-                        {image.products?.name || 'Unknown Product'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        SKU: {image.products?.sku}
-                      </p>
-                      {item.error && (
-                        <p className="text-xs text-red-500 mt-1">
-                          Error: {item.error}
+      {stats.total > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Processing Queue</CardTitle>
+            <CardDescription>
+              Monitor individual image processing status in the current batch
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {items.slice(0, 50).map((item) => {
+                const image = item.data;
+                const isProcessed = image.image_status === 'background_removed';
+                
+                return (
+                  <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={image.image_url} 
+                        alt={image.alt_text} 
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                      <div>
+                        <p className="font-medium text-sm">
+                          {image.products?.name || 'Unknown Product'}
                         </p>
+                        <p className="text-xs text-muted-foreground">
+                          SKU: {image.products?.sku}
+                        </p>
+                        {item.error && (
+                          <p className="text-xs text-red-500 mt-1">
+                            Error: {item.error}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {item.status === 'processing' && (
+                        <div className="w-32">
+                          <Progress value={item.progress} className="h-2" />
+                          <p className="text-xs text-center mt-1">{item.progress}%</p>
+                        </div>
+                      )}
+                      
+                      <Badge variant={
+                        isProcessed || item.status === 'completed' ? 'default' : 
+                        item.status === 'processing' ? 'secondary' :
+                        item.status === 'error' ? 'destructive' : 'outline'
+                      }>
+                        {isProcessed || item.status === 'completed' ? 'Processed' :
+                         item.status === 'processing' ? 'Processing' :
+                         item.status === 'error' ? 'Error' : 'Pending'}
+                      </Badge>
+
+                      {(isProcessed || item.status === 'completed') && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => window.open(image.image_url, '_blank')}
+                          className="flex items-center gap-1"
+                        >
+                          <Download className="h-3 w-3" />
+                          View
+                        </Button>
                       )}
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    {item.status === 'processing' && (
-                      <div className="w-32">
-                        <Progress value={item.progress} className="h-2" />
-                        <p className="text-xs text-center mt-1">{item.progress}%</p>
-                      </div>
-                    )}
-                    
-                    <Badge variant={
-                      isProcessed || item.status === 'completed' ? 'default' : 
-                      item.status === 'processing' ? 'secondary' :
-                      item.status === 'error' ? 'destructive' : 'outline'
-                    }>
-                      {isProcessed || item.status === 'completed' ? 'Processed' :
-                       item.status === 'processing' ? 'Processing' :
-                       item.status === 'error' ? 'Error' : 'Pending'}
-                    </Badge>
-
-                    {(isProcessed || item.status === 'completed') && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => window.open(image.image_url, '_blank')}
-                        className="flex items-center gap-1"
-                      >
-                        <Download className="h-3 w-3" />
-                        View
-                      </Button>
-                    )}
-                  </div>
+                );
+              })}
+              {items.length > 50 && (
+                <div className="text-center py-2 text-sm text-muted-foreground">
+                  Showing first 50 items. {items.length - 50} more in queue.
                 </div>
-              );
-            })}
-            {items.length > 50 && (
-              <div className="text-center py-2 text-sm text-muted-foreground">
-                Showing first 50 items. {items.length - 50} more in queue.
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

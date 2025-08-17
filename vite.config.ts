@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => ({
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
     },
   },
   plugins: [
@@ -25,7 +26,7 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     include: ['@huggingface/transformers'],
-    exclude: ['@huggingface/transformers/src/utils/wasm'],
+    exclude: [],
   },
   define: {
     global: 'globalThis',
