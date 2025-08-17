@@ -9,9 +9,10 @@ import { BannerDesignGuide } from "@/components/admin/BannerDesignGuide";
 import { SystemStatusReport } from "@/components/admin/SystemStatusReport";
 import { DeleteAllOrders } from "@/components/admin/DeleteAllOrders";
 import { ProductImageReport } from "@/components/admin/ProductImageReport";
+import { CategoryImageManager } from "@/components/admin/CategoryImageManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image } from "lucide-react";
+import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -29,7 +30,7 @@ const SuperAdminSettings = () => {
             </div>
 
             <Tabs defaultValue="orders" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-9">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-10">
                 <TabsTrigger value="orders" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
                   Orders
@@ -65,6 +66,10 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="product-images" className="flex items-center gap-2">
                   <Image className="h-4 w-4" />
                   Product Images
+                </TabsTrigger>
+                <TabsTrigger value="category-images" className="flex items-center gap-2">
+                  <Folder className="h-4 w-4" />
+                  Category Images
                 </TabsTrigger>
               </TabsList>
 
@@ -212,6 +217,20 @@ const SuperAdminSettings = () => {
                   </CardHeader>
                   <CardContent>
                     <ProductImageReport />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="category-images">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Category Image Management</CardTitle>
+                    <CardDescription>
+                      Upload and manage images for categories. View which categories need images and update existing ones.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <CategoryImageManager />
                   </CardContent>
                 </Card>
               </TabsContent>
