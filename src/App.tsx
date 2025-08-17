@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SecurityProvider } from "@/contexts/SecurityContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
+import { BackgroundRemovalProvider } from "@/contexts/BackgroundRemovalContext";
 import { BrowserCompatibilityChecker } from "@/components/common/BrowserCompatibilityChecker";
 import { ConditionalScriptLoader } from "@/components/common/ConditionalScriptLoader";
 import { EmergencyLoader } from "@/components/common/EmergencyLoader";
@@ -68,10 +69,11 @@ function App() {
       <SecurityProvider>
         <AuthProvider>
           <WishlistProvider>
-            <TooltipProvider>
-            <Toaster />
-            <SecurityMonitor />
-            <BrowserRouter>
+            <BackgroundRemovalProvider>
+              <TooltipProvider>
+              <Toaster />
+              <SecurityMonitor />
+              <BrowserRouter>
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />
@@ -120,9 +122,10 @@ function App() {
                 
                 {/* 404 route */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-            </TooltipProvider>
+                </Routes>
+              </BrowserRouter>
+              </TooltipProvider>
+            </BackgroundRemovalProvider>
           </WishlistProvider>
         </AuthProvider>
       </SecurityProvider>

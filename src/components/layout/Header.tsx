@@ -10,6 +10,7 @@ import { useRoles } from "@/hooks/useRoles";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { MobileNav } from "./MobileNav";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import BackgroundRemovalStatus from "@/components/admin/BackgroundRemovalStatus";
 
 export const Header = () => {
   const { items } = useCart();
@@ -234,6 +235,9 @@ export const Header = () => {
         onOpenChange={setAuthModalOpen} 
         onAuthSuccess={handleAuthSuccess} 
       />
+      
+      {/* Background Removal Status */}
+      <BackgroundRemovalStatus />
     </>
   );
 };

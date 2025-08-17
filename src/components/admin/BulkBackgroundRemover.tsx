@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
-import { removeBackground, loadImage } from "@/utils/backgroundRemoval";
-import { useBatchProcessor } from "@/hooks/useBatchProcessor";
+import { useBackgroundRemoval } from "@/contexts/BackgroundRemovalContext";
 import { Trash2, Image, Download, RefreshCw, Settings, Play, Square, RotateCcw, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -35,19 +34,25 @@ interface BatchSettings {
 }
 
 const BulkBackgroundRemover = () => {
-  const [imageType, setImageType] = useState<'general' | 'portrait' | 'product'>('product');
-  const [quality, setQuality] = useState<'fast' | 'balanced' | 'high'>('balanced');
-  const [preserveDetails, setPreserveDetails] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [batchSettings, setBatchSettings] = useState<BatchSettings>({
-    batchSize: 5,
-    delayBetweenBatches: 2000, // 2 seconds
-    delayBetweenItems: 500,    // 0.5 seconds
-    maxRetries: 2
-  });
   
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const {
+    items,
+    isProcessing,
+    currentBatch,
+    totalBatches,
+    stats,
+    settings,
+    addImages,
+    startProcessing,
+    stopProcessing,
+    clearItems,
+    removeItem,
+    retryFailedItems,
+    updateSettings
+  } = useBackgroundRemoval();
+
+  const { imageType, quality, preserveDetails, batchSize, delayBetweenBatches, delayBetweenItems, maxRetries } = settings;
 
   // Fetch all product images
   const { data: productImages, isLoading } = useQuery({
@@ -73,126 +78,16 @@ const BulkBackgroundRemover = () => {
     },
   });
 
-  // Background removal processor function
-  const processImageFunction = async (
-    image: ProductImage, 
-    onProgress?: (progress: number) => void
-  ) => {
-    // Download the image
-    const response = await fetch(image.image_url);
-    if (!response.ok) throw new Error('Failed to download image');
-    
-    const blob = await response.blob();
-    onProgress?.(20);
-
-    // Load image element
-    const imageElement = await loadImage(blob);
-    onProgress?.(40);
-
-    // Remove background
-    const processedBlob = await removeBackground(imageElement, {
-      imageType,
-      quality,
-      preserveDetails,
-      onProgress: (progress) => onProgress?.(40 + (progress * 0.4))
-    });
-    onProgress?.(80);
-
-    // Upload processed image
-    const fileName = `bg-removed-${Date.now()}-${image.id}.png`;
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(fileName, processedBlob, {
-        contentType: 'image/png',
-        upsert: true
-      });
-
-    if (uploadError) throw uploadError;
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(fileName);
-
-    // Update product image record
-    const { error: updateError } = await supabase
-      .from('product_images')
-      .update({ 
-        image_url: publicUrl,
-        image_status: 'background_removed',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', image.id);
-
-    if (updateError) throw updateError;
-    onProgress?.(100);
-
-    return { imageId: image.id, newUrl: publicUrl };
-  };
-
-  // Initialize batch processor
-  const batchProcessor = useBatchProcessor(processImageFunction, {
-    batchSize: batchSettings.batchSize,
-    delayBetweenBatches: batchSettings.delayBetweenBatches,
-    delayBetweenItems: batchSettings.delayBetweenItems,
-    maxRetries: batchSettings.maxRetries,
-    onBatchStart: (batchIndex, items) => {
-      toast({
-        title: `Processing Batch ${batchIndex}`,
-        description: `Processing ${items.length} images...`,
-      });
-    },
-    onBatchComplete: (batchIndex, results) => {
-      const successful = results.filter(r => r !== null).length;
-      toast({
-        title: `Batch ${batchIndex} Complete`,
-        description: `Successfully processed ${successful}/${results.length} images`,
-      });
-    },
-    onItemComplete: (itemId) => {
-      queryClient.invalidateQueries({ queryKey: ['product-images-for-bg-removal'] });
-    },
-    onItemError: (itemId, error) => {
-      console.error(`Error processing image ${itemId}:`, error);
-    }
-  });
-
   // Add unprocessed images to batch processor when images load
-  useEffect(() => {
+  React.useEffect(() => {
     if (productImages) {
       const unprocessedImages = productImages.filter(
         img => img.image_status !== 'background_removed'
       );
       
-      const batchItems = unprocessedImages.map(img => ({
-        id: img.id,
-        data: img
-      }));
-      
-      batchProcessor.addItems(batchItems);
+      addImages(unprocessedImages);
     }
-  }, [productImages]);
-
-  const handleStartProcessing = () => {
-    batchProcessor.startProcessing();
-  };
-
-  const handleStopProcessing = () => {
-    batchProcessor.stopProcessing();
-    toast({
-      title: "Processing stopped",
-      description: "Batch processing has been cancelled",
-      variant: "destructive"
-    });
-  };
-
-  const handleRetryFailed = () => {
-    batchProcessor.retryFailedItems();
-    toast({
-      title: "Retrying failed items",
-      description: "Failed items have been reset for reprocessing",
-    });
-  };
+  }, [productImages, addImages]);
 
   if (isLoading) {
     return <div className="flex justify-center py-8">Loading images...</div>;
@@ -200,7 +95,6 @@ const BulkBackgroundRemover = () => {
 
   const totalImages = productImages?.length || 0;
   const processedImages = productImages?.filter(img => img.image_status === 'background_removed').length || 0;
-  const stats = batchProcessor.getStats;
 
   return (
     <div className="space-y-6">
@@ -253,7 +147,7 @@ const BulkBackgroundRemover = () => {
       </div>
 
       {/* Batch Progress */}
-      {batchProcessor.isProcessing && (
+      {isProcessing && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">Batch Progress</CardTitle>
@@ -261,14 +155,14 @@ const BulkBackgroundRemover = () => {
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Batch {batchProcessor.currentBatch} of {batchProcessor.totalBatches}</span>
+                <span>Batch {currentBatch} of {totalBatches}</span>
                 <span>{stats.progress}% Complete</span>
               </div>
               <Progress value={stats.progress} className="w-full" />
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  Processing in batches of {batchSettings.batchSize} with {batchSettings.delayBetweenBatches/1000}s delay between batches
+                  Processing in batches of {batchSize} with {delayBetweenBatches/1000}s delay between batches
                 </AlertDescription>
               </Alert>
             </div>
@@ -306,10 +200,10 @@ const BulkBackgroundRemover = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Batch Size: {batchSettings.batchSize}</Label>
+                    <Label>Batch Size: {batchSize}</Label>
                     <Slider
-                      value={[batchSettings.batchSize]}
-                      onValueChange={([value]) => setBatchSettings(prev => ({ ...prev, batchSize: value }))}
+                      value={[batchSize]}
+                      onValueChange={([value]) => updateSettings({ batchSize: value })}
                       min={1}
                       max={10}
                       step={1}
@@ -320,10 +214,10 @@ const BulkBackgroundRemover = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Delay Between Batches: {batchSettings.delayBetweenBatches/1000}s</Label>
+                    <Label>Delay Between Batches: {delayBetweenBatches/1000}s</Label>
                     <Slider
-                      value={[batchSettings.delayBetweenBatches]}
-                      onValueChange={([value]) => setBatchSettings(prev => ({ ...prev, delayBetweenBatches: value }))}
+                      value={[delayBetweenBatches]}
+                      onValueChange={([value]) => updateSettings({ delayBetweenBatches: value })}
                       min={500}
                       max={10000}
                       step={500}
@@ -334,10 +228,10 @@ const BulkBackgroundRemover = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Delay Between Items: {batchSettings.delayBetweenItems}ms</Label>
+                    <Label>Delay Between Items: {delayBetweenItems}ms</Label>
                     <Slider
-                      value={[batchSettings.delayBetweenItems]}
-                      onValueChange={([value]) => setBatchSettings(prev => ({ ...prev, delayBetweenItems: value }))}
+                      value={[delayBetweenItems]}
+                      onValueChange={([value]) => updateSettings({ delayBetweenItems: value })}
                       min={0}
                       max={2000}
                       step={100}
@@ -348,10 +242,10 @@ const BulkBackgroundRemover = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Max Retries: {batchSettings.maxRetries}</Label>
+                    <Label>Max Retries: {maxRetries}</Label>
                     <Slider
-                      value={[batchSettings.maxRetries]}
-                      onValueChange={([value]) => setBatchSettings(prev => ({ ...prev, maxRetries: value }))}
+                      value={[maxRetries]}
+                      onValueChange={([value]) => updateSettings({ maxRetries: value })}
                       min={0}
                       max={5}
                       step={1}
@@ -369,7 +263,7 @@ const BulkBackgroundRemover = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="image-type">Image Type</Label>
-              <Select value={imageType} onValueChange={(value) => setImageType(value as 'general' | 'portrait' | 'product')}>
+              <Select value={imageType} onValueChange={(value) => updateSettings({ imageType: value as 'general' | 'portrait' | 'product' })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -383,7 +277,7 @@ const BulkBackgroundRemover = () => {
 
             <div className="space-y-2">
               <Label htmlFor="quality">Processing Quality</Label>
-              <Select value={quality} onValueChange={(value) => setQuality(value as 'fast' | 'balanced' | 'high')}>
+              <Select value={quality} onValueChange={(value) => updateSettings({ quality: value as 'fast' | 'balanced' | 'high' })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -399,7 +293,7 @@ const BulkBackgroundRemover = () => {
               <Switch
                 id="preserve-details"
                 checked={preserveDetails}
-                onCheckedChange={setPreserveDetails}
+                onCheckedChange={(checked) => updateSettings({ preserveDetails: checked })}
               />
               <Label htmlFor="preserve-details">
                 Preserve fine details
@@ -409,9 +303,9 @@ const BulkBackgroundRemover = () => {
 
           {/* Control Buttons */}
           <div className="flex gap-2 flex-wrap">
-            {!batchProcessor.isProcessing ? (
+            {!isProcessing ? (
               <Button 
-                onClick={handleStartProcessing}
+                onClick={startProcessing}
                 disabled={stats.pending === 0}
                 className="flex items-center gap-2"
               >
@@ -421,7 +315,7 @@ const BulkBackgroundRemover = () => {
             ) : (
               <Button 
                 variant="destructive"
-                onClick={handleStopProcessing}
+                onClick={stopProcessing}
                 className="flex items-center gap-2"
               >
                 <Square className="h-4 w-4" />
@@ -432,7 +326,7 @@ const BulkBackgroundRemover = () => {
             {stats.failed > 0 && (
               <Button 
                 variant="outline"
-                onClick={handleRetryFailed}
+                onClick={retryFailedItems}
                 className="flex items-center gap-2"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -442,7 +336,7 @@ const BulkBackgroundRemover = () => {
             
             <Button 
               variant="outline" 
-              onClick={batchProcessor.clearItems}
+              onClick={clearItems}
               className="flex items-center gap-2"
             >
               <Trash2 className="h-4 w-4" />
@@ -462,7 +356,7 @@ const BulkBackgroundRemover = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {batchProcessor.items.slice(0, 50).map((item) => {
+            {items.slice(0, 50).map((item) => {
               const image = item.data;
               const isProcessed = image.image_status === 'background_removed';
               
@@ -522,9 +416,9 @@ const BulkBackgroundRemover = () => {
                 </div>
               );
             })}
-            {batchProcessor.items.length > 50 && (
+            {items.length > 50 && (
               <div className="text-center py-2 text-sm text-muted-foreground">
-                Showing first 50 items. {batchProcessor.items.length - 50} more in queue.
+                Showing first 50 items. {items.length - 50} more in queue.
               </div>
             )}
           </div>
