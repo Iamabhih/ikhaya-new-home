@@ -224,7 +224,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
+              className="absolute top-4 right-4 z-50 text-white bg-black/50 hover:bg-black/70 border border-white/20"
               onClick={() => setIsFullscreen(false)}
             >
               <X className="h-6 w-6" />
@@ -235,7 +235,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/20"
+                className="text-white bg-black/50 hover:bg-black/70 border border-white/20"
                 onClick={handleZoomIn}
                 disabled={zoomLevel >= 3}
               >
@@ -244,7 +244,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/20"
+                className="text-white bg-black/50 hover:bg-black/70 border border-white/20"
                 onClick={handleZoomOut}
                 disabled={zoomLevel <= 1}
               >
@@ -254,7 +254,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-white hover:bg-white/20"
+                  className="text-white bg-black/50 hover:bg-black/70 border border-white/20"
                   onClick={resetZoom}
                 >
                   Reset
@@ -268,7 +268,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-50"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 hover:bg-black/70 border border-white/20 z-50"
                   onClick={goToPrevious}
                 >
                   <ChevronLeft className="h-8 w-8" />
@@ -276,7 +276,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-50"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 hover:bg-black/70 border border-white/20 z-50"
                   onClick={goToNext}
                 >
                   <ChevronRight className="h-8 w-8" />
