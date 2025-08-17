@@ -10,9 +10,11 @@ import { ProductCard } from "@/components/products/ProductCard";
 import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const ProductDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { settings } = useSiteSettings();
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', slug],
@@ -37,11 +39,11 @@ const ProductDetailPage = () => {
   });
 
   const { data: relatedProducts = [] } = useQuery({
-    queryKey: ['related-products', product?.category_id],
+    queryKey: ['related-products', product?.category_id, settings?.hide_products_without_images],
     queryFn: async () => {
       if (!product?.category_id) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select(`
           *,
@@ -50,8 +52,14 @@ const ProductDetailPage = () => {
         `)
         .eq('category_id', product.category_id)
         .eq('is_active', true)
-        .neq('id', product.id)
-        .limit(4);
+        .neq('id', product.id);
+
+      // Apply global site setting to hide products without images
+      if (settings?.hide_products_without_images === true) {
+        query = query.not('product_images', 'is', null);
+      }
+
+      const { data, error } = await query.limit(4);
       
       if (error) throw error;
       return data;
