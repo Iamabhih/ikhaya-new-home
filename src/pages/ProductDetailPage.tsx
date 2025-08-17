@@ -8,7 +8,7 @@ import { ProductImageGallery } from "@/components/products/ProductImageGallery";
 import { ProductInfo } from "@/components/products/ProductInfo";
 import { ProductCard } from "@/components/products/ProductCard";
 import { ReviewsSection } from "@/components/reviews/ReviewsSection";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { StandardBreadcrumbs } from "@/components/common/StandardBreadcrumbs";
 import { Separator } from "@/components/ui/separator";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
@@ -119,31 +119,14 @@ const ProductDetailPage = () => {
       <Header />
       <main className="container mx-auto px-4 py-8">
         {/* Breadcrumbs */}
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/products">Products</BreadcrumbLink>
-            </BreadcrumbItem>
-            {product.categories && (
-              <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink href={`/categories/${product.categories.slug}`}>
-                    {product.categories.name}
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-              </>
-            )}
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{product.name}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <StandardBreadcrumbs 
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Products", href: "/products" },
+            ...(product.categories ? [{ label: product.categories.name, href: `/categories/${product.categories.slug}` }] : []),
+            { label: product.name, isActive: true }
+          ]} 
+        />
 
         {/* Product Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16 mb-20">

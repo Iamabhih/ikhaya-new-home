@@ -12,7 +12,8 @@ import { VirtualizedProductGrid } from "@/components/products/VirtualizedProduct
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Grid, List, ChevronLeft, ChevronRight, SlidersHorizontal, Search, Filter } from "lucide-react";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { StandardBreadcrumbs } from "@/components/common/StandardBreadcrumbs";
+import { StandardPagination } from "@/components/common/StandardPagination";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Card } from "@/components/ui/card";
 import { UniversalLoading } from "@/components/ui/universal-loading";
@@ -256,16 +257,12 @@ const ProductsPage = () => {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-secondary/30 to-background py-16">
         <div className="container mx-auto px-4">
-          <Breadcrumb className="mb-6">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">Home</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbPage>All Products</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <StandardBreadcrumbs 
+            items={[
+              { label: "Home", href: "/" },
+              { label: "All Products", isActive: true }
+            ]} 
+          />
 
           <div className="text-center max-w-4xl mx-auto mb-8">
             <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
@@ -453,70 +450,15 @@ const ProductsPage = () => {
               </Card>
             )}
 
-            {/* Modern Pagination */}
-            {!useVirtualization && totalPages > 1 && (
-              <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mt-8">
-                <div className="p-6">
-                  <div className="flex justify-center items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground"
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
-                    </Button>
-                    
-                    <div className="flex gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={currentPage === pageNum ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`w-10 h-10 p-0 ${
-                              currentPage === pageNum 
-                                ? "" 
-                                : "bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground"
-                            }`}
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      className="bg-white/70 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-                  
-                  <div className="text-center mt-4 text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages} • {totalCount} total products
-                  </div>
-                </div>
-              </Card>
+            {/* Pagination */}
+            {!useVirtualization && (
+              <StandardPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                onPageChange={setCurrentPage}
+                className="mt-8"
+              />
             )}
           </div>
         </div>

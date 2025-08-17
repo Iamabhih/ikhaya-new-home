@@ -1,16 +1,32 @@
 
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { StandardBreadcrumbs } from "@/components/common/StandardBreadcrumbs";
+import { StandardPagination } from "@/components/common/StandardPagination";
+import { AutocompleteSearch } from "@/components/products/AutocompleteSearch";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import { Grid, List, Search, SlidersHorizontal } from "lucide-react";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { settings } = useSiteSettings();
+  
+  // State management
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [sortBy, setSortBy] = useState("name");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const { data: category, isLoading: categoryLoading } = useQuery({
     queryKey: ['category', slug],
@@ -25,10 +41,10 @@ const CategoryPage = () => {
     },
   });
 
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ['category-products', category?.id, settings?.hide_products_without_images],
+  const { data: productsData, isLoading } = useQuery({
+    queryKey: ['category-products', category?.id, searchQuery, sortBy, currentPage, settings?.hide_products_without_images],
     queryFn: async () => {
-      if (!category?.id) return [];
+      if (!category?.id) return { products: [], totalCount: 0 };
       
       let query = supabase
         .from('products')
@@ -36,7 +52,7 @@ const CategoryPage = () => {
           *,
           categories:category_id(id, name, slug),
           product_images(image_url, alt_text, is_primary, sort_order)
-        `)
+        `, { count: 'exact' })
         .eq('category_id', category.id)
         .eq('is_active', true);
 
@@ -45,12 +61,66 @@ const CategoryPage = () => {
         query = query.not('product_images', 'is', null);
       }
 
-      const { data, error } = await query.order('name');
+      // Apply search filter
+      if (searchQuery.trim()) {
+        query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,sku.ilike.%${searchQuery}%`);
+      }
+
+      // Apply sorting
+      switch (sortBy) {
+        case 'price-asc':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'price-desc':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'newest':
+          query = query.order('created_at', { ascending: false });
+          break;
+        case 'featured':
+          query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
+          break;
+        default:
+          query = query.order('name', { ascending: true });
+      }
+
+      // Apply pagination
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data;
+      
+      return {
+        products: data || [],
+        totalCount: count || 0
+      };
     },
     enabled: !!category?.id,
   });
+
+  const products = productsData?.products || [];
+  const totalCount = productsData?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+
+  // Handlers
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+    if (query.trim()) {
+      setSearchParams({ search: query.trim() });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSortBy("name");
+    setSearchParams({});
+    setCurrentPage(1);
+  };
 
   if (categoryLoading) {
     return (
@@ -81,53 +151,163 @@ const CategoryPage = () => {
     );
   }
 
+  const breadcrumbItems = [
+    { label: "Home", href: "/" },
+    { label: "Categories", href: "/categories" },
+    { label: category?.name || "", isActive: true }
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/categories">Categories</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{category.name}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      
+      {/* Hero Section */}
+      <section className="bg-gradient-to-b from-secondary/30 to-background py-16">
+        <div className="container mx-auto px-4">
+          <StandardBreadcrumbs items={breadcrumbItems} />
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">{category.name}</h1>
-          {category.description && (
-            <p className="text-muted-foreground text-lg">{category.description}</p>
-          )}
+          <div className="text-center max-w-4xl mx-auto mb-8">
+            <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              {category?.name || "Category"}
+            </h1>
+            {category?.description && (
+              <p className="text-muted-foreground text-xl leading-relaxed mb-8">
+                {category.description}
+              </p>
+            )}
+          </div>
+
+          {/* Search Bar */}
+          <div className="max-w-2xl mx-auto">
+            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
+              <div className="p-6">
+                <AutocompleteSearch
+                  onSearch={handleSearch}
+                  initialValue={searchQuery}
+                  placeholder={`Search in ${category?.name || 'category'}...`}
+                />
+              </div>
+            </Card>
+          </div>
         </div>
+      </section>
 
+      <main className="container mx-auto px-4 py-8">
+        {/* Results Header */}
+        <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mb-8">
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Search className="h-5 w-5 text-primary" />
+                  <span className="text-2xl font-bold">
+                    {totalCount.toLocaleString()} 
+                    <span className="text-lg font-medium text-muted-foreground ml-2">
+                      product{totalCount !== 1 ? 's' : ''} found
+                    </span>
+                  </span>
+                </div>
+                {searchQuery && (
+                  <p className="text-sm text-muted-foreground">
+                    Search results for "{searchQuery}"
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {/* Sort */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-48 bg-white/70 backdrop-blur-sm border-primary/20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white/95 backdrop-blur-md">
+                    <SelectItem value="name">Name A-Z</SelectItem>
+                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="featured">Featured</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* View Mode */}
+                <div className="flex rounded-lg overflow-hidden border border-primary/20">
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("grid")}
+                    className="rounded-none"
+                  >
+                    <Grid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("list")}
+                    className="rounded-none"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Product Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 xs:gap-3 sm:gap-4 md:gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-48 xs:h-56 sm:h-64 bg-muted animate-pulse rounded-lg" />
-            ))}
-          </div>
+          <UniversalLoading 
+            variant="grid" 
+            count={12} 
+            className={viewMode === "grid" 
+              ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
+              : "grid-cols-1"
+            }
+          />
         ) : (
-          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 xs:gap-3 sm:gap-4 md:gap-6">
+          <div className={`grid gap-2 xs:gap-3 sm:gap-4 md:gap-6 ${
+            viewMode === "grid" 
+              ? "grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6" 
+              : "grid-cols-1"
+          }`}>
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} viewMode={viewMode} />
             ))}
           </div>
         )}
 
+        {/* No Products Found */}
         {products.length === 0 && !isLoading && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No products found in this category.</p>
-          </div>
+          <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <Search className="h-8 w-8 text-primary/60" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No Products Found</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                {searchQuery 
+                  ? `No products found matching "${searchQuery}" in this category.`
+                  : `No products found in this category.`
+                }
+              </p>
+              {searchQuery && (
+                <Button onClick={clearSearch} className="bg-primary hover:bg-primary/90">
+                  View All Products in Category
+                </Button>
+              )}
+            </div>
+          </Card>
         )}
+
+        {/* Pagination */}
+        <StandardPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          onPageChange={setCurrentPage}
+          className="mt-8"
+        />
       </main>
+      
       <Footer />
     </div>
   );
