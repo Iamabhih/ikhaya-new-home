@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, GripVertical, Image, ImageOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { toast } from "@/hooks/use-toast";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Trash2, Plus, GripVertical, Image, ImageOff, Settings } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,12 +20,12 @@ import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 export const HomepageSettings = () => {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [productSelectOpen, setProductSelectOpen] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  const { settings, isLoading: settingsLoading, updateSetting, isUpdating } = useSiteSettings();
 
   // Fetch featured categories
   const { data: featuredCategories = [], isLoading: loadingCategories } = useQuery({
@@ -222,7 +228,50 @@ export const HomepageSettings = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Homepage Settings</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Homepage Settings</h1>
+          <p className="text-muted-foreground">
+            Configure featured products, categories, and site behavior
+          </p>
+        </div>
+      </div>
+
+      {/* Site Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Site Settings
+          </CardTitle>
+          <CardDescription>
+            Configure global site behavior and customer-facing features
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <ImageOff className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="hide-products-without-images" className="text-base font-medium">
+                  Hide products without images
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When enabled, products without images will be hidden from all customer-facing areas (homepage, product listings, search results, etc.)
+              </p>
+            </div>
+            <Switch
+              id="hide-products-without-images"
+              checked={settings?.hide_products_without_images === true}
+              onCheckedChange={(checked) => updateSetting('hide_products_without_images', checked)}
+              disabled={settingsLoading || isUpdating}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
       
       {/* Featured Categories Section */}
       <Card>

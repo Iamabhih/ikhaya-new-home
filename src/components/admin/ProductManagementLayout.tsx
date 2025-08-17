@@ -6,8 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { 
   Plus, 
   Search, 
@@ -83,17 +81,11 @@ export const ProductManagementLayout = ({
   const [showFilters, setShowFilters] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [hideProductsWithoutImages, setHideProductsWithoutImages] = useState(false);
 
   const handleQuickSearch = useCallback((value: string) => {
     setSearchQuery(value);
-    onSearch({ query: value, sortBy: 'name', hideWithoutImages: hideProductsWithoutImages });
-  }, [onSearch, hideProductsWithoutImages]);
-
-  const handleToggleImageFilter = useCallback((checked: boolean) => {
-    setHideProductsWithoutImages(checked);
-    onSearch({ query: searchQuery, sortBy: 'name', hideWithoutImages: checked });
-  }, [onSearch, searchQuery]);
+    onSearch({ query: value, sortBy: 'name' });
+  }, [onSearch]);
 
   const handleEditProduct = (productId: string) => {
     setEditingProductId(productId);
@@ -290,18 +282,6 @@ export const ProductManagementLayout = ({
               />
             </div>
             <div className="flex gap-2">
-              <div className="flex items-center space-x-2 bg-card border rounded-md px-3 py-2">
-                <ImageOff className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="hide-no-images" className="text-sm font-medium cursor-pointer">
-                  Hide without images
-                </Label>
-                <Switch
-                  id="hide-no-images"
-                  checked={hideProductsWithoutImages}
-                  onCheckedChange={handleToggleImageFilter}
-                />
-              </div>
-              
               <Sheet open={showFilters} onOpenChange={setShowFilters}>
                 <SheetTrigger asChild>
                   <Button variant="outline">

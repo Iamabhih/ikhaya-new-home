@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
@@ -30,6 +31,8 @@ const ProductsPage = () => {
     inStock?: boolean;
   }>({});
   const itemsPerPage = 20;
+  
+  const { settings } = useSiteSettings();
 
   // Update search query when URL changes
   useEffect(() => {
@@ -91,7 +94,8 @@ const ProductsPage = () => {
       facetedFilters.inStock,
       sortBy,
       shouldLoadAll ? 'all' : currentPage,
-      shouldLoadAll ? 'all' : itemsPerPage
+      shouldLoadAll ? 'all' : itemsPerPage,
+      settings?.hide_products_without_images
     ],
     queryFn: async () => {
       console.log('Fetching products with filters:', {
@@ -102,7 +106,8 @@ const ProductsPage = () => {
         inStock: facetedFilters.inStock,
         sortBy,
         page: shouldLoadAll ? 'all' : currentPage,
-        loadAll: shouldLoadAll
+        loadAll: shouldLoadAll,
+        hideWithoutImages: settings?.hide_products_without_images
       });
 
       let query = supabase
@@ -113,6 +118,11 @@ const ProductsPage = () => {
           product_images(id, image_url, alt_text, is_primary, sort_order)
         `, { count: 'exact' })
         .eq('is_active', true);
+
+      // Apply global site setting to hide products without images
+      if (settings?.hide_products_without_images === true) {
+        query = query.not('product_images', 'is', null);
+      }
 
       // Apply search filter
       if (searchQuery.trim()) {

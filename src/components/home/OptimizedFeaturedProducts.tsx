@@ -6,15 +6,18 @@ import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Star, ArrowRight, Sparkles } from "lucide-react";
 import { UniversalLoading } from "@/components/ui/universal-loading";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const OptimizedFeaturedProducts = () => {
+  const { settings } = useSiteSettings();
+  
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ['featured-products-optimized'],
+    queryKey: ['featured-products-optimized', settings?.hide_products_without_images],
     queryFn: async () => {
       console.log('Fetching featured products for homepage');
       
       // First try to fetch from homepage featured products
-      const { data: featuredData, error: featuredError } = await supabase
+      let featuredQuery = supabase
         .from('homepage_featured_products')
         .select(`
           products:product_id(
@@ -23,7 +26,14 @@ export const OptimizedFeaturedProducts = () => {
             product_images(image_url, alt_text, is_primary, sort_order)
           )
         `)
-        .eq('is_active', true)
+        .eq('is_active', true);
+
+      // Apply global site setting to hide products without images
+      if (settings?.hide_products_without_images === true) {
+        featuredQuery = featuredQuery.not('products.product_images', 'is', null);
+      }
+
+      const { data: featuredData, error: featuredError } = await featuredQuery
         .order('display_order', { ascending: true });
       
       if (featuredError) {
@@ -37,7 +47,7 @@ export const OptimizedFeaturedProducts = () => {
       }
       
       // Fallback to products marked as featured if no manual selection
-      const { data, error } = await supabase
+      let fallbackQuery = supabase
         .from('products')
         .select(`
           *,
@@ -45,7 +55,14 @@ export const OptimizedFeaturedProducts = () => {
           product_images(image_url, alt_text, is_primary, sort_order)
         `)
         .eq('is_active', true)
-        .eq('is_featured', true)
+        .eq('is_featured', true);
+
+      // Apply global site setting to hide products without images
+      if (settings?.hide_products_without_images === true) {
+        fallbackQuery = fallbackQuery.not('product_images', 'is', null);
+      }
+
+      const { data, error } = await fallbackQuery
         .limit(8)
         .order('created_at', { ascending: false });
       

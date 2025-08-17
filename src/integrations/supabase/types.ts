@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1974,6 +1974,33 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -2214,26 +2241,26 @@ export type Database = {
       }
       assign_user_role: {
         Args: {
-          target_user_id: string
           target_role: Database["public"]["Enums"]["app_role"]
+          target_user_id: string
         }
         Returns: boolean
       }
       bulk_insert_products: {
         Args:
-          | { products_data: Json; import_id_param: string }
+          | { import_id_param: string; products_data: Json }
           | {
-              products_data: Json
               import_id_param: string
+              products_data: Json
               update_duplicates?: boolean
             }
         Returns: Json
       }
       bulk_update_order_status: {
         Args: {
-          order_ids: string[]
           new_status: Database["public"]["Enums"]["order_status"]
           notes?: string
+          order_ids: string[]
         }
         Returns: number
       }
@@ -2251,8 +2278,8 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -2262,44 +2289,44 @@ export type Database = {
       }
       remove_user_role: {
         Args: {
-          target_user_id: string
           target_role: Database["public"]["Enums"]["app_role"]
+          target_user_id: string
         }
         Returns: boolean
       }
       search_products: {
         Args: {
-          search_query: string
           category_filter?: string
-          min_price?: number
-          max_price?: number
           in_stock_only?: boolean
           limit_count?: number
+          max_price?: number
+          min_price?: number
           offset_count?: number
+          search_query: string
         }
         Returns: {
-          id: string
-          name: string
-          slug: string
-          price: number
+          category_id: string
+          category_name: string
           compare_at_price: number
-          stock_quantity: number
+          created_at: string
+          id: string
+          image_url: string
           is_active: boolean
           is_featured: boolean
-          category_id: string
-          created_at: string
-          category_name: string
-          image_url: string
+          name: string
+          price: number
           search_rank: number
+          slug: string
+          stock_quantity: number
         }[]
       }
       update_product_stock: {
         Args: {
+          p_movement_type: string
+          p_notes?: string
+          p_order_id?: string
           p_product_id: string
           p_quantity_change: number
-          p_movement_type: string
-          p_order_id?: string
-          p_notes?: string
         }
         Returns: boolean
       }
