@@ -42,14 +42,14 @@ export const FiltersPanel = ({
         <div className="space-y-2">
           <label className="text-sm font-medium">Category</label>
           <Select
-            value={filters.categoryId || ""}
-            onValueChange={(value) => onFilterChange('categoryId', value || undefined)}
+            value={filters.categoryId || "all"}
+            onValueChange={(value) => onFilterChange('categoryId', value === "all" ? undefined : value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All categories</SelectItem>
+              <SelectItem value="all">All categories</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -103,16 +103,14 @@ export const FiltersPanel = ({
         <div className="space-y-2">
           <label className="text-sm font-medium">Minimum Rating</label>
           <Select
-            value={filters.minRating?.toString() || ""}
-            onValueChange={(value) => 
-              onFilterChange('minRating', value ? Number(value) : undefined)
-            }
+            value={filters.minRating?.toString() || "any"}
+            onValueChange={(value) => onFilterChange('minRating', value === "any" ? undefined : Number(value))}
           >
             <SelectTrigger>
               <SelectValue placeholder="Any rating" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Any rating</SelectItem>
+              <SelectItem value="any">Any rating</SelectItem>
               <SelectItem value="4">4+ stars</SelectItem>
               <SelectItem value="3">3+ stars</SelectItem>
               <SelectItem value="2">2+ stars</SelectItem>

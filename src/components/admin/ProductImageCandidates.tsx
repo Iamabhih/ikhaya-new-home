@@ -165,12 +165,12 @@ export const ProductImageCandidates: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div>
               <label className="text-sm font-medium mb-2 block">Filter by Product</label>
-              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+              <Select value={selectedProduct || "all"} onValueChange={(value) => setSelectedProduct(value === "all" ? "" : value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All products" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All products</SelectItem>
+                  <SelectItem value="all">All products</SelectItem>
                   {products?.map((product) => (
                     <SelectItem key={product.id} value={product.id}>
                       {product.name} ({product.sku})

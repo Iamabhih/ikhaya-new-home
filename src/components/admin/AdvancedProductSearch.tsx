@@ -207,14 +207,14 @@ export const AdvancedProductSearch = ({
                   <div>
                     <Label>Category</Label>
                     <Select
-                      value={filters.categoryId || ""}
-                      onValueChange={(value) => handleFilterChange('categoryId', value || undefined)}
+                      value={filters.categoryId || "all"}
+                      onValueChange={(value) => handleFilterChange('categoryId', value === "all" ? undefined : value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="All categories" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All categories</SelectItem>
+                        <SelectItem value="all">All categories</SelectItem>
                         {categories?.map((category) => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
@@ -228,14 +228,14 @@ export const AdvancedProductSearch = ({
                   <div>
                     <Label>Brand</Label>
                     <Select
-                      value={filters.brandId || ""}
-                      onValueChange={(value) => handleFilterChange('brandId', value || undefined)}
+                      value={filters.brandId || "all"}
+                      onValueChange={(value) => handleFilterChange('brandId', value === "all" ? undefined : value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="All brands" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All brands</SelectItem>
+                        <SelectItem value="all">All brands</SelectItem>
                         {brands?.map((brand) => (
                           <SelectItem key={brand.id} value={brand.id}>
                             {brand.name}
@@ -305,14 +305,14 @@ export const AdvancedProductSearch = ({
                   <div>
                     <Label>Min Rating</Label>
                     <Select
-                      value={filters.minRating?.toString() || ""}
-                      onValueChange={(value) => handleFilterChange('minRating', value ? Number(value) : undefined)}
+                      value={filters.minRating?.toString() || "any"}
+                      onValueChange={(value) => handleFilterChange('minRating', value === "any" ? undefined : Number(value))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Any rating" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Any rating</SelectItem>
+                        <SelectItem value="any">Any rating</SelectItem>
                         <SelectItem value="4">4+ stars</SelectItem>
                         <SelectItem value="3">3+ stars</SelectItem>
                         <SelectItem value="2">2+ stars</SelectItem>
