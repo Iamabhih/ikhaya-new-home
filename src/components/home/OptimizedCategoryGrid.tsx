@@ -113,9 +113,9 @@ export const OptimizedCategoryGrid = () => {
 
   if (isLoading) {
     return (
-      <section className="py-16">
+      <section className="py-8 sm:py-12 md:py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">Shop by Category</h2>
           <UniversalLoading 
             variant="grid" 
             count={8} 
@@ -141,15 +141,15 @@ export const OptimizedCategoryGrid = () => {
 
   return (
     <ErrorBoundary>
-      <section className="py-16 premium-spacing">
-        <div className="premium-container">
-          <h2 className="text-4xl font-bold text-center mb-12 gradient-text-brand">Shop by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <section className="py-8 sm:py-12 md:py-16 premium-spacing">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 gradient-text-brand">Shop by Category</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
             {categories.map((category) => (
               <Link key={category.id} to={`/categories/${category.slug}`}>
                 <Card className="glass-card hover-lift group border-0 shadow-soft">
-                  <CardContent className="p-6 text-center">
-                    <div className="h-28 w-28 rounded-full mx-auto mb-4 overflow-hidden group-hover:scale-105 transition-transform">
+                  <CardContent className="p-3 sm:p-4 md:p-6 text-center">
+                    <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 rounded-full mx-auto mb-3 sm:mb-4 overflow-hidden group-hover:scale-105 transition-transform">
                       {category.image_url ? (
                         <img 
                           src={category.image_url} 
@@ -158,16 +158,16 @@ export const OptimizedCategoryGrid = () => {
                         />
                       ) : (
                         <div className="bg-primary/10 h-full w-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                          <span className="text-2xl font-bold text-primary">
+                          <span className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
                             {category.name.charAt(0)}
                           </span>
                         </div>
                       )}
                     </div>
-                    <h3 className="font-semibold text-premium group-hover:text-primary transition-colors duration-300">
+                    <h3 className="font-semibold text-premium group-hover:text-primary transition-colors duration-300 text-sm sm:text-base">
                       {category.name}
                     </h3>
-                    <p className="text-sm text-premium-muted mt-2">
+                    <p className="text-xs sm:text-sm text-premium-muted mt-1 sm:mt-2">
                       {category.product_count} products
                     </p>
                   </CardContent>

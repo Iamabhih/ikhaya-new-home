@@ -2,6 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { applyMobileOptimizations } from './utils/mobileOptimization'
 
 // Mobile debugging and error handling
 console.log('[Main] Initializing app on:', {
@@ -37,13 +38,9 @@ window.addEventListener('unhandledrejection', (event) => {
   event.preventDefault();
 });
 
-// Add mobile-specific optimizations
-if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-  console.log('[Main] Mobile device detected, applying optimizations');
-  
-  // Add touch-action optimization
-  document.body.style.touchAction = 'manipulation';
-}
+// Apply comprehensive mobile optimizations
+applyMobileOptimizations();
+console.log('[Main] Mobile optimizations applied');
 
 const rootElement = document.getElementById("root");
 
