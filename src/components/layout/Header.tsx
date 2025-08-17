@@ -124,6 +124,30 @@ export const Header = () => {
                         Returns
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/payments" className="w-full">
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Payments
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/subscriptions" className="w-full">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Subscriptions
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/homepage" className="w-full">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Homepage
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/production" className="w-full">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Production
+                      </Link>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
