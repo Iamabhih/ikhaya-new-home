@@ -4,12 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const FeaturedProducts = () => {
+  const { settings } = useSiteSettings();
+  
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ['featured-products'],
+    queryKey: ['featured-products', settings?.hide_products_without_images],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select(`
           *,
@@ -17,7 +20,14 @@ export const FeaturedProducts = () => {
           product_images(image_url, alt_text, is_primary, sort_order)
         `)
         .eq('is_active', true)
-        .eq('is_featured', true)
+        .eq('is_featured', true);
+
+      // Apply global site setting to hide products without images
+      if (settings?.hide_products_without_images === true) {
+        query = query.not('product_images', 'is', null);
+      }
+
+      const { data, error } = await query
         .order('created_at', { ascending: false })
         .limit(8);
       

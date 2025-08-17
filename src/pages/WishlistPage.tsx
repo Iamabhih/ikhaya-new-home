@@ -11,11 +11,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Heart, ShoppingBag, Info, UserPlus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const WishlistPage = () => {
   const { wishlistItems } = useWishlist();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { settings } = useSiteSettings();
   
   console.log('[WishlistPage] Rendering with:', { 
     wishlistItemsCount: wishlistItems.length, 
@@ -23,12 +25,12 @@ const WishlistPage = () => {
   });
   
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ['wishlist-products', wishlistItems],
+    queryKey: ['wishlist-products', wishlistItems, settings?.hide_products_without_images],
     queryFn: async () => {
       if (wishlistItems.length === 0) return [];
       
       const productIds = wishlistItems.map(item => item.product_id);
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select(`
           *,
@@ -37,6 +39,13 @@ const WishlistPage = () => {
         `)
         .in('id', productIds)
         .eq('is_active', true);
+
+      // Apply global site setting to hide products without images
+      if (settings?.hide_products_without_images === true) {
+        query = query.not('product_images', 'is', null);
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
       return data;
