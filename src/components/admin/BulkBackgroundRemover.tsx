@@ -10,6 +10,7 @@ import { removeBackground, loadImage } from "@/utils/backgroundRemoval";
 import { Trash2, Image, Download, RefreshCw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ProcessingStatus {
   id: string;
@@ -21,6 +22,9 @@ interface ProcessingStatus {
 const BulkBackgroundRemover = () => {
   const [processing, setProcessing] = useState<Map<string, ProcessingStatus>>(new Map());
   const [autoProcess, setAutoProcess] = useState(false);
+  const [imageType, setImageType] = useState<'general' | 'portrait' | 'product'>('product');
+  const [quality, setQuality] = useState<'fast' | 'balanced' | 'high'>('balanced');
+  const [preserveDetails, setPreserveDetails] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -77,8 +81,19 @@ const BulkBackgroundRemover = () => {
           progress: 50,
         })));
 
-        // Remove background
-        const processedBlob = await removeBackground(imageElement);
+        // Remove background with enhanced options
+        const processedBlob = await removeBackground(imageElement, {
+          imageType,
+          quality,
+          preserveDetails,
+          onProgress: (progress) => {
+            setProcessing(prev => new Map(prev.set(imageId, {
+              id: imageId,
+              status: 'processing',
+              progress: 50 + (progress * 0.3), // Scale progress from 50-80%
+            })));
+          }
+        });
         setProcessing(prev => new Map(prev.set(imageId, {
           id: imageId,
           status: 'processing',
@@ -232,14 +247,55 @@ const BulkBackgroundRemover = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="auto-process"
+                checked={autoProcess}
+                onCheckedChange={setAutoProcess}
+              />
+              <Label htmlFor="auto-process">
+                Auto-process new uploads
+              </Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image-type">Image Type</Label>
+              <Select value={imageType} onValueChange={(value) => setImageType(value as 'general' | 'portrait' | 'product')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="product">Product Images</SelectItem>
+                  <SelectItem value="portrait">Portrait/People</SelectItem>
+                  <SelectItem value="general">General Objects</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="quality">Processing Quality</Label>
+              <Select value={quality} onValueChange={(value) => setQuality(value as 'fast' | 'balanced' | 'high')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fast">Fast (Lower Quality)</SelectItem>
+                  <SelectItem value="balanced">Balanced</SelectItem>
+                  <SelectItem value="high">High Quality (Slower)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="flex items-center space-x-2">
             <Switch
-              id="auto-process"
-              checked={autoProcess}
-              onCheckedChange={setAutoProcess}
+              id="preserve-details"
+              checked={preserveDetails}
+              onCheckedChange={setPreserveDetails}
             />
-            <Label htmlFor="auto-process">
-              Auto-process new uploads
+            <Label htmlFor="preserve-details">
+              Preserve fine details and smooth edges
             </Label>
           </div>
 
