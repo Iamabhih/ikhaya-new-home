@@ -3,11 +3,11 @@ import { ArrowRight, Sparkles, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 export const HeroSection = () => {
   return (
-    <section className="relative bg-background py-12 sm:py-16 md:py-20 lg:py-32 overflow-hidden"
+    <section className="relative bg-background py-8 sm:py-12 md:py-16 overflow-hidden"
       style={{ 
         marginTop: 0,
-        paddingTop: 'max(4rem, calc(56px + 2rem))', // Account for mobile header height
-        minHeight: 'calc(100vh - 56px)' // Viewport height minus mobile header
+        paddingTop: 'max(2rem, calc(56px + 1rem))', // Account for mobile header height
+        minHeight: 'auto' // Remove fixed viewport height
       }}
     >
       {/* Subtle background elements */}
