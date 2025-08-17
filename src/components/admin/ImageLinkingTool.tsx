@@ -389,6 +389,13 @@ export const ImageLinkingTool = ({ onNavigateToScanner }: ImageLinkingToolProps 
     addLog('info', '🚀 Starting image linking via Edge Function...');
     
     try {
+      setProgress(prev => ({
+        ...prev,
+        status: 'linking',
+        currentStep: 'Calling edge function...',
+        total: 1
+      }));
+
       const { data, error } = await supabase.functions.invoke('link-product-images', {
         body: {
           bucketName: 'product-images',
@@ -400,39 +407,58 @@ export const ImageLinkingTool = ({ onNavigateToScanner }: ImageLinkingToolProps 
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        addLog('error', `Edge Function invocation error: ${error.message}`);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('No response data from Edge Function');
+      }
       
-      if (data?.success) {
-        addLog('success', `✅ Edge Function completed: ${data.stats.successfulLinks} products linked`);
+      if (data.success) {
+        const stats = data.stats || {};
+        addLog('success', `✅ Edge Function completed: ${stats.successfulLinks || 0} products linked`);
         
         setStats({
-          totalProducts: data.stats.productsFound,
-          productsWithImages: data.stats.successfulLinks,
-          productsWithoutImages: data.stats.productsFound - data.stats.successfulLinks,
-          totalStorageImages: data.stats.imagesScanned
+          totalProducts: stats.productsFound || 0,
+          productsWithImages: stats.successfulLinks || 0,
+          productsWithoutImages: (stats.productsFound || 0) - (stats.successfulLinks || 0),
+          totalStorageImages: stats.imagesScanned || 0
         });
         
         setProgress({
           status: 'completed',
-          currentStep: `Completed: ${data.stats.successfulLinks} products linked`,
-          processed: data.stats.matchesFound,
-          successful: data.stats.successfulLinks,
-          failed: data.stats.errors,
-          total: data.stats.matchesFound,
+          currentStep: `Completed: ${stats.successfulLinks || 0} products linked`,
+          processed: stats.matchesFound || 0,
+          successful: stats.successfulLinks || 0,
+          failed: stats.errors || 0,
+          total: stats.matchesFound || 0,
           errors: data.errors || []
         });
         
         // Log any errors from the Edge Function
         if (data.errors && data.errors.length > 0) {
+          addLog('warn', `Edge Function completed with ${data.errors.length} errors:`);
           data.errors.forEach((error: string) => addLog('error', error));
         }
         
-        toast.success(`Successfully linked ${data.stats.successfulLinks} products to images!`);
+        // Log detailed stats
+        addLog('info', `📊 Results: ${stats.imagesScanned || 0} images scanned, ${stats.matchesFound || 0} matches found, ${stats.successfulLinks || 0} linked, ${stats.errors || 0} errors`);
+        
+        toast.success(`Successfully linked ${stats.successfulLinks || 0} products to images!`);
       } else {
-        throw new Error(data?.error || 'Edge Function failed');
+        const errorMsg = data.error || data.message || 'Edge Function failed without specific error';
+        addLog('error', `Edge Function failed: ${errorMsg}`);
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
       addLog('error', `Edge Function error: ${error.message}`);
+      setProgress(prev => ({
+        ...prev,
+        status: 'error',
+        currentStep: `Error: ${error.message}`
+      }));
       throw error;
     }
   }, [config, addLog]);
