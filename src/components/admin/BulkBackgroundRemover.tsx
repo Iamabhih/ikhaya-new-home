@@ -1,30 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { removeBackground, loadImage } from "@/utils/backgroundRemoval";
-import { Trash2, Image, Download, RefreshCw } from "lucide-react";
+import { useBatchProcessor } from "@/hooks/useBatchProcessor";
+import { Trash2, Image, Download, RefreshCw, Settings, Play, Square, RotateCcw, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
-interface ProcessingStatus {
+interface ProductImage {
   id: string;
-  status: 'pending' | 'processing' | 'completed' | 'error';
-  progress: number;
-  error?: string;
+  image_url: string;
+  alt_text: string;
+  image_status: string;
+  products?: {
+    id: string;
+    name: string;
+    sku: string;
+  };
+}
+
+interface BatchSettings {
+  batchSize: number;
+  delayBetweenBatches: number;
+  delayBetweenItems: number;
+  maxRetries: number;
 }
 
 const BulkBackgroundRemover = () => {
-  const [processing, setProcessing] = useState<Map<string, ProcessingStatus>>(new Map());
-  const [autoProcess, setAutoProcess] = useState(false);
   const [imageType, setImageType] = useState<'general' | 'portrait' | 'product'>('product');
   const [quality, setQuality] = useState<'fast' | 'balanced' | 'high'>('balanced');
   const [preserveDetails, setPreserveDetails] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [batchSettings, setBatchSettings] = useState<BatchSettings>({
+    batchSize: 5,
+    delayBetweenBatches: 2000, // 2 seconds
+    delayBetweenItems: 500,    // 0.5 seconds
+    maxRetries: 2
+  });
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -48,147 +69,129 @@ const BulkBackgroundRemover = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as ProductImage[];
     },
   });
 
-  const processImageMutation = useMutation({
-    mutationFn: async ({ imageId, imageUrl }: { imageId: string; imageUrl: string }) => {
-      // Update status to processing
-      setProcessing(prev => new Map(prev.set(imageId, {
-        id: imageId,
-        status: 'processing',
-        progress: 10,
-      })));
+  // Background removal processor function
+  const processImageFunction = async (
+    image: ProductImage, 
+    onProgress?: (progress: number) => void
+  ) => {
+    // Download the image
+    const response = await fetch(image.image_url);
+    if (!response.ok) throw new Error('Failed to download image');
+    
+    const blob = await response.blob();
+    onProgress?.(20);
 
-      try {
-        // Download the image
-        const response = await fetch(imageUrl);
-        if (!response.ok) throw new Error('Failed to download image');
-        
-        const blob = await response.blob();
-        setProcessing(prev => new Map(prev.set(imageId, {
-          id: imageId,
-          status: 'processing',
-          progress: 30,
-        })));
+    // Load image element
+    const imageElement = await loadImage(blob);
+    onProgress?.(40);
 
-        // Load image element
-        const imageElement = await loadImage(blob);
-        setProcessing(prev => new Map(prev.set(imageId, {
-          id: imageId,
-          status: 'processing',
-          progress: 50,
-        })));
+    // Remove background
+    const processedBlob = await removeBackground(imageElement, {
+      imageType,
+      quality,
+      preserveDetails,
+      onProgress: (progress) => onProgress?.(40 + (progress * 0.4))
+    });
+    onProgress?.(80);
 
-        // Remove background with enhanced options
-        const processedBlob = await removeBackground(imageElement, {
-          imageType,
-          quality,
-          preserveDetails,
-          onProgress: (progress) => {
-            setProcessing(prev => new Map(prev.set(imageId, {
-              id: imageId,
-              status: 'processing',
-              progress: 50 + (progress * 0.3), // Scale progress from 50-80%
-            })));
-          }
-        });
-        setProcessing(prev => new Map(prev.set(imageId, {
-          id: imageId,
-          status: 'processing',
-          progress: 80,
-        })));
+    // Upload processed image
+    const fileName = `bg-removed-${Date.now()}-${image.id}.png`;
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, processedBlob, {
+        contentType: 'image/png',
+        upsert: true
+      });
 
-        // Upload processed image
-        const fileName = `bg-removed-${Date.now()}-${imageId}.png`;
-        const { error: uploadError } = await supabase.storage
-          .from('product-images')
-          .upload(fileName, processedBlob, {
-            contentType: 'image/png',
-            upsert: true
-          });
+    if (uploadError) throw uploadError;
 
-        if (uploadError) throw uploadError;
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName);
 
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(fileName);
+    // Update product image record
+    const { error: updateError } = await supabase
+      .from('product_images')
+      .update({ 
+        image_url: publicUrl,
+        image_status: 'background_removed',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', image.id);
 
-        // Update product image record
-        const { error: updateError } = await supabase
-          .from('product_images')
-          .update({ 
-            image_url: publicUrl,
-            image_status: 'background_removed',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', imageId);
+    if (updateError) throw updateError;
+    onProgress?.(100);
 
-        if (updateError) throw updateError;
+    return { imageId: image.id, newUrl: publicUrl };
+  };
 
-        setProcessing(prev => new Map(prev.set(imageId, {
-          id: imageId,
-          status: 'completed',
-          progress: 100,
-        })));
-
-        return { imageId, newUrl: publicUrl };
-      } catch (error) {
-        setProcessing(prev => new Map(prev.set(imageId, {
-          id: imageId,
-          status: 'error',
-          progress: 0,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        })));
-        throw error;
-      }
+  // Initialize batch processor
+  const batchProcessor = useBatchProcessor(processImageFunction, {
+    batchSize: batchSettings.batchSize,
+    delayBetweenBatches: batchSettings.delayBetweenBatches,
+    delayBetweenItems: batchSettings.delayBetweenItems,
+    maxRetries: batchSettings.maxRetries,
+    onBatchStart: (batchIndex, items) => {
+      toast({
+        title: `Processing Batch ${batchIndex}`,
+        description: `Processing ${items.length} images...`,
+      });
     },
-    onSuccess: () => {
+    onBatchComplete: (batchIndex, results) => {
+      const successful = results.filter(r => r !== null).length;
+      toast({
+        title: `Batch ${batchIndex} Complete`,
+        description: `Successfully processed ${successful}/${results.length} images`,
+      });
+    },
+    onItemComplete: (itemId) => {
       queryClient.invalidateQueries({ queryKey: ['product-images-for-bg-removal'] });
-      toast({
-        title: "Background Removed",
-        description: "Image background has been successfully removed.",
-      });
     },
-    onError: (error) => {
-      toast({
-        title: "Processing Failed",
-        description: error instanceof Error ? error.message : 'Failed to remove background',
-        variant: "destructive",
-      });
-    },
+    onItemError: (itemId, error) => {
+      console.error(`Error processing image ${itemId}:`, error);
+    }
   });
 
-  const handleProcessImage = async (imageId: string, imageUrl: string) => {
-    if (processing.has(imageId)) return;
-    
-    setProcessing(prev => new Map(prev.set(imageId, {
-      id: imageId,
-      status: 'pending',
-      progress: 0,
-    })));
-
-    processImageMutation.mutate({ imageId, imageUrl });
-  };
-
-  const handleBulkProcess = async () => {
-    if (!productImages) return;
-    
-    const imagesToProcess = productImages.filter(img => 
-      img.image_status !== 'background_removed' && !processing.has(img.id)
-    );
-
-    for (const image of imagesToProcess) {
-      await handleProcessImage(image.id, image.image_url);
-      // Add small delay between requests to prevent overwhelming the system
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  // Add unprocessed images to batch processor when images load
+  useEffect(() => {
+    if (productImages) {
+      const unprocessedImages = productImages.filter(
+        img => img.image_status !== 'background_removed'
+      );
+      
+      const batchItems = unprocessedImages.map(img => ({
+        id: img.id,
+        data: img
+      }));
+      
+      batchProcessor.addItems(batchItems);
     }
+  }, [productImages]);
+
+  const handleStartProcessing = () => {
+    batchProcessor.startProcessing();
   };
 
-  const clearProcessedStatus = () => {
-    setProcessing(new Map());
+  const handleStopProcessing = () => {
+    batchProcessor.stopProcessing();
+    toast({
+      title: "Processing stopped",
+      description: "Batch processing has been cancelled",
+      variant: "destructive"
+    });
+  };
+
+  const handleRetryFailed = () => {
+    batchProcessor.retryFailedItems();
+    toast({
+      title: "Retrying failed items",
+      description: "Failed items have been reset for reprocessing",
+    });
   };
 
   if (isLoading) {
@@ -197,11 +200,12 @@ const BulkBackgroundRemover = () => {
 
   const totalImages = productImages?.length || 0;
   const processedImages = productImages?.filter(img => img.image_status === 'background_removed').length || 0;
-  const currentlyProcessing = Array.from(processing.values()).filter(p => p.status === 'processing').length;
+  const stats = batchProcessor.getStats;
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Images</CardTitle>
@@ -222,43 +226,147 @@ const BulkBackgroundRemover = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Processing</CardTitle>
+            <CardTitle className="text-sm font-medium">In Queue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{currentlyProcessing}</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.pending}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+            <CardTitle className="text-sm font-medium">Processing</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{totalImages - processedImages}</div>
+            <div className="text-2xl font-bold text-orange-600">{stats.processing}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Failed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Batch Progress */}
+      {batchProcessor.isProcessing && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Batch Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Batch {batchProcessor.currentBatch} of {batchProcessor.totalBatches}</span>
+                <span>{stats.progress}% Complete</span>
+              </div>
+              <Progress value={stats.progress} className="w-full" />
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Processing in batches of {batchSettings.batchSize} with {batchSettings.delayBetweenBatches/1000}s delay between batches
+                </AlertDescription>
+              </Alert>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Control Panel */}
       <Card>
         <CardHeader>
-          <CardTitle>Bulk Background Removal</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="w-5 h-5" />
+            Batch Background Removal
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSettings(!showSettings)}
+              className="ml-auto"
+            >
+              <Settings className="w-4 h-4" />
+              Settings
+            </Button>
+          </CardTitle>
           <CardDescription>
-            Automatically remove backgrounds from all product images using AI
+            Process images in optimized batches to prevent browser overload
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="auto-process"
-                checked={autoProcess}
-                onCheckedChange={setAutoProcess}
-              />
-              <Label htmlFor="auto-process">
-                Auto-process new uploads
-              </Label>
-            </div>
+          {/* Settings Panel */}
+          {showSettings && (
+            <Card className="bg-muted/50">
+              <CardHeader>
+                <CardTitle className="text-sm">Batch Processing Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Batch Size: {batchSettings.batchSize}</Label>
+                    <Slider
+                      value={[batchSettings.batchSize]}
+                      onValueChange={([value]) => setBatchSettings(prev => ({ ...prev, batchSize: value }))}
+                      min={1}
+                      max={10}
+                      step={1}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Number of images to process simultaneously
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Delay Between Batches: {batchSettings.delayBetweenBatches/1000}s</Label>
+                    <Slider
+                      value={[batchSettings.delayBetweenBatches]}
+                      onValueChange={([value]) => setBatchSettings(prev => ({ ...prev, delayBetweenBatches: value }))}
+                      min={500}
+                      max={10000}
+                      step={500}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Rest time between batches to prevent overload
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Delay Between Items: {batchSettings.delayBetweenItems}ms</Label>
+                    <Slider
+                      value={[batchSettings.delayBetweenItems]}
+                      onValueChange={([value]) => setBatchSettings(prev => ({ ...prev, delayBetweenItems: value }))}
+                      min={0}
+                      max={2000}
+                      step={100}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Delay between individual items in a batch
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Max Retries: {batchSettings.maxRetries}</Label>
+                    <Slider
+                      value={[batchSettings.maxRetries]}
+                      onValueChange={([value]) => setBatchSettings(prev => ({ ...prev, maxRetries: value }))}
+                      min={0}
+                      max={5}
+                      step={1}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Maximum retry attempts for failed items
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
+          {/* Processing Options */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="image-type">Image Type</Label>
               <Select value={imageType} onValueChange={(value) => setImageType(value as 'general' | 'portrait' | 'product')}>
@@ -286,56 +394,80 @@ const BulkBackgroundRemover = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex items-center space-x-2 pt-6">
+              <Switch
+                id="preserve-details"
+                checked={preserveDetails}
+                onCheckedChange={setPreserveDetails}
+              />
+              <Label htmlFor="preserve-details">
+                Preserve fine details
+              </Label>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="preserve-details"
-              checked={preserveDetails}
-              onCheckedChange={setPreserveDetails}
-            />
-            <Label htmlFor="preserve-details">
-              Preserve fine details and smooth edges
-            </Label>
-          </div>
-
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleBulkProcess}
-              disabled={currentlyProcessing > 0}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Process All Remaining
-            </Button>
+          {/* Control Buttons */}
+          <div className="flex gap-2 flex-wrap">
+            {!batchProcessor.isProcessing ? (
+              <Button 
+                onClick={handleStartProcessing}
+                disabled={stats.pending === 0}
+                className="flex items-center gap-2"
+              >
+                <Play className="h-4 w-4" />
+                Start Batch Processing ({stats.pending} items)
+              </Button>
+            ) : (
+              <Button 
+                variant="destructive"
+                onClick={handleStopProcessing}
+                className="flex items-center gap-2"
+              >
+                <Square className="h-4 w-4" />
+                Stop Processing
+              </Button>
+            )}
+            
+            {stats.failed > 0 && (
+              <Button 
+                variant="outline"
+                onClick={handleRetryFailed}
+                className="flex items-center gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Retry Failed ({stats.failed})
+              </Button>
+            )}
             
             <Button 
               variant="outline" 
-              onClick={clearProcessedStatus}
+              onClick={batchProcessor.clearItems}
               className="flex items-center gap-2"
             >
               <Trash2 className="h-4 w-4" />
-              Clear Status
+              Clear Queue
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* Processing Queue Display */}
       <Card>
         <CardHeader>
-          <CardTitle>Image Processing Status</CardTitle>
+          <CardTitle>Processing Queue</CardTitle>
           <CardDescription>
-            Monitor the background removal progress for each image
+            Monitor individual image processing status in the current batch
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {productImages?.map((image) => {
-              const status = processing.get(image.id);
+            {batchProcessor.items.slice(0, 50).map((item) => {
+              const image = item.data;
               const isProcessed = image.image_status === 'background_removed';
               
               return (
-                <div key={image.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <img 
                       src={image.image_url} 
@@ -349,41 +481,33 @@ const BulkBackgroundRemover = () => {
                       <p className="text-xs text-muted-foreground">
                         SKU: {image.products?.sku}
                       </p>
+                      {item.error && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Error: {item.error}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {status && (
+                    {item.status === 'processing' && (
                       <div className="w-32">
-                        <Progress value={status.progress} className="h-2" />
-                        <p className="text-xs text-center mt-1">{status.progress}%</p>
+                        <Progress value={item.progress} className="h-2" />
+                        <p className="text-xs text-center mt-1">{item.progress}%</p>
                       </div>
                     )}
                     
                     <Badge variant={
-                      isProcessed ? 'default' : 
-                      status?.status === 'processing' ? 'secondary' :
-                      status?.status === 'error' ? 'destructive' :
-                      status?.status === 'completed' ? 'default' : 'outline'
+                      isProcessed || item.status === 'completed' ? 'default' : 
+                      item.status === 'processing' ? 'secondary' :
+                      item.status === 'error' ? 'destructive' : 'outline'
                     }>
-                      {isProcessed ? 'Processed' :
-                       status?.status === 'processing' ? 'Processing' :
-                       status?.status === 'error' ? 'Error' :
-                       status?.status === 'completed' ? 'Complete' : 'Pending'}
+                      {isProcessed || item.status === 'completed' ? 'Processed' :
+                       item.status === 'processing' ? 'Processing' :
+                       item.status === 'error' ? 'Error' : 'Pending'}
                     </Badge>
 
-                    {!isProcessed && !status && (
-                      <Button 
-                        size="sm"
-                        onClick={() => handleProcessImage(image.id, image.image_url)}
-                        className="flex items-center gap-1"
-                      >
-                        <Image className="h-3 w-3" />
-                        Process
-                      </Button>
-                    )}
-
-                    {isProcessed && (
+                    {(isProcessed || item.status === 'completed') && (
                       <Button 
                         size="sm" 
                         variant="outline"
@@ -398,6 +522,11 @@ const BulkBackgroundRemover = () => {
                 </div>
               );
             })}
+            {batchProcessor.items.length > 50 && (
+              <div className="text-center py-2 text-sm text-muted-foreground">
+                Showing first 50 items. {batchProcessor.items.length - 50} more in queue.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
