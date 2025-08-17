@@ -33,6 +33,8 @@ const ProductDetailPage = () => {
         .single();
       
       if (error) throw error;
+      console.log('Product data:', data);
+      console.log('Product images:', data?.product_images);
       return data;
     },
     enabled: !!slug,

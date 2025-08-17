@@ -37,6 +37,9 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
     return (a.sort_order || 0) - (b.sort_order || 0);
   });
   
+  console.log('ProductImageGallery - sortedImages:', sortedImages);
+  console.log('ProductImageGallery - currentImageIndex:', currentImageIndex);
+  
   const currentImage = sortedImages[currentImageIndex];
   
   // Preload all images for smooth gallery experience
@@ -50,15 +53,21 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   }, [currentImageIndex]);
 
   const goToPrevious = () => {
-    setCurrentImageIndex((prev) => 
-      prev === 0 ? sortedImages.length - 1 : prev - 1
-    );
+    console.log('goToPrevious called, current index:', currentImageIndex, 'total images:', sortedImages.length);
+    setCurrentImageIndex((prev) => {
+      const newIndex = prev === 0 ? sortedImages.length - 1 : prev - 1;
+      console.log('Setting new index:', newIndex);
+      return newIndex;
+    });
   };
 
   const goToNext = () => {
-    setCurrentImageIndex((prev) => 
-      prev === sortedImages.length - 1 ? 0 : prev + 1
-    );
+    console.log('goToNext called, current index:', currentImageIndex, 'total images:', sortedImages.length);
+    setCurrentImageIndex((prev) => {
+      const newIndex = prev === sortedImages.length - 1 ? 0 : prev + 1;
+      console.log('Setting new index:', newIndex);
+      return newIndex;
+    });
   };
 
   const handleZoomIn = () => {
@@ -177,7 +186,10 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
             {sortedImages.map((image, index) => (
               <button
                 key={image.id}
-                onClick={() => setCurrentImageIndex(index)}
+                onClick={() => {
+                  console.log('Thumbnail clicked, setting index to:', index);
+                  setCurrentImageIndex(index);
+                }}
                 className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-3 transition-all duration-200 ${
                   index === currentImageIndex 
                     ? 'border-primary shadow-lg scale-105' 
