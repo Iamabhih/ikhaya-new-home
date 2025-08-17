@@ -164,15 +164,32 @@ export const removeBackground = async (
     console.log('Starting enhanced background removal process...');
     onProgress?.(5);
     
-    const config = MODEL_CONFIGS[imageType];
-    console.log(`Using ${imageType} model: ${config.model}`);
+    // Use a more reliable model configuration
+    let modelName = 'Xenova/segformer-b0-finetuned-ade-512-512';
+    let deviceConfig: any = { device: 'cpu' }; // Start with CPU as fallback
     
-    const segmenter = await pipeline('image-segmentation', config.model, {
-      device: config.device as 'webgpu',
-      dtype: config.dtype as 'fp16',
-    });
+    // Try WebGPU first, fallback to CPU if not available
+    try {
+      if ('gpu' in navigator && (navigator as any).gpu) {
+        deviceConfig = { device: 'webgpu', dtype: 'fp16' };
+        console.log('Using WebGPU acceleration');
+      }
+    } catch (e) {
+      console.log('WebGPU not available, using CPU');
+    }
     
-    onProgress?.(20);
+    console.log(`Creating segmentation pipeline with model: ${modelName}`);
+    
+    let segmenter;
+    try {
+      segmenter = await pipeline('image-segmentation', modelName, deviceConfig);
+    } catch (modelError) {
+      console.warn('Failed to load primary model, trying fallback:', modelError);
+      // Fallback to a more basic model
+      segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b2-finetuned-ade-512-512', { device: 'cpu' });
+    }
+    
+    onProgress?.(25);
     
     // Convert HTMLImageElement to canvas with enhanced preprocessing
     const canvas = document.createElement('canvas');
@@ -184,7 +201,7 @@ export const removeBackground = async (
     const wasResized = resizeImageIfNeeded(canvas, ctx, imageElement);
     console.log(`Image ${wasResized ? 'was' : 'was not'} resized. Final dimensions: ${canvas.width}x${canvas.height}`);
     
-    onProgress?.(30);
+    onProgress?.(35);
     
     // Enhanced preprocessing for better segmentation
     if (quality === 'high') {
@@ -198,47 +215,64 @@ export const removeBackground = async (
     const imageData = canvas.toDataURL('image/jpeg', quality === 'fast' ? 0.7 : 0.9);
     console.log('Image converted to base64 with enhanced preprocessing');
     
-    onProgress?.(40);
+    onProgress?.(45);
     
     // Process the image with the segmentation model
-    console.log('Processing with enhanced segmentation model...');
-    const result = await segmenter(imageData);
+    console.log('Processing with segmentation model...');
+    let result;
+    try {
+      result = await segmenter(imageData);
+    } catch (segError) {
+      console.error('Segmentation failed:', segError);
+      throw new Error(`Segmentation failed: ${segError instanceof Error ? segError.message : 'Unknown error'}`);
+    }
     
     onProgress?.(70);
     
     console.log('Segmentation result:', result);
     
     if (!result || !Array.isArray(result) || result.length === 0) {
-      throw new Error('Invalid segmentation result');
+      throw new Error('No segmentation results returned from model');
     }
     
     // Find the best mask for the main object
     let bestMask = null;
     let bestScore = 0;
+    let bestSegment = null;
     
     for (const segment of result) {
-      if (segment.mask && segment.score > bestScore) {
+      if (segment.mask && typeof segment.score === 'number' && segment.score > bestScore) {
         // Look for person, object, or foreground-related labels
         const label = segment.label?.toLowerCase() || '';
-        const isMainObject = ['person', 'object', 'foreground', 'human', 'product'].some(term => 
+        const isMainObject = ['person', 'object', 'foreground', 'human', 'product', 'thing'].some(term => 
           label.includes(term)
         );
         
-        if (isMainObject || segment.score > 0.8) {
+        if (isMainObject || segment.score > 0.3) { // Lowered threshold for better detection
           bestMask = segment.mask;
           bestScore = segment.score;
+          bestSegment = segment;
         }
       }
     }
     
-    // Fallback to first mask if no specific object found
-    if (!bestMask && result[0]?.mask) {
-      bestMask = result[0].mask;
+    // Fallback to highest scoring segment if no specific object found
+    if (!bestMask && result.length > 0) {
+      const sortedResults = result
+        .filter(r => r.mask && typeof r.score === 'number')
+        .sort((a, b) => b.score - a.score);
+      
+      if (sortedResults.length > 0) {
+        bestMask = sortedResults[0].mask;
+        bestSegment = sortedResults[0];
+      }
     }
     
-    if (!bestMask) {
+    if (!bestMask || !bestMask.data) {
       throw new Error('No valid mask found in segmentation result');
     }
+    
+    console.log(`Using segment with label: ${bestSegment?.label}, score: ${bestSegment?.score}`);
     
     onProgress?.(80);
     
@@ -257,19 +291,44 @@ export const removeBackground = async (
     let outputImageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
     const data = outputImageData.data;
     
-    // Enhanced masking with edge preservation
-    for (let i = 0; i < bestMask.data.length; i++) {
-      const maskValue = bestMask.data[i];
-      const pixelIdx = i * 4;
+    // Validate mask data length
+    const expectedLength = canvas.width * canvas.height;
+    if (bestMask.data.length !== expectedLength) {
+      console.warn(`Mask data length mismatch. Expected: ${expectedLength}, Got: ${bestMask.data.length}`);
+      // Try to handle the mismatch gracefully
+      const minLength = Math.min(bestMask.data.length, expectedLength);
       
-      if (quality === 'high' && preserveDetails) {
-        // Use soft masking for better edge quality
-        const alpha = Math.round(maskValue * 255);
-        data[pixelIdx + 3] = alpha;
-      } else {
-        // Standard binary masking
-        const alpha = maskValue > 0.5 ? 255 : 0;
-        data[pixelIdx + 3] = alpha;
+      for (let i = 0; i < minLength; i++) {
+        const maskValue = bestMask.data[i];
+        const pixelIdx = i * 4;
+        
+        if (pixelIdx + 3 < data.length) {
+          if (quality === 'high' && preserveDetails) {
+            // Use soft masking for better edge quality
+            const alpha = Math.round(maskValue * 255);
+            data[pixelIdx + 3] = alpha;
+          } else {
+            // Standard binary masking with threshold
+            const alpha = maskValue > 0.3 ? 255 : 0; // Lowered threshold
+            data[pixelIdx + 3] = alpha;
+          }
+        }
+      }
+    } else {
+      // Enhanced masking with edge preservation
+      for (let i = 0; i < bestMask.data.length; i++) {
+        const maskValue = bestMask.data[i];
+        const pixelIdx = i * 4;
+        
+        if (quality === 'high' && preserveDetails) {
+          // Use soft masking for better edge quality
+          const alpha = Math.round(maskValue * 255);
+          data[pixelIdx + 3] = alpha;
+        } else {
+          // Standard binary masking with improved threshold
+          const alpha = maskValue > 0.3 ? 255 : 0; // Lowered threshold for better object detection
+          data[pixelIdx + 3] = alpha;
+        }
       }
     }
     
@@ -277,17 +336,21 @@ export const removeBackground = async (
     
     // Apply post-processing enhancements
     if (preserveDetails && quality !== 'fast') {
-      outputImageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-      
-      // Refine edges
-      outputImageData = refineEdges(outputImageData, quality === 'high' ? 3 : 2);
-      
-      // Apply slight blur for smooth edges
-      if (quality === 'high') {
-        outputImageData = applyGaussianBlur(outputImageData, 0.8);
+      try {
+        outputImageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+        
+        // Refine edges
+        outputImageData = refineEdges(outputImageData, quality === 'high' ? 3 : 2);
+        
+        // Apply slight blur for smooth edges
+        if (quality === 'high') {
+          outputImageData = applyGaussianBlur(outputImageData, 0.8);
+        }
+        
+        outputCtx.putImageData(outputImageData, 0, 0);
+      } catch (postProcessError) {
+        console.warn('Post-processing failed, using basic result:', postProcessError);
       }
-      
-      outputCtx.putImageData(outputImageData, 0, 0);
     }
     
     onProgress?.(95);
@@ -298,23 +361,28 @@ export const removeBackground = async (
     const compressionQuality = quality === 'high' ? 1.0 : quality === 'balanced' ? 0.95 : 0.85;
     
     return new Promise((resolve, reject) => {
-      outputCanvas.toBlob(
-        (blob) => {
-          if (blob) {
-            console.log('Successfully created enhanced final blob');
-            onProgress?.(100);
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create blob'));
-          }
-        },
-        'image/png',
-        compressionQuality
-      );
+      try {
+        outputCanvas.toBlob(
+          (blob) => {
+            if (blob) {
+              console.log(`Successfully created final blob (${blob.size} bytes)`);
+              onProgress?.(100);
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create blob - canvas.toBlob returned null'));
+            }
+          },
+          'image/png',
+          compressionQuality
+        );
+      } catch (blobError) {
+        reject(new Error(`Failed to create blob: ${blobError instanceof Error ? blobError.message : 'Unknown error'}`));
+      }
     });
   } catch (error) {
-    console.error('Error in enhanced background removal:', error);
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : `Unknown error: ${error}`;
+    console.error('Error in enhanced background removal:', errorMessage);
+    throw new Error(`Background removal failed: ${errorMessage}`);
   }
 };
 
