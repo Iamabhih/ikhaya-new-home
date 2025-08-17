@@ -76,6 +76,12 @@ export const Header = () => {
               >
                 Contact
               </Link>
+              <Link 
+                to="/ozz-sa" 
+                className="premium-nav-item"
+              >
+                OZZ SA
+              </Link>
               
               {/* Admin Dropdown */}
               {isAdmin() && (
