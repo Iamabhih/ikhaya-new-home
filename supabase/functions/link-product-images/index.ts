@@ -18,10 +18,10 @@ function extractSKUs(filename: string, fullPath?: string): ExtractedSKU[] {
   
   if (!filename || typeof filename !== 'string') return skus;
   
-  const cleanFilename = filename.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+  const cleanFilename = filename.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '').trim();
   
   // Strategy 1: Exact filename match (highest confidence)
-  if (/^\d{3,}$/.test(cleanFilename)) {
+  if (/^\d{3,8}$/.test(cleanFilename)) {
     skus.push({
       value: cleanFilename,
       confidence: 100,
@@ -29,12 +29,19 @@ function extractSKUs(filename: string, fullPath?: string): ExtractedSKU[] {
     });
     
     // Add zero-padding variations
-    if (cleanFilename.length === 5 && !cleanFilename.startsWith('0')) {
+    if (cleanFilename.length >= 3 && cleanFilename.length <= 6 && !cleanFilename.startsWith('0')) {
       skus.push({
         value: '0' + cleanFilename,
         confidence: 95,
         source: 'exact'
       });
+      if (cleanFilename.length <= 5) {
+        skus.push({
+          value: '00' + cleanFilename,
+          confidence: 90,
+          source: 'exact'
+        });
+      }
     }
     
     // Remove leading zeros variation
@@ -66,28 +73,39 @@ function extractSKUs(filename: string, fullPath?: string): ExtractedSKU[] {
     });
   }
 
-  // Strategy 3: SKU with prefix/suffix (e.g., "IMG_12345_001")
-  const patterns = [
-    /(?:IMG_|PHOTO_|PIC_)?(\w+)(?:_\d+|_[A-Z]+)?/i,
-    /(\d{4,})/g,
-    /([A-Z]+\d+)/gi,
-    /(\d+[A-Z]+)/gi
+  // Strategy 3: Enhanced SKU extraction patterns
+  const enhancedPatterns = [
+    // Direct numeric patterns (prioritized)
+    /\b(\d{3,8})\b/g,
+    // Prefixed patterns
+    /(?:IMG_|PHOTO_|PIC_|PROD_|SKU_)(\d{3,8})/gi,
+    // Suffixed patterns  
+    /(\d{3,8})(?:_\d+|_[A-Z]+|\.jpg|\.png|\.jpeg)?$/i,
+    // Alphanumeric patterns
+    /([A-Z]+\d{3,8})/gi,
+    /(\d{3,8}[A-Z]+)/gi,
+    // Dot separated (like 451752.jpg becomes 451752)
+    /^(\d{3,8})(?:\.|_)/,
+    // Complex patterns like "Product_451752_001.jpg"
+    /[Pp]roduct[_\s]*(\d{3,8})/gi,
+    // Fallback: any 4-8 digit sequence
+    /\b(\d{4,8})\b/g
   ];
 
-  patterns.forEach(pattern => {
-    const matches = cleanFilename.match(pattern);
-    if (matches) {
-      matches.forEach(match => {
-        const cleanMatch = match.replace(/^(IMG_|PHOTO_|PIC_)/i, '').replace(/_.*$/, '');
-        if (/^\d{3,}$/.test(cleanMatch) && !skus.find(s => s.value === cleanMatch)) {
-          skus.push({
-            value: cleanMatch,
-            confidence: 80,
-            source: 'pattern'
-          });
-        }
-      });
-    }
+  enhancedPatterns.forEach((pattern, index) => {
+    let matches = [...cleanFilename.matchAll(pattern)];
+    matches.forEach(match => {
+      const potentialSku = match[1];
+      if (potentialSku && /^\d{3,8}$/.test(potentialSku) && !skus.find(s => s.value === potentialSku)) {
+        // Higher confidence for earlier patterns
+        const confidence = Math.max(40, 90 - (index * 10));
+        skus.push({
+          value: potentialSku,
+          confidence,
+          source: 'pattern'
+        });
+      }
+    });
   });
 
   // Strategy 4: Path-based extraction (e.g., "/products/ABC123/image.jpg")
@@ -226,12 +244,14 @@ Deno.serve(async (req) => {
     // Parse request body for configuration
     let config = {
       bucketName: 'product-images', // Correct bucket name
-      confidenceThreshold: 60,
+      confidenceThreshold: 40, // Lower threshold to catch more matches
       batchSize: 10,
-      skipExisting: true,
+      skipExisting: false, // Allow multiple images per product
       scanPath: '', // Root by default
-      limit: 5000, // Maximum images to process
-      autoSetPrimary: true
+      limit: 10000, // Increased limit for comprehensive scan
+      autoSetPrimary: true,
+      allowMultipleImages: true, // New flag for comprehensive galleries
+      maxImagesPerProduct: 10 // Limit images per product
     };
     
     try {
@@ -317,18 +337,32 @@ Deno.serve(async (req) => {
     
     console.log(`Built SKU index with ${skuToProduct.size} entries`);
     
-    // Step 3: Get products that already have images (if skipExisting)
-    let productsWithImages = new Set<string>();
+    // Step 3: Get products with existing images and their counts
+    const productImageCounts = new Map<string, number>();
+    console.log('Fetching existing product images...');
+    const { data: existingImages, error: existingError } = await supabase
+      .from('product_images')
+      .select('product_id');
+    
+    if (!existingError && existingImages) {
+      existingImages.forEach(img => {
+        const count = productImageCounts.get(img.product_id) || 0;
+        productImageCounts.set(img.product_id, count + 1);
+      });
+      console.log(`Found ${productImageCounts.size} products with existing images`);
+    }
+    
+    // For skipExisting: only skip products with primary images
+    let productsWithPrimaryImages = new Set<string>();
     if (config.skipExisting) {
-      console.log('Fetching products that already have images...');
-      const { data: existingImages, error: existingError } = await supabase
+      const { data: primaryImages, error: primaryError } = await supabase
         .from('product_images')
         .select('product_id')
         .eq('is_primary', true);
       
-      if (!existingError && existingImages) {
-        productsWithImages = new Set(existingImages.map(img => img.product_id));
-        console.log(`Found ${productsWithImages.size} products with existing images`);
+      if (!primaryError && primaryImages) {
+        productsWithPrimaryImages = new Set(primaryImages.map(img => img.product_id));
+        console.log(`Found ${productsWithPrimaryImages.size} products with primary images`);
       }
     }
     
@@ -476,9 +510,16 @@ Deno.serve(async (req) => {
       }
       
       if (bestMatch && bestScore >= config.confidenceThreshold) {
-        // Skip if product already has images
-        if (config.skipExisting && productsWithImages.has(bestMatch.id)) {
-          console.log(`Skipping ${bestMatch.sku} - already has images`);
+        // Skip logic based on configuration
+        const currentImageCount = productImageCounts.get(bestMatch.id) || 0;
+        
+        if (config.skipExisting && productsWithPrimaryImages.has(bestMatch.id)) {
+          console.log(`Skipping ${bestMatch.sku} - already has primary image`);
+          continue;
+        }
+        
+        if (currentImageCount >= config.maxImagesPerProduct) {
+          console.log(`Skipping ${bestMatch.sku} - already has ${currentImageCount} images (max: ${config.maxImagesPerProduct})`);
           continue;
         }
         
@@ -488,7 +529,10 @@ Deno.serve(async (req) => {
           score: bestScore
         });
         
-        console.log(`Matched ${bestMatch.sku} to ${image.filename} (score: ${bestScore})`);
+        // Update the count for future iterations
+        productImageCounts.set(bestMatch.id, currentImageCount + 1);
+        
+        console.log(`✅ Exact match found: ${bestMatch.sku} (${bestScore}%) → ${bestMatch.name} (${bestMatch.sku})`);
       }
     }
     
@@ -592,7 +636,7 @@ Deno.serve(async (req) => {
       sessionId,
       stats: {
         productsFound: products.length,
-        productsWithExistingImages: productsWithImages.size,
+        productsWithExistingImages: productImageCounts.size,
         imagesScanned: allImages.length,
         matchesFound: matches.length,
         successfulLinks: successCount,
