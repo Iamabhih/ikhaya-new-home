@@ -242,6 +242,12 @@ const ProductsPage = () => {
     setCurrentPage(1);
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const clearSearch = () => {
     setSearchQuery("");
     setFacetedFilters({});
@@ -456,7 +462,7 @@ const ProductsPage = () => {
                 currentPage={currentPage}
                 totalPages={totalPages}
                 totalCount={totalCount}
-                onPageChange={setCurrentPage}
+                onPageChange={handlePageChange}
                 className="mt-8"
               />
             )}

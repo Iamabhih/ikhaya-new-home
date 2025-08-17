@@ -1,6 +1,5 @@
-
-import { useParams, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
@@ -12,11 +11,11 @@ import { AutocompleteSearch } from "@/components/products/AutocompleteSearch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Grid, List, Search, SlidersHorizontal } from "lucide-react";
+import { Grid, List, Search } from "lucide-react";
 import { UniversalLoading } from "@/components/ui/universal-loading";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
-const CategoryPage = () => {
+const CategoryProductsPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { settings } = useSiteSettings();
@@ -174,7 +173,7 @@ const CategoryPage = () => {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "Categories", href: "/categories" },
-    { label: category?.name || "", isActive: true }
+    { label: category.name, isActive: true }
   ];
 
   return (
@@ -188,9 +187,9 @@ const CategoryPage = () => {
 
           <div className="text-center max-w-4xl mx-auto mb-8">
             <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              {category?.name || "Category"}
+              {category.name}
             </h1>
-            {category?.description && (
+            {category.description && (
               <p className="text-muted-foreground text-xl leading-relaxed mb-8">
                 {category.description}
               </p>
@@ -204,7 +203,7 @@ const CategoryPage = () => {
                 <AutocompleteSearch
                   onSearch={handleSearch}
                   initialValue={searchQuery}
-                  placeholder={`Search in ${category?.name || 'category'}...`}
+                  placeholder={`Search in ${category.name}...`}
                 />
               </div>
             </Card>
@@ -333,4 +332,4 @@ const CategoryPage = () => {
   );
 };
 
-export default CategoryPage;
+export default CategoryProductsPage;

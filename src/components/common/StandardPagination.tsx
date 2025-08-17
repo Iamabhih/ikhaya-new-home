@@ -27,25 +27,33 @@ export const StandardPagination = ({
     const range = [];
     const rangeWithDots = [];
 
+    // Always show first page
+    if (totalPages === 1) return [1];
+    
+    // Calculate range around current page
     for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
       range.push(i);
     }
 
+    // Add first page and ellipsis if needed
     if (currentPage - delta > 2) {
       rangeWithDots.push(1, '...');
     } else {
       rangeWithDots.push(1);
     }
 
+    // Add middle range
     rangeWithDots.push(...range);
 
+    // Add ellipsis and last page if needed
     if (currentPage + delta < totalPages - 1) {
       rangeWithDots.push('...', totalPages);
-    } else {
+    } else if (totalPages > 1 && !rangeWithDots.includes(totalPages)) {
       rangeWithDots.push(totalPages);
     }
 
-    return rangeWithDots;
+    // Remove duplicates and return unique pages
+    return [...new Set(rangeWithDots)];
   };
 
   const visiblePages = totalPages > 1 ? getVisiblePages() : [];
