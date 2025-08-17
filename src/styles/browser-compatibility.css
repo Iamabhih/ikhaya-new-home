@@ -1,0 +1,143 @@
+/* Cross-Browser Compatibility Enhancements */
+
+/* Webkit/Blink browsers (Chrome, Safari, Edge) */
+@supports (-webkit-backdrop-filter: blur(1px)) {
+  .glass-card {
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* Firefox specific optimizations */
+@-moz-document url-prefix() {
+  /* Better scrollbar styling for Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)) hsl(var(--muted));
+  }
+  
+  /* Firefox specific shadow fallbacks */
+  .shadow-premium {
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Safari specific optimizations */
+@supports (-webkit-appearance: none) and (not (contain: paint)) {
+  /* Safari-specific input styling */
+  input[type="search"] {
+    -webkit-appearance: none;
+    border-radius: var(--radius);
+  }
+  
+  /* Safari backdrop-filter enhancement */
+  .glass-card {
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+  }
+}
+
+/* Edge/IE specific fallbacks */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-card {
+    background: hsl(var(--background) / 0.95);
+    border: 1px solid hsl(var(--border));
+  }
+}
+
+/* Chrome/Chromium specific optimizations */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary));
+    border-radius: 4px;
+    transition: background 0.2s ease;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary-glow));
+  }
+  
+  /* Better selection styling */
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
+  
+  ::-moz-selection {
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Sharper borders on high DPI displays */
+  .border-gradient::before {
+    transform: scale(0.5);
+    transform-origin: 0 0;
+    width: 200%;
+    height: 200%;
+  }
+}
+
+/* Dark mode color scheme support */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not(.dark) {
+    color-scheme: light;
+  }
+}
+
+/* Better print support across browsers */
+@media print {
+  /* Force light theme for printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .glass-card {
+    background: white !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  .glass-card {
+    background: Canvas;
+    border: 1px solid ButtonText;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  
+  .shadow-premium {
+    box-shadow: none;
+  }
+}
+
+/* Reduced transparency mode */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-card {
+    background: hsl(var(--card));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

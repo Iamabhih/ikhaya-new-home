@@ -86,8 +86,8 @@ export default {
 					5: 'hsl(var(--chart-5))'
 				},
 				glass: {
-					bg: 'var(--glass-bg)',
-					border: 'var(--glass-border)'
+					bg: 'hsl(var(--glass-bg))',
+					border: 'hsl(var(--glass-border))'
 				}
 			},
 			backgroundImage: {

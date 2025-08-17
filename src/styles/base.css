@@ -172,23 +172,43 @@
 @layer base {
   * {
     @apply border-border;
+    /* Enhanced box-sizing for all browsers */
+    box-sizing: border-box;
   }
 
+  /* Enhanced body styling for cross-browser consistency */
   body {
     @apply bg-background text-foreground;
-    /* Prevent horizontal scroll on mobile */
+    /* Cross-browser font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    
+    /* Prevent horizontal scroll on all browsers */
     overflow-x: hidden;
-    /* Ensure minimum font size for iOS zoom prevention */
+    width: 100%;
+    
+    /* iOS zoom prevention with exact 16px minimum */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    
+    /* Enhanced scrolling for all mobile browsers */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
   }
 
-  /* Better image handling */
+  /* Enhanced image handling for all browsers */
   img {
     height: auto;
     max-width: 100%;
-    /* Prevent layout shift */
+    /* Prevent layout shift and improve rendering */
     vertical-align: middle;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    /* Better image loading experience */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
   }
 
   /* Better text rendering */

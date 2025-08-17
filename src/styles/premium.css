@@ -3,11 +3,16 @@
 @layer utilities {
   /* Glass morphism effects */
   .glass {
-    @apply bg-glass-bg backdrop-blur-md border border-glass-border;
+    @apply bg-glass-bg border border-glass-border;
+    /* Enhanced backdrop filter with fallbacks */
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
   }
   
   .glass-card {
-    @apply bg-background/80 backdrop-blur-md border border-border/20 shadow-glass;
+    @apply bg-background/80 border border-border/20 shadow-glass;
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
   }
   
   /* Premium hover effects */
