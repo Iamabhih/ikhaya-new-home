@@ -11,9 +11,10 @@ import { DeleteAllOrders } from "@/components/admin/DeleteAllOrders";
 import { ProductImageReport } from "@/components/admin/ProductImageReport";
 import { CategoryImageManager } from "@/components/admin/CategoryImageManager";
 import { ProductImageCandidates } from "@/components/admin/ProductImageCandidates";
+import BulkBackgroundRemover from "@/components/admin/BulkBackgroundRemover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder } from "lucide-react";
+import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -31,7 +32,7 @@ const SuperAdminSettings = () => {
             </div>
 
             <Tabs defaultValue="orders" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-10">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-11">
                 <TabsTrigger value="orders" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
                   Orders
@@ -75,6 +76,10 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="image-candidates" className="flex items-center gap-2">
                   <Image className="h-4 w-4" />
                   Image Candidates
+                </TabsTrigger>
+                <TabsTrigger value="background-remover" className="flex items-center gap-2">
+                  <Scissors className="h-4 w-4" />
+                  BG Remover
                 </TabsTrigger>
               </TabsList>
 
@@ -250,6 +255,20 @@ const SuperAdminSettings = () => {
                   </CardHeader>
                   <CardContent>
                     <ProductImageCandidates />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="background-remover">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>AI Background Remover</CardTitle>
+                    <CardDescription>
+                      Automatically remove backgrounds from product images using AI. Process individual images or run bulk operations.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BulkBackgroundRemover />
                   </CardContent>
                 </Card>
               </TabsContent>
