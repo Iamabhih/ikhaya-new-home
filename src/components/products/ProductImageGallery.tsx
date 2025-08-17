@@ -147,7 +147,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
           <Button
             variant="secondary"
             size="icon"
-            className="absolute top-4 right-4 bg-background/90 hover:bg-background shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-4 right-4 bg-background/95 hover:bg-primary hover:text-primary-foreground shadow-premium backdrop-blur-sm border border-white/20 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
             onClick={() => setIsFullscreen(true)}
           >
             <Maximize2 className="h-4 w-4" />
@@ -158,7 +158,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               <Button
                 variant="secondary"
                 size="icon"
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/95 hover:bg-primary hover:text-primary-foreground shadow-premium backdrop-blur-sm border border-white/20 opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-110"
                 onClick={goToPrevious}
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -166,7 +166,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               <Button
                 variant="secondary"
                 size="icon"
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/95 hover:bg-primary hover:text-primary-foreground shadow-premium backdrop-blur-sm border border-white/20 opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-110"
                 onClick={goToNext}
               >
                 <ChevronRight className="h-5 w-5" />
