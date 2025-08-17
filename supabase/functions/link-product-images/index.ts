@@ -75,37 +75,44 @@ function extractSKUs(filename: string, fullPath?: string): ExtractedSKU[] {
 
   // Strategy 3: Enhanced SKU extraction patterns
   const enhancedPatterns = [
-    // Direct numeric patterns (prioritized)
+    // Direct numeric patterns (prioritized) - FIXED: Added /g flag
     /\b(\d{3,8})\b/g,
-    // Prefixed patterns
+    // Prefixed patterns - FIXED: Added /g flag
     /(?:IMG_|PHOTO_|PIC_|PROD_|SKU_)(\d{3,8})/gi,
-    // Suffixed patterns  
-    /(\d{3,8})(?:_\d+|_[A-Z]+|\.jpg|\.png|\.jpeg)?$/i,
-    // Alphanumeric patterns
+    // Suffixed patterns - FIXED: Added /g flag  
+    /(\d{3,8})(?:_\d+|_[A-Z]+|\.jpg|\.png|\.jpeg)?$/gi,
+    // Alphanumeric patterns - Already have /g flag
     /([A-Z]+\d{3,8})/gi,
     /(\d{3,8}[A-Z]+)/gi,
-    // Dot separated (like 451752.jpg becomes 451752)
-    /^(\d{3,8})(?:\.|_)/,
-    // Complex patterns like "Product_451752_001.jpg"
+    // Dot separated - FIXED: Added /g flag
+    /^(\d{3,8})(?:\.|_)/g,
+    // Complex patterns like "Product_451752_001.jpg" - Already have /g flag
     /[Pp]roduct[_\s]*(\d{3,8})/gi,
-    // Fallback: any 4-8 digit sequence
+    // Fallback: any 4-8 digit sequence - Already have /g flag
     /\b(\d{4,8})\b/g
   ];
 
   enhancedPatterns.forEach((pattern, index) => {
-    let matches = [...cleanFilename.matchAll(pattern)];
-    matches.forEach(match => {
-      const potentialSku = match[1];
-      if (potentialSku && /^\d{3,8}$/.test(potentialSku) && !skus.find(s => s.value === potentialSku)) {
-        // Higher confidence for earlier patterns
-        const confidence = Math.max(40, 90 - (index * 10));
-        skus.push({
-          value: potentialSku,
-          confidence,
-          source: 'pattern'
-        });
-      }
-    });
+    try {
+      let matches = [...cleanFilename.matchAll(pattern)];
+      console.log(`Pattern ${index} (${pattern}) found ${matches.length} matches in "${cleanFilename}"`);
+      
+      matches.forEach(match => {
+        const potentialSku = match[1];
+        if (potentialSku && /^\d{3,8}$/.test(potentialSku) && !skus.find(s => s.value === potentialSku)) {
+          // Higher confidence for earlier patterns, but minimum 30
+          const confidence = Math.max(30, 90 - (index * 8));
+          skus.push({
+            value: potentialSku,
+            confidence,
+            source: 'pattern'
+          });
+          console.log(`  → Extracted SKU: ${potentialSku} (confidence: ${confidence})`);
+        }
+      });
+    } catch (error) {
+      console.error(`Error in enhanced pattern ${index} (${pattern}): ${error.message}`);
+    }
   });
 
   // Strategy 4: Path-based extraction (e.g., "/products/ABC123/image.jpg")
