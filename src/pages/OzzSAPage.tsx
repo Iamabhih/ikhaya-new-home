@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Phone, Clock, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
+import ozzLogo from "@/assets/ozz-logo.png";
 
 export default function OzzSAPage() {
   const hours = [
@@ -20,6 +21,13 @@ export default function OzzSAPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
+            <div className="flex justify-center mb-6">
+              <img 
+                src={ozzLogo} 
+                alt="OZZ Cash and Carry Logo" 
+                className="h-24 w-auto"
+              />
+            </div>
             <h1 className="text-4xl font-bold text-foreground mb-4">OZZ SA</h1>
             <Badge variant="secondary" className="text-lg px-4 py-2">
               The Foundation of Ikhaya
