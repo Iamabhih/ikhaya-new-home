@@ -56,16 +56,18 @@ export const PaginatedProductList = ({
   const effectiveSearchTerm = searchFilters?.query ?? debouncedSearchTerm;
   const effectiveCategoryFilter = searchFilters?.categoryId ?? categoryFilter;
   const effectiveStatusFilter = searchFilters?.inStockOnly ? 'in-stock' : 
-                               searchFilters?.featuredOnly ? 'featured' : statusFilter;
+                                searchFilters?.featuredOnly ? 'featured' : statusFilter;
+  const hideWithoutImages = searchFilters?.hideWithoutImages ?? false;
 
   // Optimized query with consistent caching
   const { data: productsData, isLoading, error } = useQuery({
-    queryKey: ['admin-paginated-products', currentPage, effectiveSearchTerm, effectiveCategoryFilter, effectiveStatusFilter, refreshTrigger, searchFilters],
+    queryKey: ['admin-paginated-products', currentPage, effectiveSearchTerm, effectiveCategoryFilter, effectiveStatusFilter, hideWithoutImages, refreshTrigger, searchFilters],
     queryFn: async () => {
       console.log('Fetching admin products with filters:', {
         searchTerm: effectiveSearchTerm,
         categoryFilter: effectiveCategoryFilter,
         statusFilter: effectiveStatusFilter,
+        hideWithoutImages,
         page: currentPage,
         externalFilters: searchFilters
       });
@@ -75,8 +77,14 @@ export const PaginatedProductList = ({
         .select(`
           id, name, sku, price, stock_quantity, is_active, is_featured, 
           category_id, created_at,
-          categories:category_id(name)
+          categories:category_id(name),
+          product_images!left(id)
         `, { count: 'exact' });
+
+      // Filter out products without images if requested
+      if (hideWithoutImages) {
+        query = query.not('product_images', 'is', null);
+      }
 
       // Apply search filters
       if (effectiveSearchTerm) {
