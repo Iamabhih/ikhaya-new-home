@@ -27,29 +27,26 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
   console.log(`Extracting SKUs from filename: ${filename}, clean: ${cleanName}`);
   
   // Strategy 1: Exact filename as SKU (highest confidence)
-  // Handle pure numeric SKUs (3+ digits) - be more inclusive
-  const exactNumericMatch = cleanName.match(/^\d{3,}$/);
-  if (exactNumericMatch) {
+  if (/^\d{3,}$/.test(cleanName)) {
     skus.push({
-      sku: exactNumericMatch[0],
-      confidence: 100, // Increased from 95
+      sku: cleanName,
+      confidence: 100,
       source: 'exact_numeric_filename'
     });
-    console.log(`Found exact numeric SKU: ${exactNumericMatch[0]}`);
+    console.log(`Found exact numeric SKU: ${cleanName}`);
     
-    // Add zero-padding variations for common patterns
-    const sku = exactNumericMatch[0];
-    if (sku.length === 5 && !sku.startsWith('0')) {
+    // Add zero-padding variations
+    if (cleanName.length === 5 && !cleanName.startsWith('0')) {
       skus.push({
-        sku: '0' + sku,
+        sku: '0' + cleanName,
         confidence: 95,
         source: 'zero_padded_variation'
       });
     }
     
     // Remove leading zeros variation
-    if (sku.startsWith('0') && sku.length > 3) {
-      const trimmed = sku.replace(/^0+/, '');
+    if (cleanName.startsWith('0') && cleanName.length > 3) {
+      const trimmed = cleanName.replace(/^0+/, '');
       if (trimmed.length >= 3) {
         skus.push({
           sku: trimmed,
@@ -60,102 +57,67 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     }
   }
   
-  // Strategy 2: Multiple SKUs in filename (e.g., 455161.455162.455163.png)
-  const multiSKUPatterns = [
-    /^(\d{3,})\.(\d{3,})\.(\d{3,})$/, // Three SKUs
-    /^(\d{3,})\.(\d{3,})$/,          // Two SKUs
-    /^(\d{3,})[._-](\d{3,})[._-](\d{3,})$/, // Three with separators
-    /^(\d{3,})[._-](\d{3,})$/        // Two with separators
-  ];
-  
-  for (const pattern of multiSKUPatterns) {
-    const match = cleanName.match(pattern);
-    if (match) {
-      for (let i = 1; i < match.length; i++) {
-        if (match[i] && !skus.some(s => s.sku === match[i])) {
-          skus.push({
-            sku: match[i],
-            confidence: 95 - (i - 1) * 5, // First SKU gets highest confidence
-            source: 'multi_sku'
-          });
-          console.log(`Found multi-SKU ${i}: ${match[i]}`);
-        }
+  // Strategy 2: Multiple SKUs in filename
+  const multiSkuPattern = /^(\d+(?:\.\d+)+)$/;
+  const multiSkuMatch = cleanName.match(multiSkuPattern);
+  if (multiSkuMatch) {
+    const potentialSkus = cleanName.split('.');
+    potentialSkus.forEach((sku, index) => {
+      if (/^\d{3,}$/.test(sku) && !skus.find(s => s.sku === sku)) {
+        skus.push({
+          sku: sku,
+          confidence: 85 - (index * 5),
+          source: 'multi_sku'
+        });
+        console.log(`Found multi-SKU ${index + 1}: ${sku}`);
       }
-      break; // Don't process other patterns if we found a multi-SKU
-    }
-  }
-  
-  // Strategy 3: Alphanumeric SKUs (digits + letters)
-  const alphanumericMatch = cleanName.match(/^(\d{3,}[a-zA-Z]+)$/);
-  if (alphanumericMatch && !skus.some(s => s.sku === alphanumericMatch[1])) {
-    skus.push({
-      sku: alphanumericMatch[1],
-      confidence: 90,
-      source: 'exact_alphanumeric_filename'
     });
-    console.log(`Found exact alphanumeric SKU: ${alphanumericMatch[1]}`);
-    
-    // Also extract base numeric portion
-    const baseNumeric = alphanumericMatch[1].match(/^(\d+)/);
-    if (baseNumeric && !skus.some(s => s.sku === baseNumeric[1])) {
-      skus.push({
-        sku: baseNumeric[1],
-        confidence: 85,
-        source: 'base_numeric_from_alphanumeric'
-      });
-      console.log(`Found base numeric from alphanumeric: ${baseNumeric[1]}`);
-    }
   }
-  
-  // Strategy 4: SKUs with suffixes (e.g., 444492b.png)
-  const skuWithSuffixMatch = cleanName.match(/^(\d{3,})[a-zA-Z]+$/);
-  if (skuWithSuffixMatch && !skus.some(s => s.sku === skuWithSuffixMatch[1])) {
-    skus.push({
-      sku: skuWithSuffixMatch[1],
-      confidence: 80,
-      source: 'numeric_with_suffix'
+
+  // Strategy 3: SKU with suffix/prefix patterns
+  if (!skus.length) {
+    const patterns = [
+      /^(\d{3,})[a-zA-Z]+$/,           // numeric with suffix
+      /^[a-zA-Z]+(\d{3,})$/,          // prefix with numeric
+      /(\d{3,})/g                     // any 3+ digit sequence
+    ];
+
+    patterns.forEach((pattern, patternIndex) => {
+      const matches = cleanName.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          const numericPart = match.replace(/[^0-9]/g, '');
+          if (/^\d{3,}$/.test(numericPart) && !skus.find(s => s.sku === numericPart)) {
+            let confidence = 70 - (patternIndex * 10);
+            
+            // Boost confidence based on context
+            if (cleanName === numericPart) confidence = 90;
+            else if (cleanName.startsWith(numericPart)) confidence = 75;
+            else if (cleanName.endsWith(numericPart)) confidence = 70;
+            
+            skus.push({
+              sku: numericPart,
+              confidence,
+              source: 'numeric_pattern'
+            });
+            console.log(`Found numeric pattern: ${numericPart} (confidence: ${confidence}%)`);
+          }
+        });
+      }
     });
-    console.log(`Found SKU with suffix: ${skuWithSuffixMatch[1]}`);
   }
   
-  // Strategy 5: Any sequence of 3+ digits anywhere in filename (more inclusive)
-  if (!skus.length) { // Only if no high-confidence matches found
-    const allNumericPatterns = cleanName.match(/\d{3,}/g);
-    if (allNumericPatterns) {
-      allNumericPatterns.forEach(pattern => {
-        if (!skus.some(s => s.sku === pattern)) {
-          let confidence = 50; // Lowered threshold
-          
-          // Boost confidence based on position and context
-          if (cleanName === pattern) confidence = 90;
-          else if (cleanName.startsWith(pattern)) confidence = 70;
-          else if (cleanName.endsWith(pattern)) confidence = 65;
-          else if (allNumericPatterns.length === 1) confidence = 60;
-          
-          skus.push({
-            sku: pattern,
-            confidence,
-            source: 'numeric_pattern'
-          });
-          console.log(`Found numeric pattern: ${pattern} (confidence: ${confidence}%)`);
-        }
-      });
-    }
-  }
-  
-  // Strategy 6: Path-based extraction (folder names) - only if needed
+  // Strategy 4: Path-based extraction
   if (fullPath && skus.length === 0) {
     const pathParts = fullPath.split('/');
     for (const part of pathParts) {
-      // Check for numeric folder names
-      const pathNumericSKU = part.match(/^\d{3,}$/);
-      if (pathNumericSKU && !skus.some(s => s.sku === pathNumericSKU[0])) {
+      if (/^\d{3,}$/.test(part) && !skus.some(s => s.sku === part)) {
         skus.push({
-          sku: pathNumericSKU[0],
+          sku: part,
           confidence: 60,
           source: 'path_folder_numeric'
         });
-        console.log(`Found path numeric SKU: ${pathNumericSKU[0]}`);
+        console.log(`Found path numeric SKU: ${part}`);
       }
     }
   }
@@ -457,21 +419,58 @@ Deno.serve(async (req) => {
                     
                     console.log(`Linking ${image.name} (SKU: ${matchedSku || 'name-based'}) to product ${matchingProduct.name} (${matchingProduct.sku})`);
                     
-                    const { error: insertError } = await supabase
-                      .from('product_images')
-                      .insert({
-                        product_id: matchingProduct.id,
-                        image_url: imageUrl,
-                        alt_text: `${matchingProduct.name} - ${matchingProduct.sku}`,
-                        is_primary: true,
-                        sort_order: 0
-                      });
+                    // High confidence matches go directly to product_images
+                    const bestSku = potentialSKUs[0];
+                    if (bestSku && bestSku.confidence >= 85) {
+                      const { error: insertError } = await supabase
+                        .from('product_images')
+                        .insert({
+                          product_id: matchingProduct.id,
+                          image_url: imageUrl,
+                          alt_text: `${matchingProduct.name} - ${image.name}`,
+                          is_primary: true,
+                          sort_order: 999,
+                          image_status: 'active',
+                          match_confidence: bestSku.confidence,
+                          match_metadata: {
+                            source: bestSku.source,
+                            filename: image.name,
+                            session_id: sessionId
+                          },
+                          auto_matched: true
+                        });
 
-                    if (insertError) {
-                      errors.push(`Failed to link ${image.name} to ${matchingProduct.name}: ${insertError.message}`);
+                      if (insertError) {
+                        errors.push(`Failed to link ${image.name} to ${matchingProduct.name}: ${insertError.message}`);
+                      } else {
+                        matchedCount++;
+                        console.log(`Successfully linked ${image.name} to product ${matchingProduct.name} via SKU: ${matchedSku}`);
+                      }
                     } else {
-                      matchedCount++;
-                      console.log(`Successfully linked ${image.name} to product ${matchingProduct.name} via SKU: ${matchedSku || 'name-based'}`);
+                      // Lower confidence matches go to candidates table
+                      const { error: candidateError } = await supabase
+                        .from('product_image_candidates')
+                        .insert({
+                          product_id: matchingProduct.id,
+                          image_url: imageUrl,
+                          alt_text: `${matchingProduct.name} - ${image.name}`,
+                          match_confidence: bestSku?.confidence || 50,
+                          match_metadata: {
+                            source: bestSku?.source || matchSource,
+                            filename: image.name,
+                            session_id: sessionId
+                          },
+                          extracted_sku: matchedSku,
+                          source_filename: image.name,
+                          status: 'pending'
+                        });
+
+                      if (candidateError) {
+                        errors.push(`Failed to create candidate for ${image.name}: ${candidateError.message}`);
+                      } else {
+                        matchedCount++;
+                        console.log(`Created candidate: ${image.name} -> ${matchingProduct.name} (${bestSku?.confidence || 50}%)`);
+                      }
                     }
                   } else {
                     console.log(`Product ${matchingProduct.name} already has an image, skipping ${image.name}`);

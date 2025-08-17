@@ -12,164 +12,99 @@ interface ExtractedSKU {
   source: 'exact' | 'numeric' | 'multi' | 'path' | 'pattern' | 'fuzzy';
 }
 
-// Enhanced SKU extraction function - identical to frontend version
+// Enhanced SKU extraction function - optimized version
 function extractSKUs(filename: string, fullPath?: string): ExtractedSKU[] {
   const skus: ExtractedSKU[] = [];
   
   if (!filename || typeof filename !== 'string') return skus;
   
-  // Clean filename - remove extension and trim
-  const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|gif|webp|bmp|svg|tiff?)$/i, '');
-  const cleanName = nameWithoutExt.trim();
+  const cleanFilename = filename.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
   
-  console.log(`Extracting SKUs from: ${filename} (clean: ${cleanName})`);
-  
-  // 1. EXACT MATCH - Pure numeric filename (highest confidence)
-  if (/^\d{3,8}$/.test(cleanName)) {
+  // Strategy 1: Exact filename match (highest confidence)
+  if (/^\d{3,}$/.test(cleanFilename)) {
     skus.push({
-      value: cleanName,
+      value: cleanFilename,
       confidence: 100,
       source: 'exact'
     });
     
-    // Add zero-padded variations for 5-digit numbers
-    if (cleanName.length === 5 && !cleanName.startsWith('0')) {
+    // Add zero-padding variations
+    if (cleanFilename.length === 5 && !cleanFilename.startsWith('0')) {
       skus.push({
-        value: '0' + cleanName,
+        value: '0' + cleanFilename,
         confidence: 95,
         source: 'exact'
       });
     }
     
-    // Remove leading zeros
-    if (cleanName.startsWith('0') && cleanName.length > 3) {
-      skus.push({
-        value: cleanName.substring(1),
-        confidence: 95,
-        source: 'exact'
-      });
+    // Remove leading zeros variation
+    if (cleanFilename.startsWith('0') && cleanFilename.length > 3) {
+      const trimmed = cleanFilename.replace(/^0+/, '');
+      if (trimmed.length >= 3) {
+        skus.push({
+          value: trimmed,
+          confidence: 95,
+          source: 'exact'
+        });
+      }
     }
   }
-  
-  // 2. MULTI-SKU FILES (e.g., "445033.446723.png", "319027.319026.PNG")
-  const multiSkuMatch = cleanName.match(/^(\d{3,8})(?:[._-](\d{3,8}))+$/);
+
+  // Strategy 2: Multiple SKUs in filename (e.g., "20729.20730.453443.png")
+  const multiSkuPattern = /^(\d+(?:\.\d+)+)$/;
+  const multiSkuMatch = cleanFilename.match(multiSkuPattern);
   if (multiSkuMatch) {
-    console.log(`Found multi-SKU pattern in ${cleanName}`);
-    const allNumbers = cleanName.match(/\d{3,8}/g) || [];
-    allNumbers.forEach((num, index) => {
-      skus.push({
-        value: num,
-        confidence: 90 - (index * 5), // First SKU has higher confidence
-        source: 'multi'
-      });
-    });
-  }
-  
-  // 3. NUMERIC PATTERNS anywhere in filename (should be early for broader matching)
-  const numericMatches = cleanName.match(/\b\d{3,8}\b/g) || [];
-  if (numericMatches.length > 0) {
-    numericMatches.forEach(num => {
-      // Check if not already added with higher confidence
-      if (!skus.some(s => s.value === num && s.confidence >= 70)) {
-        let confidence = 70;
-        
-        // Boost confidence based on position and context
-        if (cleanName === num) confidence = 100; // Pure numeric
-        else if (cleanName.startsWith(num)) confidence = 85;
-        else if (numericMatches.length === 1) confidence = 80;
-        else if (cleanName.endsWith(num)) confidence = 75;
-        
+    const potentialSkus = cleanFilename.split('.');
+    potentialSkus.forEach((sku, index) => {
+      if (/^\d{3,}$/.test(sku) && !skus.find(s => s.value === sku)) {
         skus.push({
-          value: num,
-          confidence,
-          source: 'numeric'
+          value: sku,
+          confidence: 85 - (index * 5),
+          source: 'multi'
         });
       }
     });
   }
-  
-  // 4. PATH-BASED EXTRACTION
-  if (fullPath) {
-    const pathParts = fullPath.split('/').filter(p => p && p !== filename);
-    pathParts.forEach(part => {
-      // Check if folder name is a pure number
-      if (/^\d{3,8}$/.test(part)) {
-        if (!skus.some(s => s.value === part)) {
-          skus.push({
-            value: part,
-            confidence: 70,
-            source: 'path'
-          });
-        }
-      }
-      
-      // Extract numbers from folder names
-      const pathNumbers = part.match(/\b\d{3,8}\b/g) || [];
-      pathNumbers.forEach(num => {
-        if (!skus.some(s => s.value === num)) {
-          skus.push({
-            value: num,
-            confidence: 65,
-            source: 'path'
-          });
-        }
-      });
-    });
-  }
-  
-  // 5. PATTERN EXTRACTION (SKU-123456, ITEM_123456, etc.)
+
+  // Strategy 3: SKU with prefix/suffix (e.g., "IMG_12345_001")
   const patterns = [
-    /(?:SKU|sku|ITEM|item|PRODUCT|product|PROD|prod)[_\-\s]?(\d{3,8})/g,
-    /[A-Z]{2,}[_\-]?(\d{3,8})/g, // XX-123456 patterns
-    /(\d{3,8})[_\-][A-Za-z]+/g,   // 123456-variant patterns
-    /\[(\d{3,8})\]/g,             // [123456] patterns
-    /\((\d{3,8})\)/g,             // (123456) patterns
-    /^(\d{3,8})[_\-]/g,           // Starting with number
-    /[_\-](\d{3,8})$/g,           // Ending with number
+    /(?:IMG_|PHOTO_|PIC_)?(\w+)(?:_\d+|_[A-Z]+)?/i,
+    /(\d{4,})/g,
+    /([A-Z]+\d+)/gi,
+    /(\d+[A-Z]+)/gi
   ];
-  
+
   patterns.forEach(pattern => {
-    let match;
-    const regex = new RegExp(pattern.source, pattern.flags);
-    while ((match = regex.exec(cleanName)) !== null) {
-      if (match[1] && !skus.some(s => s.value === match[1])) {
+    const matches = cleanFilename.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        const cleanMatch = match.replace(/^(IMG_|PHOTO_|PIC_)/i, '').replace(/_.*$/, '');
+        if (/^\d{3,}$/.test(cleanMatch) && !skus.find(s => s.value === cleanMatch)) {
+          skus.push({
+            value: cleanMatch,
+            confidence: 80,
+            source: 'pattern'
+          });
+        }
+      });
+    }
+  });
+
+  // Strategy 4: Path-based extraction (e.g., "/products/ABC123/image.jpg")
+  if (fullPath) {
+    const pathParts = fullPath.split('/');
+    pathParts.forEach(part => {
+      if (/^\d{3,}$/.test(part) && !skus.find(s => s.value === part)) {
         skus.push({
-          value: match[1],
-          confidence: 60,
-          source: 'pattern'
+          value: part,
+          confidence: 75,
+          source: 'path'
         });
       }
-    }
-  });
-  
-  // 6. Generate variations for all found SKUs
-  const uniqueSkus = new Set(skus.map(s => s.value));
-  uniqueSkus.forEach(sku => {
-    const variations = generateVariations(sku);
-    variations.forEach(variant => {
-      if (!skus.some(s => s.value === variant)) {
-        skus.push({ value: variant, confidence: 50, source: 'fuzzy' });
-      }
     });
-  });
-  
-  // Remove duplicates and sort by confidence
-  const uniqueResults = new Map<string, ExtractedSKU>();
-  skus.forEach(sku => {
-    const existing = uniqueResults.get(sku.value);
-    if (!existing || existing.confidence < sku.confidence) {
-      uniqueResults.set(sku.value, sku);
-    }
-  });
-  
-  const result = Array.from(uniqueResults.values())
-    .sort((a, b) => b.confidence - a.confidence);
-  
-  if (result.length > 0) {
-    console.log(`Extracted ${result.length} SKUs from ${filename}: ${result.slice(0, 3).map(s => `${s.value}(${s.confidence}%)`).join(', ')}`);
   }
-  
-  return result;
+
+  return skus.sort((a, b) => b.confidence - a.confidence);
 }
 
 function generateVariations(sku: string): string[] {
@@ -596,19 +531,51 @@ Deno.serve(async (req) => {
         // Generate public URL
         const imageUrl = `${supabaseUrl}/storage/v1/object/public/${config.bucketName}/${match.image.path}`;
         
-        // Insert product_image record
-        const { error: insertError } = await supabase
-          .from('product_images')
-          .insert({
-            product_id: match.product.id,
-            image_url: imageUrl,
-            alt_text: `${match.product.name} - ${match.product.sku}`,
-            is_primary: config.autoSetPrimary && !hasPrimary,
-            sort_order: 0
-          });
-        
-        if (insertError) {
-          throw new Error(`Failed to insert image for ${match.product.sku}: ${insertError.message}`);
+        // High confidence matches go directly to product_images
+        if (match.score >= 85) {
+          const { error: insertError } = await supabase
+            .from('product_images')
+            .insert({
+              product_id: match.product.id,
+              image_url: imageUrl,
+              alt_text: `${match.product.name} - ${match.image.filename}`,
+              is_primary: config.autoSetPrimary && !hasPrimary,
+              sort_order: 999,
+              image_status: 'active',
+              match_confidence: match.score,
+              match_metadata: {
+                source: 'auto_link',
+                filename: match.image.filename,
+                session_id: sessionId
+              },
+              auto_matched: true
+            });
+
+          if (insertError) {
+            throw new Error(`Failed to insert direct match for ${match.product.sku}: ${insertError.message}`);
+          }
+        } else {
+          // Lower confidence matches go to candidates table
+          const { error: candidateError } = await supabase
+            .from('product_image_candidates')
+            .insert({
+              product_id: match.product.id,
+              image_url: imageUrl,
+              alt_text: `${match.product.name} - ${match.image.filename}`,
+              match_confidence: match.score,
+              match_metadata: {
+                source: 'auto_link',
+                filename: match.image.filename,
+                session_id: sessionId
+              },
+              extracted_sku: match.image.extractedSkus[0]?.value || '',
+              source_filename: match.image.filename,
+              status: 'pending'
+            });
+
+          if (candidateError) {
+            throw new Error(`Failed to create candidate for ${match.product.sku}: ${candidateError.message}`);
+          }
         }
         
         console.log(`Successfully linked ${match.product.sku} to ${match.image.filename}`);
