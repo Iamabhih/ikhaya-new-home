@@ -77,32 +77,34 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
   // Strategy 3: SKU with suffix/prefix patterns
   if (!skus.length) {
     const patterns = [
-      /^(\d{3,})[a-zA-Z]+$/,           // numeric with suffix
-      /^[a-zA-Z]+(\d{3,})$/,          // prefix with numeric
-      /(\d{3,})/g                     // any 3+ digit sequence
+      /^(\d{3,})[a-zA-Z]+$/g,           // numeric with suffix - FIXED: Added /g flag
+      /^[a-zA-Z]+(\d{3,})$/g,          // prefix with numeric - FIXED: Added /g flag
+      /(\d{3,})/g                      // any 3+ digit sequence - Already has /g flag
     ];
 
     patterns.forEach((pattern, patternIndex) => {
-      const matches = cleanName.match(pattern);
-      if (matches) {
+      try {
+        const matches = [...cleanName.matchAll(pattern)]; // FIXED: Use matchAll with spread
         matches.forEach(match => {
-          const numericPart = match.replace(/[^0-9]/g, '');
+          const numericPart = match[1] || match[0].replace(/[^0-9]/g, '');
           if (/^\d{3,}$/.test(numericPart) && !skus.find(s => s.sku === numericPart)) {
-            let confidence = 70 - (patternIndex * 10);
+            let confidence = 50 - (patternIndex * 10); // LOWERED: Start at 50 instead of 70
             
             // Boost confidence based on context
             if (cleanName === numericPart) confidence = 90;
             else if (cleanName.startsWith(numericPart)) confidence = 75;
-            else if (cleanName.endsWith(numericPart)) confidence = 70;
+            else if (cleanName.endsWith(numericPart)) confidence = 65;
             
             skus.push({
               sku: numericPart,
-              confidence,
+              confidence: Math.max(20, confidence), // LOWERED: Minimum 20% instead of default
               source: 'numeric_pattern'
             });
             console.log(`Found numeric pattern: ${numericPart} (confidence: ${confidence}%)`);
           }
         });
+      } catch (error) {
+        console.error(`Error in pattern ${patternIndex}: ${error.message}`);
       }
     });
   }
@@ -318,7 +320,7 @@ Deno.serve(async (req) => {
                 
                 // Try exact matches first (highest confidence)
                 for (const skuCandidate of potentialSKUs) {
-                  if (skuCandidate.confidence < 30) break; // Skip very low confidence matches
+                  if (skuCandidate.confidence < 20) break; // LOWERED: Accept down to 20% confidence
                   
                   const candidateSku = normalizeSKU(skuCandidate.sku);
                   
@@ -350,7 +352,8 @@ Deno.serve(async (req) => {
                 // If no exact match, try base numeric matches (for alphanumeric SKUs)
                 if (!matchingProduct) {
                   for (const skuCandidate of potentialSKUs) {
-                    if (skuCandidate.confidence < 30) break;
+                    if (skuCandidate.confidence < 20) break; // LOWERED: Accept down to 20%
+                    
                     
                     // Extract base numeric part
                     const baseNumeric = skuCandidate.sku.match(/^(\d+)/);
@@ -378,7 +381,8 @@ Deno.serve(async (req) => {
                 // If still no match, try more permissive matching for high-confidence candidates only
                 if (!matchingProduct) {
                   for (const skuCandidate of potentialSKUs) {
-                    if (skuCandidate.confidence < 60) break; // Only try permissive matching for high-confidence
+                    if (skuCandidate.confidence < 40) break; // LOWERED: Still selective for permissive matching
+                    
                     
                     const candidateSku = normalizeSKU(skuCandidate.sku);
                     
@@ -421,7 +425,7 @@ Deno.serve(async (req) => {
                     
                     // High confidence matches go directly to product_images
                     const bestSku = potentialSKUs[0];
-                    if (bestSku && bestSku.confidence >= 85) {
+                    if (bestSku && bestSku.confidence >= 60) { // LOWERED: From 85 to 60
                       const { error: insertError } = await supabase
                         .from('product_images')
                         .insert({
