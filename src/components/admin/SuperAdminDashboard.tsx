@@ -3,12 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRoles } from "@/hooks/useRoles";
 import { useAuth } from "@/contexts/AuthContext";
-import { Shield, Edit3, Database, Users, Settings } from "lucide-react";
+import { Shield, Edit3, Database, Users, Settings, Image } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ProductImageReport } from "./ProductImageReport";
+import { useState } from "react";
 
 export const SuperAdminDashboard = () => {
   const { user } = useAuth();
   const { isSuperAdmin } = useRoles(user);
+  const [activeView, setActiveView] = useState("dashboard");
 
   if (!isSuperAdmin) {
     return (
@@ -24,6 +27,10 @@ export const SuperAdminDashboard = () => {
     );
   }
 
+  if (activeView === "product-images") {
+    return <ProductImageReport />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -32,10 +39,20 @@ export const SuperAdminDashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">SuperAdmin Settings</h1>
           <p className="text-gray-600">Advanced system management and configuration</p>
         </div>
-        <Badge variant="destructive" className="flex items-center gap-2">
-          <Shield className="h-4 w-4" />
-          SuperAdmin Access
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setActiveView("product-images")}
+            className="flex items-center gap-2"
+          >
+            <Image className="h-4 w-4" />
+            Product Images
+          </Button>
+          <Badge variant="destructive" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            SuperAdmin Access
+          </Badge>
+        </div>
       </div>
 
       {/* Super Admin Features Grid */}
