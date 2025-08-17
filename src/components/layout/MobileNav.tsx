@@ -30,6 +30,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
     { href: "/categories", label: "Categories", icon: Grid3X3 },
     { href: "/about", label: "About", icon: Info },
     { href: "/contact", label: "Contact", icon: MessageCircle },
+    { href: "/ozz-sa", label: "OZZ SA", icon: Settings },
   ];
 
   // Fixed admin routes to match actual routes in App.tsx

@@ -1,9 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MapPin, Phone, Clock, ShoppingBag } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function OzzSAPage() {
+  const hours = [
+    { day: "Monday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
+    { day: "Tuesday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
+    { day: "Wednesday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
+    { day: "Thursday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
+    { day: "Friday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
+    { day: "Saturday", time: "8 am–2:30 pm" },
+    { day: "Sunday", time: "9 am–2 pm" },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-16">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
@@ -13,6 +26,67 @@ export default function OzzSAPage() {
             </Badge>
           </div>
 
+          {/* Hero CTA */}
+          <div className="text-center mb-8">
+            <Link to="/products">
+              <Button size="lg" className="text-lg px-8 py-4 bg-primary hover:bg-primary/90">
+                <ShoppingBag className="mr-2 h-5 w-5" />
+                SHOP NOW
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Contact Information */}
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
+                <CardTitle className="text-xl flex items-center">
+                  <MapPin className="mr-2 h-5 w-5" />
+                  Visit Our Store
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Address:</h4>
+                    <p className="text-muted-foreground">
+                      Cnr Mazeppa &, 40 Gull St<br />
+                      South Beach, Durban, 4001
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center">
+                      <Phone className="mr-2 h-4 w-4" />
+                      Phone:
+                    </h4>
+                    <p className="text-muted-foreground">031 332 7192</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Hours */}
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
+                <CardTitle className="text-xl flex items-center">
+                  <Clock className="mr-2 h-5 w-5" />
+                  Opening Hours
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-2">
+                  {hours.map((schedule) => (
+                    <div key={schedule.day} className="flex justify-between">
+                      <span className="font-medium">{schedule.day}</span>
+                      <span className="text-muted-foreground text-sm">{schedule.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* History Section */}
           <Card className="shadow-lg">
             <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
               <CardTitle className="text-2xl text-center">
@@ -58,6 +132,15 @@ export default function OzzSAPage() {
                   <p className="text-lg text-muted-foreground mt-2">
                     Welcome to Ikhaya—where tradition meets innovation
                   </p>
+                  
+                  <div className="mt-6">
+                    <Link to="/products">
+                      <Button size="lg" className="text-lg px-8 py-4">
+                        <ShoppingBag className="mr-2 h-5 w-5" />
+                        Start Shopping
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </CardContent>
