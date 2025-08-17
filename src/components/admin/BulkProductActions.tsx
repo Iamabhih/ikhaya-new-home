@@ -126,6 +126,22 @@ export const BulkProductActions = ({ selectedProducts, onClearSelection }: BulkP
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                if (confirm(`Update all ${selectedProducts.length} products to 100 stock?`)) {
+                  handleBulkUpdate('stock_quantity', 100);
+                }
+              }}
+              disabled={isUpdating}
+              variant="default"
+              className="flex-1"
+            >
+              {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Set All to 100 Stock
+            </Button>
+          </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="bulk-price">Update Price</Label>
@@ -171,8 +187,8 @@ export const BulkProductActions = ({ selectedProducts, onClearSelection }: BulkP
           </div>
 
           <div className="space-y-2">
-            <Label>Actions</Label>
-            <div className="flex gap-2">
+            <Label>Quick Actions</Label>
+            <div className="flex gap-2 flex-wrap">
               <Button
                 onClick={() => handleBulkUpdate('is_featured', true)}
                 disabled={isUpdating}
@@ -180,6 +196,14 @@ export const BulkProductActions = ({ selectedProducts, onClearSelection }: BulkP
                 size="sm"
               >
                 Feature All
+              </Button>
+              <Button
+                onClick={() => handleBulkUpdate('stock_quantity', 100)}
+                disabled={isUpdating}
+                variant="outline"
+                size="sm"
+              >
+                Set Stock to 100
               </Button>
               <Button
                 onClick={onClearSelection}
@@ -190,6 +214,7 @@ export const BulkProductActions = ({ selectedProducts, onClearSelection }: BulkP
               </Button>
             </div>
           </div>
+        </div>
         </div>
       </CardContent>
     </Card>
