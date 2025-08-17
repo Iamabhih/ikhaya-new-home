@@ -18,37 +18,112 @@ function parseExcelFile(arrayBuffer: ArrayBuffer): SheetData[] {
   const sheetsData: SheetData[] = [];
   
   workbook.SheetNames.forEach(sheetName => {
+    console.log(`Processing sheet: ${sheetName}`);
     const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    
+    // Try different parsing methods to ensure we get all data
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+    
+    console.log(`Sheet ${sheetName} raw data length: ${jsonData.length}`);
     
     if (jsonData.length < 2) {
-      console.warn(`Sheet ${sheetName} has insufficient data`);
+      console.warn(`Sheet ${sheetName} has insufficient data (${jsonData.length} rows)`);
       return;
     }
     
-    const headers = jsonData[0] as string[];
-    const products = jsonData.slice(1).map((row: any[]) => {
+    // Find the header row (first non-empty row)
+    let headerRowIndex = 0;
+    let headers: string[] = [];
+    
+    for (let i = 0; i < jsonData.length; i++) {
+      const row = jsonData[i] as any[];
+      if (row && row.length > 0 && row.some(cell => cell && String(cell).trim() !== '')) {
+        headers = row.map(cell => String(cell || '').trim()).filter(h => h !== '');
+        headerRowIndex = i;
+        break;
+      }
+    }
+    
+    if (headers.length === 0) {
+      console.warn(`Sheet ${sheetName} has no valid headers`);
+      return;
+    }
+    
+    console.log(`Sheet ${sheetName} headers:`, headers);
+    
+    // Process data rows starting after the header
+    const products = jsonData.slice(headerRowIndex + 1).map((row: any[], rowIndex) => {
+      if (!row || row.length === 0) return null;
+      
       const product: any = {};
-      headers.forEach((header, index) => {
-        let value = row[index];
+      headers.forEach((header, colIndex) => {
+        let value = row[colIndex];
         
-        // Clean up numeric fields
-        if (header.toLowerCase().includes('price') || 
-            header.toLowerCase().includes('stock') || 
-            header.toLowerCase().includes('quantity') ||
-            header.toLowerCase().includes('qty')) {
-          if (value === '' || value === null || value === undefined) {
-            value = header.toLowerCase().includes('price') ? null : 0; // Default stock to 0, price to null
-          } else {
-            const numValue = parseFloat(String(value));
-            value = isNaN(numValue) ? (header.toLowerCase().includes('price') ? null : 0) : numValue;
+        // Skip empty values
+        if (value === undefined || value === null || String(value).trim() === '') {
+          value = null;
+        } else {
+          value = String(value).trim();
+        }
+        
+        // Normalize header names for common fields
+        const normalizedHeader = header.toLowerCase();
+        let finalKey = header;
+        
+        // Map common variations to standard field names
+        if (normalizedHeader.includes('name') || normalizedHeader === 'product' || normalizedHeader === 'title') {
+          finalKey = 'name';
+        } else if (normalizedHeader.includes('price') && !normalizedHeader.includes('compare')) {
+          finalKey = 'price';
+        } else if (normalizedHeader.includes('compare') || normalizedHeader.includes('was') || normalizedHeader.includes('original')) {
+          finalKey = 'compare_at_price';
+        } else if (normalizedHeader.includes('stock') || normalizedHeader.includes('quantity') || normalizedHeader.includes('qty')) {
+          finalKey = 'stock_quantity';
+        } else if (normalizedHeader.includes('description') && !normalizedHeader.includes('short')) {
+          finalKey = 'description';
+        } else if (normalizedHeader.includes('short') && normalizedHeader.includes('description')) {
+          finalKey = 'short_description';
+        } else if (normalizedHeader.includes('sku') || normalizedHeader.includes('code')) {
+          finalKey = 'sku';
+        } else if (normalizedHeader.includes('feature')) {
+          finalKey = 'is_featured';
+        } else if (normalizedHeader.includes('active') || normalizedHeader.includes('status')) {
+          finalKey = 'is_active';
+        }
+        
+        // Convert numeric fields
+        if (['price', 'compare_at_price', 'stock_quantity'].includes(finalKey) && value !== null) {
+          if (finalKey.includes('price')) {
+            // Handle price values - remove currency symbols and parse
+            const cleanValue = String(value).replace(/[^\d.-]/g, '');
+            const numValue = parseFloat(cleanValue);
+            value = isNaN(numValue) ? null : numValue;
+          } else if (finalKey === 'stock_quantity') {
+            const numValue = parseInt(String(value));
+            value = isNaN(numValue) ? 0 : numValue;
           }
         }
         
-        product[header] = value;
+        // Convert boolean fields
+        if (['is_featured', 'is_active'].includes(finalKey) && value !== null) {
+          const lowerValue = String(value).toLowerCase();
+          value = lowerValue === 'true' || lowerValue === '1' || lowerValue === 'yes' || lowerValue === 'y';
+        }
+        
+        product[finalKey] = value;
       });
+      
+      // Only include products that have a name
+      const hasName = product.name && String(product.name).trim() !== '';
+      if (!hasName) {
+        console.log(`Skipping row ${rowIndex + 1} in sheet ${sheetName}: no valid name`);
+        return null;
+      }
+      
       return product;
-    }).filter(product => product.name || product.Name || product.product_name);
+    }).filter(product => product !== null);
+    
+    console.log(`Sheet ${sheetName} processed: ${products.length} valid products from ${jsonData.length - headerRowIndex - 1} data rows`);
     
     sheetsData.push({
       sheetName,
@@ -58,6 +133,7 @@ function parseExcelFile(arrayBuffer: ArrayBuffer): SheetData[] {
     });
   });
   
+  console.log(`Total sheets processed: ${sheetsData.length}`);
   return sheetsData;
 }
 
