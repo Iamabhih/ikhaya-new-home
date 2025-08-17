@@ -13,7 +13,8 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  Mail
+  Mail,
+  Zap
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/hooks/useRoles";
@@ -62,6 +63,11 @@ const adminRoutes = [
     title: "Homepage", 
     url: "/admin/homepage", 
     icon: Home 
+  },
+  { 
+    title: "Production", 
+    url: "/admin/production", 
+    icon: Zap 
   },
 ];
 
