@@ -386,7 +386,8 @@ Deno.serve(async (req) => {
       
       let offset = 0;
       let hasMore = true;
-      const scanLimit = 100;
+      const scanLimit = 1000; // Increased from 100 to capture more files per request
+      let totalFilesInFolder = 0;
       
       while (hasMore && allImages.length < config.limit) {
         try {
@@ -408,17 +409,31 @@ Deno.serve(async (req) => {
             break;
           }
           
-          console.log(`Scanning ${path || 'root'}: found ${files.length} items (offset: ${offset})`);
+          totalFilesInFolder += files.length;
+          console.log(`Scanning ${path || 'root'}: found ${files.length} items (offset: ${offset}, total: ${totalFilesInFolder})`);
+          
+          let imageCount = 0;
+          let folderCount = 0;
           
           for (const file of files) {
             if (!file.name) continue;
             
             const fullPath = path ? `${path}/${file.name}` : file.name;
             
-            // Check if it's a directory (no metadata and no extension)
-            const isDirectory = !file.id && !file.metadata && !file.name.includes('.');
+            // Check if it's a directory - more robust detection
+            const isDirectory = (
+              !file.metadata && 
+              file.name && 
+              !file.name.includes('.') && 
+              !file.id
+            ) || (
+              // Also check for folders that might have metadata but no file extension
+              file.metadata === null && 
+              !file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg|pdf|txt|doc|docx|xls|xlsx|zip|rar)$/i)
+            );
             
             if (isDirectory) {
+              folderCount++;
               console.log(`Found subdirectory: ${fullPath}`);
               await scanFolder(fullPath, depth + 1);
               continue;
@@ -426,6 +441,7 @@ Deno.serve(async (req) => {
             
             // Check if it's an image
             if (file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
+              imageCount++;
               const extractedSkus = extractSKUs(file.name, fullPath);
               
               // Always add image to list, even if no SKUs extracted initially
@@ -448,6 +464,10 @@ Deno.serve(async (req) => {
                 break;
               }
             }
+          }
+          
+          if (imageCount > 0 || folderCount > 0) {
+            console.log(`  → Found ${imageCount} images and ${folderCount} subdirectories in ${path || 'root'}`);
           }
           
           offset += scanLimit;
