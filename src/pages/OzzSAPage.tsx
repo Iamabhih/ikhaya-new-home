@@ -4,31 +4,37 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Phone, Clock, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
 import ozzLogo from "@/assets/ozz-logo.png";
-
 export default function OzzSAPage() {
-  const hours = [
-    { day: "Monday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
-    { day: "Tuesday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
-    { day: "Wednesday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
-    { day: "Thursday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
-    { day: "Friday", time: "8 am–12:45 pm, 1:45–4:45 pm" },
-    { day: "Saturday", time: "8 am–2:30 pm" },
-    { day: "Sunday", time: "9 am–2 pm" },
-  ];
-
-  return (
-    <div className="min-h-screen bg-background pt-16">
+  const hours = [{
+    day: "Monday",
+    time: "8 am–12:45 pm, 1:45–4:45 pm"
+  }, {
+    day: "Tuesday",
+    time: "8 am–12:45 pm, 1:45–4:45 pm"
+  }, {
+    day: "Wednesday",
+    time: "8 am–12:45 pm, 1:45–4:45 pm"
+  }, {
+    day: "Thursday",
+    time: "8 am–12:45 pm, 1:45–4:45 pm"
+  }, {
+    day: "Friday",
+    time: "8 am–12:45 pm, 1:45–4:45 pm"
+  }, {
+    day: "Saturday",
+    time: "8 am–2:30 pm"
+  }, {
+    day: "Sunday",
+    time: "9 am–2 pm"
+  }];
+  return <div className="min-h-screen bg-background pt-16">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
-              <img 
-                src={ozzLogo} 
-                alt="OZZ Cash and Carry Logo" 
-                className="h-24 w-auto"
-              />
+              <img src={ozzLogo} alt="OZZ Cash and Carry Logo" className="h-36 w-auto" />
             </div>
-            <h1 className="text-4xl font-bold text-foreground mb-4">OZZ SA</h1>
+            <h1 className="text-4xl font-bold text-foreground mb-4">OZZ Cash & Carry</h1>
             <Badge variant="secondary" className="text-lg px-4 py-2">
               The Foundation of Ikhaya
             </Badge>
@@ -83,12 +89,10 @@ export default function OzzSAPage() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-2">
-                  {hours.map((schedule) => (
-                    <div key={schedule.day} className="flex justify-between">
+                  {hours.map(schedule => <div key={schedule.day} className="flex justify-between">
                       <span className="font-medium">{schedule.day}</span>
                       <span className="text-muted-foreground text-sm">{schedule.time}</span>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
               </CardContent>
             </Card>
@@ -155,6 +159,5 @@ export default function OzzSAPage() {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
