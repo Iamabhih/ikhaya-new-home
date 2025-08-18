@@ -1,9 +1,7 @@
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Mail, Phone, MapPin } from "lucide-react";
-
 export const Footer = () => {
-  return (
-    <footer className="bg-gradient-to-b from-background to-muted/40 border-t border-primary/20 relative overflow-hidden">
+  return <footer className="bg-gradient-to-b from-background to-muted/40 border-t border-primary/20 relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0">
         <div className="absolute top-10 right-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
@@ -15,11 +13,7 @@ export const Footer = () => {
           {/* Brand Section */}
           <div className="space-y-6">
             <div className="flex items-center">
-              <img 
-                src="/lovable-uploads/6fdda264-ce80-44ec-9836-c9c81756c513.png" 
-                alt="IKHAYA Homeware" 
-                className="h-26 w-auto"
-              />
+              <img src="/lovable-uploads/6fdda264-ce80-44ec-9836-c9c81756c513.png" alt="IKHAYA Homeware" className="h-26 w-auto" />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
               Your home is your sanctuary. We provide quality homeware to make it beautiful, functional, and uniquely yours.
@@ -27,41 +21,22 @@ export const Footer = () => {
             
             {/* Social Links */}
             <div className="flex space-x-4">
-              <a 
-                href="https://facebook.com/homeware.ikhaya" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 glass-card flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover-lift"
-              >
+              <a href="https://facebook.com/homeware.ikhaya" target="_blank" rel="noopener noreferrer" className="w-10 h-10 glass-card flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover-lift">
                 <Facebook className="h-4 w-4" />
               </a>
-              <a 
-                href="https://instagram.com/homeware.ikhaya" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 glass-card flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover-lift"
-              >
+              <a href="https://instagram.com/homeware.ikhaya" target="_blank" rel="noopener noreferrer" className="w-10 h-10 glass-card flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover-lift">
                 <Instagram className="h-4 w-4" />
               </a>
-              <a 
-                href="https://tiktok.com/@ikhayahomestore" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 glass-card flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover-lift"
-              >
+              <a href="https://tiktok.com/@ikhayahomestore" target="_blank" rel="noopener noreferrer" className="w-10 h-10 glass-card flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover-lift">
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.321 5.562c-.799-.505-1.338-1.36-1.338-2.349v-.276h-3.275v11.67c0 1.917-1.555 3.473-3.473 3.473s-3.473-1.556-3.473-3.473 1.555-3.473 3.473-3.473c.351 0 .69.053 1.009.151v-3.367c-.316-.042-.641-.064-.969-.064-3.584 0-6.49 2.906-6.49 6.49s2.906 6.491 6.49 6.491 6.49-2.907 6.49-6.491v-5.622c1.417 1.016 3.151 1.614 5.018 1.614v-3.275c-1.206 0-2.306-.42-3.162-1.115-.42-.34-.782-.766-1.05-1.255-.268-.489-.4-1.022-.4-1.555z"/>
+                  <path d="M19.321 5.562c-.799-.505-1.338-1.36-1.338-2.349v-.276h-3.275v11.67c0 1.917-1.555 3.473-3.473 3.473s-3.473-1.556-3.473-3.473 1.555-3.473 3.473-3.473c.351 0 .69.053 1.009.151v-3.367c-.316-.042-.641-.064-.969-.064-3.584 0-6.49 2.906-6.49 6.49s2.906 6.491 6.49 6.491 6.49-2.907 6.49-6.491v-5.622c1.417 1.016 3.151 1.614 5.018 1.614v-3.275c-1.206 0-2.306-.42-3.162-1.115-.42-.34-.782-.766-1.05-1.255-.268-.489-.4-1.022-.4-1.555z" />
                 </svg>
               </a>
             </div>
 
             {/* Partner Logo */}
             <div className="pt-4">
-              <img 
-                src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png" 
-                alt="OZZ Cash & Carry" 
-                className="h-28 w-auto"
-              />
+              <img src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png" alt="OZZ Cash & Carry" className="h-28 w-auto" />
             </div>
           </div>
 
@@ -139,19 +114,13 @@ export const Footer = () => {
 
             {/* Contact Info */}
             <div className="space-y-3 pt-2">
-              <a 
-                href="tel:+27313327192"
-                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <a href="tel:+27313327192" className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Phone className="h-4 w-4" />
                 <span>+27 31 332 7192</span>
               </a>
-              <a 
-                href="mailto:info@ikhaya.shop"
-                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <a href="mailto:info@ikhaya.shop" className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Mail className="h-4 w-4" />
-                <span>info@ikhaya.shop</span>
+                <span>info@ikhayahomeware.online</span>
               </a>
             </div>
           </div>
@@ -164,17 +133,11 @@ export const Footer = () => {
           </p>
           <p className="text-sm text-muted-foreground mt-2">
             Designed and managed by Black Orchid Consulting{" "}
-            <a 
-              href="https://www.blackorchid.online" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
+            <a href="https://www.blackorchid.online" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
               www.blackorchid.online
             </a>
           </p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
