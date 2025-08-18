@@ -25,14 +25,14 @@ export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
 
   return (
     <div className={`${viewMode === "list" ? "space-y-1 sm:space-y-2" : "space-y-1 sm:space-y-2 flex-1 flex flex-col"}`}>
-      <Link to={productUrl}>
-        <h3 className={`font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors ${viewMode === "list" ? "line-clamp-2" : "mb-1 sm:mb-2 line-clamp-2"}`}>
+      <Link to={productUrl} className="group/title">
+        <h3 className={`font-semibold text-sm sm:text-base gradient-text-primary group-hover/title:scale-[1.02] transition-all duration-300 ${viewMode === "list" ? "line-clamp-2" : "mb-1 sm:mb-2 line-clamp-2"}`}>
           {product.name}
         </h3>
       </Link>
       
       {product.categories && (
-        <p className="text-xs text-muted-foreground mb-1 sm:mb-2">
+        <p className="text-xs text-premium-muted mb-1 sm:mb-2 uppercase tracking-wider font-medium">
           {product.categories.name}
         </p>
       )}
@@ -40,14 +40,14 @@ export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
       {/* SKU */}
       {product.sku && (
         <div className="flex items-center gap-1 mb-1 sm:mb-2">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-premium-muted font-mono bg-primary/5 px-2 py-0.5 rounded-full">
             SKU: {product.sku}
           </span>
         </div>
       )}
       
       {product.short_description && (
-        <p className={`text-xs sm:text-sm text-muted-foreground ${
+        <p className={`text-xs sm:text-sm text-premium leading-relaxed ${
           viewMode === "list" 
             ? "line-clamp-2 sm:line-clamp-3 hidden sm:block" 
             : "mb-2 sm:mb-3 line-clamp-2 flex-1"

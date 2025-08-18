@@ -49,9 +49,9 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   
   if (viewMode === "list") {
   return (
-    <Card className="group hover:shadow-md transition-all duration-200 ease-out bg-card border border-border/50 w-full product-card-mobile">
+    <Card className="group glass-card hover-lift hover-glow border-gradient w-full product-card-mobile overflow-hidden">
       <CardContent className="p-0">
-        <div className="flex flex-col xs:flex-row gap-3 xs:gap-4 sm:gap-6 p-4 xs:p-4 sm:p-6 min-h-[140px] xs:min-h-[160px] sm:min-h-[180px]">
+        <div className="flex flex-col xs:flex-row gap-3 xs:gap-4 sm:gap-6 p-4 xs:p-4 sm:p-6 min-h-[140px] xs:min-h-[160px] sm:min-h-[180px] bg-gradient-subtle">
             <ProductImage
               product={product}
               inWishlist={inWishlist}
@@ -90,9 +90,9 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   }
   
   return (
-    <Card className="group hover:shadow-md transition-all duration-200 ease-out bg-card border border-border/50 h-full flex flex-col overflow-hidden w-full max-w-sm mx-auto product-card-mobile">
+    <Card className="group glass-card hover-lift hover-glow border-gradient h-full flex flex-col overflow-hidden w-full max-w-sm mx-auto product-card-mobile">
       <CardContent className="p-0 flex-1 flex flex-col h-full">
-        <div className="relative flex-shrink-0 overflow-hidden aspect-square product-image">
+        <div className="relative flex-shrink-0 overflow-hidden aspect-square product-image rounded-t-lg">
           <ProductImage
             product={product}
             inWishlist={inWishlist}
@@ -102,8 +102,8 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           />
         </div>
         
-        <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-h-0">
-          <div className="flex-1 space-y-2">
+        <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-h-0 bg-gradient-subtle">
+          <div className="flex-1 premium-spacing">
             <ProductDetails product={product} viewMode={viewMode} />
             <ProductPrice 
               price={product.price} 
@@ -112,7 +112,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             />
           </div>
           
-          <div className="mt-3 pt-2 border-t border-border/50 product-actions">
+          <div className="mt-3 pt-3 border-t border-border/20 product-actions">
             <ProductActions
               productId={product.id}
               inWishlist={inWishlist}
