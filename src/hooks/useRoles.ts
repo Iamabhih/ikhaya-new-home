@@ -10,7 +10,7 @@ export const useRoles = (user: User | null) => {
   const [loading, setLoading] = useState(true);
   const fetchingRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
-  const rolesCache = useRef<{ [key: string]: AppRole[] }>({});
+  const rolesCache = useRef<{ [key: string]: { roles: AppRole[], timestamp: number } }>({});
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -21,9 +21,11 @@ export const useRoles = (user: User | null) => {
         return;
       }
 
-      // Check cache first
-      if (rolesCache.current[user.id]) {
-        setRoles(rolesCache.current[user.id]);
+      // Check cache first (cache for 5 minutes)
+      const cached = rolesCache.current[user.id];
+      const now = Date.now();
+      if (cached && (now - cached.timestamp) < 300000) {
+        setRoles(cached.roles);
         setLoading(false);
         return;
       }
@@ -34,7 +36,6 @@ export const useRoles = (user: User | null) => {
       }
 
       try {
-        console.log('[useRoles] Fetching roles for user:', user.id);
         setLoading(true);
         fetchingRef.current = true;
         lastUserIdRef.current = user.id;
@@ -49,11 +50,10 @@ export const useRoles = (user: User | null) => {
           setRoles([]);
           lastUserIdRef.current = null; // Reset on error to allow retry
         } else {
-          console.log('[useRoles] Roles fetched:', data);
           const userRoles = data?.map(r => r.role as AppRole) || [];
           setRoles(userRoles);
-          // Cache the result
-          rolesCache.current[user.id] = userRoles;
+          // Cache the result with timestamp
+          rolesCache.current[user.id] = { roles: userRoles, timestamp: now };
         }
       } catch (error) {
         console.error('Error fetching roles:', error);
