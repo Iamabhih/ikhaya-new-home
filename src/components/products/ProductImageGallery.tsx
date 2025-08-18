@@ -1,12 +1,13 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Maximize2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Badge } from "@/components/ui/badge";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 interface ProductImage {
   id: string;
@@ -30,20 +31,21 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
   
-  const sortedImages = images.sort((a, b) => {
-    // Primary image first, then by sort order
-    if (a.is_primary && !b.is_primary) return -1;
-    if (!a.is_primary && b.is_primary) return 1;
-    return (a.sort_order || 0) - (b.sort_order || 0);
-  });
-  
-  console.log('ProductImageGallery - sortedImages:', sortedImages);
-  console.log('ProductImageGallery - currentImageIndex:', currentImageIndex);
+  const sortedImages = useMemo(() => {
+    return [...images].sort((a, b) => {
+      // Primary image first, then by sort order, then by ID for consistency
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      const sortOrderDiff = (a.sort_order || 0) - (b.sort_order || 0);
+      if (sortOrderDiff !== 0) return sortOrderDiff;
+      return a.id.localeCompare(b.id); // Secondary sort by ID for consistency
+    });
+  }, [images]);
   
   const currentImage = sortedImages[currentImageIndex];
   
   // Preload all images for smooth gallery experience
-  const imageUrls = sortedImages.map(img => img.image_url);
+  const imageUrls = useMemo(() => sortedImages.map(img => img.image_url), [sortedImages]);
   const { isLoading, progress } = useImagePreloader(imageUrls, { priority: true });
 
   // Reset zoom and position when image changes
@@ -53,21 +55,11 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   }, [currentImageIndex]);
 
   const goToPrevious = () => {
-    console.log('goToPrevious called, current index:', currentImageIndex, 'total images:', sortedImages.length);
-    setCurrentImageIndex((prev) => {
-      const newIndex = prev === 0 ? sortedImages.length - 1 : prev - 1;
-      console.log('Setting new index:', newIndex);
-      return newIndex;
-    });
+    setCurrentImageIndex((prev) => prev === 0 ? sortedImages.length - 1 : prev - 1);
   };
 
   const goToNext = () => {
-    console.log('goToNext called, current index:', currentImageIndex, 'total images:', sortedImages.length);
-    setCurrentImageIndex((prev) => {
-      const newIndex = prev === sortedImages.length - 1 ? 0 : prev + 1;
-      console.log('Setting new index:', newIndex);
-      return newIndex;
-    });
+    setCurrentImageIndex((prev) => prev === sortedImages.length - 1 ? 0 : prev + 1);
   };
 
   const handleZoomIn = () => {
@@ -112,7 +104,11 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   }
 
   return (
-    <>
+    <ErrorBoundary fallback={
+      <div className="aspect-square bg-[hsl(var(--product-image-bg))] flex items-center justify-center rounded-lg">
+        <span className="text-muted-foreground">Gallery unavailable</span>
+      </div>
+    }>
       <div className="space-y-4">
         {/* Main Image */}
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-[hsl(var(--product-image-bg))] shadow-xl group">
@@ -186,10 +182,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
             {sortedImages.map((image, index) => (
               <button
                 key={image.id}
-                onClick={() => {
-                  console.log('Thumbnail clicked, setting index to:', index);
-                  setCurrentImageIndex(index);
-                }}
+                onClick={() => setCurrentImageIndex(index)}
                 className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-3 transition-all duration-200 ${
                   index === currentImageIndex 
                     ? 'border-primary shadow-lg scale-105' 
@@ -211,111 +204,114 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
             ))}
           </div>
         )}
-      </div>
 
-      {/* Fullscreen Modal */}
-      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95">
-          <VisuallyHidden>
-            <DialogTitle>Product Image Gallery - {productName}</DialogTitle>
-          </VisuallyHidden>
-          <div className="relative w-full h-[95vh] flex items-center justify-center">
-            {/* Close button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-4 right-4 z-50 text-white bg-black/50 hover:bg-black/70 border border-white/20"
-              onClick={() => setIsFullscreen(false)}
-            >
-              <X className="h-6 w-6" />
-            </Button>
-
-            {/* Zoom controls */}
-            <div className="absolute top-4 left-4 z-50 flex gap-2">
+        {/* Fullscreen Modal */}
+        <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95">
+            <VisuallyHidden>
+              <DialogTitle>Product Image Gallery - {productName}</DialogTitle>
+              <DialogDescription>
+                View product images in fullscreen mode. Use navigation controls to browse through images.
+              </DialogDescription>
+            </VisuallyHidden>
+            <div className="relative w-full h-[95vh] flex items-center justify-center">
+              {/* Close button */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white bg-black/50 hover:bg-black/70 border border-white/20"
-                onClick={handleZoomIn}
-                disabled={zoomLevel >= 3}
+                className="absolute top-4 right-4 z-50 text-white bg-black/50 hover:bg-black/70 border border-white/20"
+                onClick={() => setIsFullscreen(false)}
               >
-                <ZoomIn className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white bg-black/50 hover:bg-black/70 border border-white/20"
-                onClick={handleZoomOut}
-                disabled={zoomLevel <= 1}
-              >
-                <ZoomOut className="h-5 w-5" />
-              </Button>
-              {zoomLevel > 1 && (
+
+              {/* Zoom controls */}
+              <div className="absolute top-4 left-4 z-50 flex gap-2">
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   className="text-white bg-black/50 hover:bg-black/70 border border-white/20"
-                  onClick={resetZoom}
+                  onClick={handleZoomIn}
+                  disabled={zoomLevel >= 3}
                 >
-                  Reset
+                  <ZoomIn className="h-5 w-5" />
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white bg-black/50 hover:bg-black/70 border border-white/20"
+                  onClick={handleZoomOut}
+                  disabled={zoomLevel <= 1}
+                >
+                  <ZoomOut className="h-5 w-5" />
+                </Button>
+                {zoomLevel > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white bg-black/50 hover:bg-black/70 border border-white/20"
+                    onClick={resetZoom}
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
+
+              {/* Navigation arrows */}
+              {sortedImages.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 hover:bg-black/70 border border-white/20 z-50"
+                    onClick={goToPrevious}
+                  >
+                    <ChevronLeft className="h-8 w-8" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 hover:bg-black/70 border border-white/20 z-50"
+                    onClick={goToNext}
+                  >
+                    <ChevronRight className="h-8 w-8" />
+                  </Button>
+                </>
               )}
-            </div>
 
-            {/* Navigation arrows */}
-            {sortedImages.length > 1 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 hover:bg-black/70 border border-white/20 z-50"
-                  onClick={goToPrevious}
-                >
-                  <ChevronLeft className="h-8 w-8" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 hover:bg-black/70 border border-white/20 z-50"
-                  onClick={goToNext}
-                >
-                  <ChevronRight className="h-8 w-8" />
-                </Button>
-              </>
-            )}
+              {/* Main fullscreen image */}
+              <div 
+                className="w-full h-full flex items-center justify-center overflow-hidden cursor-move"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
+                <img
+                  ref={imageRef}
+                  src={currentImage.image_url}
+                  alt={currentImage.alt_text || productName}
+                  className="max-w-full max-h-full object-contain transition-transform duration-200"
+                  style={{
+                    transform: `scale(${zoomLevel}) translate(${imagePosition.x / zoomLevel}px, ${imagePosition.y / zoomLevel}px)`,
+                    cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in'
+                  }}
+                  onClick={zoomLevel === 1 ? handleZoomIn : undefined}
+                  draggable={false}
+                />
+              </div>
 
-            {/* Main fullscreen image */}
-            <div 
-              className="w-full h-full flex items-center justify-center overflow-hidden cursor-move"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-            >
-              <img
-                ref={imageRef}
-                src={currentImage.image_url}
-                alt={currentImage.alt_text || productName}
-                className="max-w-full max-h-full object-contain transition-transform duration-200"
-                style={{
-                  transform: `scale(${zoomLevel}) translate(${imagePosition.x / zoomLevel}px, ${imagePosition.y / zoomLevel}px)`,
-                  cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in'
-                }}
-                onClick={zoomLevel === 1 ? handleZoomIn : undefined}
-                draggable={false}
-              />
+              {/* Image info */}
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-lg">
+                <p className="text-sm">
+                  {currentImageIndex + 1} of {sortedImages.length}
+                  {currentImage.alt_text && ` - ${currentImage.alt_text}`}
+                </p>
+              </div>
             </div>
-
-            {/* Image info */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-lg">
-              <p className="text-sm">
-                {currentImageIndex + 1} of {sortedImages.length}
-                {currentImage.alt_text && ` - ${currentImage.alt_text}`}
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </ErrorBoundary>
   );
 };
