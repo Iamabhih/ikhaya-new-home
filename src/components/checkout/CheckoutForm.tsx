@@ -106,15 +106,15 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
       <CardHeader className="space-y-1 pb-4">
         <CardTitle className="text-lg sm:text-xl">Shipping & Billing Information</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 sm:space-y-6">
-        <form onSubmit={handleBillingSubmit} className="space-y-4 sm:space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+        <form onSubmit={handleBillingSubmit} className="space-y-5 sm:space-y-6">
           {/* Contact Information */}
           <div className="space-y-4">
             <h3 className="text-base font-semibold text-foreground border-b pb-2">
               Contact Information
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="sm:col-span-2">
+            <div className="space-y-4">
+              <div>
                 <Label htmlFor="email" className="text-sm font-medium">
                   Email Address *
                 </Label>
@@ -126,10 +126,10 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
                   placeholder="your@email.com"
                   required
                   disabled={!!user?.email}
-                  className="mt-1 h-10 sm:h-11"
+                  className="mt-1.5 h-11 sm:h-12"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div>
                 <Label htmlFor="phone" className="text-sm font-medium">
                   Phone Number *
                 </Label>
@@ -140,7 +140,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+27 12 345 6789"
                   required
-                  className="mt-1 h-10 sm:h-11"
+                  className="mt-1.5 h-11 sm:h-12"
                 />
               </div>
             </div>
@@ -151,7 +151,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
             <h3 className="text-base font-semibold text-foreground border-b pb-2">
               Personal Information
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName" className="text-sm font-medium">
                   First Name *
@@ -162,7 +162,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   placeholder="John"
                   required
-                  className="mt-1 h-10 sm:h-11"
+                  className="mt-1.5 h-11 sm:h-12"
                 />
               </div>
               <div>
@@ -175,7 +175,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   placeholder="Doe"
                   required
-                  className="mt-1 h-10 sm:h-11"
+                  className="mt-1.5 h-11 sm:h-12"
                 />
               </div>
             </div>
@@ -186,7 +186,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
             <h3 className="text-base font-semibold text-foreground border-b pb-2">
               Shipping Address
             </h3>
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-4">
               <div>
                 <Label htmlFor="address" className="text-sm font-medium">
                   Street Address *
@@ -197,11 +197,11 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="123 Main Street"
                   required
-                  className="mt-1 h-10 sm:h-11"
+                  className="mt-1.5 h-11 sm:h-12"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="city" className="text-sm font-medium">
                     City *
@@ -212,7 +212,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     placeholder="Cape Town"
                     required
-                    className="mt-1 h-10 sm:h-11"
+                    className="mt-1.5 h-11 sm:h-12"
                   />
                 </div>
                 <div>
@@ -225,7 +225,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
                     onChange={(e) => setFormData({ ...formData, province: e.target.value })}
                     placeholder="Western Cape"
                     required
-                    className="mt-1 h-10 sm:h-11"
+                    className="mt-1.5 h-11 sm:h-12"
                   />
                 </div>
                 <div>
@@ -238,7 +238,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
                     onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
                     placeholder="8001"
                     required
-                    className="mt-1 h-10 sm:h-11"
+                    className="mt-1.5 h-11 sm:h-12"
                   />
                 </div>
               </div>
@@ -252,10 +252,10 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
             onZoneChange={setSelectedDeliveryZone}
           />
 
-          <div className="pt-4 sm:pt-6">
+          <div className="pt-6">
             <Button
               type="submit" 
-              className="w-full h-11 sm:h-12 text-sm sm:text-base font-medium" 
+              className="w-full h-12 sm:h-13 text-base font-medium touch-target" 
               size="lg"
               disabled={isProcessing}
             >

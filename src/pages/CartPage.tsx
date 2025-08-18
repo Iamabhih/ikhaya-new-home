@@ -66,23 +66,18 @@ const CartPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background"
-      style={{
-        backgroundImage: 'var(--gradient-card)',
-        backgroundAttachment: 'fixed'
-      }}
-    >
+    <div className="min-h-screen bg-background">
       <Header />
       
-      {/* Hero Section */}
-      <section className="bg-brand-gradient py-16 relative overflow-hidden">
-        <div className="absolute inset-0">
+      {/* Hero Section - Mobile Optimized */}
+      <section className="bg-brand-gradient py-8 md:py-16 relative overflow-hidden">
+        <div className="absolute inset-0 hidden md:block">
           <div className="absolute top-20 right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-10 left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse" />
         </div>
 
         <div className="container mx-auto px-4 relative z-10">
-          <Breadcrumb className="mb-6">
+          <Breadcrumb className="mb-4 md:mb-6">
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
@@ -96,15 +91,15 @@ const CartPage = () => {
           </Breadcrumb>
 
           <div className="text-center max-w-3xl mx-auto text-white">
-            <h1 className="text-5xl font-bold mb-6">Your Cart</h1>
-            <p className="text-xl text-white/90 leading-relaxed">
+            <h1 className="text-3xl md:text-5xl font-bold mb-3 md:mb-6">Your Cart</h1>
+            <p className="text-base md:text-xl text-white/90 leading-relaxed px-4">
               Review your selected items and proceed to checkout when ready.
             </p>
           </div>
         </div>
       </section>
 
-      <main className="container mx-auto px-4 py-8 -mt-8 relative z-10">
+      <main className="container mx-auto px-4 py-6 md:py-8 -mt-4 md:-mt-8 relative z-10">
 
         {/* DEBUG INFO - Remove in production */}
         {process.env.NODE_ENV === 'development' && items.length > 0 && (
@@ -131,8 +126,8 @@ const CartPage = () => {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+            <div className="lg:col-span-2 space-y-3 md:space-y-4">
               {items.map((item) => {
                 if (!item?.product) {
                   console.warn('Cart item missing product data:', item);
@@ -142,117 +137,202 @@ const CartPage = () => {
                 const imageUrl = getProductImageUrl(item.product);
                 
                 return (
-                  <div key={item.id} className="glass-card hover-lift flex items-start gap-4 p-6">
-                    <Link 
-                      to={`/products/${item.product.slug}`}
-                      className="h-20 w-20 bg-muted rounded-md flex-shrink-0 overflow-hidden hover:opacity-80 transition-opacity"
-                    >
-                      {imageUrl && !failedImages.has(item.id) ? (
-                        <img 
-                          src={imageUrl} 
-                          alt={item.product.name || 'Product'}
-                          className="h-full w-full object-cover"
-                          onError={() => handleImageError(item.id)}
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-muted flex items-center justify-center">
-                          <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                  <div key={item.id} className="cart-item-mobile lg:cart-item-desktop bg-card border border-border/50 rounded-lg hover:shadow-md transition-shadow">
+                    {/* Mobile Layout */}
+                    <div className="flex flex-col sm:hidden gap-3 p-4">
+                      <div className="flex gap-3">
+                        <Link 
+                          to={`/products/${item.product.slug}`}
+                          className="h-20 w-20 bg-muted rounded-md flex-shrink-0 overflow-hidden hover:opacity-80 transition-opacity"
+                        >
+                          {imageUrl && !failedImages.has(item.id) ? (
+                            <img 
+                              src={imageUrl} 
+                              alt={item.product.name || 'Product'}
+                              className="h-full w-full object-cover"
+                              onError={() => handleImageError(item.id)}
+                            />
+                          ) : (
+                            <div className="h-full w-full bg-muted flex items-center justify-center">
+                              <ShoppingBag className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </Link>
+                        
+                        <div className="flex-1 min-w-0">
+                          <Link 
+                            to={`/products/${item.product.slug}`}
+                            className="block hover:text-primary transition-colors"
+                          >
+                            <h3 className="font-semibold text-base leading-tight line-clamp-2">{item.product.name || 'Unnamed Product'}</h3>
+                          </Link>
+                          
+                          {item.product.sku && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              SKU: {item.product.sku}
+                            </p>
+                          )}
+                          <p className="text-base font-medium mt-2">
+                            R{item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}
+                          </p>
                         </div>
-                      )}
-                    </Link>
-                    
-                    <div className="flex-1 min-w-0">
-                      <Link 
-                        to={`/products/${item.product.slug}`}
-                        className="block hover:text-primary transition-colors"
-                      >
-                        <h3 className="font-semibold text-lg leading-tight">{item.product.name || 'Unnamed Product'}</h3>
-                      </Link>
-                      
-                      {/* Show description from either field */}
-                      {getProductDescription(item.product) && (
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-3 overflow-hidden">
-                          {getProductDescription(item.product)}
-                        </p>
-                      )}
-                      
-                      {item.product.sku && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          SKU: {item.product.sku}
-                        </p>
-                      )}
-                      <p className="text-lg font-medium mt-2">
-                        R{item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}
-                        {item.quantity > 1 && (
-                          <span className="text-sm text-muted-foreground font-normal">
-                            {' '}× {item.quantity} = R{(item.product.price * item.quantity).toFixed(2)}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    
-                    <div className="flex flex-col gap-2 items-end">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <Input
-                          type="number"
-                          value={item.quantity || 1}
-                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                          className="w-16 text-center"
-                          min="1"
-                          max="99"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
                       </div>
                       
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        title="Remove item"
-                        className="text-destructive hover:text-destructive"
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 bg-muted/50 rounded-lg p-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            className="h-10 w-10 p-0"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-8 text-center font-medium">{item.quantity}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                            className="h-10 w-10 p-0"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                          {item.quantity > 1 && (
+                            <span className="text-sm text-muted-foreground">
+                              Total: R{(item.product.price * item.quantity).toFixed(2)}
+                            </span>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(item.id)}
+                            title="Remove item"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-10 w-10 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Desktop Layout */}
+                    <div className="hidden sm:flex items-center gap-4 p-4 lg:p-6">
+                      <Link 
+                        to={`/products/${item.product.slug}`}
+                        className="h-20 w-20 lg:h-24 lg:w-24 bg-muted rounded-md flex-shrink-0 overflow-hidden hover:opacity-80 transition-opacity"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        {imageUrl && !failedImages.has(item.id) ? (
+                          <img 
+                            src={imageUrl} 
+                            alt={item.product.name || 'Product'}
+                            className="h-full w-full object-cover"
+                            onError={() => handleImageError(item.id)}
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-muted flex items-center justify-center">
+                            <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        )}
+                      </Link>
+                      
+                      <div className="flex-1 min-w-0">
+                        <Link 
+                          to={`/products/${item.product.slug}`}
+                          className="block hover:text-primary transition-colors"
+                        >
+                          <h3 className="font-semibold text-lg leading-tight">{item.product.name || 'Unnamed Product'}</h3>
+                        </Link>
+                        
+                        {getProductDescription(item.product) && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2 overflow-hidden hidden lg:block">
+                            {getProductDescription(item.product)}
+                          </p>
+                        )}
+                        
+                        {item.product.sku && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            SKU: {item.product.sku}
+                          </p>
+                        )}
+                        <p className="text-lg font-medium mt-2">
+                          R{item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}
+                          {item.quantity > 1 && (
+                            <span className="text-sm text-muted-foreground font-normal">
+                              {' '}× {item.quantity} = R{(item.product.price * item.quantity).toFixed(2)}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      
+                      <div className="flex flex-col gap-2 items-end">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            className="h-9 w-9"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={item.quantity || 1}
+                            onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                            className="w-16 text-center h-9"
+                            min="1"
+                            max="99"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                            className="h-9 w-9"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => removeItem(item.id)}
+                          title="Remove item"
+                          className="text-destructive hover:text-destructive h-9 w-9"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );
               }).filter(Boolean)}
             </div>
 
-            <div className="glass-card p-6 h-fit">
-              <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+            <div className="bg-card border border-border/50 rounded-lg p-4 lg:p-6 h-fit lg:sticky lg:top-4">
+              <h2 className="text-lg lg:text-xl font-semibold mb-4">Order Summary</h2>
               <div className="space-y-2 mb-4">
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm lg:text-base">
                   <span>Subtotal</span>
                   <span>R{(total || 0).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm lg:text-base">
                   <span>Shipping</span>
                   <span>Free</span>
                 </div>
                 <div className="border-t pt-2">
-                  <div className="flex justify-between font-semibold">
+                  <div className="flex justify-between font-semibold text-base lg:text-lg">
                     <span>Total</span>
                     <span>R{(total || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
               <Link to="/checkout" className="w-full">
-                <Button className="w-full" disabled={!items || items.length === 0}>
+                <Button className="w-full h-11 lg:h-12 text-sm lg:text-base" disabled={!items || items.length === 0}>
                   Proceed to Checkout
                 </Button>
               </Link>
