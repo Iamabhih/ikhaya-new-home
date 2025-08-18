@@ -124,6 +124,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-[hsl(var(--product-image-bg))] shadow-xl group">
           <div onClick={() => setIsFullscreen(true)} className="cursor-zoom-in">
             <OptimizedImage
+              key={currentImage.id}
               src={currentImage.image_url}
               alt={currentImage.alt_text || productName}
               className="w-full h-full object-contain transition-transform duration-500 hover:scale-105"
