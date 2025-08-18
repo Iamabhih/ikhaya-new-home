@@ -53,8 +53,20 @@ export const initializePayfastPayment = (
   // Add phone if provided
   if (formData?.phone) {
     const digitsOnly = formData.phone.replace(/\D/g, '');
-    if (digitsOnly.length >= 10) {
-      pfData.cell_number = digitsOnly.substring(0, 10);
+    let processedPhone = digitsOnly;
+    
+    // Handle South African country code (+27)
+    if (digitsOnly.startsWith('27') && digitsOnly.length === 11) {
+      // Remove country code (27) and add local prefix (0)
+      processedPhone = '0' + digitsOnly.substring(2);
+    } else if (digitsOnly.length >= 10) {
+      // Take first 10 digits for other formats
+      processedPhone = digitsOnly.substring(0, 10);
+    }
+    
+    // Only add if we have exactly 10 digits
+    if (processedPhone.length === 10) {
+      pfData.cell_number = processedPhone;
     }
   }
   
