@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,17 +20,17 @@ export const useRoles = (user: User | null) => {
         return;
       }
 
-      // Check cache first (cache for 5 minutes)
-      const cached = rolesCache.current[user.id];
+      // Check cache first - cache for 5 minutes
+      const cacheEntry = rolesCache.current[user.id];
       const now = Date.now();
-      if (cached && (now - cached.timestamp) < 300000) {
-        setRoles(cached.roles);
+      if (cacheEntry && (now - cacheEntry.timestamp) < 300000) {
+        setRoles(cacheEntry.roles);
         setLoading(false);
         return;
       }
 
-      // Prevent multiple calls for the same user and avoid concurrent calls
-      if (lastUserIdRef.current === user.id || fetchingRef.current) {
+      // Prevent duplicate fetches for the same user
+      if (lastUserIdRef.current === user.id && fetchingRef.current) {
         return;
       }
 

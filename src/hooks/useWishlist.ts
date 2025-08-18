@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -15,6 +14,8 @@ export const useWishlist = () => {
   const { user, loading: authLoading } = useAuth();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const fetchingRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   // Load wishlist data when auth state changes
   useEffect(() => {
@@ -29,9 +30,12 @@ export const useWishlist = () => {
 
   // Load wishlist from database for authenticated users
   const loadDatabaseWishlist = async () => {
-    if (!user) return;
+    if (!user || fetchingRef.current || lastUserIdRef.current === user.id) return;
     
     setLoading(true);
+    fetchingRef.current = true;
+    lastUserIdRef.current = user.id;
+
     try {
       const { data, error } = await supabase
         .from('wishlists')
@@ -50,6 +54,7 @@ export const useWishlist = () => {
       toast.error('Failed to load your wishlist');
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
   };
 
