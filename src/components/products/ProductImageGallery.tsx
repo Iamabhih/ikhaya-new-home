@@ -55,11 +55,21 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   }, [currentImageIndex]);
 
   const goToPrevious = () => {
-    setCurrentImageIndex((prev) => prev === 0 ? sortedImages.length - 1 : prev - 1);
+    console.log('Previous clicked, current index:', currentImageIndex, 'total images:', sortedImages.length);
+    setCurrentImageIndex((prev) => {
+      const newIndex = prev === 0 ? sortedImages.length - 1 : prev - 1;
+      console.log('Moving to index:', newIndex);
+      return newIndex;
+    });
   };
 
   const goToNext = () => {
-    setCurrentImageIndex((prev) => prev === sortedImages.length - 1 ? 0 : prev + 1);
+    console.log('Next clicked, current index:', currentImageIndex, 'total images:', sortedImages.length);
+    setCurrentImageIndex((prev) => {
+      const newIndex = prev === sortedImages.length - 1 ? 0 : prev + 1;
+      console.log('Moving to index:', newIndex);
+      return newIndex;
+    });
   };
 
   const handleZoomIn = () => {
