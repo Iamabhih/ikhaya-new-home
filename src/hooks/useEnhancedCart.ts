@@ -94,7 +94,7 @@ export const useEnhancedCart = () => {
     addToCartStartTime.current = Date.now();
     
     try {
-      cart.addToCart.mutate({ productId, quantity });
+      cart.addToCart({ productId, quantity });
       
       // Track successful add to cart
       trackCartEvent.mutate({
@@ -118,7 +118,7 @@ export const useEnhancedCart = () => {
   // Enhanced remove from cart with analytics
   const enhancedRemoveFromCart = async (itemId: string, productData?: any) => {
     try {
-      cart.removeItem.mutate(itemId);
+      cart.removeItem(itemId);
       
       trackCartEvent.mutate({
         sessionId,
