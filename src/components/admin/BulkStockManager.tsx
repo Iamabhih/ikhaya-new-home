@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -114,9 +114,9 @@ export const BulkStockManager = () => {
   };
 
   // Fetch product count on component mount
-  useState(() => {
+  React.useEffect(() => {
     fetchProductCount();
-  });
+  }, []);
 
   return (
     <div className="space-y-6">
