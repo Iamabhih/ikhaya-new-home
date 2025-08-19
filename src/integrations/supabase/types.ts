@@ -292,6 +292,125 @@ export type Database = {
           },
         ]
       }
+      cart_abandonment_campaigns: {
+        Row: {
+          campaign_type: string
+          cart_session_id: string | null
+          clicked_at: string | null
+          converted_at: string | null
+          discount_code: string | null
+          discount_percentage: number | null
+          email_address: string | null
+          id: string
+          message_content: string | null
+          metadata: Json | null
+          opened_at: string | null
+          phone_number: string | null
+          sent_at: string
+          status: string | null
+          subject_line: string | null
+        }
+        Insert: {
+          campaign_type: string
+          cart_session_id?: string | null
+          clicked_at?: string | null
+          converted_at?: string | null
+          discount_code?: string | null
+          discount_percentage?: number | null
+          email_address?: string | null
+          id?: string
+          message_content?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          phone_number?: string | null
+          sent_at?: string
+          status?: string | null
+          subject_line?: string | null
+        }
+        Update: {
+          campaign_type?: string
+          cart_session_id?: string | null
+          clicked_at?: string | null
+          converted_at?: string | null
+          discount_code?: string | null
+          discount_percentage?: number | null
+          email_address?: string | null
+          id?: string
+          message_content?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          phone_number?: string | null
+          sent_at?: string
+          status?: string | null
+          subject_line?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_abandonment_campaigns_cart_session_id_fkey"
+            columns: ["cart_session_id"]
+            isOneToOne: false
+            referencedRelation: "cart_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cart_analytics_snapshots: {
+        Row: {
+          abandonment_rate: number | null
+          avg_cart_value: number | null
+          avg_session_duration: number | null
+          conversion_rate: number | null
+          created_at: string
+          customer_segments: Json | null
+          id: string
+          recovery_conversions: number | null
+          recovery_emails_sent: number | null
+          recovery_rate: number | null
+          revenue_recovered: number | null
+          snapshot_date: string
+          top_abandoned_products: Json | null
+          total_carts_abandoned: number | null
+          total_carts_converted: number | null
+          total_carts_created: number | null
+        }
+        Insert: {
+          abandonment_rate?: number | null
+          avg_cart_value?: number | null
+          avg_session_duration?: number | null
+          conversion_rate?: number | null
+          created_at?: string
+          customer_segments?: Json | null
+          id?: string
+          recovery_conversions?: number | null
+          recovery_emails_sent?: number | null
+          recovery_rate?: number | null
+          revenue_recovered?: number | null
+          snapshot_date: string
+          top_abandoned_products?: Json | null
+          total_carts_abandoned?: number | null
+          total_carts_converted?: number | null
+          total_carts_created?: number | null
+        }
+        Update: {
+          abandonment_rate?: number | null
+          avg_cart_value?: number | null
+          avg_session_duration?: number | null
+          conversion_rate?: number | null
+          created_at?: string
+          customer_segments?: Json | null
+          id?: string
+          recovery_conversions?: number | null
+          recovery_emails_sent?: number | null
+          recovery_rate?: number | null
+          revenue_recovered?: number | null
+          snapshot_date?: string
+          top_abandoned_products?: Json | null
+          total_carts_abandoned?: number | null
+          total_carts_converted?: number | null
+          total_carts_created?: number | null
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -347,6 +466,96 @@ export type Database = {
           },
         ]
       }
+      cart_sessions: {
+        Row: {
+          abandoned_at: string | null
+          abandonment_stage: string | null
+          checkout_initiated_at: string | null
+          converted_at: string | null
+          created_at: string
+          device_info: Json | null
+          email: string | null
+          id: string
+          is_recovered: boolean | null
+          item_count: number | null
+          page_views: number | null
+          payment_attempted_at: string | null
+          phone: string | null
+          recovery_campaign_id: string | null
+          session_duration: number | null
+          session_id: string
+          total_value: number | null
+          updated_at: string
+          user_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          abandoned_at?: string | null
+          abandonment_stage?: string | null
+          checkout_initiated_at?: string | null
+          converted_at?: string | null
+          created_at?: string
+          device_info?: Json | null
+          email?: string | null
+          id?: string
+          is_recovered?: boolean | null
+          item_count?: number | null
+          page_views?: number | null
+          payment_attempted_at?: string | null
+          phone?: string | null
+          recovery_campaign_id?: string | null
+          session_duration?: number | null
+          session_id: string
+          total_value?: number | null
+          updated_at?: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          abandoned_at?: string | null
+          abandonment_stage?: string | null
+          checkout_initiated_at?: string | null
+          converted_at?: string | null
+          created_at?: string
+          device_info?: Json | null
+          email?: string | null
+          id?: string
+          is_recovered?: boolean | null
+          item_count?: number | null
+          page_views?: number | null
+          payment_attempted_at?: string | null
+          phone?: string | null
+          recovery_campaign_id?: string | null
+          session_duration?: number | null
+          session_id?: string
+          total_value?: number | null
+          updated_at?: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "customer_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string
@@ -397,6 +606,81 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "category_product_counts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_engagement_metrics: {
+        Row: {
+          avg_order_value: number | null
+          created_at: string
+          customer_segment: string | null
+          days_since_last_order: number | null
+          days_since_last_visit: number | null
+          email: string | null
+          email_engagement_score: number | null
+          id: string
+          last_cart_abandonment_at: string | null
+          lifetime_value: number | null
+          preferred_contact_day: string | null
+          preferred_contact_time: string | null
+          recovery_success_rate: number | null
+          total_abandoned_carts: number | null
+          total_orders: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          avg_order_value?: number | null
+          created_at?: string
+          customer_segment?: string | null
+          days_since_last_order?: number | null
+          days_since_last_visit?: number | null
+          email?: string | null
+          email_engagement_score?: number | null
+          id?: string
+          last_cart_abandonment_at?: string | null
+          lifetime_value?: number | null
+          preferred_contact_day?: string | null
+          preferred_contact_time?: string | null
+          recovery_success_rate?: number | null
+          total_abandoned_carts?: number | null
+          total_orders?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          avg_order_value?: number | null
+          created_at?: string
+          customer_segment?: string | null
+          days_since_last_order?: number | null
+          days_since_last_visit?: number | null
+          email?: string | null
+          email_engagement_score?: number | null
+          id?: string
+          last_cart_abandonment_at?: string | null
+          lifetime_value?: number | null
+          preferred_contact_day?: string | null
+          preferred_contact_time?: string | null
+          recovery_success_rate?: number | null
+          total_abandoned_carts?: number | null
+          total_orders?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_engagement_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "customer_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_engagement_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -520,6 +804,82 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      enhanced_cart_tracking: {
+        Row: {
+          abandonment_reason: string | null
+          added_at: string
+          cart_session_id: string | null
+          checkout_reached: boolean | null
+          id: string
+          payment_attempted: boolean | null
+          product_category: string | null
+          product_id: string | null
+          product_name: string
+          product_price: number
+          product_sku: string | null
+          purchased: boolean | null
+          quantity: number
+          removed_at: string | null
+          time_in_cart: number | null
+        }
+        Insert: {
+          abandonment_reason?: string | null
+          added_at?: string
+          cart_session_id?: string | null
+          checkout_reached?: boolean | null
+          id?: string
+          payment_attempted?: boolean | null
+          product_category?: string | null
+          product_id?: string | null
+          product_name: string
+          product_price: number
+          product_sku?: string | null
+          purchased?: boolean | null
+          quantity?: number
+          removed_at?: string | null
+          time_in_cart?: number | null
+        }
+        Update: {
+          abandonment_reason?: string | null
+          added_at?: string
+          cart_session_id?: string | null
+          checkout_reached?: boolean | null
+          id?: string
+          payment_attempted?: boolean | null
+          product_category?: string | null
+          product_id?: string | null
+          product_name?: string
+          product_price?: number
+          product_sku?: string | null
+          purchased?: boolean | null
+          quantity?: number
+          removed_at?: string | null
+          time_in_cart?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enhanced_cart_tracking_cart_session_id_fkey"
+            columns: ["cart_session_id"]
+            isOneToOne: false
+            referencedRelation: "cart_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enhanced_cart_tracking_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_performance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enhanced_cart_tracking_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fulfillment_items: {
         Row: {

@@ -26,3 +26,12 @@ verify_jwt = false
 
 [functions.import-excel-products]
 verify_jwt = false
+
+[functions.analyze-cart-abandonment]
+verify_jwt = false
+
+[functions.trigger-recovery-campaigns]
+verify_jwt = false
+
+[functions.track-cart-events]
+verify_jwt = false
