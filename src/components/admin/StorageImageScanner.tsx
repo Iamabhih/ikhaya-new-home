@@ -409,6 +409,30 @@ export const StorageImageScanner = ({ onNavigateToLinking }: StorageImageScanner
                 Go to Image Linking
               </Button>
             )}
+            
+            <Button 
+              onClick={async () => {
+                try {
+                  const { data, error } = await supabase.functions.invoke('repair-missing-image-links');
+                  if (error) throw error;
+                  toast({
+                    title: "Repair Complete",
+                    description: `Created ${data.linksCreated} new image links`,
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Repair Failed",
+                    description: error instanceof Error ? error.message : "Unknown error",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Repair Missing Links
+            </Button>
           </div>
 
           {/* Progress Section */}

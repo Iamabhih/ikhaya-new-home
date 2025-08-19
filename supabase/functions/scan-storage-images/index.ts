@@ -319,8 +319,8 @@ Deno.serve(async (req) => {
                 const removeLeadingZeros = (sku: string) => sku.replace(/^0+/, '') || '0';
                 
                 // Try exact matches first (highest confidence)
-                for (const skuCandidate of potentialSKUs) {
-                  if (skuCandidate.confidence < 20) break; // LOWERED: Accept down to 20% confidence
+                  for (const skuCandidate of potentialSKUs) {
+                    if (skuCandidate.confidence < 50) break; // FIXED: Reasonable minimum confidence
                   
                   const candidateSku = normalizeSKU(skuCandidate.sku);
                   
@@ -352,7 +352,7 @@ Deno.serve(async (req) => {
                 // If no exact match, try base numeric matches (for alphanumeric SKUs)
                 if (!matchingProduct) {
                   for (const skuCandidate of potentialSKUs) {
-                    if (skuCandidate.confidence < 20) break; // LOWERED: Accept down to 20%
+                    if (skuCandidate.confidence < 40) break; // FIXED: Reasonable confidence for numeric matching
                     
                     
                     // Extract base numeric part
@@ -381,7 +381,7 @@ Deno.serve(async (req) => {
                 // If still no match, try more permissive matching for high-confidence candidates only
                 if (!matchingProduct) {
                   for (const skuCandidate of potentialSKUs) {
-                    if (skuCandidate.confidence < 40) break; // LOWERED: Still selective for permissive matching
+                    if (skuCandidate.confidence < 60) break; // FIXED: Higher threshold for permissive matching
                     
                     
                     const candidateSku = normalizeSKU(skuCandidate.sku);
@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
                     
                     // High confidence matches go directly to product_images
                     const bestSku = potentialSKUs[0];
-                    if (bestSku && bestSku.confidence >= 60) { // LOWERED: From 85 to 60
+                    if (bestSku && bestSku.confidence >= 70) { // FIXED: Balanced confidence threshold
                       const { error: insertError } = await supabase
                         .from('product_images')
                         .insert({

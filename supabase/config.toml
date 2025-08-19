@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.track-cart-events]
 verify_jwt = false
+
+[functions.repair-missing-image-links]
+verify_jwt = false
