@@ -319,8 +319,8 @@ Deno.serve(async (req) => {
                 const removeLeadingZeros = (sku: string) => sku.replace(/^0+/, '') || '0';
                 
                 // Try exact matches first (highest confidence)
-                  for (const skuCandidate of potentialSKUs) {
-                    if (skuCandidate.confidence < 50) break; // FIXED: Reasonable minimum confidence
+                for (const skuCandidate of potentialSKUs) {
+                  if (skuCandidate.confidence < 30) break; // FIXED: Lower threshold for exact numeric matches
                   
                   const candidateSku = normalizeSKU(skuCandidate.sku);
                   
@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
                     
                     // High confidence matches go directly to product_images
                     const bestSku = potentialSKUs[0];
-                    if (bestSku && bestSku.confidence >= 70) { // FIXED: Balanced confidence threshold
+                    if (bestSku && bestSku.confidence >= 60) { // FIXED: Lower threshold for exact matches
                       const { error: insertError } = await supabase
                         .from('product_images')
                         .insert({

@@ -100,12 +100,17 @@ serve(async (req) => {
 
       console.log(`\nChecking product ${product.sku} (${product.name})`);
 
-      // Find potential matching images
+      // Find potential matching images with improved logic
       const matchingImages = allImages.filter(imagePath => {
         const filename = imagePath.split('/').pop()?.toLowerCase().replace(/\.(jpg|jpeg|png|gif|webp)$/i, '') || '';
         
-        // Direct SKU match
-        if (filename === sku) return true;
+        console.log(`  Comparing filename "${filename}" with SKU "${sku}"`);
+        
+        // Direct SKU match (most important)
+        if (filename === sku) {
+          console.log(`  ✅ Direct match: ${filename} === ${sku}`);
+          return true;
+        }
         
         // Remove leading zeros variations
         const trimmedSku = sku.replace(/^0+/, '');
