@@ -16,6 +16,7 @@ import { ImageLinkingTool } from "@/components/admin/ImageLinkingTool";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductImageRefresh } from "@/components/admin/ProductImageRefresh";
+import { UnifiedImageManager } from "@/components/admin/UnifiedImageManager";
 
 const AdminProducts = () => {
   const [activeTab, setActiveTab] = useState("products");
@@ -187,7 +188,7 @@ const AdminProducts = () => {
 
           <ErrorBoundary>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-10 bg-gray-100 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-11 bg-gray-100 p-1 rounded-xl">
                 <TabsTrigger 
                   value="products" 
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
@@ -247,6 +248,12 @@ const AdminProducts = () => {
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
                 >
                   Complete Refresh
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="unified" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                >
+                  Unified Tools
                 </TabsTrigger>
               </TabsList>
 
@@ -318,6 +325,12 @@ const AdminProducts = () => {
               <TabsContent value="refresh" className="space-y-6">
                 <ErrorBoundary>
                   <ProductImageRefresh />
+                </ErrorBoundary>
+              </TabsContent>
+
+              <TabsContent value="unified" className="space-y-6">
+                <ErrorBoundary>
+                  <UnifiedImageManager />
                 </ErrorBoundary>
               </TabsContent>
             </Tabs>
