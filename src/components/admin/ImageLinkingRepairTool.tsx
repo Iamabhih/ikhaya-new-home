@@ -30,20 +30,30 @@ export const ImageLinkingRepairTool = () => {
     setResult(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('repair-missing-image-links');
+      console.log("🔧 Starting comprehensive manual scan for missing image links...");
+      
+      const { data, error } = await supabase.functions.invoke('repair-missing-image-links', {
+        body: { 
+          mode: 'comprehensive_scan',
+          force_rescan: true,
+          enhanced_matching: true,
+          confidence_threshold: 75
+        }
+      });
 
       if (error) {
         throw new Error(`Repair failed: ${error.message}`);
       }
 
+      console.log("✅ Manual repair scan completed:", data);
       setResult(data);
       
       toast({
-        title: "Image Repair Complete",
-        description: `Created ${data.linksCreated} new image links from ${data.imagesFound} storage images`,
+        title: "Manual Image Repair Complete",
+        description: `Found ${data.productsChecked} products needing images, scanned ${data.imagesFound} storage files, created ${data.linksCreated} new links`,
       });
     } catch (error) {
-      console.error('Repair error:', error);
+      console.error('❌ Repair error:', error);
       toast({
         title: "Repair Failed",
         description: error instanceof Error ? error.message : "Unknown error occurred",
