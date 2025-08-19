@@ -38,22 +38,36 @@ serve(async (req) => {
 
     console.log(`Starting missing image link repair session: ${sessionId}`);
 
-    // Get products without images
+    // Get products without images using NOT EXISTS for better performance
     const { data: productsWithoutImages, error: productsError } = await supabase
       .from('products')
-      .select(`
-        id, sku, name,
-        product_images!left(id)
-      `)
+      .select('id, sku, name')
       .eq('is_active', true)
-      .is('product_images.id', null);
+      .not('sku', 'is', null);
 
     if (productsError) {
       throw new Error(`Failed to fetch products: ${productsError.message}`);
     }
 
-    result.productsChecked = productsWithoutImages?.length || 0;
-    console.log(`Found ${result.productsChecked} products without images`);
+    console.log(`Found ${productsWithoutImages?.length || 0} total active products with SKUs`);
+
+    // Filter out products that already have images
+    const productsNeedingImages = [];
+    for (const product of productsWithoutImages || []) {
+      const { data: existingImages } = await supabase
+        .from('product_images')
+        .select('id')
+        .eq('product_id', product.id)
+        .limit(1);
+      
+      if (!existingImages || existingImages.length === 0) {
+        productsNeedingImages.push(product);
+      }
+    }
+
+
+    result.productsChecked = productsNeedingImages.length;
+    console.log(`Found ${result.productsChecked} products actually needing images`);
 
     // Get all storage images
     const { data: storageFiles, error: storageError } = await supabase.storage
@@ -94,7 +108,7 @@ serve(async (req) => {
     console.log(`Found ${result.imagesFound} images in storage`);
 
     // For each product without images, try to find matching storage images
-    for (const product of productsWithoutImages || []) {
+    for (const product of productsNeedingImages) {
       const sku = product.sku?.toLowerCase();
       if (!sku) continue;
 
