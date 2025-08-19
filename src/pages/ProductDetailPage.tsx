@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { MaintenanceBanner } from "@/components/common/MaintenanceBanner";
 import { ProductImageGallery } from "@/components/products/ProductImageGallery";
 import { ProductInfo } from "@/components/products/ProductInfo";
 import { ProductCard } from "@/components/products/ProductCard";
@@ -117,6 +118,7 @@ const ProductDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <MaintenanceBanner />
       <Header />
       <main className="container mx-auto px-4 py-8">
         {/* Breadcrumbs */}

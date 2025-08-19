@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { MaintenanceBanner } from "@/components/common/MaintenanceBanner";
 import { ProductCard } from "@/components/products/ProductCard";
 import { AutocompleteSearch } from "@/components/products/AutocompleteSearch";
 import { FacetedFilters } from "@/components/products/FacetedFilters";
@@ -259,6 +260,7 @@ const ProductsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <MaintenanceBanner />
       <Header />
       
       {/* Hero Section */}

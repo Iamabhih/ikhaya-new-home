@@ -11,13 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { toast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { Trash2, Plus, GripVertical, Image, ImageOff, Settings } from "lucide-react";
+import { Trash2, Plus, GripVertical, Image, ImageOff, Settings, AlertTriangle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { Textarea } from "@/components/ui/textarea";
 
 export const HomepageSettings = () => {
   const queryClient = useQueryClient();
@@ -248,7 +249,53 @@ export const HomepageSettings = () => {
             Configure global site behavior and customer-facing features
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Maintenance Banner Settings */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Maintenance Banner</h3>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500" />
+                  <Label htmlFor="maintenance-banner-enabled" className="text-base font-medium">
+                    Show maintenance banner
+                  </Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Display a maintenance banner across the top of all customer-facing pages
+                </p>
+              </div>
+              <Switch
+                id="maintenance-banner-enabled"
+                checked={settings?.maintenance_banner_enabled === true}
+                onCheckedChange={(checked) => updateSetting('maintenance_banner_enabled', checked)}
+                disabled={settingsLoading || isUpdating}
+              />
+            </div>
+            
+            {settings?.maintenance_banner_enabled && (
+              <div className="space-y-2">
+                <Label htmlFor="maintenance-banner-text" className="text-sm font-medium">
+                  Banner message
+                </Label>
+                <Textarea
+                  id="maintenance-banner-text"
+                  value={settings?.maintenance_banner_text || ""}
+                  onChange={(e) => updateSetting('maintenance_banner_text', e.target.value)}
+                  placeholder="Enter the maintenance banner message..."
+                  disabled={settingsLoading || isUpdating}
+                  className="min-h-[80px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This message will appear at the top of all customer-facing pages
+                </p>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Products Without Images Settings */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">

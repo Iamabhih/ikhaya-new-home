@@ -1,5 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { MaintenanceBanner } from "@/components/common/MaintenanceBanner";
 import { HeroSection } from "@/components/home/HeroSection";
 import { OptimizedFeaturedProducts } from "@/components/home/OptimizedFeaturedProducts";
 import { OptimizedCategoryGrid } from "@/components/home/OptimizedCategoryGrid";
@@ -12,6 +13,7 @@ import { UniversalLoading } from "@/components/ui/universal-loading";
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      <MaintenanceBanner />
       <Header />
       <main className="pt-14 sm:pt-16"> {/* Add padding-top to account for fixed header */}
         <MobileSafeComponent name="Promotional Banners">
