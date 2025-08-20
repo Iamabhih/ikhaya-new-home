@@ -305,8 +305,8 @@ serve(async (req) => {
     result.imagesFound = allImages.length;
     console.log(`📊 Storage scan complete: ${result.imagesFound} images found`);
 
-    // Phase 4: Advanced matching with enhanced SKU extraction
-    console.log(`\n🎯 Phase 4: Advanced image-to-product matching`);
+    // Phase 4: Advanced matching with enhanced SKU extraction and duplicate prevention
+    console.log(`\n🎯 Phase 4: Advanced image-to-product matching with duplicate prevention`);
     
     // Helper functions for matching
     const normalizeSKU = (sku: string) => (sku || '').toLowerCase().trim();
@@ -373,7 +373,7 @@ serve(async (req) => {
         }
       }
       
-      // Process the best match
+      // Process the best match with duplicate prevention
       if (bestMatch && bestConfidence >= confidence_threshold) {
         console.log(`✅ Best match: ${bestMatch.name} (${bestConfidence.toFixed(1)}% - ${matchType})`);
         
@@ -381,17 +381,46 @@ serve(async (req) => {
           .from('product-images')
           .getPublicUrl(bestMatch.fullPath);
 
+        // Check for existing links to prevent duplicates
+        const { data: existingImage } = await supabase
+          .from('product_images')
+          .select('id')
+          .eq('product_id', product.id)
+          .eq('image_url', publicUrl)
+          .single();
+
+        const { data: existingCandidate } = await supabase
+          .from('product_image_candidates')
+          .select('id')
+          .eq('product_id', product.id)
+          .eq('image_url', publicUrl)
+          .single();
+
+        if (existingImage || existingCandidate) {
+          console.log(`⚠️ Duplicate prevented: ${product.sku} -> ${bestMatch.name} (already exists)`);
+          result.skippedExisting++;
+          continue;
+        }
+
         try {
           // Direct link for high-confidence matches (>=85%)
           if (bestConfidence >= 85) {
+            // Check if product already has a primary image
+            const { data: existingPrimary } = await supabase
+              .from('product_images')
+              .select('id')
+              .eq('product_id', product.id)
+              .eq('is_primary', true)
+              .single();
+
             const { error: insertError } = await supabase
               .from('product_images')
               .insert({
                 product_id: product.id,
                 image_url: publicUrl,
                 alt_text: `${product.name} - ${bestMatch.name}`,
-                is_primary: true,
-                sort_order: 1,
+                is_primary: !existingPrimary, // Only set as primary if no existing primary
+                sort_order: existingPrimary ? 999 : 1,
                 image_status: 'active',
                 match_confidence: Math.round(bestConfidence),
                 match_metadata: {
@@ -405,7 +434,13 @@ serve(async (req) => {
               });
 
             if (insertError) {
-              result.errors.push(`Failed to link ${bestMatch.name} to ${product.sku}: ${insertError.message}`);
+              // Check if it's a duplicate error
+              if (insertError.message.includes('duplicate') || insertError.code === '23505') {
+                console.log(`⚠️ Duplicate prevented by constraint: ${product.sku} -> ${bestMatch.name}`);
+                result.skippedExisting++;
+              } else {
+                result.errors.push(`Failed to link ${bestMatch.name} to ${product.sku}: ${insertError.message}`);
+              }
             } else {
               result.linksCreated++;
               result.matchingStats[matchType as keyof typeof result.matchingStats]++;
@@ -432,7 +467,13 @@ serve(async (req) => {
               });
 
             if (candidateError) {
-              result.errors.push(`Failed to create candidate for ${bestMatch.name}: ${candidateError.message}`);
+              // Check if it's a duplicate error
+              if (candidateError.message.includes('duplicate') || candidateError.code === '23505') {
+                console.log(`⚠️ Candidate duplicate prevented: ${product.sku} -> ${bestMatch.name}`);
+                result.skippedExisting++;
+              } else {
+                result.errors.push(`Failed to create candidate for ${bestMatch.name}: ${candidateError.message}`);
+              }
             } else {
               result.candidatesCreated++;
               result.matchingStats[matchType as keyof typeof result.matchingStats]++;

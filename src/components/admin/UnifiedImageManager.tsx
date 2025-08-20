@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StorageImageScanner } from "./StorageImageScanner";
 import { ImageLinkingRepairTool } from "./ImageLinkingRepairTool";
-import { Database, Wrench, Search, AlertTriangle } from "lucide-react";
+import { ImageAuditTool } from "./ImageAuditTool";
+import { Database, Wrench, Search, AlertTriangle, FileSearch } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const UnifiedImageManager = () => {
@@ -29,7 +30,7 @@ export const UnifiedImageManager = () => {
           </Alert>
 
           <Tabs defaultValue="scanner" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="scanner" className="flex items-center gap-2">
                 <Search className="h-4 w-4" />
                 Storage Scanner
@@ -37,6 +38,10 @@ export const UnifiedImageManager = () => {
               <TabsTrigger value="repair" className="flex items-center gap-2">
                 <Wrench className="h-4 w-4" />
                 Link Repair Tool
+              </TabsTrigger>
+              <TabsTrigger value="audit" className="flex items-center gap-2">
+                <FileSearch className="h-4 w-4" />
+                Image Audit
               </TabsTrigger>
             </TabsList>
             
@@ -46,6 +51,10 @@ export const UnifiedImageManager = () => {
             
             <TabsContent value="repair" className="mt-6">
               <ImageLinkingRepairTool />
+            </TabsContent>
+            
+            <TabsContent value="audit" className="mt-6">
+              <ImageAuditTool />
             </TabsContent>
           </Tabs>
         </CardContent>
