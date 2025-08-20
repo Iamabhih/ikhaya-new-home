@@ -2,10 +2,8 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { BatchImageLinker } from "./BatchImageLinker";
-import { ImageLinkingRepairTool } from "./ImageLinkingRepairTool";
+import { ConsolidatedImageLinker } from "./ConsolidatedImageLinker";
 import { ImageAuditTool } from "./ImageAuditTool";
-import { MissingImageReportTool } from "./MissingImageReportTool";
 import { AutoPromoteCandidates } from "./AutoPromoteCandidates";
 import { Database, Wrench, Search, AlertTriangle, FileSearch, TrendingUp, Zap } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,38 +15,30 @@ export const UnifiedImageManager = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
-            Unified Image Management System
+            Consolidated Image Management System
           </CardTitle>
           <CardDescription>
-            Comprehensive tools for scanning storage, linking images, and repairing missing connections.
+            Unified system for comprehensive image linking with step-by-step processing and complete coverage.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Alert className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Streamlined System:</strong> Consolidated all image management tools into focused tabs. 
-              Use "Image Tools" for all Supabase storage operations and "Drive Linking" for Google Drive cached images.
+              <strong>Complete Solution:</strong> This consolidated system replaces all fragmented image linking tools. 
+              It processes ALL storage images against ALL products in a single comprehensive workflow without limitations.
             </AlertDescription>
           </Alert>
 
-          <Tabs defaultValue="batch" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="batch" className="flex items-center gap-2">
+          <Tabs defaultValue="consolidated" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="consolidated" className="flex items-center gap-2">
                 <Zap className="h-4 w-4" />
-                Batch Linker
-              </TabsTrigger>
-              <TabsTrigger value="repair" className="flex items-center gap-2">
-                <Wrench className="h-4 w-4" />
-                Link Repair
+                Consolidated Linker
               </TabsTrigger>
               <TabsTrigger value="promote" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 Auto-Promote
-              </TabsTrigger>
-              <TabsTrigger value="report" className="flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                Missing Report
               </TabsTrigger>
               <TabsTrigger value="audit" className="flex items-center gap-2">
                 <FileSearch className="h-4 w-4" />
@@ -56,20 +46,12 @@ export const UnifiedImageManager = () => {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="batch" className="mt-6">
-              <BatchImageLinker />
-            </TabsContent>
-            
-            <TabsContent value="repair" className="mt-6">
-              <ImageLinkingRepairTool />
+            <TabsContent value="consolidated" className="mt-6">
+              <ConsolidatedImageLinker />
             </TabsContent>
             
             <TabsContent value="promote" className="mt-6">
               <AutoPromoteCandidates />
-            </TabsContent>
-            
-            <TabsContent value="report" className="mt-6">
-              <MissingImageReportTool />
             </TabsContent>
             
             <TabsContent value="audit" className="mt-6">

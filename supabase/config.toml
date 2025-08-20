@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.repair-missing-image-links]
 verify_jwt = false
+
+[functions.consolidated-image-linker]
+verify_jwt = false
