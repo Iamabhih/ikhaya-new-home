@@ -83,7 +83,26 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     }
   }
   
-  // Strategy 4: Multiple SKUs separated by other delimiters
+  // Strategy 4: Space-separated SKUs (like "20749 21183 21478.png")
+  const spacePattern = /(\d{4,})(?:\s+(\d{4,}))+/g;
+  const spaceMatches = [...cleanFilename.matchAll(spacePattern)];
+  spaceMatches.forEach(match => {
+    // Extract all numbers from the match
+    const allNumbers = match[0].match(/\d{4,}/g);
+    if (allNumbers) {
+      allNumbers.forEach((sku, index) => {
+        const isLast = index === allNumbers.length - 1;
+        results.push({
+          sku: sku,
+          confidence: isLast ? 80 : 70,
+          source: `space_separated_${isLast ? 'last' : 'first'}`
+        });
+        console.log(`✅ Space-separated SKU: ${sku}`);
+      });
+    }
+  });
+
+  // Strategy 5: Multiple SKUs separated by other delimiters
   const multiSKUPatterns = [
     /(\d{4,})[\.\-_](\d{4,})[\.\-_](\d{4,})/g, // three or more with delimiters
     /(\d{4,})[\.\-_](\d{4,})/g, // two with delimiters
@@ -105,8 +124,20 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
       }
     });
   });
+
+  // Strategy 6: SKUs with suffixes (like "313627-2.png")
+  const suffixPattern = /(\d{4,})[\-_](\d{1,3})$/;
+  const suffixMatch = cleanFilename.match(suffixPattern);
+  if (suffixMatch) {
+    results.push({
+      sku: suffixMatch[1],
+      confidence: 75,
+      source: 'numeric_with_numeric_suffix'
+    });
+    console.log(`✅ SKU with numeric suffix: ${suffixMatch[1]}`);
+  }
   
-  // Strategy 5: Single numeric patterns (fallback)
+  // Strategy 7: Single numeric patterns (fallback)
   if (results.length === 0) {
     const allNumbers = cleanFilename.match(/\d{4,}/g);
     if (allNumbers) {
@@ -121,7 +152,7 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     }
   }
   
-  // Strategy 6: SKU patterns in various formats
+  // Strategy 8: SKU patterns in various formats
   const patterns = [
     /sku[\-_]?(\d+)/gi,
     /item[\-_]?(\d+)/gi,
