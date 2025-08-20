@@ -198,7 +198,8 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
     const { data: allProducts, error: productsError } = await supabase
       .from('products')
       .select('id, sku, name')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .limit(10000); // Ensure we get ALL products, not just first 1000
     
     console.log('🔍 DEBUG: Query result - Error:', productsError);
     console.log('🔍 DEBUG: Query result - Data length:', allProducts?.length);
@@ -290,7 +291,7 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
               .from('product_images')
               .insert({
                 product_id: matchedProduct.id,
-                image_url: image.filename, // Use just filename, not full URL
+                image_url: image.url, // Use full public URL
                 alt_text: `Product image for ${matchedProduct.sku}`,
                 image_status: 'active',
                 match_confidence: extractedSKU.confidence,
@@ -317,7 +318,7 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
               .from('product_image_candidates')
               .insert({
                 product_id: matchedProduct.id,
-                image_url: image.filename, // Use just filename, not full URL
+                image_url: image.url, // Use full public URL
                 alt_text: `Candidate image for ${matchedProduct.sku}`,
                 match_confidence: extractedSKU.confidence,
                 match_metadata: {
