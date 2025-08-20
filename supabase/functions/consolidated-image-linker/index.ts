@@ -28,54 +28,128 @@ interface ExtractedSKU {
   source: string
 }
 
-// SKU extraction function with enhanced logging
+// Enhanced SKU extraction with better pattern matching for complex filenames
 function extractSKUsFromFilename(filename: string, fullPath?: string): ExtractedSKU[] {
-  console.log(`🔍 Extracting SKUs from: "${filename}"`);
+  const results: ExtractedSKU[] = [];
+  const cleanFilename = filename.toLowerCase().replace(/\.(jpg|jpeg|png|gif|webp|ngp)$/i, '');
   
-  const skus: ExtractedSKU[] = [];
-  const cleanFilename = filename.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+  console.log(`📝 Extracting SKUs from: "${filename}" (clean: "${cleanFilename}")`);
   
-  // Debug log for specific SKUs we're tracking
-  if (filename.includes('455404') || filename.includes('455382')) {
-    console.log(`📦 PACKAGING DEBUG: Processing ${filename}`);
-  }
-  
-  // Strategy 1: Exact numeric match (high confidence)
-  const exactNumeric = cleanFilename.match(/^\d{4,}$/);
-  if (exactNumeric) {
-    skus.push({ sku: exactNumeric[0], confidence: 95, source: 'exact_numeric' });
-  }
-  
-  // Strategy 2: Multiple SKUs in filename
-  const multiSKUs = cleanFilename.match(/\d{4,}/g);
-  if (multiSKUs && multiSKUs.length > 0) {
-    multiSKUs.forEach((sku, index) => {
-      const confidence = index === 0 ? 85 : 75;
-      skus.push({ sku, confidence, source: 'multi_sku' });
+  // Strategy 1: Direct numeric match (highest confidence)
+  const directNumeric = cleanFilename.match(/^(\d+)$/);
+  if (directNumeric) {
+    results.push({
+      sku: directNumeric[1],
+      confidence: 95,
+      source: 'direct_numeric'
     });
+    console.log(`✅ Direct numeric match: ${directNumeric[1]}`);
   }
   
-  // Strategy 3: Pattern matching for various SKU lengths
-  const patterns = [
-    /(\d{6})/g,     // 6-digit SKUs
-    /(\d{5})/g,     // 5-digit SKUs  
-    /(\d{4})/g,     // 4-digit SKUs
-  ];
+  // Strategy 2: Numeric with extensions like (1), _copy, etc.
+  const numericWithSuffix = cleanFilename.match(/^(\d+)[\s\-_]*(?:\(\d+\)|copy|duplicate)?$/);
+  if (numericWithSuffix && !directNumeric) {
+    results.push({
+      sku: numericWithSuffix[1],
+      confidence: 85,
+      source: 'numeric_with_suffix'
+    });
+    console.log(`✅ Numeric with suffix: ${numericWithSuffix[1]}`);
+  }
   
-  patterns.forEach((pattern, patternIndex) => {
-    const matches = cleanFilename.match(pattern);
-    if (matches) {
-      matches.forEach(match => {
-        if (!skus.some(s => s.sku === match)) {
-          const confidence = 70 - (patternIndex * 10);
-          skus.push({ sku: match, confidence, source: 'pattern_match' });
-        }
+  // Strategy 3: Enhanced dot-separated SKUs (e.g., "4262.25731.21722.png")
+  const dotSeparatedPattern = /(\d{4,})(?:\.(\d{4,}))*\.?(\d{4,})?/;
+  const dotMatches = cleanFilename.match(dotSeparatedPattern);
+  if (dotMatches) {
+    // Extract all numeric segments that are 4+ digits
+    const allNumbers = cleanFilename.match(/\d{4,}/g);
+    if (allNumbers && allNumbers.length > 1) {
+      // First number gets lower confidence, last number gets higher confidence
+      allNumbers.forEach((sku, index) => {
+        const isLast = index === allNumbers.length - 1;
+        const isFirst = index === 0;
+        let confidence = 70;
+        
+        if (isLast) confidence = 80; // Last SKU often most relevant
+        if (isFirst && allNumbers.length > 2) confidence = 60; // First might be category
+        
+        results.push({
+          sku: sku,
+          confidence: confidence,
+          source: `dot_separated_${isLast ? 'last' : isFirst ? 'first' : 'middle'}`
+        });
+        console.log(`✅ Dot-separated SKU (${isLast ? 'last' : isFirst ? 'first' : 'middle'}): ${sku}`);
       });
     }
+  }
+  
+  // Strategy 4: Multiple SKUs separated by other delimiters
+  const multiSKUPatterns = [
+    /(\d{4,})[\.\-_](\d{4,})[\.\-_](\d{4,})/g, // three or more with delimiters
+    /(\d{4,})[\.\-_](\d{4,})/g, // two with delimiters
+  ];
+  
+  multiSKUPatterns.forEach((pattern, patternIndex) => {
+    const matches = [...cleanFilename.matchAll(pattern)];
+    matches.forEach(match => {
+      for (let i = 1; i < match.length; i++) {
+        if (match[i] && match[i].length >= 4) {
+          const isLast = i === match.length - 1;
+          results.push({
+            sku: match[i],
+            confidence: isLast ? 75 : 65,
+            source: `multi_delimiter_${isLast ? 'last' : 'middle'}`
+          });
+          console.log(`✅ Multi-delimiter SKU: ${match[i]}`);
+        }
+      }
+    });
   });
   
-  console.log(`📊 Extracted ${skus.length} SKUs from "${filename}":`, skus.map(s => `${s.sku}(${s.confidence}%)`));
-  return skus;
+  // Strategy 5: Single numeric patterns (fallback)
+  if (results.length === 0) {
+    const allNumbers = cleanFilename.match(/\d{4,}/g);
+    if (allNumbers) {
+      allNumbers.forEach(sku => {
+        results.push({
+          sku: sku,
+          confidence: 50,
+          source: 'fallback_numeric'
+        });
+        console.log(`✅ Fallback numeric: ${sku}`);
+      });
+    }
+  }
+  
+  // Strategy 6: SKU patterns in various formats
+  const patterns = [
+    /sku[\-_]?(\d+)/gi,
+    /item[\-_]?(\d+)/gi,
+    /product[\-_]?(\d+)/gi
+  ];
+  
+  patterns.forEach((pattern, index) => {
+    const matches = [...cleanFilename.matchAll(pattern)];
+    matches.forEach(match => {
+      if (match[1] && match[1].length >= 3) {
+        results.push({
+          sku: match[1],
+          confidence: 55 - (index * 5),
+          source: `labeled_pattern_${index + 1}`
+        });
+        console.log(`✅ Labeled pattern: ${match[1]}`);
+      }
+    });
+  });
+  
+  // Remove duplicates and sort by confidence
+  const uniqueResults = results.filter((result, index, self) => 
+    index === self.findIndex(r => r.sku === result.sku)
+  );
+  
+  console.log(`📊 Extracted ${uniqueResults.length} unique SKUs:`, uniqueResults.map(r => `${r.sku}(${r.confidence}%)`));
+  
+  return uniqueResults.sort((a, b) => b.confidence - a.confidence);
 }
 
 // Helper function to find matching product
@@ -211,12 +285,12 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
           const isHighConfidence = extractedSKU.confidence >= 80;
           
           if (isHighConfidence) {
-            // Create direct link
+            // Create direct link (with duplicate prevention via unique constraint)
             const { error: linkError } = await supabase
               .from('product_images')
               .insert({
                 product_id: matchedProduct.id,
-                image_url: image.url,
+                image_url: image.filename, // Use just filename, not full URL
                 alt_text: `Product image for ${matchedProduct.sku}`,
                 image_status: 'active',
                 match_confidence: extractedSKU.confidence,
@@ -231,16 +305,19 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
             if (!linkError) {
               result.directLinksCreated++;
               console.log(`✅ Created direct link: ${image.filename} → ${matchedProduct.sku}`);
+            } else if (linkError.code === '23505') {
+              // Unique constraint violation - image already linked
+              console.log(`⏭️ Image already linked: ${image.filename} → ${matchedProduct.sku}`);
             } else {
               result.errors.push(`Link error for ${matchedProduct.sku}: ${linkError.message}`);
             }
           } else {
-            // Create candidate
+            // Create candidate (with duplicate prevention via unique constraint)
             const { error: candidateError } = await supabase
               .from('product_image_candidates')
               .insert({
                 product_id: matchedProduct.id,
-                image_url: image.url,
+                image_url: image.filename, // Use just filename, not full URL
                 alt_text: `Candidate image for ${matchedProduct.sku}`,
                 match_confidence: extractedSKU.confidence,
                 match_metadata: {
@@ -254,6 +331,9 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
             if (!candidateError) {
               result.candidatesCreated++;
               console.log(`📝 Created candidate: ${image.filename} → ${matchedProduct.sku}`);
+            } else if (candidateError.code === '23505') {
+              // Unique constraint violation - candidate already exists
+              console.log(`⏭️ Candidate already exists: ${image.filename} → ${matchedProduct.sku}`);
             } else {
               result.errors.push(`Candidate error for ${matchedProduct.sku}: ${candidateError.message}`);
             }
