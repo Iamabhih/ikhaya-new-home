@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Search, Database, Image, AlertTriangle, CheckCircle, 
-  RefreshCw, Link2, Unlink, Copy, ExternalLink
+  RefreshCw, Link2, Unlink, Share, ExternalLink
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,46 +39,46 @@ interface OrphanImage {
 
 export const ImageAuditTool = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("duplicates");
+  const [activeTab, setActiveTab] = useState("shared");
   const { toast } = useToast();
 
-  // Query for products with duplicate images
-  const { data: duplicateProducts, refetch: refetchDuplicates, isLoading: duplicatesLoading } = useQuery({
-    queryKey: ['duplicate-products'],
+  // Query for products with shared images (same image used by multiple products)
+  const { data: sharedImageProducts, refetch: refetchShared, isLoading: sharedLoading } = useQuery({
+    queryKey: ['shared-image-products'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('products')
+        .from('product_images')
         .select(`
-          id, name, sku,
-          product_images!inner(id, image_url, is_primary, match_confidence, auto_matched)
-        `)
-        .eq('is_active', true);
+          image_url,
+          product_id,
+          products!inner(id, name, sku)
+        `);
 
       if (error) throw error;
 
-      // Group by product and find duplicates
-      const productsWithCounts = data?.map(product => {
-        const imageUrls = new Set();
-        const duplicateUrls = new Set();
-        
-        product.product_images.forEach((img: any) => {
-          if (imageUrls.has(img.image_url)) {
-            duplicateUrls.add(img.image_url);
-          } else {
-            imageUrls.add(img.image_url);
-          }
-        });
+      // Group by image_url to find shared images
+      const imageGroups = new Map();
+      data?.forEach(item => {
+        if (!imageGroups.has(item.image_url)) {
+          imageGroups.set(item.image_url, []);
+        }
+        imageGroups.get(item.image_url).push(item);
+      });
 
-        return {
-          ...product,
-          image_count: product.product_images.length,
-          has_duplicates: duplicateUrls.size > 0,
-          duplicate_urls: Array.from(duplicateUrls),
-          has_primary: product.product_images.some((img: any) => img.is_primary)
-        };
-      }).filter(p => p.has_duplicates) || [];
+      // Find images shared across multiple products
+      const sharedImages = Array.from(imageGroups.entries())
+        .filter(([_, products]) => products.length > 1)
+        .map(([imageUrl, products]) => ({
+          image_url: imageUrl,
+          product_count: products.length,
+          products: products.map((p: any) => ({
+            id: p.product_id,
+            name: p.products.name,
+            sku: p.products.sku
+          }))
+        }));
 
-      return productsWithCounts;
+      return sharedImages;
     },
     staleTime: 30000,
   });
@@ -102,7 +102,7 @@ export const ImageAuditTool = () => {
     staleTime: 30000,
   });
 
-  // Query for products with multiple primary images
+  // Query for products with primary image issues
   const { data: multiplePrimaryProducts, refetch: refetchMultiplePrimary, isLoading: multiplePrimaryLoading } = useQuery({
     queryKey: ['multiple-primary-products'],
     queryFn: async () => {
@@ -130,48 +130,25 @@ export const ImageAuditTool = () => {
     staleTime: 30000,
   });
 
-  const handleFixDuplicates = async (productId: string) => {
+  const handleUnlinkImage = async (imageUrl: string, productId: string) => {
     try {
-      // Get all images for this product
-      const { data: images, error: fetchError } = await supabase
+      const { error } = await supabase
         .from('product_images')
-        .select('*')
-        .eq('product_id', productId)
-        .order('created_at', { ascending: true });
-
-      if (fetchError) throw fetchError;
-
-      // Group by image_url and keep only the first one of each
-      const uniqueImages = new Map();
-      const duplicateIds: string[] = [];
-
-      images?.forEach(image => {
-        if (uniqueImages.has(image.image_url)) {
-          duplicateIds.push(image.id);
-        } else {
-          uniqueImages.set(image.image_url, image);
-        }
-      });
-
-      // Delete duplicates
-      if (duplicateIds.length > 0) {
-        const { error: deleteError } = await supabase
-          .from('product_images')
-          .delete()
-          .in('id', duplicateIds);
-
-        if (deleteError) throw deleteError;
-      }
+        .delete()
+        .eq('image_url', imageUrl)
+        .eq('product_id', productId);
+      
+      if (error) throw error;
       
       toast({
-        title: "Duplicates Fixed",
-        description: `Removed ${duplicateIds.length} duplicate images`,
+        title: "Image Unlinked",
+        description: "Image has been unlinked from this product",
       });
       
-      refetchDuplicates();
+      refetchShared();
     } catch (error) {
       toast({
-        title: "Fix Failed",
+        title: "Unlink Failed",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
       });
@@ -245,10 +222,12 @@ export const ImageAuditTool = () => {
     });
   };
 
-  const filteredDuplicates = duplicateProducts?.filter(p => 
+  const filteredShared = sharedImageProducts?.filter(img => 
     !searchTerm || 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+    img.products.some(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   ) || [];
 
   const filteredMissing = missingImageProducts?.filter(p => 
@@ -271,7 +250,7 @@ export const ImageAuditTool = () => {
           Image Audit Tool
         </CardTitle>
         <CardDescription>
-          Comprehensive audit of product images to identify duplicates, missing links, and orphaned files.
+          Comprehensive audit of product images. Images can be shared across multiple products, and products can have multiple images.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -287,7 +266,7 @@ export const ImageAuditTool = () => {
           <Button
             variant="outline"
             onClick={() => {
-              refetchDuplicates();
+              refetchShared();
               refetchMissing();
               refetchMultiplePrimary();
             }}
@@ -300,9 +279,9 @@ export const ImageAuditTool = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="duplicates" className="flex items-center gap-2">
-              <Copy className="h-4 w-4" />
-              Duplicates ({duplicateProducts?.length || 0})
+            <TabsTrigger value="shared" className="flex items-center gap-2">
+              <Share className="h-4 w-4" />
+              Shared Images ({sharedImageProducts?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="missing" className="flex items-center gap-2">
               <Unlink className="h-4 w-4" />
@@ -314,55 +293,70 @@ export const ImageAuditTool = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Duplicate Images Tab */}
-          <TabsContent value="duplicates" className="space-y-4">
+          {/* Shared Images Tab */}
+          <TabsContent value="shared" className="space-y-4">
             <Alert>
-              <Copy className="h-4 w-4" />
+              <Share className="h-4 w-4" />
               <AlertDescription>
-                Products with duplicate image entries. These can slow down the site and confuse customers.
+                Images that are shared across multiple products. This is allowed and can be useful for product variants or related items.
               </AlertDescription>
             </Alert>
 
-            {duplicatesLoading ? (
+            {sharedLoading ? (
               <div className="flex items-center gap-2">
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span>Loading duplicate products...</span>
+                <span>Loading shared images...</span>
               </div>
             ) : (
               <ScrollArea className="h-96 w-full">
                 <div className="space-y-3">
-                  {filteredDuplicates.map((product) => (
-                    <Card key={product.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
+                  {filteredShared.map((sharedImage, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-medium">{product.name}</h4>
-                            <Badge variant="outline" className="cursor-pointer" onClick={() => copyToClipboard(product.sku)}>
-                              {product.sku}
-                            </Badge>
-                            <Badge variant="destructive">
-                              {product.image_count} images
-                            </Badge>
+                            <Image className="h-4 w-4" />
+                            <span className="text-sm font-medium">Image shared across {sharedImage.product_count} products</span>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {product.duplicate_urls.length} duplicate URL(s) found
-                          </p>
+                          <Badge variant="secondary">
+                            {sharedImage.product_count} products
+                          </Badge>
                         </div>
-                        <Button
-                          onClick={() => handleFixDuplicates(product.id)}
-                          size="sm"
-                          className="flex items-center gap-2"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                          Fix Duplicates
-                        </Button>
+                        
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground truncate">
+                            {sharedImage.image_url}
+                          </p>
+                          
+                          <div className="grid gap-2">
+                            {sharedImage.products.map((product: any) => (
+                              <div key={product.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-sm">{product.name}</span>
+                                  <Badge variant="outline" className="cursor-pointer" onClick={() => copyToClipboard(product.sku)}>
+                                    {product.sku}
+                                  </Badge>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleUnlinkImage(sharedImage.image_url, product.id)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <Unlink className="h-3 w-3" />
+                                  Unlink
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </Card>
                   ))}
-                  {filteredDuplicates.length === 0 && (
+                  {filteredShared.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       <CheckCircle className="h-8 w-8 mx-auto mb-2" />
-                      No duplicate images found
+                      No shared images found
                     </div>
                   )}
                 </div>
@@ -432,7 +426,7 @@ export const ImageAuditTool = () => {
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Products with multiple primary images or no primary image. Each product should have exactly one primary image.
+                Products with multiple primary images or no primary image. Each product should have exactly one primary image for display purposes.
               </AlertDescription>
             </Alert>
 
