@@ -1,4 +1,5 @@
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import React from "react";
 
 export interface BreadcrumbItem {
   label: string;
@@ -16,14 +17,16 @@ export const StandardBreadcrumbs = ({ items, className = "" }: StandardBreadcrum
     <Breadcrumb className={`mb-6 ${className}`}>
       <BreadcrumbList>
         {items.map((item, index) => (
-          <BreadcrumbItem key={index}>
+          <React.Fragment key={index}>
             {index > 0 && <BreadcrumbSeparator />}
-            {item.isActive || !item.href ? (
-              <BreadcrumbPage>{item.label}</BreadcrumbPage>
-            ) : (
-              <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
-            )}
-          </BreadcrumbItem>
+            <BreadcrumbItem>
+              {item.isActive || !item.href ? (
+                <BreadcrumbPage>{item.label}</BreadcrumbPage>
+              ) : (
+                <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+              )}
+            </BreadcrumbItem>
+          </React.Fragment>
         ))}
       </BreadcrumbList>
     </Breadcrumb>
