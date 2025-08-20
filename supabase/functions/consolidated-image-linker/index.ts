@@ -1,774 +1,332 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// CORS headers for browser requests
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
+// Simplified data structures
 interface ProcessingResult {
-  sessionId: string;
-  status: 'running' | 'complete' | 'error';
-  currentStep: number;
-  totalSteps: number;
-  stepName: string;
-  progress: number;
-  
-  // Step-specific counters
-  candidatesPromoted: number;
-  productsScanned: number;
-  imagesScanned: number;
-  directLinksCreated: number;
-  candidatesCreated: number;
-  
-  // Summary stats
-  totalProductsWithoutImages: number;
-  totalStorageImages: number;
-  
-  // Error tracking
-  errors: string[];
-  stepErrors: { [step: string]: string[] };
-  
-  // Timing
-  startedAt: string;
-  completedAt?: string;
-  stepTimings: { [step: string]: number };
+  status: 'running' | 'completed' | 'failed'
+  progress: number
+  currentStep: string
+  productsScanned: number
+  imagesScanned: number
+  directLinksCreated: number
+  candidatesCreated: number
+  errors: string[]
+  startTime: string
+  endTime?: string
+  totalTime?: number
+  debugInfo?: any
 }
 
 interface ExtractedSKU {
-  sku: string;
-  confidence: number;
-  source: string;
+  sku: string
+  confidence: number
+  source: string
 }
 
-// Enhanced SKU extraction with comprehensive pattern matching
+// SKU extraction function with enhanced logging
 function extractSKUsFromFilename(filename: string, fullPath?: string): ExtractedSKU[] {
+  console.log(`🔍 Extracting SKUs from: "${filename}"`);
+  
   const skus: ExtractedSKU[] = [];
-  let cleanName = filename.replace(/\.(jpg|jpeg|png|webp|gif|bmp|svg|tiff?)$/i, '');
-  cleanName = cleanName.replace(/\.+$/, '');
+  const cleanFilename = filename.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
   
-  console.log(`🔍 Extracting SKUs from: ${filename} → ${cleanName}`);
-  
-  // Strategy 1: Exact numeric filename (highest confidence)
-  if (/^\d{3,8}$/.test(cleanName)) {
-    skus.push({
-      sku: cleanName,
-      confidence: 100,
-      source: 'exact_numeric_filename'
-    });
-    console.log(`✅ Exact numeric SKU: ${cleanName}`);
-    
-    // Add zero-padding variations
-    if (cleanName.length === 5 && !cleanName.startsWith('0')) {
-      skus.push({
-        sku: '0' + cleanName,
-        confidence: 95,
-        source: 'zero_padded_variation'
-      });
-    }
-    
-    if (cleanName.startsWith('0') && cleanName.length > 3) {
-      const trimmed = cleanName.replace(/^0+/, '');
-      if (trimmed.length >= 3) {
-        skus.push({
-          sku: trimmed,
-          confidence: 95,
-          source: 'trimmed_zeros'
-        });
-      }
-    }
+  // Debug log for specific SKUs we're tracking
+  if (filename.includes('455404') || filename.includes('455382')) {
+    console.log(`📦 PACKAGING DEBUG: Processing ${filename}`);
   }
   
-  // Strategy 2: Multi-SKU handling
-  const multiSkuPatterns = [
-    /^(\d{3,8}(?:\.\d{3,8})+)\.?$/,
-    /^(\d{3,8}(?:[\.\-_]\d{3,8})+)[\.\-_]?[a-zA-Z]*\.?$/,
-    /(\d{3,8}(?:[\.\-_]\d{3,8})+)/
+  // Strategy 1: Exact numeric match (high confidence)
+  const exactNumeric = cleanFilename.match(/^\d{4,}$/);
+  if (exactNumeric) {
+    skus.push({ sku: exactNumeric[0], confidence: 95, source: 'exact_numeric' });
+  }
+  
+  // Strategy 2: Multiple SKUs in filename
+  const multiSKUs = cleanFilename.match(/\d{4,}/g);
+  if (multiSKUs && multiSKUs.length > 0) {
+    multiSKUs.forEach((sku, index) => {
+      const confidence = index === 0 ? 85 : 75;
+      skus.push({ sku, confidence, source: 'multi_sku' });
+    });
+  }
+  
+  // Strategy 3: Pattern matching for various SKU lengths
+  const patterns = [
+    /(\d{6})/g,     // 6-digit SKUs
+    /(\d{5})/g,     // 5-digit SKUs  
+    /(\d{4})/g,     // 4-digit SKUs
   ];
   
-  for (const pattern of multiSkuPatterns) {
-    const match = cleanName.match(pattern);
-    if (match) {
-      const allNumbers = match[1].match(/\d{3,8}/g) || [];
-      const uniqueNumbers = [...new Set(allNumbers)];
-      
-      uniqueNumbers.forEach((sku, index) => {
-        if (!skus.find(s => s.sku === sku)) {
-          const confidence = Math.max(90 - (index * 3), 70);
-          skus.push({
-            sku: sku,
-            confidence: confidence,
-            source: 'multi_sku'
-          });
-          console.log(`✅ Multi-SKU ${index + 1}: ${sku} (${confidence}%)`);
+  patterns.forEach((pattern, patternIndex) => {
+    const matches = cleanFilename.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        if (!skus.some(s => s.sku === match)) {
+          const confidence = 70 - (patternIndex * 10);
+          skus.push({ sku: match, confidence, source: 'pattern_match' });
         }
       });
-      break;
     }
-  }
-
-  // Strategy 3: Enhanced pattern matching
-  if (!skus.length || cleanName.includes('.')) {
-    const enhancedPatterns = [
-      /(\d{3,8})(?:[\.\-_][a-zA-Z]+)+/g,
-      /^(\d{3,8})[a-zA-Z_\-]+$/g,
-      /^[a-zA-Z_\-]+(\d{3,8})$/g,
-      /(\d{3,8})/g
-    ];
-
-    enhancedPatterns.forEach((pattern, patternIndex) => {
-      try {
-        const matches = [...cleanName.matchAll(pattern)];
-        matches.forEach(match => {
-          const numericPart = match[1] || match[0].replace(/[^0-9]/g, '');
-          if (/^\d{3,8}$/.test(numericPart) && !skus.find(s => s.sku === numericPart)) {
-            let confidence = 60 - (patternIndex * 10);
-            
-            if (cleanName === numericPart) confidence = 90;
-            else if (cleanName.startsWith(numericPart)) confidence = 80;
-            else if (cleanName.endsWith(numericPart)) confidence = 70;
-            else if (patternIndex === 0) confidence = 75;
-            
-            skus.push({
-              sku: numericPart,
-              confidence: Math.max(30, confidence),
-              source: 'enhanced_pattern'
-            });
-            console.log(`✅ Enhanced pattern: ${numericPart} (${confidence}%)`);
-          }
-        });
-      } catch (error) {
-        console.error(`❌ Pattern error ${patternIndex}: ${error.message}`);
-      }
-    });
-  }
+  });
   
-  // Strategy 4: Path-based extraction
-  if (fullPath && skus.length === 0) {
-    const pathParts = fullPath.split('/');
-    for (const part of pathParts) {
-      if (/^\d{3,}$/.test(part) && !skus.some(s => s.sku === part)) {
-        skus.push({
-          sku: part,
-          confidence: 60,
-          source: 'path_folder_numeric'
-        });
-        console.log(`✅ Path SKU: ${part}`);
-      }
-    }
-  }
-  
-  const finalSkus = skus.sort((a, b) => b.confidence - a.confidence);
-  console.log(`📊 Total SKUs: ${finalSkus.length}`, finalSkus.map(s => `${s.sku}(${s.confidence}%)`));
-  
-  return finalSkus;
+  console.log(`📊 Extracted ${skus.length} SKUs from "${filename}":`, skus.map(s => `${s.sku}(${s.confidence}%)`));
+  return skus;
 }
 
 // Helper function to find matching product
-const findMatchingProduct = (productSKUs: Array<{id: string, sku: string}>, sku: string) => {
-  return productSKUs.find(p => 
-    p.sku.toLowerCase() === sku.toLowerCase() ||
-    p.sku.replace(/^0+/, '') === sku.replace(/^0+/, '') ||
-    sku.replace(/^0+/, '') === p.sku.replace(/^0+/, '')
-  );
-};
+function findMatchingProduct(productSKUs: Array<{id: string, sku: string}>, sku: string): {id: string, sku: string} | undefined {
+  // Direct match first
+  let match = productSKUs.find(p => p.sku === sku);
+  if (match) return match;
+  
+  // Try with leading zeros removed
+  const skuWithoutLeadingZeros = sku.replace(/^0+/, '');
+  match = productSKUs.find(p => p.sku.replace(/^0+/, '') === skuWithoutLeadingZeros);
+  if (match) return match;
+  
+  // Try with leading zeros added (up to 6 digits)
+  const paddedSKU = sku.padStart(6, '0');
+  match = productSKUs.find(p => p.sku === paddedSKU);
+  
+  return match;
+}
 
-// Comprehensive consolidated processing function
-async function runConsolidatedProcessing(supabase: any, sessionId: string, confidenceThreshold: number = 70, debugSKUs: string[] = []) {
-  const steps = [
-    'Initialize Session',
-    'Auto-Promote Existing Candidates', 
-    'Scan All Products',
-    'Scan All Storage Images',
-    'Advanced SKU Matching',
-    'Create Links & Candidates',
-    'Generate Summary Report'
-  ];
-  
-  const MAX_EXECUTION_TIME = 4 * 60 * 1000; // 4 minutes timeout
-  const startTime = Date.now();
-  
+// Streamlined processing function
+async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResult> {
+  const startTime = new Date().toISOString();
   const result: ProcessingResult = {
-    sessionId,
     status: 'running',
-    currentStep: 0,
-    totalSteps: steps.length,
-    stepName: steps[0],
     progress: 0,
-    candidatesPromoted: 0,
+    currentStep: 'Initializing',
     productsScanned: 0,
     imagesScanned: 0,
     directLinksCreated: 0,
     candidatesCreated: 0,
-    totalProductsWithoutImages: 0,
-    totalStorageImages: 0,
     errors: [],
-    stepErrors: {},
-    startedAt: new Date().toISOString(),
-    stepTimings: {}
+    startTime,
+    debugInfo: {}
   };
 
-  // Check if session already exists and is completed/failed
+  console.log(`🚀 Starting consolidated image linking process`);
+  const startProcessingTime = Date.now();
+  
   try {
-    const { data: existingSession } = await supabase
-      .from('batch_progress')
-      .select('status')
-      .eq('session_id', sessionId)
-      .single();
-    
-    if (existingSession?.status === 'complete' || existingSession?.status === 'error') {
-      console.log(`⚠️ Session ${sessionId} already ${existingSession.status}, skipping...`);
-      return result;
-    }
-  } catch (error) {
-    // Session doesn't exist yet, continue
-  }
-
-  const updateProgress = async (stepIndex: number, stepProgress: number = 100) => {
-    const overallProgress = Math.round(((stepIndex + (stepProgress / 100)) / steps.length) * 100);
-    
-    await supabase.from('batch_progress').upsert({
-      session_id: sessionId,
-      status: result.status,
-      progress: overallProgress,
-      current_batch: stepIndex + 1,
-      total_batches: steps.length,
-      links_created: result.directLinksCreated,
-      candidates_created: result.candidatesCreated,
-      errors: result.errors,
-      updated_at: new Date().toISOString(),
-      started_at: result.startedAt
-    });
-    
-    result.currentStep = stepIndex;
-    result.stepName = steps[stepIndex];
-    result.progress = overallProgress;
-  };
-
-  try {
-    // STEP 1: Initialize Session
-    console.log(`\n🚀 STEP 1: Initialize Session - ${sessionId}`);
-    const stepStartTime = Date.now();
-    
-    await updateProgress(0, 0);
-    
-    // Initialize progress tracking
-    await supabase.from('batch_progress').upsert({
-      session_id: sessionId,
-      status: 'running',
-      progress: 0,
-      current_batch: 1,
-      total_batches: steps.length,
-      links_created: 0,
-      candidates_created: 0,
-      errors: [],
-      started_at: result.startedAt
-    });
-    
-    result.stepTimings[steps[0]] = Date.now() - stepStartTime;
-    await updateProgress(0, 100);
-
-    // STEP 2: Auto-Promote Existing Candidates
-    console.log(`\n🎯 STEP 2: Auto-Promote High-Confidence Candidates (>=${confidenceThreshold}%)`);
-    const step2StartTime = Date.now();
-    await updateProgress(1, 0);
-    
-    const { data: candidates, error: candidatesError } = await supabase
-      .from('product_image_candidates')
-      .select('id, product_id, match_confidence')
-      .eq('status', 'pending')
-      .gte('match_confidence', confidenceThreshold);
-
-    if (!candidatesError && candidates && candidates.length > 0) {
-      console.log(`📋 Found ${candidates.length} high-confidence candidates to promote`);
-      
-      for (let i = 0; i < candidates.length; i++) {
-        const candidate = candidates[i];
-        try {
-          const { error: promoteError } = await supabase.rpc('promote_image_candidate', {
-            candidate_id: candidate.id
-          });
-
-          if (!promoteError) {
-            result.candidatesPromoted++;
-            console.log(`✅ Promoted candidate ${candidate.id} (${candidate.match_confidence}%)`);
-          }
-        } catch (error) {
-          const errorMsg = `Failed to promote candidate ${candidate.id}: ${error}`;
-          console.error(errorMsg);
-          if (!result.stepErrors[steps[1]]) result.stepErrors[steps[1]] = [];
-          result.stepErrors[steps[1]].push(errorMsg);
-        }
-        
-        // Update progress during promotion
-        await updateProgress(1, ((i + 1) / candidates.length) * 100);
-      }
-    }
-    
-    result.stepTimings[steps[1]] = Date.now() - step2StartTime;
-    await updateProgress(1, 100);
-
-    // STEP 3: Scan All Products
-    console.log(`\n🔍 STEP 3: Scanning All Active Products`);
-    const step3StartTime = Date.now();
-    await updateProgress(2, 0);
+    // Step 1: Get active products
+    result.currentStep = 'Loading products';
+    result.progress = 10;
     
     const { data: allProducts, error: productsError } = await supabase
       .from('products')
       .select('id, sku, name')
-      .eq('is_active', true)
-      .not('sku', 'is', null);
-
-    if (productsError) {
-      throw new Error(`Failed to fetch products: ${productsError.message}`);
-    }
-
-    // Get products that already have images
-    const productIds = allProducts?.map(p => p.id) || [];
-    const { data: existingImages } = await supabase
-      .from('product_images')
-      .select('product_id')
-      .in('product_id', productIds)
-      .eq('image_status', 'active');
-
-    const existingImageProductIds = new Set(existingImages?.map(img => img.product_id) || []);
-    const productsNeedingImages = allProducts?.filter(p => !existingImageProductIds.has(p.id)) || [];
-
+      .eq('is_active', true);
+    
+    if (productsError) throw new Error(`Products fetch error: ${productsError.message}`);
+    
     result.productsScanned = allProducts?.length || 0;
-    result.totalProductsWithoutImages = productsNeedingImages.length;
+    console.log(`📊 Loaded ${result.productsScanned} products`);
     
-    console.log(`📊 Scanned ${result.productsScanned} total products`);
-    console.log(`🎯 Found ${result.totalProductsWithoutImages} products needing images`);
+    // Find packaging products for debugging
+    const packagingProducts = allProducts?.filter(p => 
+      p.sku === '455404' || p.sku === '455382'
+    ) || [];
+    result.debugInfo.packagingProducts = packagingProducts;
+    console.log('📦 PACKAGING DEBUG: Found products:', packagingProducts);
     
-    result.stepTimings[steps[2]] = Date.now() - step3StartTime;
-    await updateProgress(2, 100);
-
-    // STEP 4: Scan All Storage Images - with timeout protection
-    console.log(`\n📁 STEP 4: Comprehensive Storage Image Scan`);
-    const step4StartTime = Date.now();
-    await updateProgress(3, 0);
+    // Step 2: Scan storage for images
+    result.currentStep = 'Scanning storage images';
+    result.progress = 30;
     
-    // Check execution time before starting storage scan
-    if (Date.now() - startTime > MAX_EXECUTION_TIME) {
-      throw new Error('Processing timeout reached before storage scan');
-    }
+    console.log('🖼️ Scanning storage for images...');
+    const { data: files, error: storageError } = await supabase.storage
+      .from('product-images')
+      .list('', { limit: 2000, sortBy: { column: 'name', order: 'asc' } });
     
-    let allStorageFiles: any[] = [];
-    let offset = 0;
-    const STORAGE_BATCH_SIZE = 100; // Smaller batch for reliability  
-    const MAX_ITERATIONS = 15; // Reduced safety limit
-    const STEP_TIMEOUT = 2 * 60 * 1000; // 2 minutes for this step
-    let iterations = 0;
+    if (storageError) throw new Error(`Storage error: ${storageError.message}`);
     
-    // Fetch storage files with safety limits and timeout
-    while (iterations < MAX_ITERATIONS) {
-      // Check timeouts on each iteration
-      if (Date.now() - startTime > MAX_EXECUTION_TIME) {
-        console.log(`⏰ Overall timeout reached during storage scan at iteration ${iterations}`);
-        break;
-      }
-      
-      if (Date.now() - step4StartTime > STEP_TIMEOUT) {
-        console.log(`⏰ Step timeout reached during storage scan at iteration ${iterations}`);
-        break;
-      }
-      
-      iterations++;
-      console.log(`📁 Scanning batch ${iterations}/${MAX_ITERATIONS}, offset: ${offset}`);
-      
-      try {
-        const { data: batch, error } = await supabase.storage
-          .from('product-images')
-          .list('', { 
-            limit: STORAGE_BATCH_SIZE, 
-            offset,
-            sortBy: { column: 'name', order: 'asc' }
-          });
-          
-        if (error) {
-          console.error(`❌ Storage scan error: ${error.message}`);
-          // Don't break on single error, try to continue
-          offset += STORAGE_BATCH_SIZE;
-          continue;
+    result.imagesScanned = files?.length || 0;
+    console.log(`📁 Found ${result.imagesScanned} files in storage`);
+    
+    // Process images and extract SKUs
+    const imageMatches = [];
+    const packagingImages = [];
+    
+    for (const file of files || []) {
+      if (file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+        const imageUrl = supabase.storage.from('product-images').getPublicUrl(file.name).data.publicUrl;
+        const extractedSKUs = extractSKUsFromFilename(file.name);
+        
+        imageMatches.push({
+          filename: file.name,
+          url: imageUrl,
+          extractedSKUs
+        });
+        
+        // Track packaging images for debugging
+        if (file.name.includes('455404') || file.name.includes('455382')) {
+          packagingImages.push({ filename: file.name, extractedSKUs });
         }
-        
-        if (!batch || batch.length === 0) {
-          console.log(`✅ No more files at offset ${offset}`);
-          break;
-        }
-        
-        const imageFiles = batch.filter(file => 
-          file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
-        );
-        
-        allStorageFiles.push(...imageFiles.map(file => ({
-          name: file.name,
-          fullPath: file.name,
-          size: file.metadata?.size || 0
-        })));
-        
-        offset += STORAGE_BATCH_SIZE;
-        
-        // More frequent progress updates
-        const scanProgress = Math.min((iterations / MAX_ITERATIONS) * 90, 90);
-        await updateProgress(3, scanProgress);
-        
-        console.log(`📊 Found ${allStorageFiles.length} images so far...`);
-        
-        if (batch.length < STORAGE_BATCH_SIZE) {
-          console.log(`✅ Reached end of storage files`);
-          break;
-        }
-        
-      } catch (stepError) {
-        console.error(`❌ Error in scan iteration ${iterations}:`, stepError);
-        // Don't throw immediately, try to continue with next batch
-        offset += STORAGE_BATCH_SIZE;
-        continue;
       }
     }
     
-    if (iterations >= MAX_ITERATIONS) {
-      console.log(`⚠️ Hit maximum iterations limit, processed ${allStorageFiles.length} files`);
-    }
-
-    result.imagesScanned = allStorageFiles.length;
-    result.totalStorageImages = allStorageFiles.length;
+    result.debugInfo.packagingImages = packagingImages;
+    console.log(`📦 PACKAGING DEBUG: Found ${packagingImages.length} packaging images:`, packagingImages);
     
-    console.log(`📁 Total storage images found: ${result.totalStorageImages}`);
+    // Step 3: Match images to products
+    result.currentStep = 'Matching images to products';
+    result.progress = 60;
     
-    result.stepTimings[steps[3]] = Date.now() - step4StartTime;
-    await updateProgress(3, 100);
-
-    // STEP 5: Advanced SKU Matching
-    console.log(`\n🧠 STEP 5: Advanced SKU Matching & Analysis`);
-    const step5StartTime = Date.now();
-    await updateProgress(4, 0);
+    console.log(`🔗 Starting matching with ${imageMatches.length} images`);
     
-    const productSKUs = productsNeedingImages.map(p => ({ id: p.id, sku: p.sku }));
-    const imageAnalysis: Array<{
-      file: any;
-      extractedSKUs: ExtractedSKU[];
-      bestMatch?: { product: any; sku: ExtractedSKU };
-    }> = [];
+    const productSKUs = allProducts?.map(p => ({ id: p.id, sku: p.sku })) || [];
+    const packagingMatches = [];
     
-    // Analyze all images for SKU matches
-    for (let i = 0; i < allStorageFiles.length; i++) {
-      const file = allStorageFiles[i];
-      const extractedSKUs = extractSKUsFromFilename(file.name, file.fullPath);
-      
-      // Debug logging for specific SKUs
-      if (debugSKUs.length > 0) {
-        for (const debugSKU of debugSKUs) {
-          if (file.name.includes(debugSKU)) {
-            console.log(`🔍 DEBUG: Found file containing SKU ${debugSKU}: ${file.name}`);
-            console.log(`🔍 DEBUG: Extracted SKUs from ${file.name}:`, extractedSKUs);
-          }
-        }
-      }
-      
-      let bestMatch: { product: any; sku: ExtractedSKU } | undefined;
-      let bestScore = 0;
-      
-      for (const extractedSKU of extractedSKUs) {
+    for (const image of imageMatches) {
+      for (const extractedSKU of image.extractedSKUs) {
         const matchedProduct = findMatchingProduct(productSKUs, extractedSKU.sku);
         
-        // Debug logging for specific SKUs
-        if (debugSKUs.includes(extractedSKU.sku)) {
-          console.log(`🔍 DEBUG: Checking SKU ${extractedSKU.sku} from ${file.name}`);
-          console.log(`🔍 DEBUG: Matched product:`, matchedProduct);
-          console.log(`🔍 DEBUG: Confidence: ${extractedSKU.confidence}%`);
-        }
-        
-        if (matchedProduct && extractedSKU.confidence > bestScore) {
-          bestScore = extractedSKU.confidence;
-          bestMatch = { product: matchedProduct, sku: extractedSKU };
+        if (matchedProduct) {
+          console.log(`🎯 MATCH: ${image.filename} → ${matchedProduct.sku} (${extractedSKU.confidence}%)`);
           
-          if (debugSKUs.includes(extractedSKU.sku)) {
-            console.log(`🔍 DEBUG: New best match for ${extractedSKU.sku}: ${matchedProduct.sku} (${extractedSKU.confidence}%)`);
+          // Track packaging matches
+          if (matchedProduct.sku === '455404' || matchedProduct.sku === '455382') {
+            packagingMatches.push({
+              filename: image.filename,
+              productSku: matchedProduct.sku,
+              confidence: extractedSKU.confidence
+            });
+            console.log(`📦 PACKAGING MATCH: ${image.filename} → ${matchedProduct.sku}`);
           }
+          
+          const isHighConfidence = extractedSKU.confidence >= 80;
+          
+          if (isHighConfidence) {
+            // Create direct link
+            const { error: linkError } = await supabase
+              .from('product_images')
+              .insert({
+                product_id: matchedProduct.id,
+                image_url: image.url,
+                alt_text: `Product image for ${matchedProduct.sku}`,
+                image_status: 'active',
+                match_confidence: extractedSKU.confidence,
+                match_metadata: {
+                  source: extractedSKU.source,
+                  filename: image.filename,
+                  auto_matched: true
+                },
+                auto_matched: true
+              });
+            
+            if (!linkError) {
+              result.directLinksCreated++;
+              console.log(`✅ Created direct link: ${image.filename} → ${matchedProduct.sku}`);
+            } else {
+              result.errors.push(`Link error for ${matchedProduct.sku}: ${linkError.message}`);
+            }
+          } else {
+            // Create candidate
+            const { error: candidateError } = await supabase
+              .from('product_image_candidates')
+              .insert({
+                product_id: matchedProduct.id,
+                image_url: image.url,
+                alt_text: `Candidate image for ${matchedProduct.sku}`,
+                match_confidence: extractedSKU.confidence,
+                match_metadata: {
+                  source: extractedSKU.source,
+                  filename: image.filename,
+                  auto_matched: true
+                },
+                status: 'pending'
+              });
+            
+            if (!candidateError) {
+              result.candidatesCreated++;
+              console.log(`📝 Created candidate: ${image.filename} → ${matchedProduct.sku}`);
+            } else {
+              result.errors.push(`Candidate error for ${matchedProduct.sku}: ${candidateError.message}`);
+            }
+          }
+          
+          break; // Found match, stop checking other SKUs
         }
-      }
-      
-      if (bestMatch) {
-        // Debug specific matches
-        if (debugSKUs.includes(bestMatch.sku.sku)) {
-          console.log(`🔍 DEBUG: Adding to analysis queue: ${file.name} → ${bestMatch.product.sku} (${bestMatch.sku.confidence}%)`);
-        }
-        
-        imageAnalysis.push({
-          file,
-          extractedSKUs,
-          bestMatch
-        });
-      } else if (debugSKUs.some(sku => file.name.includes(sku))) {
-        console.log(`🔍 DEBUG: No match found for debug file: ${file.name}`);
-        console.log(`🔍 DEBUG: Available product SKUs:`, productSKUs.map(p => p.sku));
-      }
-      
-      // Update progress during analysis
-      if (i % 100 === 0) {
-        const analysisProgress = ((i + 1) / allStorageFiles.length) * 100;
-        await updateProgress(4, analysisProgress);
       }
     }
     
-    console.log(`🎯 Found ${imageAnalysis.length} images with potential matches`);
+    result.debugInfo.packagingMatches = packagingMatches;
     
-    result.stepTimings[steps[4]] = Date.now() - step5StartTime;
-    await updateProgress(4, 100);
-
-    // STEP 6: Create Links & Candidates
-    console.log(`\n🔗 STEP 6: Creating Links & Candidates`);
-    const step6StartTime = Date.now();
-    await updateProgress(5, 0);
+    // Final step
+    result.currentStep = 'Complete';
+    result.progress = 100;
+    result.status = 'completed';
+    result.endTime = new Date().toISOString();
+    result.totalTime = Date.now() - startProcessingTime;
     
-    for (let i = 0; i < imageAnalysis.length; i++) {
-      const analysis = imageAnalysis[i];
-      
-      if (!analysis.bestMatch) continue;
-      
-      try {
-        // Check if link already exists
-        const { data: existing } = await supabase
-          .from('product_images')
-          .select('id')
-          .eq('product_id', analysis.bestMatch.product.id)
-          .eq('image_status', 'active')
-          .limit(1);
-          
-        if (existing && existing.length > 0) continue;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(analysis.file.name);
-          
-        if (analysis.bestMatch.sku.confidence >= 85) {
-          // Create direct link for high confidence (≥85%)
-          const { error } = await supabase
-            .from('product_images')
-            .insert({
-              product_id: analysis.bestMatch.product.id,
-              image_url: publicUrl,
-              alt_text: `Product ${analysis.bestMatch.product.sku}`,
-              image_status: 'active',
-              is_primary: true,
-              sort_order: 1,
-              match_confidence: analysis.bestMatch.sku.confidence,
-              match_metadata: {
-                filename: analysis.file.name,
-                extraction_method: analysis.bestMatch.sku.source,
-                session_id: sessionId,
-                processing_mode: 'consolidated'
-              },
-              auto_matched: true
-            });
-            
-          if (!error) {
-            result.directLinksCreated++;
-            console.log(`✅ Direct link: ${analysis.file.name} → ${analysis.bestMatch.product.sku} (${analysis.bestMatch.sku.confidence}%)`);
-          }
-        } else if (analysis.bestMatch.sku.confidence >= confidenceThreshold) {
-          // Create candidate for manual review (70-84%)
-          const { error } = await supabase
-            .from('product_image_candidates')
-            .insert({
-              product_id: analysis.bestMatch.product.id,
-              image_url: publicUrl,
-              alt_text: `Product ${analysis.bestMatch.product.sku}`,
-              match_confidence: analysis.bestMatch.sku.confidence,
-              match_metadata: {
-                filename: analysis.file.name,
-                extraction_method: analysis.bestMatch.sku.source,
-                session_id: sessionId,
-                processing_mode: 'consolidated'
-              },
-              status: 'pending'
-            });
-            
-          if (!error) {
-            result.candidatesCreated++;
-            console.log(`📋 Candidate: ${analysis.file.name} → ${analysis.bestMatch.product.sku} (${analysis.bestMatch.sku.confidence}%)`);
-          }
-        }
-      } catch (error) {
-        const errorMsg = `Error processing ${analysis.file.name}: ${error}`;
-        console.error(`❌ ${errorMsg}`);
-        result.errors.push(errorMsg);
-        if (!result.stepErrors[steps[5]]) result.stepErrors[steps[5]] = [];
-        result.stepErrors[steps[5]].push(errorMsg);
-      }
-      
-      // Update progress during linking
-      if (i % 50 === 0) {
-        const linkProgress = ((i + 1) / imageAnalysis.length) * 100;
-        await updateProgress(5, linkProgress);
-      }
-    }
-    
-    result.stepTimings[steps[5]] = Date.now() - step6StartTime;
-    await updateProgress(5, 100);
-
-    // STEP 7: Generate Summary Report
-    console.log(`\n📊 STEP 7: Generating Summary Report`);
-    const step7StartTime = Date.now();
-    await updateProgress(6, 0);
-    
-    result.completedAt = new Date().toISOString();
-    result.status = 'complete';
-    
-    // Final progress update
-    await supabase.from('batch_progress').upsert({
-      session_id: sessionId,
-      status: 'complete',
-      progress: 100,
-      current_batch: steps.length,
-      total_batches: steps.length,
-      links_created: result.directLinksCreated,
-      candidates_created: result.candidatesCreated,
-      errors: result.errors,
-      completed_at: result.completedAt
-    });
-    
-    result.stepTimings[steps[6]] = Date.now() - step7StartTime;
-    await updateProgress(6, 100);
-
-    console.log(`\n🎉 CONSOLIDATED PROCESSING COMPLETE`);
-    console.log(`📊 Summary:`);
-    console.log(`   • Candidates promoted: ${result.candidatesPromoted}`);
-    console.log(`   • Products scanned: ${result.productsScanned}`);
-    console.log(`   • Images scanned: ${result.imagesScanned}`);
-    console.log(`   • Direct links created: ${result.directLinksCreated}`);
-    console.log(`   • Candidates created: ${result.candidatesCreated}`);
-    console.log(`   • Total errors: ${result.errors.length}`);
+    console.log(`🏁 Processing completed in ${result.totalTime}ms`);
+    console.log(`📊 Results: ${result.directLinksCreated} direct links, ${result.candidatesCreated} candidates`);
+    console.log(`📦 PACKAGING RESULTS:`, packagingMatches);
     
     return result;
-
+    
   } catch (error) {
-    console.error(`❌ Processing failed at step ${result.currentStep + 1}: ${error}`);
-    
-    result.status = 'error';
-    result.errors.push(`Processing failed: ${error.message}`);
-    result.completedAt = new Date().toISOString();
-    
-    // Update final error state with detailed information
-    await supabase.from('batch_progress').upsert({
-      session_id: sessionId,
-      status: 'error',
-      errors: result.errors,
-      completed_at: result.completedAt,
-      progress: result.progress,
-      current_batch: result.currentStep + 1,
-      total_batches: steps.length
-    });
-    
-    // Log detailed error information
-    console.error('Error details:', {
-      sessionId,
-      currentStep: result.currentStep,
-      stepName: result.stepName,
-      error: error.message,
-      stack: error.stack,
-      executionTime: Date.now() - startTime
-    });
-    
+    console.error('❌ Fatal error:', error);
+    result.status = 'failed';
+    result.endTime = new Date().toISOString();
+    result.totalTime = Date.now() - startProcessingTime;
+    result.errors.push(`Fatal error: ${error}`);
     return result;
   }
 }
 
-serve(async (req) => {
+// Main serverless function handler
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const config = req.method === 'POST' 
-      ? await req.json().catch(() => ({}))
-      : {};
+    console.log(`🚀 Consolidated Image Linker called with method: ${req.method}`);
     
-    const {
-      mode = 'consolidated_process',
-      session_id,
-      confidence_threshold = 70,
-      debug_skus = []
-    } = config;
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`🚀 Consolidated Image Linker called with mode: ${mode}`);
-    if (debug_skus.length > 0) {
-      console.log(`🔍 Debug mode enabled for SKUs: ${debug_skus.join(', ')}`);
-    }
-
-    // Handle progress check mode
-    if (mode === 'check_progress' && session_id) {
-      const { data: progress } = await supabase
-        .from('batch_progress')
-        .select('*')
-        .eq('session_id', session_id)
-        .single();
-        
-      if (progress) {
-        const timeElapsed = new Date().getTime() - new Date(progress.started_at).getTime();
-        return new Response(JSON.stringify({
-          sessionId: progress.session_id,
-          status: progress.status,
-          progress: progress.progress,
-          currentBatch: progress.current_batch,
-          totalBatches: progress.total_batches,
-          linksCreated: progress.links_created,
-          candidatesCreated: progress.candidates_created,
-          errors: progress.errors || [],
-          timeElapsed
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+    if (req.method === 'POST') {
+      console.log(`🚀 Starting consolidated processing...`);
       
-      return new Response(JSON.stringify({ error: 'Session not found' }), {
-        status: 404,
+      // Run the processing directly and return results
+      const result = await runConsolidatedProcessing(supabase);
+      
+      return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
       });
     }
 
-    // Handle consolidated processing mode
-    if (mode === 'consolidated_process') {
-      const sessionId = session_id || crypto.randomUUID();
-      console.log(`🚀 Starting consolidated image linking process: ${sessionId}`);
-      
-      // Use background task for processing
-      EdgeRuntime.waitUntil(
-        runConsolidatedProcessing(supabase, sessionId, confidence_threshold, debug_skus)
-          .catch(error => {
-            console.error(`❌ Background processing failed: ${error}`);
-          })
-      );
-      
-      return new Response(JSON.stringify({
-        sessionId,
-        status: 'started',
-        message: 'Consolidated processing started in background'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify({ error: 'Invalid mode' }), {
-      status: 400,
+    // Default response for unsupported methods
+    return new Response(JSON.stringify({
+      error: 'Only POST method supported',
+      message: 'Send POST request to start consolidated processing'
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
     });
 
   } catch (error) {
-    console.error('❌ Function error:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Function failed', 
-      details: error.message 
+    console.error('❌ Consolidated Image Linker error:', error);
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      details: error.message
     }), {
-      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
     });
   }
 });
