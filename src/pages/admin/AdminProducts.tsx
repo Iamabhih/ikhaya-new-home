@@ -179,59 +179,59 @@ const AdminProducts = () => {
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Product Management</h1>
-              <p className="text-gray-600 text-base">Manage your inventory, analytics, and product imports</p>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">Product Management</h1>
+              <p className="text-muted-foreground text-base">Manage your inventory, analytics, and product imports</p>
             </div>
           </div>
 
           <ErrorBoundary>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-8 bg-gray-100 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-8 bg-muted p-1 rounded-xl">
                 <TabsTrigger 
                   value="products" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
                 >
                   Products
                 </TabsTrigger>
                 <TabsTrigger 
                   value="analytics" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
                 >
                   Analytics
                 </TabsTrigger>
                 <TabsTrigger 
                   value="import" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
                 >
                   CSV Import
                 </TabsTrigger>
                 <TabsTrigger 
                   value="excel" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
                 >
                   Excel Import
                 </TabsTrigger>
                 <TabsTrigger 
                   value="scheduler" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
                 >
                   Scheduler
                 </TabsTrigger>
                 <TabsTrigger 
                   value="images" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
                 >
                   Drive Migration
                 </TabsTrigger>
                 <TabsTrigger 
                   value="drive-linking" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
                 >
                   Drive Linking
                 </TabsTrigger>
                 <TabsTrigger 
                   value="image-tools" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
                 >
                   Image Tools
                 </TabsTrigger>
