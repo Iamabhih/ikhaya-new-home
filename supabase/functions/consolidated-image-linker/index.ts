@@ -136,6 +136,8 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
     ) || [];
     result.debugInfo.packagingProducts = packagingProducts;
     console.log('📦 PACKAGING DEBUG: Found products:', packagingProducts);
+    console.log('📦 PACKAGING DEBUG: All products count:', allProducts?.length);
+    console.log('📦 PACKAGING DEBUG: Sample products:', allProducts?.slice(0, 5));
     
     // Step 2: Scan storage for images
     result.currentStep = 'Scanning storage images';
