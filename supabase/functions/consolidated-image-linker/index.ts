@@ -331,10 +331,15 @@ async function runConsolidatedProcessing(supabase: any, sessionId: string, confi
     
     let allStorageFiles: any[] = [];
     let offset = 0;
-    const STORAGE_BATCH_SIZE = 500; // Increased batch size
+    const STORAGE_BATCH_SIZE = 200; // Reduced for stability
+    const MAX_ITERATIONS = 20; // Safety limit
+    let iterations = 0;
     
-    // Fetch ALL storage files without limits
-    while (true) {
+    // Fetch storage files with safety limits
+    while (iterations < MAX_ITERATIONS) {
+      iterations++;
+      console.log(`📁 Scanning batch ${iterations}, offset: ${offset}`);
+      
       const { data: batch, error } = await supabase.storage
         .from('product-images')
         .list('', { 
@@ -343,8 +348,15 @@ async function runConsolidatedProcessing(supabase: any, sessionId: string, confi
           sortBy: { column: 'name', order: 'asc' }
         });
         
-      if (error) throw error;
-      if (!batch || batch.length === 0) break;
+      if (error) {
+        console.error(`❌ Storage scan error: ${error.message}`);
+        break;
+      }
+      
+      if (!batch || batch.length === 0) {
+        console.log(`✅ No more files at offset ${offset}`);
+        break;
+      }
       
       const imageFiles = batch.filter(file => 
         file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
@@ -358,11 +370,20 @@ async function runConsolidatedProcessing(supabase: any, sessionId: string, confi
       
       offset += STORAGE_BATCH_SIZE;
       
-      // Update progress during scanning
-      const scanProgress = Math.min((offset / 2000) * 100, 90); // Estimate progress
+      // Update progress with better estimation
+      const scanProgress = Math.min((allStorageFiles.length / 1400) * 90, 90);
       await updateProgress(3, scanProgress);
       
-      if (batch.length < STORAGE_BATCH_SIZE) break;
+      console.log(`📊 Found ${allStorageFiles.length} images so far...`);
+      
+      if (batch.length < STORAGE_BATCH_SIZE) {
+        console.log(`✅ Reached end of storage files`);
+        break;
+      }
+    }
+    
+    if (iterations >= MAX_ITERATIONS) {
+      console.log(`⚠️ Hit maximum iterations limit, processed ${allStorageFiles.length} files`);
     }
 
     result.imagesScanned = allStorageFiles.length;
