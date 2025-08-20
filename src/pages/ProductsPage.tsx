@@ -106,10 +106,10 @@ const ProductsPage = () => {
     queryFn: async () => {
       console.log('Fetching products with filters:', {
         searchQuery,
-        categories: facetedFilters.categories,
-        brands: facetedFilters.brands,
+        categories: facetedFilters.categories || [],
+        brands: facetedFilters.brands || [],
         priceRange,
-        inStock: facetedFilters.inStock,
+        inStock: facetedFilters.inStock || false,
         sortBy,
         page: shouldLoadAll ? 'all' : currentPage,
         loadAll: shouldLoadAll,
@@ -241,7 +241,13 @@ const ProductsPage = () => {
     }
   };
 
-  const handleFiltersChange = (filters: typeof facetedFilters) => {
+  const handleFiltersChange = (filters: {
+    categories?: string[];
+    brands?: string[];
+    ratings?: number[];
+    priceRanges?: string[];
+    inStock?: boolean;
+  }) => {
     console.log('Filters changed:', filters);
     setFacetedFilters(filters);
     setCurrentPage(1);
