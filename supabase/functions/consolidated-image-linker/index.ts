@@ -185,6 +185,9 @@ async function runConsolidatedProcessing(supabase: any, sessionId: string, confi
     'Generate Summary Report'
   ];
   
+  const MAX_EXECUTION_TIME = 4 * 60 * 1000; // 4 minutes timeout
+  const startTime = Date.now();
+  
   const result: ProcessingResult = {
     sessionId,
     status: 'running',
@@ -204,6 +207,22 @@ async function runConsolidatedProcessing(supabase: any, sessionId: string, confi
     startedAt: new Date().toISOString(),
     stepTimings: {}
   };
+
+  // Check if session already exists and is completed/failed
+  try {
+    const { data: existingSession } = await supabase
+      .from('batch_progress')
+      .select('status')
+      .eq('session_id', sessionId)
+      .single();
+    
+    if (existingSession?.status === 'complete' || existingSession?.status === 'error') {
+      console.log(`⚠️ Session ${sessionId} already ${existingSession.status}, skipping...`);
+      return result;
+    }
+  } catch (error) {
+    // Session doesn't exist yet, continue
+  }
 
   const updateProgress = async (stepIndex: number, stepProgress: number = 100) => {
     const overallProgress = Math.round(((stepIndex + (stepProgress / 100)) / steps.length) * 100);
@@ -324,61 +343,88 @@ async function runConsolidatedProcessing(supabase: any, sessionId: string, confi
     result.stepTimings[steps[2]] = Date.now() - step3StartTime;
     await updateProgress(2, 100);
 
-    // STEP 4: Scan All Storage Images
+    // STEP 4: Scan All Storage Images - with timeout protection
     console.log(`\n📁 STEP 4: Comprehensive Storage Image Scan`);
     const step4StartTime = Date.now();
     await updateProgress(3, 0);
     
+    // Check execution time before starting storage scan
+    if (Date.now() - startTime > MAX_EXECUTION_TIME) {
+      throw new Error('Processing timeout reached before storage scan');
+    }
+    
     let allStorageFiles: any[] = [];
     let offset = 0;
-    const STORAGE_BATCH_SIZE = 200; // Reduced for stability
-    const MAX_ITERATIONS = 20; // Safety limit
+    const STORAGE_BATCH_SIZE = 100; // Smaller batch for reliability  
+    const MAX_ITERATIONS = 15; // Reduced safety limit
+    const STEP_TIMEOUT = 2 * 60 * 1000; // 2 minutes for this step
     let iterations = 0;
     
-    // Fetch storage files with safety limits
+    // Fetch storage files with safety limits and timeout
     while (iterations < MAX_ITERATIONS) {
+      // Check timeouts on each iteration
+      if (Date.now() - startTime > MAX_EXECUTION_TIME) {
+        console.log(`⏰ Overall timeout reached during storage scan at iteration ${iterations}`);
+        break;
+      }
+      
+      if (Date.now() - step4StartTime > STEP_TIMEOUT) {
+        console.log(`⏰ Step timeout reached during storage scan at iteration ${iterations}`);
+        break;
+      }
+      
       iterations++;
-      console.log(`📁 Scanning batch ${iterations}, offset: ${offset}`);
+      console.log(`📁 Scanning batch ${iterations}/${MAX_ITERATIONS}, offset: ${offset}`);
       
-      const { data: batch, error } = await supabase.storage
-        .from('product-images')
-        .list('', { 
-          limit: STORAGE_BATCH_SIZE, 
-          offset,
-          sortBy: { column: 'name', order: 'asc' }
-        });
+      try {
+        const { data: batch, error } = await supabase.storage
+          .from('product-images')
+          .list('', { 
+            limit: STORAGE_BATCH_SIZE, 
+            offset,
+            sortBy: { column: 'name', order: 'asc' }
+          });
+          
+        if (error) {
+          console.error(`❌ Storage scan error: ${error.message}`);
+          // Don't break on single error, try to continue
+          offset += STORAGE_BATCH_SIZE;
+          continue;
+        }
         
-      if (error) {
-        console.error(`❌ Storage scan error: ${error.message}`);
-        break;
-      }
-      
-      if (!batch || batch.length === 0) {
-        console.log(`✅ No more files at offset ${offset}`);
-        break;
-      }
-      
-      const imageFiles = batch.filter(file => 
-        file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
-      );
-      
-      allStorageFiles.push(...imageFiles.map(file => ({
-        name: file.name,
-        fullPath: file.name,
-        size: file.metadata?.size || 0
-      })));
-      
-      offset += STORAGE_BATCH_SIZE;
-      
-      // Update progress with better estimation
-      const scanProgress = Math.min((allStorageFiles.length / 1400) * 90, 90);
-      await updateProgress(3, scanProgress);
-      
-      console.log(`📊 Found ${allStorageFiles.length} images so far...`);
-      
-      if (batch.length < STORAGE_BATCH_SIZE) {
-        console.log(`✅ Reached end of storage files`);
-        break;
+        if (!batch || batch.length === 0) {
+          console.log(`✅ No more files at offset ${offset}`);
+          break;
+        }
+        
+        const imageFiles = batch.filter(file => 
+          file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
+        );
+        
+        allStorageFiles.push(...imageFiles.map(file => ({
+          name: file.name,
+          fullPath: file.name,
+          size: file.metadata?.size || 0
+        })));
+        
+        offset += STORAGE_BATCH_SIZE;
+        
+        // More frequent progress updates
+        const scanProgress = Math.min((iterations / MAX_ITERATIONS) * 90, 90);
+        await updateProgress(3, scanProgress);
+        
+        console.log(`📊 Found ${allStorageFiles.length} images so far...`);
+        
+        if (batch.length < STORAGE_BATCH_SIZE) {
+          console.log(`✅ Reached end of storage files`);
+          break;
+        }
+        
+      } catch (stepError) {
+        console.error(`❌ Error in scan iteration ${iterations}:`, stepError);
+        // Don't throw immediately, try to continue with next batch
+        offset += STORAGE_BATCH_SIZE;
+        continue;
       }
     }
     
@@ -605,12 +651,25 @@ async function runConsolidatedProcessing(supabase: any, sessionId: string, confi
     result.errors.push(`Processing failed: ${error.message}`);
     result.completedAt = new Date().toISOString();
     
-    // Update final error state
+    // Update final error state with detailed information
     await supabase.from('batch_progress').upsert({
       session_id: sessionId,
       status: 'error',
       errors: result.errors,
-      completed_at: result.completedAt
+      completed_at: result.completedAt,
+      progress: result.progress,
+      current_batch: result.currentStep + 1,
+      total_batches: steps.length
+    });
+    
+    // Log detailed error information
+    console.error('Error details:', {
+      sessionId,
+      currentStep: result.currentStep,
+      stepName: result.stepName,
+      error: error.message,
+      stack: error.stack,
+      executionTime: Date.now() - startTime
     });
     
     return result;
