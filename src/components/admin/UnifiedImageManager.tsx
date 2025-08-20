@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StorageImageScanner } from "./StorageImageScanner";
 import { ImageLinkingRepairTool } from "./ImageLinkingRepairTool";
 import { ImageAuditTool } from "./ImageAuditTool";
+import { MissingImageReportTool } from "./MissingImageReportTool";
 import { Database, Wrench, Search, AlertTriangle, FileSearch } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -30,14 +31,18 @@ export const UnifiedImageManager = () => {
           </Alert>
 
           <Tabs defaultValue="scanner" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="scanner" className="flex items-center gap-2">
                 <Search className="h-4 w-4" />
                 Storage Scanner
               </TabsTrigger>
               <TabsTrigger value="repair" className="flex items-center gap-2">
                 <Wrench className="h-4 w-4" />
-                Link Repair Tool
+                Link Repair
+              </TabsTrigger>
+              <TabsTrigger value="report" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Missing Report
               </TabsTrigger>
               <TabsTrigger value="audit" className="flex items-center gap-2">
                 <FileSearch className="h-4 w-4" />
@@ -51,6 +56,10 @@ export const UnifiedImageManager = () => {
             
             <TabsContent value="repair" className="mt-6">
               <ImageLinkingRepairTool />
+            </TabsContent>
+            
+            <TabsContent value="report" className="mt-6">
+              <MissingImageReportTool />
             </TabsContent>
             
             <TabsContent value="audit" className="mt-6">

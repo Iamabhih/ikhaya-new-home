@@ -40,15 +40,20 @@ interface RepairConfig {
   auto_promote_candidates?: boolean;
 }
 
-// Enhanced SKU extraction function - copied from scanner with improvements
+// Enhanced SKU extraction function with comprehensive pattern matching
 function extractSKUsFromFilename(filename: string, fullPath?: string): ExtractedSKU[] {
   const skus: ExtractedSKU[] = [];
-  const cleanName = filename.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '');
+  
+  // Clean filename - handle double dots and extensions properly
+  let cleanName = filename.replace(/\.(jpg|jpeg|png|webp|gif|bmp|svg|tiff?)$/i, '');
+  
+  // CRITICAL FIX: Handle double dots (e.g., "23319.23320..png" becomes "23319.23320")
+  cleanName = cleanName.replace(/\.+$/, '');
   
   console.log(`🔍 Extracting SKUs from: ${filename} → ${cleanName}`);
   
   // Strategy 1: Exact filename as SKU (highest confidence)
-  if (/^\d{3,}$/.test(cleanName)) {
+  if (/^\d{3,8}$/.test(cleanName)) {
     skus.push({
       sku: cleanName,
       confidence: 100,
@@ -78,50 +83,70 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     }
   }
   
-  // Strategy 2: Multiple SKUs in filename (e.g., "455470.455471.455472")
-  const multiSkuPattern = /^(\d+(?:\.\d+)+)$/;
-  const multiSkuMatch = cleanName.match(multiSkuPattern);
-  if (multiSkuMatch) {
-    const potentialSkus = cleanName.split('.');
-    potentialSkus.forEach((sku, index) => {
-      if (/^\d{3,}$/.test(sku) && !skus.find(s => s.sku === sku)) {
-        skus.push({
-          sku: sku,
-          confidence: 85 - (index * 5),
-          source: 'multi_sku'
-        });
-        console.log(`✅ Multi-SKU ${index + 1}: ${sku}`);
-      }
-    });
+  // Strategy 2: Enhanced Multi-SKU handling (e.g., "455470.455471.455472", "23319.23320.", "447799.453343.blue")
+  // IMPROVED: Handle trailing dots, mixed text, and various separators
+  const multiSkuPatterns = [
+    // Pure numeric with dots (highest priority)
+    /^(\d{3,8}(?:\.\d{3,8})+)\.?$/,
+    // Numeric with mixed content
+    /^(\d{3,8}(?:[\.\-_]\d{3,8})+)[\.\-_]?[a-zA-Z]*\.?$/,
+    // Any sequence of numbers separated by dots/dashes/underscores
+    /(\d{3,8}(?:[\.\-_]\d{3,8})+)/
+  ];
+  
+  for (const pattern of multiSkuPatterns) {
+    const match = cleanName.match(pattern);
+    if (match) {
+      // Extract all numbers that could be SKUs
+      const allNumbers = match[1].match(/\d{3,8}/g) || [];
+      const uniqueNumbers = [...new Set(allNumbers)]; // Remove duplicates
+      
+      uniqueNumbers.forEach((sku, index) => {
+        if (!skus.find(s => s.sku === sku)) {
+          const confidence = Math.max(90 - (index * 3), 70); // Min 70% confidence
+          skus.push({
+            sku: sku,
+            confidence: confidence,
+            source: 'multi_sku'
+          });
+          console.log(`✅ Multi-SKU ${index + 1}: ${sku} (${confidence}%)`);
+        }
+      });
+      break; // Use first matching pattern
+    }
   }
 
-  // Strategy 3: SKU with suffix/prefix patterns
-  if (!skus.length) {
-    const patterns = [
-      /^(\d{3,})[a-zA-Z_\-]+$/g,     // numeric with suffix
-      /^[a-zA-Z_\-]+(\d{3,})$/g,     // prefix with numeric
-      /(\d{3,})/g                     // any 3+ digit sequence
+  // Strategy 3: Enhanced pattern matching for mixed content files
+  if (!skus.length || cleanName.includes('.')) {
+    const enhancedPatterns = [
+      // Numeric with suffix (447799.453343.blue.png → 447799, 453343)
+      /(\d{3,8})(?:[\.\-_][a-zA-Z]+)+/g,
+      // Standard patterns
+      /^(\d{3,8})[a-zA-Z_\-]+$/g,     // numeric with suffix
+      /^[a-zA-Z_\-]+(\d{3,8})$/g,     // prefix with numeric
+      /(\d{3,8})/g                    // any 3+ digit sequence
     ];
 
-    patterns.forEach((pattern, patternIndex) => {
+    enhancedPatterns.forEach((pattern, patternIndex) => {
       try {
         const matches = [...cleanName.matchAll(pattern)];
         matches.forEach(match => {
           const numericPart = match[1] || match[0].replace(/[^0-9]/g, '');
-          if (/^\d{3,}$/.test(numericPart) && !skus.find(s => s.sku === numericPart)) {
-            let confidence = 50 - (patternIndex * 10);
+          if (/^\d{3,8}$/.test(numericPart) && !skus.find(s => s.sku === numericPart)) {
+            let confidence = 60 - (patternIndex * 10);
             
             // Boost confidence based on context
             if (cleanName === numericPart) confidence = 90;
-            else if (cleanName.startsWith(numericPart)) confidence = 75;
-            else if (cleanName.endsWith(numericPart)) confidence = 65;
+            else if (cleanName.startsWith(numericPart)) confidence = 80;
+            else if (cleanName.endsWith(numericPart)) confidence = 70;
+            else if (patternIndex === 0) confidence = 75; // Mixed content pattern
             
             skus.push({
               sku: numericPart,
-              confidence: Math.max(20, confidence),
-              source: 'numeric_pattern'
+              confidence: Math.max(30, confidence),
+              source: 'enhanced_pattern'
             });
-            console.log(`✅ Pattern match: ${numericPart} (${confidence}%)`);
+            console.log(`✅ Enhanced pattern: ${numericPart} (${confidence}%)`);
           }
         });
       } catch (error) {
@@ -373,34 +398,42 @@ serve(async (req) => {
         }
       }
       
-      // Process the best match with duplicate prevention
-      if (bestMatch && bestConfidence >= confidence_threshold) {
-        console.log(`✅ Best match: ${bestMatch.name} (${bestConfidence.toFixed(1)}% - ${matchType})`);
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(bestMatch.fullPath);
+        // Process the best match with enhanced duplicate prevention and logging
+        if (bestMatch && bestConfidence >= confidence_threshold) {
+          console.log(`🎯 POTENTIAL MATCH: ${product.sku} (${product.name}) -> ${bestMatch.name}`);
+          console.log(`   Match Quality: ${bestConfidence.toFixed(1)}% confidence (${matchType} match)`);
+          console.log(`   Product ID: ${product.id}`);
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(bestMatch.fullPath);
 
-        // Check for existing links to prevent duplicates
-        const { data: existingImage } = await supabase
-          .from('product_images')
-          .select('id')
-          .eq('product_id', product.id)
-          .eq('image_url', publicUrl)
-          .single();
+          // Enhanced duplicate checking with detailed logging
+          const { data: existingImage } = await supabase
+            .from('product_images')
+            .select('id, is_primary')
+            .eq('product_id', product.id)
+            .eq('image_url', publicUrl)
+            .single();
 
-        const { data: existingCandidate } = await supabase
-          .from('product_image_candidates')
-          .select('id')
-          .eq('product_id', product.id)
-          .eq('image_url', publicUrl)
-          .single();
+          const { data: existingCandidate } = await supabase
+            .from('product_image_candidates')
+            .select('id, status, match_confidence')
+            .eq('product_id', product.id)
+            .eq('image_url', publicUrl)
+            .single();
 
-        if (existingImage || existingCandidate) {
-          console.log(`⚠️ Duplicate prevented: ${product.sku} -> ${bestMatch.name} (already exists)`);
-          result.skippedExisting++;
-          continue;
-        }
+          if (existingImage) {
+            console.log(`⚠️ DUPLICATE IMAGE: ${product.sku} -> ${bestMatch.name} (already linked as ${existingImage.is_primary ? 'primary' : 'secondary'} image)`);
+            result.skippedExisting++;
+            continue;
+          }
+
+          if (existingCandidate) {
+            console.log(`⚠️ DUPLICATE CANDIDATE: ${product.sku} -> ${bestMatch.name} (already exists as ${existingCandidate.status} candidate with ${existingCandidate.match_confidence}% confidence)`);
+            result.skippedExisting++;
+            continue;
+          }
 
         try {
           // Direct link for high-confidence matches (>=85%)
