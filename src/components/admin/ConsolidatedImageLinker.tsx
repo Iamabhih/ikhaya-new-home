@@ -77,12 +77,14 @@ export const ConsolidatedImageLinker = () => {
     try {
       const sessionId = `consolidated_${Date.now()}`;
       console.log("🚀 Starting consolidated image linking process...");
+      console.log("🔍 Debugging packaging products - looking for SKUs: 455404, 455382");
       
       const { data, error } = await supabase.functions.invoke('consolidated-image-linker', {
         body: { 
           mode: 'consolidated_process',
           session_id: sessionId,
-          confidence_threshold: 70
+          confidence_threshold: 70,
+          debug_skus: ['455404', '455382'] // Add specific SKUs to debug
         }
       });
 

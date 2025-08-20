@@ -174,7 +174,7 @@ const findMatchingProduct = (productSKUs: Array<{id: string, sku: string}>, sku:
 };
 
 // Comprehensive consolidated processing function
-async function runConsolidatedProcessing(supabase: any, sessionId: string, confidenceThreshold: number = 70) {
+async function runConsolidatedProcessing(supabase: any, sessionId: string, confidenceThreshold: number = 70, debugSKUs: string[] = []) {
   const steps = [
     'Initialize Session',
     'Auto-Promote Existing Candidates', 
@@ -411,24 +411,53 @@ async function runConsolidatedProcessing(supabase: any, sessionId: string, confi
       const file = allStorageFiles[i];
       const extractedSKUs = extractSKUsFromFilename(file.name, file.fullPath);
       
+      // Debug logging for specific SKUs
+      if (debugSKUs.length > 0) {
+        for (const debugSKU of debugSKUs) {
+          if (file.name.includes(debugSKU)) {
+            console.log(`🔍 DEBUG: Found file containing SKU ${debugSKU}: ${file.name}`);
+            console.log(`🔍 DEBUG: Extracted SKUs from ${file.name}:`, extractedSKUs);
+          }
+        }
+      }
+      
       let bestMatch: { product: any; sku: ExtractedSKU } | undefined;
       let bestScore = 0;
       
       for (const extractedSKU of extractedSKUs) {
         const matchedProduct = findMatchingProduct(productSKUs, extractedSKU.sku);
         
+        // Debug logging for specific SKUs
+        if (debugSKUs.includes(extractedSKU.sku)) {
+          console.log(`🔍 DEBUG: Checking SKU ${extractedSKU.sku} from ${file.name}`);
+          console.log(`🔍 DEBUG: Matched product:`, matchedProduct);
+          console.log(`🔍 DEBUG: Confidence: ${extractedSKU.confidence}%`);
+        }
+        
         if (matchedProduct && extractedSKU.confidence > bestScore) {
           bestScore = extractedSKU.confidence;
           bestMatch = { product: matchedProduct, sku: extractedSKU };
+          
+          if (debugSKUs.includes(extractedSKU.sku)) {
+            console.log(`🔍 DEBUG: New best match for ${extractedSKU.sku}: ${matchedProduct.sku} (${extractedSKU.confidence}%)`);
+          }
         }
       }
       
       if (bestMatch) {
+        // Debug specific matches
+        if (debugSKUs.includes(bestMatch.sku.sku)) {
+          console.log(`🔍 DEBUG: Adding to analysis queue: ${file.name} → ${bestMatch.product.sku} (${bestMatch.sku.confidence}%)`);
+        }
+        
         imageAnalysis.push({
           file,
           extractedSKUs,
           bestMatch
         });
+      } else if (debugSKUs.some(sku => file.name.includes(sku))) {
+        console.log(`🔍 DEBUG: No match found for debug file: ${file.name}`);
+        console.log(`🔍 DEBUG: Available product SKUs:`, productSKUs.map(p => p.sku));
       }
       
       // Update progress during analysis
@@ -606,8 +635,14 @@ serve(async (req) => {
     const {
       mode = 'consolidated_process',
       session_id,
-      confidence_threshold = 70
+      confidence_threshold = 70,
+      debug_skus = []
     } = config;
+
+    console.log(`🚀 Consolidated Image Linker called with mode: ${mode}`);
+    if (debug_skus.length > 0) {
+      console.log(`🔍 Debug mode enabled for SKUs: ${debug_skus.join(', ')}`);
+    }
 
     // Handle progress check mode
     if (mode === 'check_progress' && session_id) {
@@ -647,7 +682,7 @@ serve(async (req) => {
       
       // Use background task for processing
       EdgeRuntime.waitUntil(
-        runConsolidatedProcessing(supabase, sessionId, confidence_threshold)
+        runConsolidatedProcessing(supabase, sessionId, confidence_threshold, debug_skus)
           .catch(error => {
             console.error(`❌ Background processing failed: ${error}`);
           })
