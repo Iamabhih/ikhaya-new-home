@@ -59,7 +59,7 @@ export const BatchImageLinker = () => {
           mode: 'batch_progressive',
           session_id: sessionId,
           batch_size: 100,
-          confidence_threshold: 60
+          confidence_threshold: 70
         }
       });
 
@@ -261,7 +261,7 @@ export const BatchImageLinker = () => {
             <li>• Timeout prevention with smart delays</li>
             <li>• Automatic error recovery and logging</li>
             <li>• Memory-efficient storage scanning</li>
-            <li>• Lower confidence threshold (60%) for more matches</li>
+            <li>• Consistent confidence threshold (70%) with auto-promotion</li>
           </ul>
         </div>
       </CardContent>

@@ -38,7 +38,26 @@ interface RepairConfig {
   confidence_threshold?: number;
   comprehensive_scan?: boolean;
   auto_promote_candidates?: boolean;
+  session_id?: string;
+  batch_size?: number;
 }
+
+// Helper functions (declared first to avoid "before initialization" errors)
+const findMatchingProduct = (productSKUs: Array<{id: string, sku: string}>, sku: string) => {
+  return productSKUs.find(p => 
+    p.sku.toLowerCase() === sku.toLowerCase() ||
+    p.sku.replace(/^0+/, '') === sku.replace(/^0+/, '') ||
+    sku.replace(/^0+/, '') === p.sku.replace(/^0+/, '')
+  );
+};
+
+const updateMatchingStats = (stats: any, source: string) => {
+  if (source.includes('exact')) stats.exact++;
+  else if (source.includes('zero')) stats.zeropadded++;
+  else if (source.includes('multi')) stats.multisku++;
+  else if (source.includes('pattern')) stats.pattern++;
+  else stats.contains++;
+};
 
 // Enhanced SKU extraction function with comprehensive pattern matching
 function extractSKUsFromFilename(filename: string, fullPath?: string): ExtractedSKU[] {
@@ -176,6 +195,233 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
   return finalSkus;
 }
 
+// Batch progressive processing function
+async function processBatchProgressive(supabase: any, sessionId: string, confidenceThreshold: number, batchSize: number) {
+  console.log(`🚀 Starting batch progressive processing: ${sessionId}`);
+  
+  // Phase 1: Auto-promote high-confidence candidates
+  console.log(`\n🎯 Phase 1: Promoting high-confidence candidates (>=${confidenceThreshold}%)`);
+  
+  const { data: candidates, error: candidatesError } = await supabase
+    .from('product_image_candidates')
+    .select('id, product_id, match_confidence')
+    .eq('status', 'pending')
+    .gte('match_confidence', confidenceThreshold);
+
+  let candidatesPromoted = 0;
+  if (!candidatesError && candidates && candidates.length > 0) {
+    console.log(`📋 Found ${candidates.length} high-confidence candidates to promote`);
+    
+    for (const candidate of candidates) {
+      try {
+        const { error: promoteError } = await supabase.rpc('promote_image_candidate', {
+          candidate_id: candidate.id
+        });
+
+        if (!promoteError) {
+          candidatesPromoted++;
+          console.log(`✅ Promoted candidate ${candidate.id} (${candidate.match_confidence}%)`);
+        }
+      } catch (error) {
+        console.error(`Failed to promote candidate ${candidate.id}:`, error);
+      }
+    }
+  }
+
+  // Phase 2: Get products without images
+  console.log(`\n🔍 Phase 2: Finding products without images`);
+  
+  const { data: productsWithoutImages, error: productsError } = await supabase
+    .from('products')
+    .select('id, sku, name')
+    .eq('is_active', true)
+    .not('sku', 'is', null);
+
+  if (productsError) {
+    throw new Error(`Failed to fetch products: ${productsError.message}`);
+  }
+
+  // Filter products without images
+  const productIds = productsWithoutImages?.map(p => p.id) || [];
+  const { data: existingImages } = await supabase
+    .from('product_images')
+    .select('product_id')
+    .in('product_id', productIds);
+
+  const existingImageProductIds = new Set(existingImages?.map(img => img.product_id) || []);
+  const productsNeedingImages = productsWithoutImages?.filter(p => !existingImageProductIds.has(p.id)) || [];
+
+  console.log(`🎯 Found ${productsNeedingImages.length} products needing images`);
+
+  // Phase 3: Progressive storage scanning and matching
+  console.log(`\n📁 Phase 3: Progressive storage scan`);
+  
+  let allStorageFiles: any[] = [];
+  let offset = 0;
+  const STORAGE_BATCH_SIZE = 200;
+  
+  // Fetch storage files in batches
+  while (true) {
+    const { data: batch, error } = await supabase.storage
+      .from('product-images')
+      .list('', { 
+        limit: STORAGE_BATCH_SIZE, 
+        offset,
+        sortBy: { column: 'name', order: 'asc' }
+      });
+      
+    if (error) throw error;
+    if (!batch || batch.length === 0) break;
+    
+    const imageFiles = batch.filter(file => 
+      file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
+    );
+    
+    allStorageFiles.push(...imageFiles.map(file => ({
+      name: file.name,
+      fullPath: file.name,
+      size: file.metadata?.size || 0
+    })));
+    
+    offset += STORAGE_BATCH_SIZE;
+    if (batch.length < STORAGE_BATCH_SIZE) break;
+  }
+
+  console.log(`📁 Total storage files found: ${allStorageFiles.length}`);
+  
+  // Process images in batches with progress tracking
+  const allProductSKUs = productsNeedingImages.map(p => ({ id: p.id, sku: p.sku }));
+  const totalBatches = Math.ceil(allStorageFiles.length / batchSize);
+  let linksCreated = 0;
+  let candidatesCreated = 0;
+  
+  await supabase.from('batch_progress').update({
+    total_batches: totalBatches
+  }).eq('session_id', sessionId);
+
+  for (let i = 0; i < allStorageFiles.length; i += batchSize) {
+    const batch = allStorageFiles.slice(i, i + batchSize);
+    const batchNum = Math.floor(i / batchSize) + 1;
+    const progress = Math.round((i / allStorageFiles.length) * 100);
+    
+    console.log(`📊 Processing batch ${batchNum}/${totalBatches} (${batch.length} files)`);
+    
+    // Update progress
+    await supabase.from('batch_progress').update({
+      current_batch: batchNum,
+      progress: progress,
+      links_created: linksCreated,
+      candidates_created: candidatesCreated
+    }).eq('session_id', sessionId);
+
+    // Process files in this batch
+    await Promise.all(batch.map(async (file) => {
+      try {
+        const extractedSKUs = extractSKUsFromFilename(file.name, file.fullPath);
+        
+        for (const extractedSKU of extractedSKUs) {
+          const matchedProduct = findMatchingProduct(allProductSKUs, extractedSKU.sku);
+          
+          if (matchedProduct) {
+            // Check if link already exists
+            const { data: existing } = await supabase
+              .from('product_images')
+              .select('id')
+              .eq('product_id', matchedProduct.id)
+              .eq('image_status', 'active')
+              .limit(1);
+              
+            if (existing && existing.length > 0) break;
+            
+            const { data: { publicUrl } } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(file.name);
+              
+            if (extractedSKU.confidence >= 85) {
+              // Create direct link for high confidence
+              const { error } = await supabase
+                .from('product_images')
+                .insert({
+                  product_id: matchedProduct.id,
+                  image_url: publicUrl,
+                  alt_text: `Product ${matchedProduct.sku}`,
+                  image_status: 'active',
+                  is_primary: true,
+                  sort_order: 1,
+                  match_confidence: extractedSKU.confidence,
+                  match_metadata: {
+                    filename: file.name,
+                    extraction_method: extractedSKU.source,
+                    session_id: sessionId
+                  },
+                  auto_matched: true
+                });
+                
+              if (!error) {
+                linksCreated++;
+                console.log(`✅ Direct link: ${file.name} → ${matchedProduct.sku} (${extractedSKU.confidence}%)`);
+              }
+            } else if (extractedSKU.confidence >= confidenceThreshold) {
+              // Create candidate for manual review
+              const { error } = await supabase
+                .from('product_image_candidates')
+                .insert({
+                  product_id: matchedProduct.id,
+                  image_url: publicUrl,
+                  alt_text: `Product ${matchedProduct.sku}`,
+                  match_confidence: extractedSKU.confidence,
+                  match_metadata: {
+                    filename: file.name,
+                    extraction_method: extractedSKU.source,
+                    session_id: sessionId
+                  },
+                  status: 'pending'
+                });
+                
+              if (!error) {
+                candidatesCreated++;
+                console.log(`📋 Candidate: ${file.name} → ${matchedProduct.sku} (${extractedSKU.confidence}%)`);
+              }
+            }
+            
+            break; // Found match, move to next file
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error processing file ${file.name}:`, error);
+      }
+    }));
+    
+    // Small delay between batches
+    if (i + batchSize < allStorageFiles.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  // Final progress update
+  await supabase.from('batch_progress').update({
+    progress: 100,
+    current_batch: totalBatches,
+    links_created: linksCreated,
+    candidates_created: candidatesCreated
+  }).eq('session_id', sessionId);
+
+  console.log(`\n📊 Batch Progressive Summary:`);
+  console.log(`   Candidates promoted: ${candidatesPromoted}`);
+  console.log(`   Products checked: ${productsNeedingImages.length}`);
+  console.log(`   Images found: ${allStorageFiles.length}`);
+  console.log(`   Direct links created: ${linksCreated}`);
+  console.log(`   Candidates created: ${candidatesCreated}`);
+
+  return {
+    candidatesPromoted,
+    productsChecked: productsNeedingImages.length,
+    imagesFound: allStorageFiles.length,
+    linksCreated,
+    candidatesCreated
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -196,11 +442,95 @@ serve(async (req) => {
       mode = 'comprehensive_scan',
       force_rescan = true,
       enhanced_matching = true,
-      confidence_threshold = 75,
+      confidence_threshold = 70, // Consistent with UI
       comprehensive_scan = true,
-      auto_promote_candidates = true
+      auto_promote_candidates = true,
+      session_id,
+      batch_size = 100
     } = config;
 
+    // Handle progress check mode
+    if (mode === 'check_progress' && session_id) {
+      const { data: progress } = await supabase
+        .from('batch_progress')
+        .select('*')
+        .eq('session_id', session_id)
+        .single();
+        
+      if (progress) {
+        const timeElapsed = new Date().getTime() - new Date(progress.started_at).getTime();
+        return new Response(JSON.stringify({
+          sessionId: progress.session_id,
+          status: progress.status,
+          progress: progress.progress,
+          currentBatch: progress.current_batch,
+          totalBatches: progress.total_batches,
+          linksCreated: progress.links_created,
+          candidatesCreated: progress.candidates_created,
+          errors: progress.errors || [],
+          timeElapsed
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      return new Response(JSON.stringify({ error: 'Session not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Handle batch progressive mode
+    if (mode === 'batch_progressive') {
+      const sessionId = session_id || crypto.randomUUID();
+      console.log(`🚀 Starting batch progressive mode: ${sessionId}`);
+      
+      // Initialize progress tracking
+      await supabase.from('batch_progress').insert({
+        session_id: sessionId,
+        status: 'running',
+        progress: 0,
+        current_batch: 0,
+        total_batches: 0,
+        links_created: 0,
+        candidates_created: 0,
+        errors: []
+      });
+
+      // Use background task for processing
+      const backgroundProcess = async () => {
+        try {
+          const result = await processBatchProgressive(supabase, sessionId, confidence_threshold, batch_size);
+          
+          await supabase.from('batch_progress').update({
+            status: 'complete',
+            progress: 100,
+            completed_at: new Date().toISOString()
+          }).eq('session_id', sessionId);
+          
+        } catch (error) {
+          console.error('❌ Background process error:', error);
+          await supabase.from('batch_progress').update({
+            status: 'error',
+            completed_at: new Date().toISOString(),
+            errors: [error.message]
+          }).eq('session_id', sessionId);
+        }
+      };
+
+      // Start background processing
+      EdgeRuntime.waitUntil(backgroundProcess());
+      
+      return new Response(JSON.stringify({ 
+        sessionId, 
+        status: 'started',
+        message: 'Batch processing started'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Original comprehensive scan mode (existing functionality)
     const sessionId = crypto.randomUUID();
     const result: RepairResult = {
       sessionId,
@@ -440,23 +770,6 @@ serve(async (req) => {
         console.log(`📈 Progress: ${processedFiles}/${allStorageFiles.length} files processed`);
       }
     }
-    
-    // Helper functions for matching
-    const findMatchingProduct = (productSKUs: Array<{id: string, sku: string}>, sku: string) => {
-      return productSKUs.find(p => 
-        p.sku.toLowerCase() === sku.toLowerCase() ||
-        p.sku.replace(/^0+/, '') === sku.replace(/^0+/, '') ||
-        sku.replace(/^0+/, '') === p.sku.replace(/^0+/, '')
-      );
-    };
-
-    const updateMatchingStats = (stats: any, source: string) => {
-      if (source.includes('exact')) stats.exact++;
-      else if (source.includes('zero')) stats.zeropadded++;
-      else if (source.includes('multi')) stats.multisku++;
-      else if (source.includes('pattern')) stats.pattern++;
-      else stats.contains++;
-    };
 
     console.log(`\n📊 Repair Summary:`);
     console.log(`   Products checked: ${result.productsChecked}`);

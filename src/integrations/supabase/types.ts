@@ -187,6 +187,51 @@ export type Database = {
         }
         Relationships: []
       }
+      batch_progress: {
+        Row: {
+          candidates_created: number
+          completed_at: string | null
+          current_batch: number
+          errors: Json | null
+          id: string
+          links_created: number
+          progress: number
+          session_id: string
+          started_at: string
+          status: string
+          total_batches: number
+          updated_at: string
+        }
+        Insert: {
+          candidates_created?: number
+          completed_at?: string | null
+          current_batch?: number
+          errors?: Json | null
+          id?: string
+          links_created?: number
+          progress?: number
+          session_id: string
+          started_at?: string
+          status?: string
+          total_batches?: number
+          updated_at?: string
+        }
+        Update: {
+          candidates_created?: number
+          completed_at?: string | null
+          current_batch?: number
+          errors?: Json | null
+          id?: string
+          links_created?: number
+          progress?: number
+          session_id?: string
+          started_at?: string
+          status?: string
+          total_batches?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           created_at: string
@@ -2704,6 +2749,10 @@ export type Database = {
           order_ids: string[]
         }
         Returns: number
+      }
+      cleanup_old_batch_progress: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       create_admin_user: {
         Args: { user_email: string }

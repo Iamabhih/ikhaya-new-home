@@ -24,7 +24,7 @@ export const AutoPromoteCandidates = () => {
         .from('product_image_candidates')
         .select('id, match_confidence')
         .eq('status', 'pending')
-        .gte('match_confidence', 60); // Lower threshold for better analysis
+        .gte('match_confidence', 70); // Consistent with description
 
       if (error) throw error;
       setPendingCount(data?.length || 0);
@@ -43,7 +43,7 @@ export const AutoPromoteCandidates = () => {
         .from('product_image_candidates')
         .select('id, match_confidence')
         .eq('status', 'pending')
-        .gte('match_confidence', 60) // Lower threshold for promotion
+        .gte('match_confidence', 70) // Consistent with description (≥70%)
         .order('match_confidence', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -51,7 +51,7 @@ export const AutoPromoteCandidates = () => {
       if (!candidates || candidates.length === 0) {
         toast({
           title: "No Candidates Found", 
-          description: "No candidates (≥60%) available for promotion",
+          description: "No candidates (≥70%) available for promotion",
         });
         setResult({ promoted: 0, errors: [] });
         return;
@@ -136,7 +136,7 @@ export const AutoPromoteCandidates = () => {
             className="flex items-center gap-2"
           >
             <TrendingUp className="h-4 w-4" />
-            {isPromoting ? "Promoting..." : `Promote ${pendingCount} Candidates`}
+            {isPromoting ? "Promoting..." : `Promote ${pendingCount} Candidates (≥70%)`}
           </Button>
           
           <Button 
@@ -153,7 +153,7 @@ export const AutoPromoteCandidates = () => {
         {isPromoting && (
           <div className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4 animate-spin" />
-            <span className="text-sm">Promoting high-confidence candidates...</span>
+            <span className="text-sm">Promoting high-confidence candidates (≥70%)...</span>
           </div>
         )}
 
