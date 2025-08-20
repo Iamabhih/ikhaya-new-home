@@ -17,6 +17,16 @@ interface RepairResult {
   productsChecked: number;
   imagesFound: number;
   linksCreated: number;
+  candidatesPromoted: number;
+  candidatesCreated: number;
+  skippedExisting: number;
+  matchingStats: {
+    exact: number;
+    zeropadded: number;
+    multisku: number;
+    pattern: number;
+    contains: number;
+  };
   errors: string[];
 }
 
@@ -129,7 +139,7 @@ export const ImageLinkingRepairTool = () => {
         {result && (
           <div className="space-y-4">
             {/* Summary Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                 <div className="text-lg font-bold text-blue-600">{result.productsChecked}</div>
                 <div className="text-xs text-muted-foreground">Products Checked</div>
@@ -140,7 +150,15 @@ export const ImageLinkingRepairTool = () => {
               </div>
               <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
                 <div className="text-lg font-bold text-green-600">{result.linksCreated}</div>
-                <div className="text-xs text-muted-foreground">Links Created</div>
+                <div className="text-xs text-muted-foreground">Direct Links</div>
+              </div>
+              <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                <div className="text-lg font-bold text-orange-600">{result.candidatesPromoted}</div>
+                <div className="text-xs text-muted-foreground">Promoted</div>
+              </div>
+              <div className="text-center p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
+                <div className="text-lg font-bold text-amber-600">{result.candidatesCreated}</div>
+                <div className="text-xs text-muted-foreground">Candidates</div>
               </div>
               <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded-lg">
                 <div className="text-lg font-bold text-red-600">{result.errors.length}</div>
@@ -148,19 +166,52 @@ export const ImageLinkingRepairTool = () => {
               </div>
             </div>
 
+            {/* Matching Statistics */}
+            {result.matchingStats && (
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  Matching Breakdown
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="text-center p-2 bg-background rounded border">
+                    <div className="text-sm font-bold text-green-600">{result.matchingStats.exact || 0}</div>
+                    <div className="text-xs text-muted-foreground">Exact</div>
+                  </div>
+                  <div className="text-center p-2 bg-background rounded border">
+                    <div className="text-sm font-bold text-blue-600">{result.matchingStats.zeropadded || 0}</div>
+                    <div className="text-xs text-muted-foreground">Zero-Padded</div>
+                  </div>
+                  <div className="text-center p-2 bg-background rounded border">
+                    <div className="text-sm font-bold text-purple-600">{result.matchingStats.multisku || 0}</div>
+                    <div className="text-xs text-muted-foreground">Multi-SKU</div>
+                  </div>
+                  <div className="text-center p-2 bg-background rounded border">
+                    <div className="text-sm font-bold text-orange-600">{result.matchingStats.pattern || 0}</div>
+                    <div className="text-xs text-muted-foreground">Pattern</div>
+                  </div>
+                  <div className="text-center p-2 bg-background rounded border">
+                    <div className="text-sm font-bold text-amber-600">{result.matchingStats.contains || 0}</div>
+                    <div className="text-xs text-muted-foreground">Contains</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Success Message */}
-            {result.status === 'complete' && result.linksCreated > 0 && (
+            {result.status === 'complete' && (result.linksCreated > 0 || result.candidatesPromoted > 0) && (
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription className="text-green-600">
-                  Successfully repaired {result.linksCreated} missing image links! 
-                  Products like SKU 455470 should now display their images correctly.
+                  Advanced repair complete! Created {result.linksCreated} direct links, promoted {result.candidatesPromoted} candidates, 
+                  and created {result.candidatesCreated} new candidates for review.
+                  {result.skippedExisting > 0 && ` Skipped ${result.skippedExisting} low-confidence matches.`}
                 </AlertDescription>
               </Alert>
             )}
 
             {/* No Links Created */}
-            {result.status === 'complete' && result.linksCreated === 0 && (
+            {result.status === 'complete' && result.linksCreated === 0 && result.candidatesPromoted === 0 && result.candidatesCreated === 0 && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
