@@ -112,7 +112,7 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
     debugInfo: {}
   };
 
-  console.log(`🚀 Starting consolidated image linking process`);
+    console.log(`🚀 Starting consolidated image linking process`);
   const startProcessingTime = Date.now();
   
   try {
@@ -120,10 +120,14 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
     result.currentStep = 'Loading products';
     result.progress = 10;
     
+    console.log('🔍 DEBUG: About to query products table...');
     const { data: allProducts, error: productsError } = await supabase
       .from('products')
       .select('id, sku, name')
       .eq('is_active', true);
+    
+    console.log('🔍 DEBUG: Query result - Error:', productsError);
+    console.log('🔍 DEBUG: Query result - Data length:', allProducts?.length);
     
     if (productsError) throw new Error(`Products fetch error: ${productsError.message}`);
     
