@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { OptimizedProductGrid } from "@/components/products/OptimizedProductGrid";
 import { ProductCard } from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -117,18 +118,11 @@ export const OptimizedFeaturedProducts = () => {
           </p>
         </div>
         
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6 mb-8 sm:mb-12">
-          {products.map((product, index) => (
-            <div 
-              key={product.id}
-              className="opacity-0 animate-fade-in-up"
-              style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'forwards' }}
-            >
-              <ProductCard product={product} />
-            </div>
-          ))}
-        </div>
+        <OptimizedProductGrid
+          products={products as any[]}
+          isLoading={false}
+          viewMode="grid"
+        />
 
         {/* Call to Action */}
         <div className="text-center px-4 sm:px-0">

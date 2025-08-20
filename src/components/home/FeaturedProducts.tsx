@@ -1,6 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { OptimizedProductGrid } from "@/components/products/OptimizedProductGrid";
 import { ProductCard } from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -62,11 +63,13 @@ export const FeaturedProducts = () => {
           </p>
         </div>
         
-        <ResponsiveGrid variant="standard" className="mb-8">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </ResponsiveGrid>
+        
+        <OptimizedProductGrid
+          products={products}
+          isLoading={false}
+          viewMode="grid"
+        />
+        
 
         <div className="text-center">
           <Link to="/products">

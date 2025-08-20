@@ -8,6 +8,7 @@ import { MaintenanceBanner } from "@/components/common/MaintenanceBanner";
 import { ProductImageGallery } from "@/components/products/ProductImageGallery";
 import { ProductInfo } from "@/components/products/ProductInfo";
 import { ProductCard } from "@/components/products/ProductCard";
+import { OptimizedProductGrid } from "@/components/products/OptimizedProductGrid";
 import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 import { StandardBreadcrumbs } from "@/components/common/StandardBreadcrumbs";
 import { ResponsiveGrid } from "@/components/ui/responsive-layout";
@@ -158,11 +159,11 @@ const ProductDetailPage = () => {
                   You might also like these products
                 </p>
               </div>
-              <ResponsiveGrid variant="standard">
-                {relatedProducts.map((relatedProduct) => (
-                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
-                ))}
-              </ResponsiveGrid>
+              <OptimizedProductGrid
+                products={relatedProducts}
+                isLoading={false}
+                viewMode="grid"
+              />
             </section>
           </>
         )}

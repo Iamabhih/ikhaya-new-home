@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
+import { OptimizedProductGrid } from "@/components/products/OptimizedProductGrid";
 import { StandardBreadcrumbs } from "@/components/common/StandardBreadcrumbs";
 import { StandardPagination } from "@/components/common/StandardPagination";
 import { AutocompleteSearch } from "@/components/products/AutocompleteSearch";
@@ -274,26 +275,15 @@ const CategoryPage = () => {
           </div>
         </Card>
 
-        {/* Product Grid */}
-        {isLoading ? (
-          <UniversalLoading 
-            variant="grid" 
-            count={12} 
-            className={viewMode === "grid" 
-              ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
-              : "grid-cols-1"
-            }
-          />
-        ) : (
-          <ResponsiveGrid 
-            variant={viewMode === "grid" ? "standard" : "comfortable"}
-            className={viewMode === "list" ? "grid-cols-1" : ""}
-          >
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} viewMode={viewMode} />
-            ))}
-          </ResponsiveGrid>
-        )}
+        {/* Optimized Product Grid */}
+        <OptimizedProductGrid
+          products={products}
+          isLoading={isLoading}
+          viewMode={viewMode}
+          onClearFilters={clearSearch}
+          searchQuery={searchQuery}
+          hasActiveFilters={!!searchQuery}
+        />
 
         {/* No Products Found */}
         {products.length === 0 && !isLoading && (

@@ -1,6 +1,7 @@
 
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { OptimizedProductGrid } from "@/components/products/OptimizedProductGrid";
 import { ProductCard } from "@/components/products/ProductCard";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useAuth } from "@/contexts/AuthContext";
@@ -107,11 +108,11 @@ const WishlistPage = () => {
             ))}
           </div>
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 xs:gap-3 sm:gap-4 md:gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        <OptimizedProductGrid
+          products={products}
+          isLoading={false}
+          viewMode="grid"
+        />
         ) : (
           <div className="text-center py-16">
             <div className="mb-6">
