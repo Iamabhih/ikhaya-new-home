@@ -195,16 +195,33 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
     result.progress = 10;
     
     console.log('🔍 DEBUG: About to query products table...');
-    const { data: allProducts, error: productsError } = await supabase
-      .from('products')
-      .select('id, sku, name')
-      .eq('is_active', true)
-      .limit(10000); // Ensure we get ALL products, not just first 1000
     
-    console.log('🔍 DEBUG: Query result - Error:', productsError);
-    console.log('🔍 DEBUG: Query result - Data length:', allProducts?.length);
+    // Use multiple queries to ensure we get ALL products
+    let allProducts = [];
+    let hasMore = true;
+    let offset = 0;
+    const batchSize = 1000;
     
-    if (productsError) throw new Error(`Products fetch error: ${productsError.message}`);
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from('products')
+        .select('id, sku, name')
+        .eq('is_active', true)
+        .range(offset, offset + batchSize - 1);
+      
+      if (batchError) throw new Error(`Products fetch error: ${batchError.message}`);
+      
+      if (batch && batch.length > 0) {
+        allProducts = allProducts.concat(batch);
+        offset += batchSize;
+        hasMore = batch.length === batchSize; // Continue if we got a full batch
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log('🔍 DEBUG: Query completed');
+    console.log('🔍 DEBUG: Total products loaded:', allProducts?.length);
     
     result.productsScanned = allProducts?.length || 0;
     console.log(`📊 Loaded ${result.productsScanned} products`);
