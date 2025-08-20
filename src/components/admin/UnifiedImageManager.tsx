@@ -27,8 +27,8 @@ export const UnifiedImageManager = () => {
           <Alert className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Enhanced System:</strong> Fixed scanning limits (increased to 1000+ per batch), removed redundant StorageImageScanner, 
-              added auto-promotion for high-confidence candidates, and streamlined the workflow. Now targeting 535 products without images.
+              <strong>Streamlined System:</strong> Consolidated all image management tools into focused tabs. 
+              Use "Image Tools" for all Supabase storage operations and "Drive Linking" for Google Drive cached images.
             </AlertDescription>
           </Alert>
 

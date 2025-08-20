@@ -10,9 +10,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { DeleteAllProducts } from "@/components/admin/DeleteAllProducts";
 import { ImageMigrationTool } from "@/components/admin/ImageMigrationTool";
-import { StorageImageScanner } from "@/components/admin/StorageImageScanner";
 import { ManualImageLinker } from "@/components/admin/ManualImageLinker";
-import { ImageLinkingTool } from "@/components/admin/ImageLinkingTool";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductImageRefresh } from "@/components/admin/ProductImageRefresh";
@@ -188,7 +186,7 @@ const AdminProducts = () => {
 
           <ErrorBoundary>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-11 bg-gray-100 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-8 bg-gray-100 p-1 rounded-xl">
                 <TabsTrigger 
                   value="products" 
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
@@ -226,34 +224,16 @@ const AdminProducts = () => {
                   Drive Migration
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="storage" 
+                  value="drive-linking" 
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
                 >
-                  Storage Scanner
+                  Drive Linking
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="link-images" 
+                  value="image-tools" 
                   className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
                 >
-                  Link Images
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="manual-link" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
-                >
-                  Manual Link
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="refresh" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
-                >
-                  Complete Refresh
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="unified" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-600 font-medium"
-                >
-                  Unified Tools
+                  Image Tools
                 </TabsTrigger>
               </TabsList>
 
@@ -304,33 +284,18 @@ const AdminProducts = () => {
                 </ErrorBoundary>
               </TabsContent>
 
-              <TabsContent value="storage" className="space-y-6">
-                <ErrorBoundary>
-                  <StorageImageScanner onNavigateToLinking={() => setActiveTab('link-images')} />
-                </ErrorBoundary>
-              </TabsContent>
-
-              <TabsContent value="link-images" className="space-y-6">
-                <ErrorBoundary>
-                  <ImageLinkingTool onNavigateToScanner={() => setActiveTab('storage')} />
-                </ErrorBoundary>
-              </TabsContent>
-
-              <TabsContent value="manual-link" className="space-y-6">
+              <TabsContent value="drive-linking" className="space-y-6">
                 <ErrorBoundary>
                   <ManualImageLinker />
                 </ErrorBoundary>
               </TabsContent>
 
-              <TabsContent value="refresh" className="space-y-6">
-                <ErrorBoundary>
-                  <ProductImageRefresh />
-                </ErrorBoundary>
-              </TabsContent>
-
-              <TabsContent value="unified" className="space-y-6">
+              <TabsContent value="image-tools" className="space-y-6">
                 <ErrorBoundary>
                   <UnifiedImageManager />
+                  <div className="mt-6">
+                    <ProductImageRefresh />
+                  </div>
                 </ErrorBoundary>
               </TabsContent>
             </Tabs>
