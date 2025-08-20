@@ -179,7 +179,7 @@ export const ImageLinkingTool = ({ onNavigateToScanner }: ImageLinkingToolProps 
         
         let offset = 0;
         let hasMore = true;
-        const limit = 100; // Smaller batches for better progress tracking
+        const limit = 1000; // Increased limit for comprehensive scanning
         let folderImageCount = 0;
         
         while (hasMore && allImages.length < config.maxImages) {
