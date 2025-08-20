@@ -90,7 +90,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   }
   
   return (
-    <Card className="group glass-card hover-lift hover-glow border-gradient h-full flex flex-col overflow-hidden w-full max-w-[280px] mx-auto product-card-mobile shadow-elegant">
+    <Card className="group glass-card hover-lift hover-glow border-gradient h-full flex flex-col overflow-hidden w-full max-w-[320px] mx-auto product-card-mobile shadow-elegant transition-all duration-300">
       <CardContent className="p-0 flex-1 flex flex-col h-full">
         <div className="relative flex-shrink-0 overflow-hidden aspect-[4/3] product-image rounded-t-lg bg-gradient-to-br from-background/50 to-background/80">
           <ProductImage
@@ -102,8 +102,8 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           />
         </div>
         
-        <div className="p-3 flex-1 flex flex-col justify-between min-h-0 bg-gradient-to-b from-card to-card/95 backdrop-blur-sm">
-          <div className="flex-1 space-y-2">
+        <div className="p-4 flex-1 flex flex-col justify-between min-h-0 bg-gradient-to-b from-card to-card/95">
+          <div className="flex-1 space-y-3">
             <ProductDetails product={product} viewMode={viewMode} />
             <ProductPrice 
               price={product.price} 
@@ -112,7 +112,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             />
           </div>
           
-          <div className="mt-3 pt-2">
+          <div className="mt-4 pt-3 border-t border-border/10">
             <ProductActions
               productId={product.id}
               inWishlist={inWishlist}

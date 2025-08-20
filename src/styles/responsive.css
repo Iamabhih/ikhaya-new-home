@@ -67,6 +67,41 @@
     @apply min-w-full;
   }
 
+  /* Optimized responsive grids with fluid columns */
+  .responsive-grid-standard {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, calc(50% - 0.5rem)), 1fr));
+    align-items: stretch;
+    justify-items: center;
+  }
+
+  .responsive-grid-compact {
+    @apply grid gap-2 sm:gap-3;
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, calc(50% - 0.25rem)), 1fr));
+    align-items: stretch;
+    justify-items: center;
+  }
+
+  .responsive-grid-comfortable {
+    @apply grid gap-6 md:gap-8;
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, calc(50% - 1rem)), 1fr));
+    align-items: stretch;
+    justify-items: center;
+  }
+
+  /* Grid optimizations for mobile */
+  .grid-mobile-optimized {
+    display: grid;
+    gap: clamp(0.75rem, 2.5vw, 1.5rem);
+    align-items: stretch;
+    justify-items: center;
+  }
+
+  .grid-list-mobile-optimized {
+    @apply grid grid-cols-1 gap-4;
+    align-items: stretch;
+  }
+
   /* Mobile-first container queries support */
   @supports (container-type: inline-size) {
     .container-query {
@@ -115,4 +150,21 @@
   .xs\:h-auto { height: auto; }
   .xs\:space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.5rem; }
   .xs\:space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.75rem; }
+
+  /* Mobile grid optimizations */
+  .responsive-grid-standard,
+  .grid-mobile-optimized {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .responsive-grid-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .responsive-grid-comfortable {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+  }
 }

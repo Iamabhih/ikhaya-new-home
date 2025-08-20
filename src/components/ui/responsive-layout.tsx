@@ -14,11 +14,11 @@ export const ResponsiveGrid = ({
   const getGridClasses = () => {
     switch (variant) {
       case "compact":
-        return "grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3";
+        return "responsive-grid-compact";
       case "comfortable":
-        return "grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8";
+        return "responsive-grid-comfortable";
       default:
-        return "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6";
+        return "responsive-grid-standard";
     }
   };
 

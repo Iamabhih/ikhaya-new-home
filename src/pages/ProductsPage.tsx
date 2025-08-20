@@ -10,6 +10,7 @@ import { ProductCard } from "@/components/products/ProductCard";
 import { AutocompleteSearch } from "@/components/products/AutocompleteSearch";
 import { FacetedFilters } from "@/components/products/FacetedFilters";
 import { VirtualizedProductGrid } from "@/components/products/VirtualizedProductGrid";
+import { OptimizedProductGrid } from "@/components/products/OptimizedProductGrid";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Grid, List, ChevronLeft, ChevronRight, SlidersHorizontal, Search, Filter } from "lucide-react";
@@ -74,12 +75,14 @@ const ProductsPage = () => {
   })();
 
   // Check if filters are active to determine loading strategy
-  const hasActiveFilters = searchQuery.trim() || 
+  const hasActiveFilters = Boolean(
+    searchQuery.trim() || 
     facetedFilters.categories?.length || 
     facetedFilters.brands?.length ||
     priceRange.min !== undefined || 
     priceRange.max !== undefined || 
-    facetedFilters.inStock;
+    facetedFilters.inStock
+  );
 
   // For filtered results, load all matching products
   // For unfiltered results, use pagination
@@ -408,54 +411,23 @@ const ProductsPage = () => {
               </div>
             </Card>
 
-            {/* Product Grid */}
-            {isLoading ? (
-              <UniversalLoading 
-                variant="grid" 
-                count={12} 
-                className={viewMode === "grid" 
-                  ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
-                  : "grid-cols-1"
-                }
-              />
-            ) : useVirtualization && viewMode === "grid" ? (
+            {/* Optimized Product Grid */}
+            {useVirtualization && viewMode === "grid" ? (
               <VirtualizedProductGrid
                 products={products}
                 isLoading={isLoading}
                 containerHeight={800}
-                itemHeight={350}
+                itemHeight={380}
               />
             ) : (
-              <ResponsiveGrid 
-                variant={viewMode === "grid" ? "standard" : "comfortable"}
-                className={viewMode === "list" ? "grid-cols-1" : ""}
-              >
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} viewMode={viewMode} />
-                ))}
-              </ResponsiveGrid>
-            )}
-
-            {products.length === 0 && !isLoading && (
-              <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
-                <div className="text-center py-16">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <Search className="h-8 w-8 text-primary/60" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">No Products Found</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    {searchQuery 
-                      ? `No products found matching "${searchQuery}". Try different keywords or browse our categories.`
-                      : "No products found matching your criteria. Try adjusting your filters."
-                    }
-                  </p>
-                  {(searchQuery || hasActiveFilters) && (
-                    <Button onClick={clearSearch} className="bg-primary hover:bg-primary/90">
-                      View All Products
-                    </Button>
-                  )}
-                </div>
-              </Card>
+              <OptimizedProductGrid
+                products={products}
+                isLoading={isLoading}
+                viewMode={viewMode}
+                onClearFilters={clearSearch}
+                searchQuery={searchQuery}
+                hasActiveFilters={hasActiveFilters}
+              />
             )}
 
             {/* Pagination */}
