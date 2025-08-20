@@ -29,8 +29,7 @@ export default function OzzSAPage() {
     day: "Sunday",
     time: "9 am–2 pm"
   }];
-  return (
-    <>
+  return <>
       <Header />
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
         {/* Hero Section */}
@@ -40,11 +39,7 @@ export default function OzzSAPage() {
             <div className="max-w-4xl mx-auto text-center">
               <div className="relative inline-block mb-8">
                 <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-110"></div>
-                <img 
-                  src={ozzLogo} 
-                  alt="OZZ Cash and Carry Logo" 
-                  className="relative h-40 w-auto mx-auto animate-fade-in" 
-                />
+                <img src={ozzLogo} alt="OZZ Cash and Carry Logo" className="relative h-40 w-auto mx-auto animate-fade-in" />
               </div>
               
               <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent mb-6">
@@ -129,14 +124,12 @@ export default function OzzSAPage() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-3">
-                    {hours.map(schedule => (
-                      <div key={schedule.day} className="flex justify-between items-center py-1">
+                    {hours.map(schedule => <div key={schedule.day} className="flex justify-between items-center py-1">
                         <span className="font-medium text-foreground">{schedule.day}</span>
                         <span className="text-muted-foreground text-sm bg-muted/50 px-2 py-1 rounded">
                           {schedule.time}
                         </span>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
                 </CardContent>
               </Card>
@@ -211,12 +204,7 @@ export default function OzzSAPage() {
 
                   <div className="bg-gradient-to-r from-muted/50 via-muted/30 to-muted/50 p-8 rounded-2xl mb-12 border border-primary/10">
                     <h3 className="text-2xl font-bold mb-6 text-center text-primary">Our Evolution Story</h3>
-                    <p className="text-lg leading-relaxed text-center text-foreground">
-                      Building on decades of retail expertise and deep community relationships, 
-                      Ozz Cash and Carry has transformed its proven business model into the digital age. 
-                      Through Ikhaya, we've expanded our reach while maintaining the personal touch 
-                      and quality standards that have defined us for generations.
-                    </p>
+                    <p className="text-lg leading-relaxed text-center text-foreground">Building on decades of Wholesale expertise and deep community relationships, Ozz Cash and Carry has transformed its proven business model into the digital age. Through Ikhaya, we've expanded our reach while maintaining the personal touch and quality standards that have defined us for generations.</p>
                   </div>
 
                   <div className="text-center bg-gradient-to-r from-primary/5 to-secondary/5 p-8 rounded-2xl">
@@ -248,6 +236,5 @@ export default function OzzSAPage() {
         </div>
       </div>
       <Footer />
-    </>
-  );
+    </>;
 }
