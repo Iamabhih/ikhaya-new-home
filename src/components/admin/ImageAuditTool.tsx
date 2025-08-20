@@ -106,24 +106,66 @@ export const ImageAuditTool = () => {
   const { data: multiplePrimaryProducts, refetch: refetchMultiplePrimary, isLoading: multiplePrimaryLoading } = useQuery({
     queryKey: ['multiple-primary-products'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_products_with_multiple_primary_images');
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id, name, sku,
+          product_images!inner(id, is_primary)
+        `)
+        .eq('is_active', true);
+
       if (error) throw error;
-      return data || [];
+
+      // Filter products that have multiple primary images or no primary images
+      const productsWithIssues = data?.filter(product => {
+        const primaryCount = product.product_images.filter((img: any) => img.is_primary).length;
+        return primaryCount !== 1;
+      }).map(product => ({
+        ...product,
+        primary_count: product.product_images.filter((img: any) => img.is_primary).length
+      })) || [];
+
+      return productsWithIssues;
     },
     staleTime: 30000,
   });
 
   const handleFixDuplicates = async (productId: string) => {
     try {
-      const { error } = await supabase.rpc('fix_duplicate_product_images', { 
-        target_product_id: productId 
+      // Get all images for this product
+      const { data: images, error: fetchError } = await supabase
+        .from('product_images')
+        .select('*')
+        .eq('product_id', productId)
+        .order('created_at', { ascending: true });
+
+      if (fetchError) throw fetchError;
+
+      // Group by image_url and keep only the first one of each
+      const uniqueImages = new Map();
+      const duplicateIds: string[] = [];
+
+      images?.forEach(image => {
+        if (uniqueImages.has(image.image_url)) {
+          duplicateIds.push(image.id);
+        } else {
+          uniqueImages.set(image.image_url, image);
+        }
       });
-      
-      if (error) throw error;
+
+      // Delete duplicates
+      if (duplicateIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('product_images')
+          .delete()
+          .in('id', duplicateIds);
+
+        if (deleteError) throw deleteError;
+      }
       
       toast({
         title: "Duplicates Fixed",
-        description: "Duplicate images removed successfully",
+        description: `Removed ${duplicateIds.length} duplicate images`,
       });
       
       refetchDuplicates();
@@ -138,11 +180,47 @@ export const ImageAuditTool = () => {
 
   const handleFixPrimaryImages = async (productId: string) => {
     try {
-      const { error } = await supabase.rpc('fix_primary_image_assignments', { 
-        target_product_id: productId 
-      });
+      // Get all images for this product
+      const { data: images, error: fetchError } = await supabase
+        .from('product_images')
+        .select('*')
+        .eq('product_id', productId)
+        .order('created_at', { ascending: true });
+
+      if (fetchError) throw fetchError;
+
+      if (!images || images.length === 0) {
+        toast({
+          title: "No Images Found",
+          description: "This product has no images to fix",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Find primary images
+      const primaryImages = images.filter(img => img.is_primary);
       
-      if (error) throw error;
+      if (primaryImages.length === 0) {
+        // No primary image, set the first one as primary
+        const { error: updateError } = await supabase
+          .from('product_images')
+          .update({ is_primary: true })
+          .eq('id', images[0].id);
+
+        if (updateError) throw updateError;
+      } else if (primaryImages.length > 1) {
+        // Multiple primary images, keep only the first one
+        const primaryToKeep = primaryImages[0];
+        const primariesToRemove = primaryImages.slice(1);
+
+        const { error: updateError } = await supabase
+          .from('product_images')
+          .update({ is_primary: false })
+          .in('id', primariesToRemove.map(img => img.id));
+
+        if (updateError) throw updateError;
+      }
       
       toast({
         title: "Primary Images Fixed",
