@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { BatchImageLinker } from "./BatchImageLinker";
 import { ImageLinkingRepairTool } from "./ImageLinkingRepairTool";
 import { ImageAuditTool } from "./ImageAuditTool";
 import { MissingImageReportTool } from "./MissingImageReportTool";
 import { AutoPromoteCandidates } from "./AutoPromoteCandidates";
-import { Database, Wrench, Search, AlertTriangle, FileSearch, TrendingUp } from "lucide-react";
+import { Database, Wrench, Search, AlertTriangle, FileSearch, TrendingUp, Zap } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const UnifiedImageManager = () => {
@@ -31,8 +32,12 @@ export const UnifiedImageManager = () => {
             </AlertDescription>
           </Alert>
 
-          <Tabs defaultValue="repair" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+          <Tabs defaultValue="batch" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="batch" className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                Batch Linker
+              </TabsTrigger>
               <TabsTrigger value="repair" className="flex items-center gap-2">
                 <Wrench className="h-4 w-4" />
                 Link Repair
@@ -50,6 +55,10 @@ export const UnifiedImageManager = () => {
                 Image Audit
               </TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="batch" className="mt-6">
+              <BatchImageLinker />
+            </TabsContent>
             
             <TabsContent value="repair" className="mt-6">
               <ImageLinkingRepairTool />

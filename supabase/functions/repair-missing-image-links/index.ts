@@ -287,244 +287,177 @@ serve(async (req) => {
     result.productsChecked = productsNeedingImages.length;
     console.log(`🎯 Found ${result.productsChecked} products needing images`);
 
-    // Phase 3: Comprehensive storage scan
-    console.log(`\n📁 Phase 3: Scanning storage for images`);
+    console.log(`\n📁 Phase 3: Optimized storage scan with batching`);
     
-    const getAllImages = async (path = '', depth = 0): Promise<Array<{name: string, fullPath: string}>> => {
-      if (depth > 10) {
-        console.warn(`⚠️ Max depth reached at: ${path}`);
-        return [];
-      }
-      
-      const { data: items, error } = await supabase.storage
+    // Process storage in smaller batches to avoid timeouts
+    const STORAGE_BATCH_SIZE = 200;
+    const PROCESSING_BATCH_SIZE = 50;
+    
+    console.log("🔍 Starting optimized storage scan...");
+    let allStorageFiles: any[] = [];
+    let offset = 0;
+    
+    // Fetch storage files in batches
+    while (true) {
+      const { data: batch, error } = await supabase.storage
         .from('product-images')
-        .list(path, { limit: 1000 });
-
-      if (error) {
-        console.error(`❌ Error scanning ${path}:`, error.message);
-        return [];
-      }
-
-      let allImages: Array<{name: string, fullPath: string}> = [];
-      
-      for (const item of items || []) {
-        if (!item.name || item.name.includes('.emptyFolderPlaceholder')) continue;
+        .list('', { 
+          limit: STORAGE_BATCH_SIZE, 
+          offset,
+          sortBy: { column: 'name', order: 'asc' }
+        });
         
-        const fullPath = path ? `${path}/${item.name}` : item.name;
-        const isDirectory = !item.id && !item.metadata && !item.name.includes('.');
-        
-        if (isDirectory && comprehensive_scan) {
-          console.log(`📁 Scanning folder: ${fullPath}`);
-          const subImages = await getAllImages(fullPath, depth + 1);
-          allImages = allImages.concat(subImages);
-        } else if (item.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
-          allImages.push({ name: item.name, fullPath });
-          console.log(`📸 Found image: ${fullPath}`);
-        }
-      }
+      if (error) throw error;
+      if (!batch || batch.length === 0) break;
       
-      return allImages;
-    };
-
-    const allImages = await getAllImages();
-    result.imagesFound = allImages.length;
-    console.log(`📊 Storage scan complete: ${result.imagesFound} images found`);
-
-    // Phase 4: Advanced matching with enhanced SKU extraction and duplicate prevention
-    console.log(`\n🎯 Phase 4: Advanced image-to-product matching with duplicate prevention`);
+      const imageFiles = batch.filter(file => 
+        file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
+      );
+      
+      allStorageFiles.push(...imageFiles.map(file => ({
+        name: file.name,
+        fullPath: file.name,
+        size: file.metadata?.size || 0
+      })));
+      
+      offset += STORAGE_BATCH_SIZE;
+      
+      // Break if we got less than requested (end of files)
+      if (batch.length < STORAGE_BATCH_SIZE) break;
+      
+      console.log(`📁 Loaded ${allStorageFiles.length} storage files so far...`);
+    }
     
-    // Helper functions for matching
-    const normalizeSKU = (sku: string) => (sku || '').toLowerCase().trim();
-    const removeLeadingZeros = (sku: string) => sku.replace(/^0+/, '') || '0';
+    result.imagesFound = allStorageFiles.length;
+    console.log(`📁 Total storage files found: ${result.imagesFound}`);
     
-    for (const product of productsNeedingImages) {
-      if (!product.sku) continue;
+    console.log("🔍 Starting optimized product matching...");
+    const allProductSKUs = productsNeedingImages.map(p => ({ id: p.id, sku: p.sku }));
+    
+    let processedFiles = 0;
+    
+    // Process images in smaller batches
+    for (let i = 0; i < allStorageFiles.length; i += PROCESSING_BATCH_SIZE) {
+      const batch = allStorageFiles.slice(i, i + PROCESSING_BATCH_SIZE);
+      const batchNum = Math.floor(i / PROCESSING_BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(allStorageFiles.length / PROCESSING_BATCH_SIZE);
       
-      console.log(`\n🔍 Processing: ${product.sku} (${product.name})`);
-      const productSku = normalizeSKU(product.sku);
+      console.log(`📊 Processing batch ${batchNum}/${totalBatches} (${batch.length} files)`);
       
-      let bestMatch = null;
-      let bestConfidence = 0;
-      let matchType = '';
-      
-      // Try to match with each image
-      for (const image of allImages) {
-        const filename = image.name.toLowerCase();
-        const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
-        
-        // Extract potential SKUs using advanced logic
-        const extractedSKUs = extractSKUsFromFilename(nameWithoutExt, image.fullPath);
-        
-        for (const skuCandidate of extractedSKUs) {
-          const candidateSku = normalizeSKU(skuCandidate.sku);
-          let confidence = 0;
-          let type = '';
-          
-          // Exact match
-          if (productSku === candidateSku) {
-            confidence = skuCandidate.confidence;
-            type = 'exact';
-          }
-          // Zero-padding variations
-          else if (removeLeadingZeros(productSku) === removeLeadingZeros(candidateSku)) {
-            confidence = skuCandidate.confidence * 0.95;
-            type = 'zeropadded';
-          }
-          // Multi-SKU match
-          else if (skuCandidate.source === 'multi_sku' && 
-                   (productSku === candidateSku || candidateSku.includes(productSku))) {
-            confidence = skuCandidate.confidence * 0.9;
-            type = 'multisku';
-          }
-          // Pattern match
-          else if (skuCandidate.source === 'numeric_pattern') {
-            if (productSku === candidateSku || candidateSku === productSku) {
-              confidence = skuCandidate.confidence * 0.8;
-              type = 'pattern';
-            }
-          }
-          // Contains match (for high-confidence candidates only)
-          else if (skuCandidate.confidence >= 80 && 
-                   (productSku.includes(candidateSku) || candidateSku.includes(productSku))) {
-            confidence = skuCandidate.confidence * 0.7;
-            type = 'contains';
-          }
-          
-          if (confidence > bestConfidence) {
-            bestMatch = image;
-            bestConfidence = confidence;
-            matchType = type;
-          }
-        }
-      }
-      
-        // Process the best match with enhanced duplicate prevention and logging
-        if (bestMatch && bestConfidence >= confidence_threshold) {
-          console.log(`🎯 POTENTIAL MATCH: ${product.sku} (${product.name}) -> ${bestMatch.name}`);
-          console.log(`   Match Quality: ${bestConfidence.toFixed(1)}% confidence (${matchType} match)`);
-          console.log(`   Product ID: ${product.id}`);
-          
-          const { data: { publicUrl } } = supabase.storage
-            .from('product-images')
-            .getPublicUrl(bestMatch.fullPath);
-
-          // Enhanced duplicate checking with detailed logging
-          const { data: existingImage } = await supabase
-            .from('product_images')
-            .select('id, is_primary')
-            .eq('product_id', product.id)
-            .eq('image_url', publicUrl)
-            .single();
-
-          const { data: existingCandidate } = await supabase
-            .from('product_image_candidates')
-            .select('id, status, match_confidence')
-            .eq('product_id', product.id)
-            .eq('image_url', publicUrl)
-            .single();
-
-          if (existingImage) {
-            console.log(`⚠️ DUPLICATE IMAGE: ${product.sku} -> ${bestMatch.name} (already linked as ${existingImage.is_primary ? 'primary' : 'secondary'} image)`);
-            result.skippedExisting++;
-            continue;
-          }
-
-          if (existingCandidate) {
-            console.log(`⚠️ DUPLICATE CANDIDATE: ${product.sku} -> ${bestMatch.name} (already exists as ${existingCandidate.status} candidate with ${existingCandidate.match_confidence}% confidence)`);
-            result.skippedExisting++;
-            continue;
-          }
-
+      await Promise.all(batch.map(async (file) => {
         try {
-          // Direct link for high-confidence matches (>=85%)
-          if (bestConfidence >= 85) {
-            // Check if product already has a primary image
-            const { data: existingPrimary } = await supabase
-              .from('product_images')
-              .select('id')
-              .eq('product_id', product.id)
-              .eq('is_primary', true)
-              .single();
-
-            const { error: insertError } = await supabase
-              .from('product_images')
-              .insert({
-                product_id: product.id,
-                image_url: publicUrl,
-                alt_text: `${product.name} - ${bestMatch.name}`,
-                is_primary: !existingPrimary, // Only set as primary if no existing primary
-                sort_order: existingPrimary ? 999 : 1,
-                image_status: 'active',
-                match_confidence: Math.round(bestConfidence),
-                match_metadata: {
-                  source: 'advanced_repair',
-                  filename: bestMatch.name,
-                  session_id: sessionId,
-                  match_type: matchType,
-                  scan_mode: mode
-                },
-                auto_matched: true
-              });
-
-            if (insertError) {
-              // Check if it's a duplicate error
-              if (insertError.message.includes('duplicate') || insertError.code === '23505') {
-                console.log(`⚠️ Duplicate prevented by constraint: ${product.sku} -> ${bestMatch.name}`);
+          const extractedSKUs = extractSKUsFromFilename(file.name, file.fullPath);
+          
+          for (const extractedSKU of extractedSKUs) {
+            const matchedProduct = findMatchingProduct(allProductSKUs, extractedSKU.sku);
+            
+            if (matchedProduct) {
+              // Check if link already exists to avoid duplicates
+              const { data: existing } = await supabase
+                .from('product_images')
+                .select('id')
+                .eq('product_id', matchedProduct.id)
+                .eq('image_status', 'active')
+                .limit(1);
+                
+              if (existing && existing.length > 0) {
                 result.skippedExisting++;
-              } else {
-                result.errors.push(`Failed to link ${bestMatch.name} to ${product.sku}: ${insertError.message}`);
+                break;
               }
-            } else {
-              result.linksCreated++;
-              result.matchingStats[matchType as keyof typeof result.matchingStats]++;
-              console.log(`✅ Direct link created: ${bestMatch.name} → ${product.sku}`);
+              
+              const { data: { publicUrl } } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(file.name);
+                
+              if (extractedSKU.confidence >= 85) {
+                // Create direct link for high confidence
+                const { error } = await supabase
+                  .from('product_images')
+                  .insert({
+                    product_id: matchedProduct.id,
+                    image_url: publicUrl,
+                    alt_text: `Product ${matchedProduct.sku}`,
+                    image_status: 'active',
+                    is_primary: true,
+                    sort_order: 1,
+                    match_confidence: extractedSKU.confidence,
+                    match_metadata: {
+                      filename: file.name,
+                      extraction_method: extractedSKU.source,
+                      session_id: sessionId
+                    },
+                    auto_matched: true
+                  });
+                  
+                if (!error) {
+                  result.linksCreated++;
+                  updateMatchingStats(result.matchingStats, extractedSKU.source);
+                  console.log(`✅ Direct link: ${file.name} → ${matchedProduct.sku} (${extractedSKU.confidence}%)`);
+                }
+              } else if (extractedSKU.confidence >= confidence_threshold) {
+                // Create candidate for manual review
+                const { error } = await supabase
+                  .from('product_image_candidates')
+                  .insert({
+                    product_id: matchedProduct.id,
+                    image_url: publicUrl,
+                    alt_text: `Product ${matchedProduct.sku}`,
+                    match_confidence: extractedSKU.confidence,
+                    match_metadata: {
+                      filename: file.name,
+                      extraction_method: extractedSKU.source,
+                      session_id: sessionId
+                    },
+                    status: 'pending'
+                  });
+                  
+                if (!error) {
+                  result.candidatesCreated++;
+                  console.log(`📋 Candidate: ${file.name} → ${matchedProduct.sku} (${extractedSKU.confidence}%)`);
+                }
+              } else {
+                result.skippedExisting++;
+              }
+              
+              break; // Found match, move to next file
             }
           }
-          // Create candidate for medium-confidence matches (75-84%)
-          else {
-            const { error: candidateError } = await supabase
-              .from('product_image_candidates')
-              .insert({
-                product_id: product.id,
-                image_url: publicUrl,
-                alt_text: `${product.name} - ${bestMatch.name}`,
-                match_confidence: Math.round(bestConfidence),
-                match_metadata: {
-                  source: 'advanced_repair',
-                  filename: bestMatch.name,
-                  session_id: sessionId,
-                  match_type: matchType,
-                  scan_mode: mode
-                },
-                status: 'pending'
-              });
-
-            if (candidateError) {
-              // Check if it's a duplicate error
-              if (candidateError.message.includes('duplicate') || candidateError.code === '23505') {
-                console.log(`⚠️ Candidate duplicate prevented: ${product.sku} -> ${bestMatch.name}`);
-                result.skippedExisting++;
-              } else {
-                result.errors.push(`Failed to create candidate for ${bestMatch.name}: ${candidateError.message}`);
-              }
-            } else {
-              result.candidatesCreated++;
-              result.matchingStats[matchType as keyof typeof result.matchingStats]++;
-              console.log(`📋 Candidate created: ${bestMatch.name} → ${product.sku} (${bestConfidence.toFixed(1)}%)`);
-            }
-          }
+          
+          processedFiles++;
         } catch (error) {
-          result.errors.push(`Error processing ${product.sku}: ${error.message}`);
+          console.error(`❌ Error processing file ${file.name}:`, error);
+          result.errors.push(`Error processing ${file.name}: ${error.message}`);
         }
-      } else if (bestMatch) {
-        console.log(`⚠️ Low confidence match: ${bestMatch.name} (${bestConfidence.toFixed(1)}% - below ${confidence_threshold}%)`);
-        result.skippedExisting++;
-      } else {
-        console.log(`❌ No matches found for: ${product.sku}`);
+      }));
+      
+      // Small delay between batches to prevent overwhelming
+      if (i + PROCESSING_BATCH_SIZE < allStorageFiles.length) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      // Progress update every 5 batches
+      if (batchNum % 5 === 0 || batchNum === totalBatches) {
+        console.log(`📈 Progress: ${processedFiles}/${allStorageFiles.length} files processed`);
       }
     }
+    
+    // Helper functions for matching
+    const findMatchingProduct = (productSKUs: Array<{id: string, sku: string}>, sku: string) => {
+      return productSKUs.find(p => 
+        p.sku.toLowerCase() === sku.toLowerCase() ||
+        p.sku.replace(/^0+/, '') === sku.replace(/^0+/, '') ||
+        sku.replace(/^0+/, '') === p.sku.replace(/^0+/, '')
+      );
+    };
 
-    // Final summary
+    const updateMatchingStats = (stats: any, source: string) => {
+      if (source.includes('exact')) stats.exact++;
+      else if (source.includes('zero')) stats.zeropadded++;
+      else if (source.includes('multi')) stats.multisku++;
+      else if (source.includes('pattern')) stats.pattern++;
+      else stats.contains++;
+    };
+
     console.log(`\n📊 Repair Summary:`);
     console.log(`   Products checked: ${result.productsChecked}`);
     console.log(`   Images found: ${result.imagesFound}`);

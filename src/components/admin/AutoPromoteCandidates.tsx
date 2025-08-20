@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -24,7 +24,7 @@ export const AutoPromoteCandidates = () => {
         .from('product_image_candidates')
         .select('id, match_confidence')
         .eq('status', 'pending')
-        .gte('match_confidence', 70);
+        .gte('match_confidence', 60); // Lower threshold for better analysis
 
       if (error) throw error;
       setPendingCount(data?.length || 0);
@@ -43,15 +43,15 @@ export const AutoPromoteCandidates = () => {
         .from('product_image_candidates')
         .select('id, match_confidence')
         .eq('status', 'pending')
-        .gte('match_confidence', 70)
+        .gte('match_confidence', 60) // Lower threshold for promotion
         .order('match_confidence', { ascending: false });
 
       if (fetchError) throw fetchError;
 
       if (!candidates || candidates.length === 0) {
         toast({
-          title: "No Candidates Found",
-          description: "No high-confidence candidates (≥70%) available for promotion",
+          title: "No Candidates Found", 
+          description: "No candidates (≥60%) available for promotion",
         });
         setResult({ promoted: 0, errors: [] });
         return;
@@ -101,9 +101,9 @@ export const AutoPromoteCandidates = () => {
   };
 
   // Check pending candidates on component mount
-  useState(() => {
+  React.useEffect(() => {
     checkPendingCandidates();
-  });
+  }, []);
 
   return (
     <Card>
