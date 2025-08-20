@@ -53,13 +53,15 @@ export const BatchImageLinker = () => {
       const sessionId = `batch_${Date.now()}`;
       console.log("🚀 Starting batch image linking with progress tracking...");
       
-      // Start the process
+      // Start the process with improved parameters
       const { data, error } = await supabase.functions.invoke('repair-missing-image-links', {
         body: { 
           mode: 'batch_progressive',
           session_id: sessionId,
-          batch_size: 100,
-          confidence_threshold: 70
+          batch_size: 50, // Smaller batches to ensure all files are processed
+          confidence_threshold: 70,
+          force_rescan: true, // Force rescan to pick up missed files
+          comprehensive_scan: true
         }
       });
 
