@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MaintenanceBanner } from "@/components/common/MaintenanceBanner";
-import { useCart } from "@/hooks/useCart";
+import { useEnhancedCart } from "@/hooks/useEnhancedCart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
@@ -10,7 +10,7 @@ import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbP
 import { useState } from "react";
 
 const CartPage = () => {
-  const { items, updateQuantity, removeItem, total, isLoading } = useCart();
+  const { items, updateQuantity, removeFromCart, total, isLoading } = useEnhancedCart();
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   // Safe image URL getter for product_images table
@@ -211,7 +211,7 @@ const CartPage = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeFromCart(item.id)}
                             title="Remove item"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10 h-10 w-10 p-0"
                           >
@@ -302,7 +302,7 @@ const CartPage = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => removeFromCart(item.id)}
                           title="Remove item"
                           className="text-destructive hover:text-destructive h-9 w-9"
                         >

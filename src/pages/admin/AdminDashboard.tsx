@@ -358,6 +358,24 @@ const AdminDashboard = () => {
                 </Card>
               </Link>
 
+              <Link to="/admin/cart-abandonment" className="group">
+                <Card className="bg-white border border-gray-200/60 shadow-sm hover:shadow-lg hover:border-orange-200 transition-all duration-200 h-full">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-orange-50 rounded-xl group-hover:bg-orange-100 transition-colors">
+                        <ShoppingCart className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-orange-700">
+                        Cart Analytics
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 text-sm leading-relaxed">Track abandoned carts and send recovery campaigns</p>
+                  </CardContent>
+                </Card>
+              </Link>
+
               <Link to="/admin/subscriptions" className="group">
                 <Card className="bg-white border border-gray-200/60 shadow-sm hover:shadow-lg hover:border-purple-200 transition-all duration-200 h-full">
                   <CardHeader className="pb-4">
@@ -366,12 +384,12 @@ const AdminDashboard = () => {
                         <Mail className="h-6 w-6 text-purple-600" />
                       </div>
                       <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-purple-700">
-                        Subscriptions
+                        Newsletter Management
                       </CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 text-sm leading-relaxed">Manage newsletter subscribers and export mailing lists</p>
+                    <p className="text-gray-600 text-sm leading-relaxed">Manage newsletter subscriptions and email campaigns</p>
                   </CardContent>
                 </Card>
               </Link>

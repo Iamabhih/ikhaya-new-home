@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { useCart } from "@/hooks/useCart";
+import { useEnhancedCart } from "@/hooks/useEnhancedCart";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
@@ -13,14 +13,18 @@ import { Link } from "react-router-dom";
 import { Shield, Lock, CreditCard, Truck, CheckCircle, Clock } from "lucide-react";
 
 const CheckoutPage = () => {
-  const { items, total } = useCart();
+  const { items, total, trackCheckoutInitiated } = useEnhancedCart();
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (items.length === 0) {
       navigate("/cart");
+      return;
     }
+
+    // Track checkout initiation
+    trackCheckoutInitiated();
 
     // Check for payment status in URL params
     const urlParams = new URLSearchParams(window.location.search);
@@ -32,7 +36,7 @@ const CheckoutPage = () => {
       toast.error("Payment failed. Please try again or choose a different payment method.");
       window.history.replaceState({}, '', '/checkout');
     }
-  }, [items.length, navigate]);
+  }, [items.length, navigate, trackCheckoutInitiated]);
 
   if (items.length === 0) {
     return null;
