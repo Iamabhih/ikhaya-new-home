@@ -2,6 +2,7 @@
 @import './styles/base.css';
 @import './styles/responsive.css';
 @import './styles/mobile.css';
+@import './styles/mobile-enhanced.css';
 @import './styles/accessibility.css';
 @import './styles/premium.css';
 @import './styles/browser-compatibility.css';

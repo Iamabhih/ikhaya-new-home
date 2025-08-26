@@ -272,9 +272,9 @@ const ProductsPage = () => {
       <MaintenanceBanner />
       <Header />
       
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-secondary/30 to-background py-16">
-        <div className="container mx-auto px-4">
+      {/* Hero Section - Mobile Enhanced */}
+      <section className="bg-gradient-to-b from-secondary/30 to-background py-8 xs:py-12 sm:py-16">
+        <div className="container mx-auto px-2 xs:px-4">
           <StandardBreadcrumbs 
             items={[
               { label: "Home", href: "/" },
@@ -282,19 +282,19 @@ const ProductsPage = () => {
             ]} 
           />
 
-          <div className="text-center max-w-4xl mx-auto mb-8">
-            <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+          <div className="text-center max-w-4xl mx-auto mb-6 xs:mb-8">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mb-4 xs:mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               {searchQuery ? `Search Results` : 'All Products'}
             </h1>
-            <p className="text-muted-foreground text-xl leading-relaxed mb-8">
+            <p className="text-muted-foreground text-sm xs:text-base sm:text-lg md:text-xl leading-relaxed mb-6 xs:mb-8 px-2">
               Discover our complete collection of premium homeware. Find exactly what you need with our advanced search and filtering options.
             </p>
           </div>
 
-          {/* Modern Search Bar */}
+          {/* Modern Search Bar - Mobile Enhanced */}
           <div className="max-w-2xl mx-auto">
             <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
-              <div className="p-6">
+              <div className="p-3 xs:p-4 sm:p-6">
                 <AutocompleteSearch
                   onSearch={handleSearch}
                   initialValue={searchQuery}
@@ -306,8 +306,8 @@ const ProductsPage = () => {
         </div>
       </section>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex gap-8">
+      <main className="container mx-auto px-2 xs:px-4 py-4 xs:py-6 sm:py-8">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
           {/* Desktop Filters */}
           <div className="hidden lg:block w-72 flex-shrink-0">
             <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg sticky top-8">

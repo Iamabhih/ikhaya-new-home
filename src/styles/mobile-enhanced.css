@@ -1,0 +1,283 @@
+/* Enhanced Mobile Responsiveness for iOS and Android */
+
+/* Extra small screens (320px and up) */
+@media (max-width: 374px) {
+  .container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  /* Ensure text doesn't break layout */
+  .product-card-mobile {
+    min-width: 0;
+  }
+  
+  .product-card-mobile h3 {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+  
+  .product-card-mobile .price {
+    font-size: 0.875rem;
+  }
+  
+  /* Stack buttons vertically on very small screens */
+  .product-actions-mobile {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  /* Adjust header spacing */
+  .header-mobile {
+    gap: 0.25rem;
+  }
+}
+
+/* Small screens (375px to 639px) - Most mobile devices */
+@media (min-width: 375px) and (max-width: 639px) {
+  /* Touch-friendly sizing */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better product card layout */
+  .product-card-mobile {
+    margin-bottom: 1rem;
+  }
+  
+  .product-grid-mobile {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  /* Form improvements */
+  .form-mobile input,
+  .form-mobile select,
+  .form-mobile textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.75rem;
+  }
+  
+  /* Modal and sheet adjustments */
+  .sheet-mobile {
+    width: 100vw;
+    max-width: none;
+  }
+}
+
+/* Medium screens (640px to 767px) - Large phones/small tablets */
+@media (min-width: 640px) and (max-width: 767px) {
+  .product-grid-mobile {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  
+  .card-mobile {
+    padding: 1rem;
+  }
+}
+
+/* iOS specific optimizations */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari specific styles */
+  .ios-safe-area {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Prevent horizontal scroll issues */
+  body {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
+  }
+  
+  /* Fix input zoom on iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+    transform: translateZ(0);
+    -webkit-appearance: none;
+  }
+  
+  /* Better scrolling */
+  .scrollable-content {
+    -webkit-overflow-scrolling: touch;
+    will-change: scroll-position;
+  }
+}
+
+/* Android specific optimizations */
+@media screen and (-webkit-min-device-pixel-ratio: 1) {
+  /* Android Chrome specific */
+  .android-input {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  /* Better text rendering */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  button,
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Remove hover states that don't work on touch */
+  .hover-only:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Better button spacing */
+  .button-group > * {
+    margin: 0.25rem;
+  }
+}
+
+/* Landscape orientation fixes */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Reduce header height in landscape */
+  .header-landscape {
+    height: 3rem;
+  }
+  
+  /* Adjust modal heights */
+  .modal-landscape {
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2),
+       (min-resolution: 192dpi) {
+  /* Sharper images */
+  .image-high-dpi {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Dark mode mobile adjustments */
+@media (prefers-color-scheme: dark) {
+  .mobile-dark {
+    background-color: rgb(0 0 0 / 0.95);
+  }
+  
+  .mobile-dark .card {
+    background-color: rgb(255 255 255 / 0.05);
+    border-color: rgb(255 255 255 / 0.1);
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-animations {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  .mobile-animations * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus management for mobile */
+.mobile-focus-visible:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Better mobile forms */
+.mobile-form {
+  gap: 1rem;
+}
+
+.mobile-form .form-item {
+  margin-bottom: 1rem;
+}
+
+.mobile-form label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Mobile-friendly tables */
+.table-mobile {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.table-mobile thead {
+  display: none;
+}
+
+.table-mobile tbody,
+.table-mobile tr,
+.table-mobile td {
+  display: block;
+}
+
+.table-mobile tr {
+  border: 1px solid hsl(var(--border));
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+}
+
+/* Mobile navigation improvements */
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background-color: hsl(var(--background) / 0.95);
+  backdrop-filter: blur(8px);
+}
+
+.mobile-nav-content {
+  padding: 1rem;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Better mobile modals */
+.mobile-modal {
+  margin: 0;
+  max-height: 100vh;
+  border-radius: 0;
+  width: 100vw;
+}
+
+.mobile-modal-content {
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}

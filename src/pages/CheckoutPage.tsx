@@ -46,14 +46,14 @@ const CheckoutPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-secondary/30 to-background py-16 relative overflow-hidden">
+      {/* Hero Section - Mobile Enhanced */}
+      <section className="bg-gradient-to-b from-secondary/30 to-background py-8 xs:py-12 sm:py-16 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-20 right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-10 left-10 w-48 h-48 bg-secondary/15 rounded-full blur-2xl animate-pulse" />
         </div>
 
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="container mx-auto px-2 xs:px-4 relative z-10">
           <Breadcrumb className="mb-6">
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -80,17 +80,17 @@ const CheckoutPage = () => {
               </span>
             </div>
             
-            <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/90 to-secondary bg-clip-text text-transparent">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mb-4 xs:mb-6 bg-gradient-to-r from-primary via-primary/90 to-secondary bg-clip-text text-transparent">
               Secure Checkout
             </h1>
-            <p className="text-muted-foreground text-xl leading-relaxed">
+            <p className="text-muted-foreground text-sm xs:text-base sm:text-lg md:text-xl leading-relaxed px-2">
               Complete your order with our secure payment system. Your information is protected with industry-standard encryption.
             </p>
           </div>
         </div>
       </section>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-2 xs:px-4 py-4 xs:py-6 sm:py-8">
         {/* Security & Trust Badges */}
         <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mb-8">
           <CardContent className="p-6">
@@ -135,8 +135,8 @@ const CheckoutPage = () => {
           </CardContent>
         </Card>
 
-        {/* Main Checkout Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Checkout Content - Mobile Enhanced */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xs:gap-6 lg:gap-8">
           {/* Checkout Form */}
           <div className="lg:col-span-2">
             <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">

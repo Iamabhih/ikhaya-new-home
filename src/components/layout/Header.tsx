@@ -38,15 +38,15 @@ export const Header = () => {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/40 bg-glass-bg backdrop-blur-md supports-[backdrop-filter]:bg-background/80 transition-all duration-300 shadow-soft">
-        <div className="container mx-auto px-2 sm:px-4 lg:px-6">
-          <div className="flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
+        <div className="container mx-auto px-2 sm:px-4 lg:px-6 max-w-[100vw]">
+          <div className="flex h-12 xs:h-14 sm:h-16 items-center justify-between gap-1 xs:gap-2 sm:gap-4 min-w-0">
             
-            {/* Logo */}
-            <Link to="/" className="flex items-center flex-shrink-0">
+            {/* Logo - Mobile Optimized */}
+            <Link to="/" className="flex items-center flex-shrink-0 min-w-0">
               <img 
                 src="/lovable-uploads/6fdda264-ce80-44ec-9836-c9c81756c513.png" 
                 alt="IKHAYA Homeware" 
-                className="h-10 sm:h-12 md:h-16 lg:h-18 w-auto"
+                className="h-8 xs:h-10 sm:h-12 md:h-14 lg:h-16 w-auto max-w-[120px] xs:max-w-none"
               />
             </Link>
 
@@ -159,39 +159,39 @@ export const Header = () => {
               )}
             </nav>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 max-w-xs lg:max-w-sm mx-2 lg:mx-4">
+            {/* Search Bar - Enhanced Mobile Responsive */}
+            <form onSubmit={handleSearch} className="hidden sm:flex items-center flex-1 max-w-[200px] sm:max-w-xs lg:max-w-sm mx-1 sm:mx-2 lg:mx-4">
               <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Search products..." 
+                  placeholder="Search..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-10 h-9 lg:h-10 text-sm border-border/60 bg-background/50 focus:bg-background transition-colors premium-input" 
+                  className="pl-7 sm:pl-10 h-8 sm:h-9 lg:h-10 text-xs sm:text-sm border-border/60 bg-background/50 focus:bg-background transition-colors premium-input" 
                 />
               </div>
             </form>
 
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-1 sm:space-x-2">
+            {/* Right Side Actions - Mobile Enhanced */}
+            <div className="flex items-center space-x-0.5 xs:space-x-1 sm:space-x-2 flex-shrink-0">
               {/* Mobile Search Button */}
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="md:hidden h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground" 
+                className="sm:hidden h-8 w-8 xs:h-9 xs:w-9 text-muted-foreground hover:text-foreground" 
                 onClick={() => navigate('/products')}
               >
-                <Search className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Search className="h-3.5 w-3.5 xs:h-4 xs:w-4" />
               </Button>
 
-              {/* Cart */}
+              {/* Cart - Mobile Enhanced */}
               <Link to="/cart">
-                <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground">
-                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Button variant="ghost" size="icon" className="relative h-8 w-8 xs:h-9 xs:w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground">
+                  <ShoppingCart className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                   {itemCount > 0 && (
                     <Badge 
                       variant="destructive" 
-                      className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-xs px-0 min-w-4 sm:min-w-5"
+                      className="absolute -top-0.5 -right-0.5 xs:-top-1 xs:-right-1 sm:-top-2 sm:-right-2 h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5 flex items-center justify-center text-[10px] xs:text-xs px-0 min-w-3.5 xs:min-w-4 sm:min-w-5"
                     >
                       {itemCount > 99 ? '99+' : itemCount}
                     </Badge>
@@ -203,8 +203,8 @@ export const Header = () => {
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground">
-                      <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 xs:h-9 xs:w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground">
+                      <User className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -238,10 +238,10 @@ export const Header = () => {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground" 
+                className="lg:hidden h-8 w-8 xs:h-9 xs:w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground" 
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
-                {mobileMenuOpen ? <X className="h-4 w-4 sm:h-5 sm:w-5" /> : <Menu className="h-4 w-4 sm:h-5 sm:w-5" />}
+                {mobileMenuOpen ? <X className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5" /> : <Menu className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />}
               </Button>
             </div>
           </div>

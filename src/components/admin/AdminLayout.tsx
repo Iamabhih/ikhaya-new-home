@@ -15,7 +15,7 @@ export const AdminLayout = ({ children, hideHeader = false }: AdminLayoutProps) 
     <div className="min-h-screen bg-gray-50/50">
       {!hideHeader && <Header />}
       
-      <div className="flex min-h-[calc(100vh-64px)]">
+      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-48px)] xs:min-h-[calc(100vh-56px)] sm:min-h-[calc(100vh-64px)]">
         <AdminSidebar 
           collapsed={sidebarCollapsed} 
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
@@ -23,10 +23,11 @@ export const AdminLayout = ({ children, hideHeader = false }: AdminLayoutProps) 
         
         <main className={cn(
           "flex-1 overflow-auto bg-background",
-          "transition-all duration-300"
+          "transition-all duration-300",
+          "w-full lg:w-auto"
         )}>
           <div className="min-h-full">
-            <div className="bg-card border-b border-border px-6 py-4">
+            <div className="bg-card border-b border-border px-2 xs:px-4 sm:px-6 py-3 xs:py-4">
               <div className="max-w-none">
                 {children}
               </div>
