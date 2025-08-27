@@ -6,8 +6,14 @@ import { FileText, AlertCircle } from 'lucide-react';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Set up PDF.js worker with fallbacks
+try {
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+} catch (error) {
+  console.error('Failed to set PDF.js worker:', error);
+  // Fallback to unpkg
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+}
 
 interface PDFPreviewProps {
   fileUrl: string;
@@ -36,7 +42,8 @@ export const PDFPreview = ({
 
   const onDocumentLoadError = (error: Error) => {
     console.error('PDF load error:', error);
-    setError('Failed to load PDF preview');
+    console.error('PDF URL:', fileUrl);
+    setError('PDF preview unavailable');
     setLoading(false);
   };
 
