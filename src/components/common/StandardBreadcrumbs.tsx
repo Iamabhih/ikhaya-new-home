@@ -17,7 +17,7 @@ export const StandardBreadcrumbs = ({ items, className = "" }: StandardBreadcrum
     <Breadcrumb className={`mb-6 ${className}`}>
       <BreadcrumbList>
         {items.map((item, index) => (
-          <React.Fragment key={index}>
+          <div key={index} className="flex items-center">
             {index > 0 && <BreadcrumbSeparator />}
             <BreadcrumbItem>
               {item.isActive || !item.href ? (
@@ -26,7 +26,7 @@ export const StandardBreadcrumbs = ({ items, className = "" }: StandardBreadcrum
                 <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
               )}
             </BreadcrumbItem>
-          </React.Fragment>
+          </div>
         ))}
       </BreadcrumbList>
     </Breadcrumb>

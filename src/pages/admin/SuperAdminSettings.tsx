@@ -34,62 +34,62 @@ const SuperAdminSettings = () => {
             </div>
 
             <Tabs defaultValue="orders" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-13">
-                <TabsTrigger value="orders" className="flex items-center gap-2">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 xl:grid-cols-13 gap-1 h-auto flex-wrap">
+                <TabsTrigger value="orders" className="flex items-center gap-2 text-xs">
                   <Settings className="h-4 w-4" />
-                  Orders
+                  <span className="hidden sm:inline">Orders</span>
                 </TabsTrigger>
-                <TabsTrigger value="status" className="flex items-center gap-2">
+                <TabsTrigger value="status" className="flex items-center gap-2 text-xs">
                   <Activity className="h-4 w-4" />
-                  Status
+                  <span className="hidden sm:inline">Status</span>
                 </TabsTrigger>
-                <TabsTrigger value="categories" className="flex items-center gap-2">
+                <TabsTrigger value="categories" className="flex items-center gap-2 text-xs">
                   <Tags className="h-4 w-4" />
-                  Categories
+                  <span className="hidden sm:inline">Categories</span>
                 </TabsTrigger>
-                <TabsTrigger value="brands" className="flex items-center gap-2">
+                <TabsTrigger value="brands" className="flex items-center gap-2 text-xs">
                   <Building2 className="h-4 w-4" />
-                  Brands
+                  <span className="hidden sm:inline">Brands</span>
                 </TabsTrigger>
-                <TabsTrigger value="banners" className="flex items-center gap-2">
+                <TabsTrigger value="banners" className="flex items-center gap-2 text-xs">
                   <Megaphone className="h-4 w-4" />
-                  Banners
+                  <span className="hidden sm:inline">Banners</span>
                 </TabsTrigger>
-                <TabsTrigger value="promotions" className="flex items-center gap-2">
+                <TabsTrigger value="promotions" className="flex items-center gap-2 text-xs">
                   <FileText className="h-4 w-4" />
-                  Promotions
+                  <span className="hidden sm:inline">Promotions</span>
                 </TabsTrigger>
-                <TabsTrigger value="banner-guide" className="flex items-center gap-2">
+                <TabsTrigger value="banner-guide" className="flex items-center gap-2 text-xs">
                   <Image className="h-4 w-4" />
-                  Guide
+                  <span className="hidden sm:inline">Guide</span>
                 </TabsTrigger>
-                <TabsTrigger value="delivery" className="flex items-center gap-2">
+                <TabsTrigger value="delivery" className="flex items-center gap-2 text-xs">
                   <Truck className="h-4 w-4" />
-                  Delivery
+                  <span className="hidden sm:inline">Delivery</span>
                 </TabsTrigger>
-                <TabsTrigger value="testing" className="flex items-center gap-2">
+                <TabsTrigger value="testing" className="flex items-center gap-2 text-xs">
                   <TestTube className="h-4 w-4" />
-                  Testing
+                  <span className="hidden sm:inline">Testing</span>
                 </TabsTrigger>
-                <TabsTrigger value="product-images" className="flex items-center gap-2">
+                <TabsTrigger value="product-images" className="flex items-center gap-2 text-xs">
                   <Image className="h-4 w-4" />
-                  Product Images
+                  <span className="hidden sm:inline">P Images</span>
                 </TabsTrigger>
-                <TabsTrigger value="category-images" className="flex items-center gap-2">
+                <TabsTrigger value="category-images" className="flex items-center gap-2 text-xs">
                   <Folder className="h-4 w-4" />
-                  Category Images
+                  <span className="hidden sm:inline">C Images</span>
                 </TabsTrigger>
-                <TabsTrigger value="image-candidates" className="flex items-center gap-2">
+                <TabsTrigger value="image-candidates" className="flex items-center gap-2 text-xs">
                   <Image className="h-4 w-4" />
-                  Image Candidates
+                  <span className="hidden sm:inline">Candidates</span>
                 </TabsTrigger>
-                <TabsTrigger value="background-remover" className="flex items-center gap-2">
+                <TabsTrigger value="background-remover" className="flex items-center gap-2 text-xs">
                   <Scissors className="h-4 w-4" />
-                  BG Remover
+                  <span className="hidden sm:inline">BG Remove</span>
                 </TabsTrigger>
-                <TabsTrigger value="stock-manager" className="flex items-center gap-2">
+                <TabsTrigger value="stock-manager" className="flex items-center gap-2 text-xs">
                   <Package className="h-4 w-4" />
-                  Stock Manager
+                  <span className="hidden sm:inline">Stock</span>
                 </TabsTrigger>
               </TabsList>
 
