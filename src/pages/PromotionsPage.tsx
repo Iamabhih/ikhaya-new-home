@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { PDFPreview } from "@/components/common/PDFPreview";
 import { format } from "date-fns";
 
 const PromotionsPage = () => {
@@ -132,7 +133,7 @@ const PromotionsPage = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {promotions.map((promotion) => (
-                <Card key={promotion.id} className="hover:shadow-lg transition-shadow duration-300">
+                <Card key={promotion.id} className="hover:shadow-lg transition-shadow duration-300 group">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -157,7 +158,32 @@ const PromotionsPage = () => {
                     )}
                   </CardHeader>
                   
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 space-y-4">
+                    {/* PDF Preview */}
+                    {promotion.file_type.toLowerCase() === 'pdf' && (
+                      <div className="flex justify-center">
+                        <PDFPreview
+                          fileUrl={promotion.file_url}
+                          fileName={promotion.title}
+                          width={280}
+                          height={200}
+                          className="border border-border/60"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Image Preview */}
+                    {['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(promotion.file_type.toLowerCase()) && (
+                      <div className="flex justify-center">
+                        <img
+                          src={promotion.file_url}
+                          alt={promotion.title}
+                          className="w-full max-w-[280px] h-[200px] object-cover rounded-md border border-border/60"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <span>{promotion.download_count || 0} downloads</span>
