@@ -56,6 +56,26 @@ export const WeeklyPromotionsManagement = () => {
     mutationFn: async (data: PromotionFormData) => {
       if (!data.file) throw new Error("File is required");
       
+      // Validate file size (10MB limit)
+      if (data.file.size > 10 * 1024 * 1024) {
+        throw new Error("File size must be less than 10MB");
+      }
+      
+      // Validate file type
+      const allowedTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+      
+      if (!allowedTypes.includes(data.file.type)) {
+        throw new Error(`File type ${data.file.type} is not supported`);
+      }
+      
       setIsUploading(true);
       
       // Upload file to storage
@@ -305,12 +325,12 @@ export const WeeklyPromotionsManagement = () => {
                       <Input
                         id="file"
                         type="file"
-                        accept=".pdf,.jpg,.jpeg,.png,.gif"
+                        accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
                         onChange={(e) => setFormData(prev => ({ ...prev, file: e.target.files?.[0] || null }))}
                         required
                       />
                       <p className="text-xs text-muted-foreground">
-                        Supported formats: PDF, JPG, PNG, GIF (Max 10MB)
+                        Supported formats: PDF, JPG, PNG, GIF, DOC, DOCX (Max 10MB)
                       </p>
                     </div>
                   </div>
