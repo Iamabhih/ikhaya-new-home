@@ -13,9 +13,10 @@ import { CategoryImageManager } from "@/components/admin/CategoryImageManager";
 import { ProductImageCandidates } from "@/components/admin/ProductImageCandidates";
 import BulkBackgroundRemover from "@/components/admin/BulkBackgroundRemover";
 import { BulkStockManager } from "@/components/admin/BulkStockManager";
+import { WeeklyPromotionsManagement } from "@/components/admin/WeeklyPromotionsManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors, Package } from "lucide-react";
+import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors, Package, FileText } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -33,7 +34,7 @@ const SuperAdminSettings = () => {
             </div>
 
             <Tabs defaultValue="orders" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-12">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-13">
                 <TabsTrigger value="orders" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
                   Orders
@@ -53,6 +54,10 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="banners" className="flex items-center gap-2">
                   <Megaphone className="h-4 w-4" />
                   Banners
+                </TabsTrigger>
+                <TabsTrigger value="promotions" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Promotions
                 </TabsTrigger>
                 <TabsTrigger value="banner-guide" className="flex items-center gap-2">
                   <Image className="h-4 w-4" />
@@ -175,6 +180,20 @@ const SuperAdminSettings = () => {
                   </CardHeader>
                   <CardContent>
                     <PromotionalBannersManagement />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="promotions">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Weekly Promotions Management</CardTitle>
+                    <CardDescription>
+                      Upload and manage weekly promotional materials like PDFs and images. Configure the promotions page settings and track download analytics.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <WeeklyPromotionsManagement />
                   </CardContent>
                 </Card>
               </TabsContent>

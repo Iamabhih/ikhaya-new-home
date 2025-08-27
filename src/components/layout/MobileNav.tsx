@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X, Home, Package, Grid3X3, Info, MessageCircle, ShoppingCart, Heart, User, Settings, BarChart3, Users, CreditCard, RotateCcw } from "lucide-react";
+import { Menu, X, Home, Package, Grid3X3, Info, MessageCircle, ShoppingCart, Heart, User, Settings, BarChart3, Users, CreditCard, RotateCcw, FileText } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -30,6 +30,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
     { href: "/categories", label: "Categories", icon: Grid3X3 },
     { href: "/about", label: "About", icon: Info },
     { href: "/contact", label: "Contact", icon: MessageCircle },
+    { href: "/promotions", label: "Promotions", icon: FileText },
     { href: "/ozz-sa", label: "OZZ SA", icon: Settings },
   ];
 

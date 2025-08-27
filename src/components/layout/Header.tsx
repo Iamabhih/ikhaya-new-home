@@ -77,6 +77,12 @@ export const Header = () => {
                 Contact
               </Link>
               <Link 
+                to="/promotions" 
+                className="premium-nav-item"
+              >
+                Promotions
+              </Link>
+              <Link 
                 to="/ozz-sa" 
                 className="premium-nav-item"
               >

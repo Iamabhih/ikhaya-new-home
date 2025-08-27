@@ -2625,6 +2625,57 @@ export type Database = {
           },
         ]
       }
+      weekly_promotions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          download_count: number | null
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          is_active: boolean
+          sort_order: number | null
+          title: string
+          updated_at: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          download_count?: number | null
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number | null
+          title: string
+          updated_at?: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          download_count?: number | null
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number | null
+          title?: string
+          updated_at?: string
+          week_end_date?: string
+          week_start_date?: string
+        }
+        Relationships: []
+      }
       wishlists: {
         Row: {
           created_at: string
