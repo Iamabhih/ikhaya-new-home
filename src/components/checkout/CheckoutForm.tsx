@@ -14,14 +14,15 @@ import { DeliveryOptions } from "./DeliveryOptions";
 interface CheckoutFormProps {
   user: any | null;
   onComplete: (data: any) => void;
+  selectedDeliveryZone: string;
+  onDeliveryZoneChange: (zone: string) => void;
 }
 
-export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
+export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliveryZoneChange }: CheckoutFormProps) => {
   const { items, clearCart, total: cartTotal } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState('billing'); // billing, payment, success
   const [orderId, setOrderId] = useState<string | null>(null);
-  const [selectedDeliveryZone, setSelectedDeliveryZone] = useState<string>('');
   const [formData, setFormData] = useState({
     email: user?.email || "",
     firstName: "",
@@ -33,14 +34,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
     province: "",
   });
 
-  const { deliveryFee, deliveryZone, deliveryZones } = useDeliveryFee(cartTotal, selectedDeliveryZone);
-
-  // Auto-select first available delivery zone
-  useEffect(() => {
-    if (deliveryZones.length > 0 && !selectedDeliveryZone) {
-      setSelectedDeliveryZone(deliveryZones[0].id);
-    }
-  }, [deliveryZones, selectedDeliveryZone]);
+  const { deliveryFee, deliveryZone } = useDeliveryFee(cartTotal, selectedDeliveryZone);
 
   const handleBillingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,7 +243,7 @@ export const CheckoutForm = ({ user, onComplete }: CheckoutFormProps) => {
           <DeliveryOptions
             subtotal={cartTotal}
             selectedZone={selectedDeliveryZone}
-            onZoneChange={setSelectedDeliveryZone}
+            onZoneChange={onDeliveryZoneChange}
           />
 
           <div className="pt-6">

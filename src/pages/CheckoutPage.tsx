@@ -7,15 +7,27 @@ import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { Shield, Lock, CreditCard, Truck, CheckCircle, Clock } from "lucide-react";
+import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 
 const CheckoutPage = () => {
   const { items, total, trackCheckoutInitiated } = useEnhancedCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [selectedDeliveryZone, setSelectedDeliveryZone] = useState<string>('');
+  
+  // Get delivery zones to auto-select the first one
+  const { deliveryZones } = useDeliveryFee(total, selectedDeliveryZone);
+
+  // Auto-select first available delivery zone
+  useEffect(() => {
+    if (deliveryZones.length > 0 && !selectedDeliveryZone) {
+      setSelectedDeliveryZone(deliveryZones[0].id);
+    }
+  }, [deliveryZones, selectedDeliveryZone]);
 
   useEffect(() => {
     if (items.length === 0) {
@@ -146,7 +158,12 @@ const CheckoutPage = () => {
                   <h2 className="text-2xl font-bold">Payment Details</h2>
                 </div>
                 
-                <CheckoutForm user={user || null} onComplete={() => {}} />
+                <CheckoutForm 
+                  user={user || null} 
+                  onComplete={() => {}}
+                  selectedDeliveryZone={selectedDeliveryZone}
+                  onDeliveryZoneChange={setSelectedDeliveryZone}
+                />
               </CardContent>
             </Card>
           </div>
@@ -155,7 +172,7 @@ const CheckoutPage = () => {
           <div className="space-y-6">
             <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
               <CardContent className="p-6">
-                <OrderSummary items={items} total={total} />
+                <OrderSummary items={items} total={total} selectedDeliveryZone={selectedDeliveryZone} />
               </CardContent>
             </Card>
 
