@@ -36,6 +36,7 @@ export const Footer = () => {
 
             {/* Partner Logo */}
             <div className="pt-4">
+              <p className="text-xs text-muted-foreground mb-2">Proudly by</p>
               <img src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png" alt="OZZ Cash & Carry" className="h-28 w-auto" />
             </div>
           </div>
