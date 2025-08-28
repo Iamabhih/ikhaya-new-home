@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,13 +22,6 @@ interface DeliveryCalculation {
 }
 
 export const useDeliveryFee = (subtotal: number, selectedZone?: string) => {
-  const [calculatedDelivery, setCalculatedDelivery] = useState<DeliveryCalculation>({
-    deliveryFee: 0,
-    isFreeDelivery: true,
-    deliveryZone: null,
-    amountForFreeDelivery: 0
-  });
-
   const { data: deliveryZones = [], isLoading } = useQuery({
     queryKey: ['delivery-zones'],
     queryFn: async () => {
@@ -43,17 +36,15 @@ export const useDeliveryFee = (subtotal: number, selectedZone?: string) => {
     },
   });
 
-  useEffect(() => {
-    if (isLoading) return; // Don't calculate while loading
-    
-    if (!deliveryZones.length || subtotal <= 0) {
-      setCalculatedDelivery({
+  const calculatedDelivery = useMemo<DeliveryCalculation>(() => {
+    // Return default values while loading or if no zones/subtotal
+    if (isLoading || !deliveryZones.length || subtotal <= 0) {
+      return {
         deliveryFee: 0,
         isFreeDelivery: true,
         deliveryZone: null,
         amountForFreeDelivery: 0
-      });
-      return;
+      };
     }
 
     // If a specific zone is selected, use that zone
@@ -66,24 +57,22 @@ export const useDeliveryFee = (subtotal: number, selectedZone?: string) => {
     }
 
     if (!zone) {
-      setCalculatedDelivery({
+      return {
         deliveryFee: 0,
         isFreeDelivery: true,
         deliveryZone: null,
         amountForFreeDelivery: 0
-      });
-      return;
+      };
     }
 
     // Check if order meets minimum value
     if (subtotal < zone.min_order_value) {
-      setCalculatedDelivery({
+      return {
         deliveryFee: zone.delivery_fee,
         isFreeDelivery: false,
         deliveryZone: zone,
         amountForFreeDelivery: zone.min_order_value - subtotal
-      });
-      return;
+      };
     }
 
     // Check if order qualifies for free delivery
@@ -95,12 +84,12 @@ export const useDeliveryFee = (subtotal: number, selectedZone?: string) => {
       zone.free_delivery_threshold - subtotal : 
       0;
 
-    setCalculatedDelivery({
+    return {
       deliveryFee: isFreeDelivery ? 0 : zone.delivery_fee,
       isFreeDelivery,
       deliveryZone: zone,
       amountForFreeDelivery
-    });
+    };
   }, [deliveryZones, subtotal, selectedZone, isLoading]);
 
   return {
