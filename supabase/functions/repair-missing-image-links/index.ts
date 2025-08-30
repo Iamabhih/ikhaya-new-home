@@ -260,18 +260,28 @@ async function processBatchProgressive(supabase: any, sessionId: string, confide
   let offset = 0;
   const STORAGE_BATCH_SIZE = 200;
   
-  // Fetch storage files in batches
+  // Fetch storage files in smaller batches to avoid API limits
   while (true) {
-    const { data: batch, error } = await supabase.storage
-      .from('product-images')
-      .list('', { 
-        limit: STORAGE_BATCH_SIZE, 
-        offset,
-        sortBy: { column: 'name', order: 'asc' }
-      });
+    try {
+      const { data: batch, error } = await supabase.storage
+        .from('product-images')
+        .list('', { 
+          limit: Math.min(STORAGE_BATCH_SIZE, 100), // Reduced batch size
+          offset,
+          sortBy: { column: 'name', order: 'asc' }
+        });
+        
+      if (error) {
+        console.error(`Storage API error at offset ${offset}:`, error);
+        if (error.message?.includes('timeout') || error.message?.includes('limit')) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
+        throw error;
+      }
       
-    if (error) throw error;
-    if (!batch || batch.length === 0) break;
+      if (!batch || batch.length === 0) break;
     
     const imageFiles = batch.filter(file => 
       file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)

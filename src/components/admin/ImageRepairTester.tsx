@@ -82,7 +82,11 @@ export const ImageRepairTester = () => {
       // Only test, don't actually run this one
       updateResult('hide-products-without-images', 'success', 'Function available (not executed to avoid hiding products)', null, 0);
       
-      // Test 6: Analyze Cart Abandonment (fixed)
+      // Test 6: Optimized Image Repair (new)
+      toast.info("Testing optimized image repair...");
+      await testFunction('optimized-image-repair');
+      
+      // Test 7: Analyze Cart Abandonment (fixed)
       toast.info("Testing cart abandonment analysis...");
       await testFunction('analyze-cart-abandonment');
       
