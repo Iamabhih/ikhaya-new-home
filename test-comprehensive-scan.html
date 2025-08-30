@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comprehensive Image Scan Test</title>
+</head>
+<body>
+    <h1>Running Comprehensive Image Scan...</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function runScan() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>🔄 Scanning storage bucket and matching images to products...</p>';
+            
+            try {
+                const response = await fetch('https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/comprehensive-image-scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImthdW9zdHpoeHFveGdnd3FndHltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1ODgzNTQsImV4cCI6MjA2NDE2NDM1NH0.dhjPI3gRv78kqxIQBS2Q9oHks_ezf92WNU1EjzcR8AM'
+                    },
+                    body: JSON.stringify({})
+                });
+                
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <h2>✅ Scan Complete!</h2>
+                    <h3>📊 Summary:</h3>
+                    <ul>
+                        <li><strong>Total Images in Storage:</strong> ${data.summary.totalImages}</li>
+                        <li><strong>Total Active Products:</strong> ${data.summary.totalProducts}</li>
+                        <li><strong>Already Linked Images:</strong> ${data.summary.linkedImages}</li>
+                        <li><strong>New Direct Links Created:</strong> ${data.summary.directLinksCreated}</li>
+                        <li><strong>New Candidates Created:</strong> ${data.summary.candidatesCreated}</li>
+                        <li><strong>Unlinked Images:</strong> ${data.summary.unlinkedImages}</li>
+                        <li><strong>Products Without Images:</strong> ${data.summary.productsWithoutImages}</li>
+                        <li><strong>Processing Time:</strong> ${data.summary.processingTime}ms</li>
+                    </ul>
+                    
+                    <h3>🔍 Analysis:</h3>
+                    <p><strong>Match Rate:</strong> ${((data.summary.totalImages - data.summary.unlinkedImages) / data.summary.totalImages * 100).toFixed(1)}% of images are matched to products</p>
+                    <p><strong>Coverage:</strong> ${((data.summary.totalProducts - data.summary.productsWithoutImages) / data.summary.totalProducts * 100).toFixed(1)}% of products have images</p>
+                    
+                    ${data.unlinkedImages.length > 0 ? `
+                        <h3>❌ Unlinked Images (${data.unlinkedImages.length}):</h3>
+                        <ul>
+                            ${data.unlinkedImages.slice(0, 20).map(img => 
+                                `<li><strong>${img.filename}</strong> - Extracted SKUs: [${img.extractedSKUs.join(', ')}] - Attempts: ${img.matchAttempts}</li>`
+                            ).join('')}
+                            ${data.unlinkedImages.length > 20 ? '<li>... and more</li>' : ''}
+                        </ul>
+                    ` : '<p>🎉 All images are linked to products!</p>'}
+                    
+                    ${data.errors.length > 0 ? `
+                        <h3>⚠️ Errors (${data.errors.length}):</h3>
+                        <ul>
+                            ${data.errors.slice(0, 10).map(error => `<li>${error}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<h2>❌ Error</h2><p>${error.message}</p>`;
+            }
+        }
+        
+        // Auto-run the scan
+        runScan();
+    </script>
+</body>
+</html>
