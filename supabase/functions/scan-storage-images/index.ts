@@ -505,49 +505,6 @@ Deno.serve(async (req) => {
               errors.push(`Error processing ${image.name}: ${error.message}`);
             }
           }
-                      } else {
-                        matchedCount++;
-                        console.log(`Successfully linked ${image.name} to product ${matchingProduct.name} via SKU: ${matchedSku}`);
-                      }
-                    } else {
-                      // Lower confidence matches go to candidates table
-                      const { error: candidateError } = await supabase
-                        .from('product_image_candidates')
-                        .insert({
-                          product_id: matchingProduct.id,
-                          image_url: imageUrl,
-                          alt_text: `${matchingProduct.name} - ${image.name}`,
-                          match_confidence: bestSku?.confidence || 50,
-                          match_metadata: {
-                            source: bestSku?.source || matchSource,
-                            filename: image.name,
-                            session_id: sessionId
-                          },
-                          extracted_sku: matchedSku,
-                          source_filename: image.name,
-                          status: 'pending'
-                        });
-
-                      if (candidateError) {
-                        errors.push(`Failed to create candidate for ${image.name}: ${candidateError.message}`);
-                      } else {
-                        matchedCount++;
-                        console.log(`Created candidate: ${image.name} -> ${matchingProduct.name} (${bestSku?.confidence || 50}%)`);
-                      }
-                    }
-                  } else {
-                    console.log(`Product ${matchingProduct.name} already has an image, skipping ${image.name}`);
-                  }
-                } else {
-                  console.log(`❌ No product match found for image: ${image.name} (potential SKUs: ${potentialSKUs.map(s => s.sku).join(', ')})`);
-                }
-              }
-            } catch (error) {
-              const errorMsg = `Error processing ${image.name}: ${error.message}`;
-              errors.push(errorMsg);
-              console.error(errorMsg);
-            }
-          }
 
           result.matchedProducts = matchedCount;
           result.errors = errors;
