@@ -60,25 +60,48 @@ const handler = async (req: Request): Promise<Response> => {
       throw metricsError;
     }
 
-    // Analyze top abandoned products
-    const { data: topAbandoned, error: topError } = await supabaseClient
-      .from('enhanced_cart_tracking')
-      .select(`
-        product_id,
-        product_name,
-        product_price,
-        count(*) as abandonment_count,
-        sum(quantity) as total_quantity_abandoned,
-        sum(product_price * quantity) as total_value_lost
-      `)
-      .is('purchased', false)
-      .gte('added_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-      .group('product_id, product_name, product_price')
-      .order('total_value_lost', { ascending: false })
-      .limit(10);
-
-    if (topError) {
-      throw topError;
+    // Analyze top abandoned products - using manual aggregation since Supabase doesn't support GROUP BY
+    let topAbandoned = [];
+    
+    try {
+      // Get raw data for manual aggregation
+      const { data: rawData, error: rawError } = await supabaseClient
+        .from('enhanced_cart_tracking')
+        .select('product_id, product_name, product_price, quantity')
+        .is('purchased', false)
+        .gte('added_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      
+      if (rawError) {
+        console.error('Error fetching raw abandoned products:', rawError);
+        topAbandoned = [];
+      } else {
+        // Manual aggregation
+        const aggregated = new Map();
+        rawData?.forEach(item => {
+          const key = `${item.product_id}-${item.product_name}-${item.product_price}`;
+          if (!aggregated.has(key)) {
+            aggregated.set(key, {
+              product_id: item.product_id,
+              product_name: item.product_name,
+              product_price: item.product_price,
+              abandonment_count: 0,
+              total_quantity_abandoned: 0,
+              total_value_lost: 0
+            });
+          }
+          const current = aggregated.get(key);
+          current.abandonment_count++;
+          current.total_quantity_abandoned += item.quantity;
+          current.total_value_lost += item.product_price * item.quantity;
+        });
+        
+        topAbandoned = Array.from(aggregated.values())
+          .sort((a, b) => b.total_value_lost - a.total_value_lost)
+          .slice(0, 10);
+      }
+    } catch (error) {
+      console.error('Error processing abandoned products:', error);
+      topAbandoned = [];
     }
 
     // Generate recovery opportunities

@@ -15,9 +15,10 @@ import BulkBackgroundRemover from "@/components/admin/BulkBackgroundRemover";
 import { BulkStockManager } from "@/components/admin/BulkStockManager";
 import { WeeklyPromotionsManagement } from "@/components/admin/WeeklyPromotionsManagement";
 import { HideProductsWithoutImages } from "@/components/admin/HideProductsWithoutImages";
+import { ImageRepairTester } from "@/components/admin/ImageRepairTester";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors, Package, FileText, EyeOff } from "lucide-react";
+import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors, Package, FileText, EyeOff, Wrench } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -35,7 +36,7 @@ const SuperAdminSettings = () => {
             </div>
 
             <Tabs defaultValue="orders" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 xl:grid-cols-14 gap-1 h-auto flex-wrap">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 xl:grid-cols-15 gap-1 h-auto flex-wrap">
                 <TabsTrigger value="orders" className="flex items-center gap-2 text-xs">
                   <Settings className="h-4 w-4" />
                   <span className="hidden sm:inline">Orders</span>
@@ -95,6 +96,10 @@ const SuperAdminSettings = () => {
                 <TabsTrigger value="hide-products" className="flex items-center gap-2 text-xs">
                   <EyeOff className="h-4 w-4" />
                   <span className="hidden sm:inline">Hide No Img</span>
+                </TabsTrigger>
+                <TabsTrigger value="repair-tester" className="flex items-center gap-2 text-xs">
+                  <Wrench className="h-4 w-4" />
+                  <span className="hidden sm:inline">Repair Test</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -326,6 +331,20 @@ const SuperAdminSettings = () => {
                   </CardHeader>
                   <CardContent>
                     <HideProductsWithoutImages />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="repair-tester">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Image Repair Function Tester</CardTitle>
+                    <CardDescription>
+                      Test and diagnose all image repair and related edge functions to identify which ones are working properly.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ImageRepairTester />
                   </CardContent>
                 </Card>
               </TabsContent>
