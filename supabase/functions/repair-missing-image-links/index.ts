@@ -283,18 +283,22 @@ async function processBatchProgressive(supabase: any, sessionId: string, confide
       
       if (!batch || batch.length === 0) break;
     
-    const imageFiles = batch.filter(file => 
-      file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
-    );
-    
-    allStorageFiles.push(...imageFiles.map(file => ({
-      name: file.name,
-      fullPath: file.name,
-      size: file.metadata?.size || 0
-    })));
-    
-    offset += STORAGE_BATCH_SIZE;
-    if (batch.length < STORAGE_BATCH_SIZE) break;
+      const imageFiles = batch.filter(file => 
+        file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
+      );
+      
+      allStorageFiles.push(...imageFiles.map(file => ({
+        name: file.name,
+        fullPath: file.name,
+        size: file.metadata?.size || 0
+      })));
+      
+      offset += STORAGE_BATCH_SIZE;
+      if (batch.length < STORAGE_BATCH_SIZE) break;
+    } catch (error) {
+      console.error(`Storage batch error:`, error);
+      break;
+    }
   }
 
   console.log(`📁 Total storage files found: ${allStorageFiles.length}`);
