@@ -81,11 +81,11 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
         </h1>
         
         {/* Rating */}
-        {product.average_rating && product.review_count && Number(product.review_count) > 0 && (
+        {product.average_rating && (
           <div className="flex items-center gap-3">
             <StarRating rating={product.average_rating} readonly />
             <span className="text-sm text-muted-foreground">
-              {product.average_rating.toFixed(1)} ({product.review_count} review{product.review_count !== 1 ? 's' : ''})
+              {product.average_rating.toFixed(1)} out of 5
             </span>
           </div>
         )}
