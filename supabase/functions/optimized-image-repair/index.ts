@@ -68,7 +68,9 @@ function extractAllSKUs(filename: string, fullPath?: string): Array<{sku: string
   ];
   
   patterns.forEach((pattern, index) => {
-    const matches = [...clean.matchAll(pattern)];
+    // Add global flag to patterns that don't have it
+    const globalPattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+    const matches = [...clean.matchAll(globalPattern)];
     matches.forEach(match => {
       const sku = match[1] || match[0].replace(/[^0-9]/g, '');
       if (/^\d{3,8}$/.test(sku) && !skus.find(s => s.sku === sku)) {
@@ -281,8 +283,8 @@ Deno.serve(async (req) => {
               .from('product-images')
               .getPublicUrl(image.name).data.publicUrl;
 
-            if (finalConfidence >= 85) {
-              // Create direct link for high confidence
+            if (finalConfidence >= 80) {
+              // Create direct link for high confidence (lowered threshold)
               const { error: linkError } = await supabase
                 .from('product_images')
                 .insert({
@@ -310,8 +312,8 @@ Deno.serve(async (req) => {
               } else if (linkError.code !== '23505') {
                 result.errors.push(`Link error: ${linkError.message}`);
               }
-            } else if (finalConfidence >= 70) {
-              // Create candidate for manual review
+            } else if (finalConfidence >= 60) {
+              // Create candidate for manual review (lowered threshold)
               const { error: candidateError } = await supabase
                 .from('product_image_candidates')
                 .insert({
@@ -326,6 +328,8 @@ Deno.serve(async (req) => {
                     sku_extracted: skuData.sku,
                     session_id: crypto.randomUUID()
                   },
+                  extracted_sku: skuData.sku,
+                  source_filename: image.name,
                   status: 'pending'
                 });
 

@@ -427,8 +427,8 @@ Deno.serve(async (req) => {
                     
                     console.log(`🔗 Linking ${image.name} (SKU: ${skuCandidate.sku}) to product ${matchingProduct.name} (${matchingProduct.sku})`);
                     
-                    if (skuCandidate.confidence >= 80) {
-                      // High confidence - create direct link
+                    if (skuCandidate.confidence >= 75) {
+                      // High confidence - create direct link (lowered threshold)
                       const { error: insertError } = await supabase
                         .from('product_images')
                         .insert({
@@ -455,8 +455,8 @@ Deno.serve(async (req) => {
                         console.log(`✅ Successfully linked ${image.name} to ${matchingProduct.name}`);
                         matchedCount++;
                       }
-                    } else if (skuCandidate.confidence >= 60) {
-                      // Medium confidence - create candidate for manual review
+                    } else if (skuCandidate.confidence >= 50) {
+                      // Medium confidence - create candidate for manual review (lowered threshold)
                       const { error: candidateError } = await supabase
                         .from('product_image_candidates')
                         .insert({
@@ -470,6 +470,8 @@ Deno.serve(async (req) => {
                             session_id: sessionId,
                             sku_extracted: skuCandidate.sku
                           },
+                          extracted_sku: skuCandidate.sku,
+                          source_filename: image.name,
                           status: 'pending'
                         });
 
