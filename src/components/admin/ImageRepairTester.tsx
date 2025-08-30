@@ -129,6 +129,10 @@ export const ImageRepairTester = () => {
           </CardTitle>
           <CardDescription>
             Test and diagnose all image repair and related edge functions. This will help identify which functions are working properly.
+            <br />
+            <span className="text-xs text-muted-foreground mt-1 block">
+              ⚠️ Permission errors are expected - edge functions use service role keys internally
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -245,6 +249,29 @@ export const ImageRepairTester = () => {
                       size="sm" 
                       variant="outline"
                       onClick={() => runSingleFunction('scan-storage-images')}
+                      disabled={isRunning}
+                    >
+                      Test Function
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Optimized Image Repair */}
+                <Card className="border-teal-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Wrench className="h-4 w-4 text-teal-600" />
+                      Optimized Image Repair
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      New optimized image repair with rate limiting
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => runSingleFunction('optimized-image-repair')}
                       disabled={isRunning}
                     >
                       Test Function

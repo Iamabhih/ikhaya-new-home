@@ -27,8 +27,8 @@ function extractSKU(filename: string): string | null {
   const numericStart = clean.match(/^(\d{4,7})[^0-9]/);
   if (numericStart) return numericStart[1];
   
-  // Multi-SKU files - take the last SKU (usually the main product)
-  const multiSKU = clean.match(/\.(\d{4,7})(?:\.|$)/);
+  // Multi-SKU files - take the first SKU (usually the main product)
+  const multiSKU = clean.match(/^(\d{4,7})\./);
   if (multiSKU) return multiSKU[1];
   
   return null;
@@ -70,35 +70,37 @@ Deno.serve(async (req) => {
 
     console.log('🚀 Starting optimized image repair...');
 
-    // Step 1: Get products without images (using efficient query)
-    const { data: productsWithoutImages, error: productsError } = await supabase
-      .rpc('get_products_without_images', { limit_count: 200 });
+    // Step 1: Get products without images
+    const { data: allProducts } = await supabase
+      .from('products')
+      .select('id, sku, name')
+      .eq('is_active', true)
+      .not('sku', 'is', null)
+      .limit(500);
 
-    if (productsError) {
-      // Fallback to manual query if RPC doesn't exist
-      const { data: allProducts } = await supabase
-        .from('products')
-        .select('id, sku, name')
-        .eq('is_active', true)
-        .limit(200);
+    const { data: productImages } = await supabase
+      .from('product_images')
+      .select('product_id')
+      .eq('image_status', 'active');
 
-      const { data: productImages } = await supabase
-        .from('product_images')
-        .select('product_id')
-        .eq('image_status', 'active');
-
-      const linkedProductIds = new Set(productImages?.map(pi => pi.product_id) || []);
-      result.productsScanned = allProducts?.filter(p => !linkedProductIds.has(p.id)).length || 0;
-    } else {
-      result.productsScanned = productsWithoutImages?.length || 0;
-    }
-
+    const linkedProductIds = new Set(productImages?.map(pi => pi.product_id) || []);
+    const productsWithoutImages = allProducts?.filter(p => !linkedProductIds.has(p.id)) || [];
+    
+    result.productsScanned = productsWithoutImages.length;
     console.log(`📊 Found ${result.productsScanned} products without images`);
+
+    if (productsWithoutImages.length === 0) {
+      console.log('✅ All products already have images');
+      result.processingTime = Date.now() - startTime;
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Step 2: Get storage images in smaller, rate-limited batches
     const images = [];
     let offset = 0;
-    const batchSize = 50; // Small batches to avoid rate limits
+    const batchSize = 100; // Reasonable batch size
 
     while (true) {
       try {
@@ -112,10 +114,7 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error(`Storage error at offset ${offset}:`, error);
-          // Add delay and continue with next batch
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          offset += batchSize;
-          continue;
+          break;
         }
 
         if (!batch || batch.length === 0) break;
@@ -128,12 +127,10 @@ Deno.serve(async (req) => {
         images.push(...imageFiles);
         offset += batchSize;
 
-        // Rate limiting - small delay between batches
-        if (batch.length === batchSize) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-
         if (batch.length < batchSize) break;
+
+        // Rate limiting - small delay between batches
+        await new Promise(resolve => setTimeout(resolve, 50));
 
       } catch (error) {
         console.error(`Storage scan error:`, error);
@@ -146,26 +143,34 @@ Deno.serve(async (req) => {
     console.log(`📁 Scanned ${result.imagesScanned} images`);
 
     // Step 3: Process matches with rate limiting
-    const products = productsWithoutImages || [];
-    
-    for (let i = 0; i < images.length; i++) {
+    for (let i = 0; i < images.length && i < 200; i++) { // Limit processing to prevent timeouts
       const image = images[i];
       
       try {
         const sku = extractSKU(image.name);
         if (!sku) continue;
 
-        const matchedProduct = findProduct(sku, products);
+        const matchedProduct = findProduct(sku, productsWithoutImages);
         if (!matchedProduct) continue;
+
+        // Check if this product already got linked in this session
+        const { data: existingLink } = await supabase
+          .from('product_images')
+          .select('id')
+          .eq('product_id', matchedProduct.id)
+          .eq('image_status', 'active')
+          .limit(1);
+
+        if (existingLink && existingLink.length > 0) continue;
 
         const imageUrl = supabase.storage
           .from('product-images')
           .getPublicUrl(image.name).data.publicUrl;
 
         // High confidence for exact numeric matches
-        const confidence = image.name.match(/^\d+\.(jpg|jpeg|png|gif|webp)$/i) ? 95 : 75;
+        const confidence = image.name.match(/^\d+\.(jpg|jpeg|png|gif|webp)$/i) ? 95 : 80;
 
-        if (confidence >= 80) {
+        if (confidence >= 85) {
           // Create direct link
           const { error: linkError } = await supabase
             .from('product_images')
@@ -175,6 +180,7 @@ Deno.serve(async (req) => {
               alt_text: `${matchedProduct.name} - ${image.name}`,
               image_status: 'active',
               is_primary: true,
+              sort_order: 1,
               match_confidence: confidence,
               auto_matched: true
             });
@@ -182,6 +188,9 @@ Deno.serve(async (req) => {
           if (!linkError) {
             result.linksCreated++;
             console.log(`✅ Linked: ${image.name} → ${matchedProduct.sku}`);
+            // Remove from products list to avoid duplicate processing
+            const index = productsWithoutImages.findIndex(p => p.id === matchedProduct.id);
+            if (index !== -1) productsWithoutImages.splice(index, 1);
           } else if (linkError.code !== '23505') { // Ignore duplicates
             result.errors.push(`Link error: ${linkError.message}`);
           }
@@ -205,9 +214,9 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Rate limiting - small delay every 10 operations
-        if (i % 10 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+        // Rate limiting - small delay every 5 operations
+        if (i % 5 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
 
       } catch (error) {
@@ -218,6 +227,7 @@ Deno.serve(async (req) => {
 
     result.processingTime = Date.now() - startTime;
     console.log(`✅ Repair completed in ${result.processingTime}ms`);
+    console.log(`📊 Results: ${result.linksCreated} links, ${result.candidatesCreated} candidates, ${result.errors.length} errors`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

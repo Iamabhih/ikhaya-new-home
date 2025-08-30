@@ -415,9 +415,12 @@ Deno.serve(async (req) => {
                     .from('product_images')
                     .select('id')
                     .eq('product_id', matchingProduct.id)
+                    .eq('image_status', 'active')
                     .limit(1);
 
-                  if (!existingImage || existingImage.length === 0) {
+                  if (existingImage && existingImage.length > 0) {
+                    console.log(`Product ${matchingProduct.name} (${matchingProduct.sku}) already has an image, skipping ${image.name}`);
+                  } else {
                     // Create product image record using the full path
                     const imageUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${image.fullPath}`;
                     
@@ -425,7 +428,7 @@ Deno.serve(async (req) => {
                     
                     // High confidence matches go directly to product_images
                     const bestSku = potentialSKUs[0];
-                    if (bestSku && bestSku.confidence >= 60) { // FIXED: Lower threshold for exact matches
+                    if (bestSku && bestSku.confidence >= 80) {
                       const { error: insertError } = await supabase
                         .from('product_images')
                         .insert({
@@ -433,7 +436,7 @@ Deno.serve(async (req) => {
                           image_url: imageUrl,
                           alt_text: `${matchingProduct.name} - ${image.name}`,
                           is_primary: true,
-                          sort_order: 999,
+                          sort_order: 1,
                           image_status: 'active',
                           match_confidence: bestSku.confidence,
                           match_metadata: {
@@ -444,7 +447,8 @@ Deno.serve(async (req) => {
                           auto_matched: true
                         });
 
-                      if (insertError) {
+                      if (insertError && insertError.code !== '23505') {
+                        console.error(`Failed to link ${image.name}:`, insertError);
                         errors.push(`Failed to link ${image.name} to ${matchingProduct.name}: ${insertError.message}`);
                       } else {
                         matchedCount++;
