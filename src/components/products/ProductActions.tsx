@@ -27,7 +27,7 @@ export const ProductActions = ({
         <Button
           variant="ghost"
           size="icon"
-          className={`h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 bg-background/80 hover:bg-background ${
+          className={`h-6 w-6 xs:h-7 xs:w-7 sm:h-8 sm:w-8 bg-background/80 hover:bg-background ${
             inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground'
           }`}
           onClick={onToggleWishlist}
@@ -40,7 +40,7 @@ export const ProductActions = ({
           disabled={!isInStock}
           variant={isInStock ? "default" : "secondary"}
           size="sm"
-          className="text-xs xs:text-xs sm:text-sm px-1.5 xs:px-2 sm:px-4 h-7 xs:h-8 sm:h-9"
+          className="text-xs px-1.5 xs:px-2 sm:px-3 h-6 xs:h-7 sm:h-8"
         >
           <ShoppingCart className="h-3 w-3 xs:h-3 xs:w-3 sm:h-4 sm:w-4 mr-1 xs:mr-1 sm:mr-2" />
           <span className="hidden xs:inline sm:hidden">
@@ -62,7 +62,7 @@ export const ProductActions = ({
       <Button
         variant="ghost"
         size="icon"
-        className={`h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 bg-background/80 hover:bg-background ${
+        className={`h-6 w-6 xs:h-7 xs:w-7 sm:h-8 sm:w-8 bg-background/80 hover:bg-background ${
           inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground'
         } flex-shrink-0`}
         onClick={onToggleWishlist}
@@ -71,7 +71,7 @@ export const ProductActions = ({
         <Heart className={`h-3 w-3 xs:h-3 xs:w-3 sm:h-4 sm:w-4 ${inWishlist ? 'fill-current' : ''}`} />
       </Button>
       <Button 
-        className="flex-1 text-xs xs:text-xs sm:text-sm h-7 xs:h-8 sm:h-10 min-w-0" 
+        className="flex-1 text-xs h-6 xs:h-7 sm:h-8 min-w-0" 
         onClick={onAddToCart}
         disabled={!isInStock}
         variant={isInStock ? "default" : "secondary"}

@@ -61,11 +61,11 @@ export const OptimizedProductGrid = ({
       };
     }
     
-    // Fluid grid with optimal card sizes
+    // Fluid grid with optimal card sizes - more compact
     return {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, calc(50% - 0.5rem)), 1fr))',
-      gap: 'clamp(0.75rem, 2.5vw, 1.5rem)',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(min(250px, calc(50% - 0.5rem)), 1fr))',
+      gap: 'clamp(0.5rem, 2vw, 1rem)',
       alignItems: 'stretch',
       justifyItems: 'center'
     };

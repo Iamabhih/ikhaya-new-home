@@ -24,33 +24,33 @@ export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
   const productUrl = `/products/${product.slug}`;
 
   return (
-    <div className={`${viewMode === "list" ? "space-y-1 sm:space-y-2" : "space-y-1 sm:space-y-2 flex-1 flex flex-col"}`}>
+    <div className={`${viewMode === "list" ? "space-y-0.5 sm:space-y-1" : "space-y-1 flex-1 flex flex-col"}`}>
       <Link to={productUrl} className="group/title">
-        <h3 className={`font-semibold text-sm sm:text-base gradient-text-primary group-hover/title:scale-[1.02] transition-all duration-300 ${viewMode === "list" ? "line-clamp-2" : "mb-1 sm:mb-2 line-clamp-2"}`}>
+        <h3 className={`font-semibold text-sm gradient-text-primary group-hover/title:scale-[1.02] transition-all duration-300 ${viewMode === "list" ? "line-clamp-2" : "mb-1 line-clamp-2"}`}>
           {product.name}
         </h3>
       </Link>
       
       {product.categories && (
-        <p className="text-xs text-premium-muted mb-1 sm:mb-2 uppercase tracking-wider font-medium">
+        <p className="text-xs text-premium-muted mb-0.5 sm:mb-1 uppercase tracking-wider font-medium">
           {product.categories.name}
         </p>
       )}
       
       {/* SKU */}
       {product.sku && (
-        <div className="flex items-center gap-1 mb-1 sm:mb-2">
-          <span className="text-xs text-premium-muted font-mono bg-primary/5 px-2 py-0.5 rounded-full">
+        <div className="flex items-center gap-1 mb-0.5 sm:mb-1">
+          <span className="text-xs text-premium-muted font-mono bg-primary/5 px-1.5 py-0.5 rounded-full">
             SKU: {product.sku}
           </span>
         </div>
       )}
       
       {product.short_description && (
-        <p className={`text-xs sm:text-sm text-premium leading-relaxed ${
+        <p className={`text-xs text-premium leading-relaxed ${
           viewMode === "list" 
-            ? "line-clamp-2 sm:line-clamp-3 hidden sm:block" 
-            : "mb-2 sm:mb-3 line-clamp-2 flex-1"
+            ? "line-clamp-1 sm:line-clamp-2 hidden sm:block" 
+            : "mb-1 line-clamp-2 flex-1"
         }`}>
           {product.short_description}
         </p>

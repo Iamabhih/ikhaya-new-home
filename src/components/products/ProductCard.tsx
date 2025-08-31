@@ -51,7 +51,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   return (
     <Card className="group glass-card hover-lift hover-glow border-gradient w-full product-card-mobile overflow-hidden">
       <CardContent className="p-0">
-        <div className="flex flex-col xs:flex-row gap-3 xs:gap-4 sm:gap-6 p-4 xs:p-4 sm:p-6 min-h-[140px] xs:min-h-[160px] sm:min-h-[180px] bg-gradient-subtle">
+        <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 sm:gap-4 p-3 xs:p-3 sm:p-4 min-h-[120px] xs:min-h-[130px] sm:min-h-[140px] bg-gradient-subtle">
             <ProductImage
               product={product}
               inWishlist={inWishlist}
@@ -60,10 +60,10 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
               viewMode={viewMode}
             />
             
-            <div className="flex-1 flex flex-col justify-between space-y-2 xs:space-y-3 min-w-0">
+            <div className="flex-1 flex flex-col justify-between space-y-1 xs:space-y-2 min-w-0">
               <ProductDetails product={product} viewMode={viewMode} />
               
-              <div className="flex flex-col xs:flex-row xs:items-end xs:justify-between gap-2 mt-auto">
+              <div className="flex flex-col xs:flex-row xs:items-end xs:justify-between gap-1 xs:gap-2 mt-auto">
                 <ProductPrice 
                   price={product.price} 
                   compareAtPrice={product.compare_at_price}
@@ -90,9 +90,9 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   }
   
   return (
-    <Card className="group glass-card hover-lift hover-glow border-gradient h-full flex flex-col overflow-hidden w-full max-w-[320px] mx-auto product-card-mobile shadow-elegant transition-all duration-300">
+    <Card className="group glass-card hover-lift hover-glow border-gradient h-full flex flex-col overflow-hidden w-full max-w-[280px] mx-auto product-card-mobile shadow-elegant transition-all duration-300">
       <CardContent className="p-0 flex-1 flex flex-col h-full">
-        <div className="relative flex-shrink-0 overflow-hidden aspect-[4/3] product-image rounded-t-lg bg-gradient-to-br from-background/50 to-background/80">
+        <div className="relative flex-shrink-0 overflow-hidden aspect-[3/2] product-image rounded-t-lg bg-gradient-to-br from-background/50 to-background/80">
           <ProductImage
             product={product}
             inWishlist={inWishlist}
@@ -102,8 +102,8 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           />
         </div>
         
-        <div className="p-4 flex-1 flex flex-col justify-between min-h-0 bg-gradient-to-b from-card to-card/95">
-          <div className="flex-1 space-y-3">
+        <div className="p-3 flex-1 flex flex-col justify-between min-h-0 bg-gradient-to-b from-card to-card/95">
+          <div className="flex-1 space-y-2">
             <ProductDetails product={product} viewMode={viewMode} />
             <ProductPrice 
               price={product.price} 
@@ -112,7 +112,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             />
           </div>
           
-          <div className="mt-4 pt-3 border-t border-border/10">
+          <div className="mt-3 pt-2 border-t border-border/10">
             <ProductActions
               productId={product.id}
               inWishlist={inWishlist}
