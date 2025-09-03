@@ -14,12 +14,10 @@ import { StandardBreadcrumbs } from "@/components/common/StandardBreadcrumbs";
 import { ResponsiveGrid } from "@/components/ui/responsive-layout";
 import { Separator } from "@/components/ui/separator";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { useAnalyticsContext } from "@/contexts/AnalyticsContext";
 
 const ProductDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { settings } = useSiteSettings();
-  const { trackProductView } = useAnalyticsContext();
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', slug],
@@ -40,12 +38,6 @@ const ProductDetailPage = () => {
       if (error) throw error;
       console.log('Product data:', data);
       console.log('Product images:', data?.product_images);
-      
-      // Track product view
-      if (data) {
-        trackProductView(data.id, data.category_id);
-      }
-      
       return data;
     },
     enabled: !!slug,

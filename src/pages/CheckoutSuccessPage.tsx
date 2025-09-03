@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Package, Home, Mail } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckoutAnalytics } from "@/components/checkout/CheckoutAnalytics";
 import { toast } from "sonner";
 
 const CheckoutSuccessPage = () => {
@@ -43,11 +42,11 @@ const CheckoutSuccessPage = () => {
           .maybeSingle();
         
         if (existingOrder) {
-            console.log('Order already exists:', existingOrder.id);
-            setOrderDetails(existingOrder);
-            clearCart();
-            sessionStorage.removeItem(`pending_order_${orderId}`);
-            toast.success('Order confirmed!');
+          console.log('Order already exists:', existingOrder.id);
+          setOrderDetails(existingOrder);
+          clearCart();
+          sessionStorage.removeItem(`pending_order_${orderId}`);
+          toast.success('Order confirmed!');
         } else {
           // Get order data from sessionStorage
           const pendingOrderData = sessionStorage.getItem(`pending_order_${orderId}`);
@@ -156,19 +155,6 @@ const CheckoutSuccessPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
-      {orderDetails && (
-        <CheckoutAnalytics 
-          step="completed"
-          orderId={orderDetails.id}
-          totalAmount={orderDetails.total_amount}
-          items={orderDetails.order_items?.map((item: any) => ({
-            product_id: item.product_id,
-            quantity: item.quantity,
-            price: item.unit_price
-          }))}
-        />
-      )}
       
       <section className="bg-gradient-to-b from-green-50 to-background py-16">
         <div className="container mx-auto px-4 text-center">

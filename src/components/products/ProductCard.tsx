@@ -6,7 +6,6 @@ import { ProductImage } from "./ProductImage";
 import { ProductDetails } from "./ProductDetails";
 import { ProductPrice } from "./ProductPrice";
 import { ProductActions } from "./ProductActions";
-import { ProductCardAnalytics } from "./ProductCardAnalytics";
 import { useState, useEffect } from "react";
 import { UniversalLoading } from "@/components/ui/universal-loading";
 
@@ -51,13 +50,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   if (viewMode === "list") {
   return (
     <Card className="group glass-card hover-lift hover-glow border-gradient w-full product-card-mobile overflow-hidden">
-      <div id={`product-card-${product.id}`}>
-        <ProductCardAnalytics 
-          productId={product.id} 
-          categoryId={product.categories?.id} 
-          productName={product.name} 
-        />
-        <CardContent className="p-0">
+      <CardContent className="p-0">
         <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 sm:gap-4 p-3 xs:p-3 sm:p-4 min-h-[120px] xs:min-h-[130px] sm:min-h-[140px] bg-gradient-subtle">
             <ProductImage
               product={product}
@@ -92,20 +85,13 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             </div>
           </div>
         </CardContent>
-      </div>
-    </Card>
-  );
-}
+      </Card>
+    );
+  }
   
   return (
     <Card className="group glass-card hover-lift hover-glow border-gradient h-full flex flex-col overflow-hidden w-full max-w-[280px] mx-auto product-card-mobile shadow-elegant transition-all duration-300">
-      <div id={`product-card-${product.id}`} className="h-full flex flex-col">
-        <ProductCardAnalytics 
-          productId={product.id} 
-          categoryId={product.categories?.id} 
-          productName={product.name} 
-        />
-        <CardContent className="p-0 flex-1 flex flex-col h-full">
+      <CardContent className="p-0 flex-1 flex flex-col h-full">
         <div className="relative flex-shrink-0 overflow-hidden aspect-[3/2] product-image rounded-t-lg bg-gradient-to-br from-background/50 to-background/80">
           <ProductImage
             product={product}
@@ -139,7 +125,6 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           </div>
         </div>
       </CardContent>
-    </div>
     </Card>
   );
 };

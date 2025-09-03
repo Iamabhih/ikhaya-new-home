@@ -31,6 +31,16 @@ export const useAnalytics = () => {
     }
   };
 
+  // Track page views automatically
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    trackEvent({
+      event_type: 'page_view',
+      event_name: 'page_visited',
+      page_path: currentPath,
+    });
+  }, []);
+
   const trackProductView = (productId: string, categoryId?: string) => {
     trackEvent({
       event_type: 'product_view',
