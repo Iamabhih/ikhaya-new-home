@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Filter, X, SlidersHorizontal } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useAnalyticsContext } from "@/contexts/AnalyticsContext";
 
 interface ProductSearchProps {
   onSearch: (filters: SearchFilters) => void;
@@ -31,13 +32,21 @@ export const ProductSearch = ({ onSearch, categories, isLoading }: ProductSearch
     sortBy: 'name'
   });
   const [priceRange, setPriceRange] = useState([0, 10000]);
+  const { trackSearch } = useAnalyticsContext();
 
   const handleSearch = () => {
-    onSearch({
+    const searchFilters = {
       ...filters,
       minPrice: priceRange[0],
       maxPrice: priceRange[1]
-    });
+    };
+    
+    // Track search event
+    if (filters.query) {
+      trackSearch(filters.query, 0); // We'll update the count when results are returned
+    }
+    
+    onSearch(searchFilters);
   };
 
   const clearFilters = () => {

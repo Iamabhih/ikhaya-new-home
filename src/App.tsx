@@ -6,6 +6,7 @@ import { SecurityProvider } from "@/contexts/SecurityContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { BackgroundRemovalProvider } from "@/contexts/BackgroundRemovalContext";
+import { AnalyticsProvider } from "@/contexts/AnalyticsContext";
 import { BrowserCompatibilityChecker } from "@/components/common/BrowserCompatibilityChecker";
 import { ConditionalScriptLoader } from "@/components/common/ConditionalScriptLoader";
 import { EmergencyLoader } from "@/components/common/EmergencyLoader";
@@ -71,12 +72,13 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <SecurityProvider>
         <AuthProvider>
-          <WishlistProvider>
-            <BackgroundRemovalProvider>
-              <TooltipProvider>
-              <Toaster />
-              <SecurityMonitor />
-              <BrowserRouter>
+          <AnalyticsProvider>
+            <WishlistProvider>
+              <BackgroundRemovalProvider>
+                <TooltipProvider>
+                <Toaster />
+                <SecurityMonitor />
+                <BrowserRouter>
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />
@@ -129,10 +131,11 @@ function App() {
                 {/* 404 route */}
                 <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-              </TooltipProvider>
-            </BackgroundRemovalProvider>
-          </WishlistProvider>
+                </BrowserRouter>
+                </TooltipProvider>
+              </BackgroundRemovalProvider>
+            </WishlistProvider>
+          </AnalyticsProvider>
         </AuthProvider>
       </SecurityProvider>
     </QueryClientProvider>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAnalyticsContext } from "@/contexts/AnalyticsContext";
 import { toast } from "sonner";
 
 export interface CartItem {
@@ -26,6 +27,7 @@ export interface CartItem {
 
 export const useCart = () => {
   const { user } = useAuth();
+  const { trackCartAdd } = useAnalyticsContext();
   const queryClient = useQueryClient();
   const [sessionId] = useState(() => {
     // Handle SSR/hydration issues
@@ -117,6 +119,9 @@ export const useCart = () => {
 
         if (error) throw error;
         console.log('Updated existing cart item:', existingItem.id, 'new quantity:', newQuantity);
+        
+        // Track cart add event
+        trackCartAdd(productId, quantity);
       } else {
         // Insert new item
         const insertData: any = {
@@ -138,6 +143,9 @@ export const useCart = () => {
 
         if (error) throw error;
         console.log('Inserted new cart item');
+        
+        // Track cart add event
+        trackCartAdd(productId, quantity);
       }
     },
     onSuccess: () => {

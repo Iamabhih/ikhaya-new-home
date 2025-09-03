@@ -5,6 +5,7 @@ import { useEnhancedCart } from "@/hooks/useEnhancedCart";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
+import { CheckoutAnalytics } from "@/components/checkout/CheckoutAnalytics";
 import { Card, CardContent } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { useEffect, useState } from "react";
@@ -57,6 +58,16 @@ const CheckoutPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      
+      <CheckoutAnalytics 
+        step="initiated"
+        totalAmount={total}
+        items={items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.product.price
+        }))}
+      />
       
       {/* Hero Section - Mobile Enhanced */}
       <section className="bg-gradient-to-b from-secondary/30 to-background py-8 xs:py-12 sm:py-16 relative overflow-hidden">
