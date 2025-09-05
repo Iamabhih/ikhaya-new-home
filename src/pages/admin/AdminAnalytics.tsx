@@ -1,8 +1,10 @@
 
 import { ProductAnalyticsDashboard } from "@/components/admin/ProductAnalyticsDashboard";
+import { OrdersMetrics } from "@/components/admin/orders/OrdersMetrics";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminAnalytics = () => {
   return (
@@ -18,7 +20,26 @@ const AdminAnalytics = () => {
               </div>
             </div>
             
-            <ProductAnalyticsDashboard />
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="products">Products</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="overview" className="space-y-6">
+                <OrdersMetrics />
+                <ProductAnalyticsDashboard />
+              </TabsContent>
+              
+              <TabsContent value="orders" className="space-y-6">
+                <OrdersMetrics />
+              </TabsContent>
+              
+              <TabsContent value="products" className="space-y-6">
+                <ProductAnalyticsDashboard />
+              </TabsContent>
+            </Tabs>
           </div>
         </ErrorBoundary>
       </AdminLayout>
