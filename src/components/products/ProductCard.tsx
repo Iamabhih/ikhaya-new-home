@@ -75,7 +75,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
               <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/20">
                 <div className="flex items-center gap-2">
                   {product.categories && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-secondary/20 text-secondary border border-secondary/30 shadow-glow-secondary/50 hover:bg-secondary/30 transition-all duration-300 uppercase tracking-widest">
                       {product.categories.name}
                     </span>
                   )}
@@ -141,7 +141,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           {/* Category Badge */}
           {product.categories && (
             <div className="absolute top-3 right-3">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/90 text-primary backdrop-blur-sm border border-primary/30 shadow-lg">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-secondary/95 text-white backdrop-blur-sm border border-secondary shadow-glow-secondary shadow-lg hover:scale-105 transition-all duration-300 uppercase tracking-widest">
                 {product.categories.name}
               </span>
             </div>
