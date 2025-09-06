@@ -26,13 +26,13 @@ export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
   return (
     <div className={`${viewMode === "list" ? "space-y-0.5 sm:space-y-1" : "space-y-1 flex-1 flex flex-col"}`}>
       <Link to={productUrl} className="group/title">
-        <h3 className={`font-semibold text-sm gradient-text-primary group-hover/title:scale-[1.02] transition-all duration-300 ${viewMode === "list" ? "line-clamp-2" : "mb-1 line-clamp-2"}`}>
+        <h3 className={`font-bold text-base bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent group-hover/title:scale-[1.02] group-hover/title:shadow-glow transition-all duration-300 ${viewMode === "list" ? "line-clamp-2" : "mb-1 line-clamp-2"}`}>
           {product.name}
         </h3>
       </Link>
       
       {product.categories && (
-        <p className="text-xs text-premium-muted mb-0.5 sm:mb-1 uppercase tracking-wider font-medium">
+        <p className="text-xs font-bold text-secondary hover:text-secondary-glow mb-0.5 sm:mb-1 uppercase tracking-widest transition-colors duration-300 drop-shadow-sm">
           {product.categories.name}
         </p>
       )}
