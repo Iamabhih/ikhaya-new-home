@@ -136,15 +136,28 @@ export const AutocompleteSearch = ({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
           onKeyPress={handleKeyPress}
-          className="pl-10 pr-20"
+          className={`pl-10 pr-20 transition-all duration-300 ${
+            query ? 'border-primary/50 bg-primary/5 shadow-glow' : 'border-border'
+          }`}
         />
         <Button
           onClick={() => handleSearch(query)}
           size="sm"
-          className="absolute right-1 top-1/2 transform -translate-y-1/2"
+          className={`absolute right-1 top-1/2 transform -translate-y-1/2 transition-all duration-300 ${
+            query ? 'bg-primary hover:bg-primary/90 shadow-glow' : ''
+          }`}
         >
-          Search
+          {query ? 'Search' : <Search className="h-4 w-4" />}
         </Button>
+        
+        {/* Active search indicator */}
+        {initialValue && (
+          <div className="absolute -top-8 left-0 right-0 flex items-center justify-center">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 backdrop-blur-sm">
+              Searching: "{initialValue}"
+            </span>
+          </div>
+        )}
       </div>
 
       {isOpen && (

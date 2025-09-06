@@ -234,11 +234,17 @@ const ProductsPage = () => {
     setSearchQuery(query);
     setCurrentPage(1);
     
+    // Always update URL to reflect search state
+    const newParams = new URLSearchParams(searchParams);
     if (query.trim()) {
-      setSearchParams({ search: query.trim() });
+      newParams.set('search', query.trim());
     } else {
-      setSearchParams({});
+      newParams.delete('search');
     }
+    setSearchParams(newParams);
+    
+    // Force refresh of query by updating query key dependencies
+    console.log('Search params updated:', newParams.toString());
   };
 
   const handleFiltersChange = (filters: {
