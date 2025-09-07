@@ -74,11 +74,6 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
               
               <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/20">
                 <div className="flex items-center gap-2">
-                  {product.categories && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-secondary/20 text-secondary border border-secondary/30 shadow-glow-secondary/50 hover:bg-secondary/30 transition-all duration-300 uppercase tracking-widest">
-                      {product.categories.name}
-                    </span>
-                  )}
                   {isInStock ? (
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
                       In Stock
@@ -138,14 +133,6 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             )}
           </div>
           
-          {/* Category Badge */}
-          {product.categories && (
-            <div className="absolute top-3 right-3">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-secondary/95 text-white backdrop-blur-sm border border-secondary shadow-glow-secondary shadow-lg hover:scale-105 transition-all duration-300 uppercase tracking-widest">
-                {product.categories.name}
-              </span>
-            </div>
-          )}
           
           {/* Hover overlay with gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -163,13 +150,6 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 compareAtPrice={product.compare_at_price}
                 viewMode={viewMode}
               />
-              
-              {/* SKU Display */}
-              {product.sku && (
-                <p className="text-xs text-muted-foreground font-mono opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-                  SKU: {product.sku}
-                </p>
-              )}
             </div>
           </div>
           

@@ -31,20 +31,6 @@ export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
         </h3>
       </Link>
       
-      {product.categories && (
-        <p className="text-xs font-bold text-secondary hover:text-secondary-glow mb-0.5 sm:mb-1 uppercase tracking-widest transition-colors duration-300 drop-shadow-sm text-center">
-          {product.categories.name}
-        </p>
-      )}
-      
-      {/* SKU */}
-      {product.sku && (
-        <div className="flex items-center gap-1 mb-0.5 sm:mb-1">
-          <span className="text-xs text-premium-muted font-mono bg-primary/5 px-1.5 py-0.5 rounded-full">
-            SKU: {product.sku}
-          </span>
-        </div>
-      )}
       
       {product.short_description && (
         <p className={`text-xs text-premium leading-relaxed ${
