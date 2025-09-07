@@ -150,6 +150,13 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 compareAtPrice={product.compare_at_price}
                 viewMode={viewMode}
               />
+              
+              {/* SKU Display */}
+              {product.sku && (
+                <p className="text-xs text-muted-foreground font-mono opacity-70 group-hover:opacity-100 transition-opacity duration-300">
+                  SKU: {product.sku}
+                </p>
+              )}
             </div>
           </div>
           

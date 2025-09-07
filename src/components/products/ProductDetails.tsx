@@ -31,6 +31,11 @@ export const ProductDetails = ({ product, viewMode }: ProductDetailsProps) => {
         </h3>
       </Link>
       
+      {product.categories && (
+        <p className="text-xs font-bold text-secondary hover:text-secondary-glow mb-0.5 sm:mb-1 uppercase tracking-widest transition-colors duration-300 drop-shadow-sm text-center">
+          {product.categories.name}
+        </p>
+      )}
       
       {product.short_description && (
         <p className={`text-xs text-premium leading-relaxed ${
