@@ -2381,7 +2381,7 @@ export type Database = {
           rating: number
           title: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           comment?: string | null
@@ -2393,7 +2393,7 @@ export type Database = {
           rating: number
           title?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           comment?: string | null
@@ -2405,7 +2405,7 @@ export type Database = {
           rating?: number
           title?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
