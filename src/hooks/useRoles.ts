@@ -39,10 +39,14 @@ export const useRoles = (user: User | null) => {
         fetchingRef.current = true;
         lastUserIdRef.current = user.id;
         
+        console.log('Fetching roles for user ID:', user.id);
+        
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id);
+
+        console.log('Role fetch result:', { data, error });
 
         if (error) {
           console.error('Error fetching user roles:', error);
@@ -50,6 +54,7 @@ export const useRoles = (user: User | null) => {
           lastUserIdRef.current = null; // Reset on error to allow retry
         } else {
           const userRoles = data?.map(r => r.role as AppRole) || [];
+          console.log('Processed user roles:', userRoles);
           setRoles(userRoles);
           // Cache the result with timestamp
           rolesCache.current[user.id] = { roles: userRoles, timestamp: now };

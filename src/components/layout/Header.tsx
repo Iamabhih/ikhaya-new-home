@@ -18,7 +18,8 @@ export const Header = () => {
   const { isAdmin, isManager, roles, loading } = useRoles(user);
   
   // Debug logging for manager role
-  console.log('Header - User:', user?.email);
+  console.log('Header - User ID:', user?.id);
+  console.log('Header - User Email:', user?.email);
   console.log('Header - Roles:', roles);
   console.log('Header - Loading:', loading);
   console.log('Header - IsAdmin:', isAdmin());
