@@ -15,7 +15,7 @@ import BackgroundRemovalStatus from "@/components/admin/BackgroundRemovalStatus"
 export const Header = () => {
   const { items } = useCart();
   const { user, signOut } = useAuth();
-  const { isAdmin } = useRoles(user);
+  const { isAdmin, isManager } = useRoles(user);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -90,7 +90,7 @@ export const Header = () => {
               </Link>
               
               {/* Admin Dropdown */}
-              {isAdmin() && (
+              {(isAdmin() || isManager()) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
@@ -257,7 +257,7 @@ export const Header = () => {
         {mobileMenuOpen && (
           <MobileNav 
             user={user} 
-            isAdmin={isAdmin()} 
+            isAdmin={isAdmin() || isManager()} 
             onAuthClick={() => setAuthModalOpen(true)} 
             onSignOut={signOut} 
             onClose={() => setMobileMenuOpen(false)} 
