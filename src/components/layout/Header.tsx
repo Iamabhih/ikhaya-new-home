@@ -15,7 +15,14 @@ import BackgroundRemovalStatus from "@/components/admin/BackgroundRemovalStatus"
 export const Header = () => {
   const { items } = useCart();
   const { user, signOut } = useAuth();
-  const { isAdmin, isManager } = useRoles(user);
+  const { isAdmin, isManager, roles, loading } = useRoles(user);
+  
+  // Debug logging for manager role
+  console.log('Header - User:', user?.email);
+  console.log('Header - Roles:', roles);
+  console.log('Header - Loading:', loading);
+  console.log('Header - IsAdmin:', isAdmin());
+  console.log('Header - IsManager:', isManager());
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
