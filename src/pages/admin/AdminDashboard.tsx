@@ -102,8 +102,7 @@ const AdminDashboard = () => {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
   return (
-    <AdminProtectedRoute>
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-8">
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -467,8 +466,7 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
-      </AdminLayout>
-    </AdminProtectedRoute>
+    </AdminLayout>
   );
 };
 

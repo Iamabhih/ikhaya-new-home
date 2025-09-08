@@ -8,8 +8,7 @@ import { ShoppingCart, TestTube } from "lucide-react";
 
 const AdminOrders = () => {
   return (
-    <AdminProtectedRoute allowManager>
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-8">
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -40,8 +39,7 @@ const AdminOrders = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </AdminLayout>
-    </AdminProtectedRoute>
+    </AdminLayout>
   );
 };
 

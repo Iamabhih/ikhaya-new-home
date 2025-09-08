@@ -106,11 +106,11 @@ function App() {
                 <Route path="/wishlist" element={<WishlistPage />} />
                 
                  {/* Admin routes */}
-                 <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+                 <Route path="/admin" element={<AdminProtectedRoute allowManager><AdminDashboard /></AdminProtectedRoute>} />
                  <Route path="/admin/products" element={<AdminProtectedRoute><AdminProducts /></AdminProtectedRoute>} />
-                 <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
-                 <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
-                 <Route path="/admin/returns" element={<AdminProtectedRoute><AdminReturns /></AdminProtectedRoute>} />
+                 <Route path="/admin/orders" element={<AdminProtectedRoute allowManager><AdminOrders /></AdminProtectedRoute>} />
+                 <Route path="/admin/analytics" element={<AdminProtectedRoute allowManager><AdminAnalytics /></AdminProtectedRoute>} />
+                 <Route path="/admin/returns" element={<AdminProtectedRoute allowManager><AdminReturns /></AdminProtectedRoute>} />
                  <Route path="/admin/payments" element={<AdminProtectedRoute><AdminPayments /></AdminProtectedRoute>} />
                  <Route path="/admin/subscriptions" element={<AdminProtectedRoute><AdminSubscriptions /></AdminProtectedRoute>} />
                  <Route path="/admin/cart-abandonment" element={<AdminProtectedRoute><AdminCartAbandonment /></AdminProtectedRoute>} />

@@ -8,8 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminAnalytics = () => {
   return (
-    <AdminProtectedRoute allowManager>
-      <AdminLayout>
+    <AdminLayout>
         <ErrorBoundary>
           <div className="space-y-8">
             {/* Header Section */}
@@ -42,8 +41,7 @@ const AdminAnalytics = () => {
             </Tabs>
           </div>
         </ErrorBoundary>
-      </AdminLayout>
-    </AdminProtectedRoute>
+    </AdminLayout>
   );
 };
 

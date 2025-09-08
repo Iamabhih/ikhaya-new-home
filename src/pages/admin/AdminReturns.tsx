@@ -107,8 +107,7 @@ const AdminReturns = () => {
   };
 
   return (
-    <AdminProtectedRoute allowManager>
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">Return Management</h1>
@@ -284,8 +283,7 @@ const AdminReturns = () => {
             </CardContent>
           </Card>
         </div>
-      </AdminLayout>
-    </AdminProtectedRoute>
+    </AdminLayout>
   );
 };
 
