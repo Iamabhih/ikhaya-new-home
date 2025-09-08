@@ -8,7 +8,7 @@ import { ShoppingCart, TestTube } from "lucide-react";
 
 const AdminOrders = () => {
   return (
-    <AdminProtectedRoute>
+    <AdminProtectedRoute allowManager>
       <AdminLayout>
         <div className="space-y-8">
           {/* Header Section */}

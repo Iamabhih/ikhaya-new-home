@@ -71,6 +71,30 @@ const adminRoutes = [
   },
 ];
 
+const managerRoutes = [
+  { 
+    title: "Dashboard", 
+    url: "/admin", 
+    icon: BarChart3,
+    end: true
+  },
+  { 
+    title: "Orders", 
+    url: "/admin/orders", 
+    icon: ShoppingCart 
+  },
+  { 
+    title: "Analytics", 
+    url: "/admin/analytics", 
+    icon: BarChart3 
+  },
+  { 
+    title: "Returns", 
+    url: "/admin/returns", 
+    icon: RotateCcw 
+  },
+];
+
 const superAdminRoutes = [
   { 
     title: "User Management", 
@@ -99,7 +123,7 @@ interface AdminSidebarProps {
 
 export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps) => {
   const { user } = useAuth();
-  const { roles, isAdmin, isSuperAdmin } = useRoles(user);
+  const { roles, isAdmin, isManager, isSuperAdmin } = useRoles(user);
   const location = useLocation();
 
   const isActive = (path: string, end?: boolean) => {
@@ -120,7 +144,7 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
     );
   };
 
-  if (!isAdmin()) return null;
+  if (!isAdmin() && !isManager()) return null;
 
   return (
     <div className={cn(
@@ -136,7 +160,7 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
             </div>
             <div>
               <span className="font-semibold text-gray-900 text-sm">
-                {roles.includes('superadmin') ? 'SuperAdmin' : 'Admin'}
+                {roles.includes('superadmin') ? 'SuperAdmin' : roles.includes('manager') ? 'Manager' : 'Admin'}
               </span>
               <p className="text-xs text-gray-500">Control Panel</p>
             </div>
@@ -154,14 +178,14 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-8">
-        {/* Admin Routes */}
+        {/* Admin/Manager Routes */}
         <div className="space-y-2">
           {!collapsed && (
             <h3 className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Core Management
+              {isManager() && !isAdmin() ? 'Manager Access' : 'Core Management'}
             </h3>
           )}
-          {adminRoutes.map((route) => (
+          {(isManager() && !isAdmin() ? managerRoutes : adminRoutes).map((route) => (
             <NavLink
               key={route.url}
               to={route.url}

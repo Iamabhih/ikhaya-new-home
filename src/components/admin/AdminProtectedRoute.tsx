@@ -10,11 +10,12 @@ import { Link } from "react-router-dom";
 interface AdminProtectedRouteProps {
   children: ReactNode;
   requireSuperAdmin?: boolean;
+  allowManager?: boolean;
 }
 
-export const AdminProtectedRoute = ({ children, requireSuperAdmin = false }: AdminProtectedRouteProps) => {
+export const AdminProtectedRoute = ({ children, requireSuperAdmin = false, allowManager = false }: AdminProtectedRouteProps) => {
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, isSuperAdmin, loading: rolesLoading } = useRoles(user);
+  const { isAdmin, isManager, isSuperAdmin, loading: rolesLoading } = useRoles(user);
 
   // Show loading state
   if (authLoading || rolesLoading) {
@@ -59,7 +60,11 @@ export const AdminProtectedRoute = ({ children, requireSuperAdmin = false }: Adm
   }
 
   // Check permissions
-  const hasPermission = requireSuperAdmin ? isSuperAdmin() : isAdmin();
+  const hasPermission = requireSuperAdmin 
+    ? isSuperAdmin() 
+    : allowManager 
+    ? isAdmin() || isManager() 
+    : isAdmin();
 
   if (!hasPermission) {
     return (
@@ -76,6 +81,8 @@ export const AdminProtectedRoute = ({ children, requireSuperAdmin = false }: Adm
             <p className="text-sm text-muted-foreground">
               {requireSuperAdmin 
                 ? 'Super admin access required.' 
+                : allowManager
+                ? 'Admin or Manager access required.'
                 : 'Admin access required.'}
             </p>
             <p className="text-xs text-muted-foreground">

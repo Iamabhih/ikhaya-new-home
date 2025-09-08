@@ -107,7 +107,7 @@ const AdminReturns = () => {
   };
 
   return (
-    <AdminProtectedRoute>
+    <AdminProtectedRoute allowManager>
       <AdminLayout>
         <div className="space-y-6">
           <div>

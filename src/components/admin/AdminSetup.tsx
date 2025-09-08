@@ -35,6 +35,24 @@ export const AdminSetup = () => {
     },
   });
 
+  const createManagerMutation = useMutation({
+    mutationFn: async (userEmail: string) => {
+      const { data, error } = await supabase.rpc('create_manager_user', {
+        user_email: userEmail
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User promoted to manager successfully');
+      setEmail("");
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to promote user: ${error.message}`);
+    },
+  });
+
   const createSuperAdminMutation = useMutation({
     mutationFn: async (userEmail: string) => {
       const { data, error } = await supabase.rpc('create_superadmin_user', {
@@ -71,6 +89,11 @@ export const AdminSetup = () => {
   const handlePromoteToAdmin = () => {
     if (!validateForm()) return;
     createAdminMutation.mutate(email);
+  };
+
+  const handlePromoteToManager = () => {
+    if (!validateForm()) return;
+    createManagerMutation.mutate(email);
   };
 
   const handlePromoteToSuperAdmin = () => {
@@ -115,6 +138,16 @@ export const AdminSetup = () => {
             </Button>
             
             <Button
+              onClick={handlePromoteToManager}
+              disabled={createManagerMutation.isPending || !email}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Promote to Manager
+            </Button>
+            
+            <Button
               onClick={handlePromoteToSuperAdmin}
               disabled={createSuperAdminMutation.isPending || !email}
               variant="destructive"
@@ -136,6 +169,10 @@ export const AdminSetup = () => {
             <div className="flex items-center gap-2">
               <Badge variant="secondary">Admin</Badge>
               <span className="text-muted-foreground">Can manage products, orders, and view analytics</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="default">Manager</Badge>
+              <span className="text-muted-foreground">Can view/edit orders, manage returns, and view analytics</span>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="destructive">SuperAdmin</Badge>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = 'customer' | 'admin' | 'superadmin';
+export type AppRole = 'customer' | 'admin' | 'manager' | 'superadmin';
 
 export const useRoles = (user: User | null) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
@@ -75,6 +75,10 @@ export const useRoles = (user: User | null) => {
     return hasRole('admin') || hasRole('superadmin');
   };
 
+  const isManager = (): boolean => {
+    return hasRole('manager');
+  };
+
   const isSuperAdmin = (): boolean => {
     return hasRole('superadmin');
   };
@@ -84,6 +88,7 @@ export const useRoles = (user: User | null) => {
     loading,
     hasRole,
     isAdmin,
+    isManager,
     isSuperAdmin,
   };
 };
