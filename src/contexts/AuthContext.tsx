@@ -73,12 +73,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
+        // If session doesn't exist, that's fine - user is already signed out
+        if (error.message?.includes('session_not_found') || error.message?.includes('Session from session_id claim in JWT does not exist')) {
+          console.log("Session already expired or doesn't exist");
+          // Clear local state manually since session is already gone
+          setSession(null);
+          setUser(null);
+          toast.success("Signed out successfully");
+          return;
+        }
         toast.error("Error signing out");
         console.error("Error signing out:", error);
       }
     } catch (error) {
       console.error("Unexpected error during sign out:", error);
-      toast.error("Unexpected error during sign out");
+      // Clear local state even if server call fails
+      setSession(null);
+      setUser(null);
+      toast.success("Signed out successfully");
     }
   };
 
