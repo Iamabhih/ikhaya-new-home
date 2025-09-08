@@ -41,6 +41,9 @@ export const useRoles = (user: User | null) => {
         
         console.log('Fetching roles for user ID:', user.id);
         
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log('Current auth session user ID:', sessionData?.session?.user?.id);
+        
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
