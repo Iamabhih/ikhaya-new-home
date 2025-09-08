@@ -126,6 +126,18 @@ export const Header = () => {
                         Analytics
                       </Link>
                     </DropdownMenuItem>
+                    {/* Manager and Admin features */}
+                    {(isManager() || isAdmin()) && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/returns" className="w-full">
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Returns
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     {/* Admin-only features */}
                     {isAdmin() && (
                       <>
@@ -134,12 +146,6 @@ export const Header = () => {
                           <Link to="/admin/products" className="w-full">
                             <Package className="h-4 w-4 mr-2" />
                             Products
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to="/admin/returns" className="w-full">
-                            <RotateCcw className="h-4 w-4 mr-2" />
-                            Returns
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
