@@ -144,7 +144,14 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
     );
   };
 
-  if (!isAdmin() && !isManager()) return null;
+  if (!isAdmin() && !isManager()) {
+    console.log(`[AdminSidebar] Access denied - User: ${user?.email}, Roles:`, roles);
+    console.log(`[AdminSidebar] isAdmin(): ${isAdmin()}, isManager(): ${isManager()}`);
+    return null;
+  }
+
+  console.log(`[AdminSidebar] Rendering sidebar for user: ${user?.email}, Roles:`, roles);
+  console.log(`[AdminSidebar] isAdmin(): ${isAdmin()}, isManager(): ${isManager()}, isSuperAdmin(): ${isSuperAdmin()}`);
 
   return (
     <div className={cn(
@@ -185,27 +192,31 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
               {isManager() && !isAdmin() ? 'Manager Access' : 'Core Management'}
             </h3>
           )}
-          {(isManager() && !isAdmin() ? managerRoutes : adminRoutes).map((route) => (
-            <NavLink
-              key={route.url}
-              to={route.url}
-              end={route.end}
-              className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                "hover:bg-gray-50 hover:text-gray-900 group",
-                isActive 
-                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200/50 shadow-sm" 
-                  : "text-gray-600 hover:text-gray-900"
-              )}
-              title={collapsed ? route.title : undefined}
-            >
-              <route.icon className={cn(
-                "h-5 w-5 flex-shrink-0 transition-colors",
-                isActive(route.url, route.end) ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"
-              )} />
-              {!collapsed && <span className="truncate">{route.title}</span>}
-            </NavLink>
-          ))}
+          {(isManager() && !isAdmin() ? managerRoutes : adminRoutes).map((route) => {
+            console.log(`[AdminSidebar] Rendering route: ${route.url} for user with roles:`, roles);
+            console.log(`[AdminSidebar] isManager(): ${isManager()}, isAdmin(): ${isAdmin()}`);
+            return (
+              <NavLink
+                key={route.url}
+                to={route.url}
+                end={route.end}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
+                  "hover:bg-gray-50 hover:text-gray-900 group",
+                  isActive 
+                    ? "bg-indigo-50 text-indigo-700 border border-indigo-200/50 shadow-sm" 
+                    : "text-gray-600 hover:text-gray-900"
+                )}
+                title={collapsed ? route.title : undefined}
+              >
+                <route.icon className={cn(
+                  "h-5 w-5 flex-shrink-0 transition-colors",
+                  isActive(route.url, route.end) ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"
+                )} />
+                {!collapsed && <span className="truncate">{route.title}</span>}
+              </NavLink>
+            );
+          })}
         </div>
 
         {/* SuperAdmin Routes */}

@@ -76,19 +76,27 @@ export const useRoles = (user: User | null) => {
   }, [user?.id]);
 
   const hasRole = (role: AppRole): boolean => {
-    return roles.includes(role);
+    const result = roles.includes(role);
+    console.log(`[useRoles] hasRole(${role}): ${result}, current roles:`, roles);
+    return result;
   };
 
   const isAdmin = (): boolean => {
-    return hasRole('admin') || hasRole('superadmin');
+    const result = hasRole('admin') || hasRole('superadmin');
+    console.log(`[useRoles] isAdmin(): ${result}`);
+    return result;
   };
 
   const isManager = (): boolean => {
-    return hasRole('manager');
+    const result = hasRole('manager');
+    console.log(`[useRoles] isManager(): ${result}`);
+    return result;
   };
 
   const isSuperAdmin = (): boolean => {
-    return hasRole('superadmin');
+    const result = hasRole('superadmin');
+    console.log(`[useRoles] isSuperAdmin(): ${result}`);
+    return result;
   };
 
   return {

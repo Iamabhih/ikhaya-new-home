@@ -60,11 +60,21 @@ export const AdminProtectedRoute = ({ children, requireSuperAdmin = false, allow
   }
 
   // Check permissions
+  const adminCheck = isAdmin();
+  const managerCheck = isManager();
+  const superAdminCheck = isSuperAdmin();
+  
+  console.log(`[AdminProtectedRoute] Permission check - User: ${user?.email}`);
+  console.log(`[AdminProtectedRoute] requireSuperAdmin: ${requireSuperAdmin}, allowManager: ${allowManager}`);
+  console.log(`[AdminProtectedRoute] isAdmin(): ${adminCheck}, isManager(): ${managerCheck}, isSuperAdmin(): ${superAdminCheck}`);
+  
   const hasPermission = requireSuperAdmin 
-    ? isSuperAdmin() 
+    ? superAdminCheck
     : allowManager 
-    ? isAdmin() || isManager() 
-    : isAdmin();
+    ? adminCheck || managerCheck
+    : adminCheck;
+    
+  console.log(`[AdminProtectedRoute] Final permission result: ${hasPermission}`);
 
   if (!hasPermission) {
     return (

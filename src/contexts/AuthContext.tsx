@@ -33,6 +33,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[AuthContext] Auth state change:', { 
+          event, 
+          hasSession: !!session, 
+          userId: session?.user?.id, 
+          userEmail: session?.user?.email 
+        });
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -48,15 +54,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Check for existing session
     const getInitialSession = async () => {
       try {
+        console.log('[AuthContext] Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          console.error('Error getting session:', error);
+          console.error('[AuthContext] Error getting session:', error);
         } else {
+          console.log('[AuthContext] Initial session loaded:', { 
+            hasSession: !!session, 
+            userId: session?.user?.id, 
+            userEmail: session?.user?.email 
+          });
           setSession(session);
           setUser(session?.user ?? null);
         }
       } catch (error) {
-        console.error('Error in getSession:', error);
+        console.error('[AuthContext] Error in getSession:', error);
       } finally {
         setLoading(false);
       }
