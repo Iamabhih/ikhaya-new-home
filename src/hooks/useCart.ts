@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { toast } from "sonner";
 
 export interface CartItem {
@@ -27,6 +28,7 @@ export interface CartItem {
 export const useCart = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { trackCartAdd, trackEvent } = useAnalytics();
   const [sessionId] = useState(() => {
     // Handle SSR/hydration issues
     if (typeof window === 'undefined') return '';
@@ -117,6 +119,9 @@ export const useCart = () => {
 
         if (error) throw error;
         console.log('Updated existing cart item:', existingItem.id, 'new quantity:', newQuantity);
+        
+        // Track cart update
+        trackCartAdd(productId, quantity);
       } else {
         // Insert new item
         const insertData: any = {
@@ -138,6 +143,9 @@ export const useCart = () => {
 
         if (error) throw error;
         console.log('Inserted new cart item');
+        
+        // Track new cart addition
+        trackCartAdd(productId, quantity);
       }
     },
     onSuccess: () => {
@@ -228,6 +236,13 @@ export const useCart = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
       toast.success("Cart cleared");
+      
+      // Track cart clear event
+      trackEvent({
+        event_type: 'cart',
+        event_name: 'cart_cleared',
+        metadata: { user_id: user?.id, session_id: sessionId }
+      });
     },
     onError: (error) => {
       console.error("Error clearing cart:", error);

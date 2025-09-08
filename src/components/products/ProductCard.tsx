@@ -2,6 +2,7 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useEnhancedCart } from "@/hooks/useEnhancedCart";
 import { useWishlistContext } from "@/contexts/WishlistContext";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { ProductImage } from "./ProductImage";
 import { ProductDetails } from "./ProductDetails";
 import { ProductPrice } from "./ProductPrice";
@@ -40,11 +41,22 @@ interface ProductCardProps {
 export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   const { addToCart } = useEnhancedCart();
   const { isInWishlist, toggleWishlist, loading } = useWishlistContext();
+  const { trackProductView, trackCartAdd } = useAnalytics();
   
   const inWishlist = isInWishlist(product.id);
   const isInStock = (product.stock_quantity || 0) > 0;
   
-  const handleAddToCart = () => addToCart(product.id, 1, product);
+  // Track product view when component mounts
+  useEffect(() => {
+    trackProductView(product.id, product.categories?.id);
+  }, [product.id, product.categories?.id, trackProductView]);
+  
+  const handleAddToCart = () => {
+    addToCart(product.id, 1, product);
+    // Track cart addition
+    trackCartAdd(product.id, 1);
+  };
+  
   const handleToggleWishlist = () => toggleWishlist(product.id);
   
   if (viewMode === "list") {

@@ -7,10 +7,22 @@ import { OptimizedCategoryGrid } from "@/components/home/OptimizedCategoryGrid";
 import { Newsletter } from "@/components/home/Newsletter";
 import { PromotionalBanners } from "@/components/home/PromotionalBanners";
 import { MobileSafeComponent } from "@/components/common/MobileSafeComponent";
-import { Suspense } from "react";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { Suspense, useEffect } from "react";
 import { UniversalLoading } from "@/components/ui/universal-loading";
 
 const Index = () => {
+  const { trackEvent } = useAnalytics();
+
+  // Track homepage visit
+  useEffect(() => {
+    trackEvent({
+      event_type: 'page_view',
+      event_name: 'homepage_visited',
+      page_path: '/',
+      metadata: { page_title: 'Homepage' }
+    });
+  }, [trackEvent]);
   return (
     <div className="min-h-screen bg-background">
       <MaintenanceBanner />

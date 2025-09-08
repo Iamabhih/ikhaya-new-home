@@ -4,7 +4,8 @@ import { OrdersMetrics } from "@/components/admin/orders/OrdersMetrics";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdvancedAnalyticsDashboard } from "@/components/admin/analytics/AdvancedAnalyticsDashboard";
+import { CartAbandonmentDashboard } from "@/components/admin/CartAbandonmentDashboard";
 
 const AdminAnalytics = () => {
   return (
@@ -14,31 +15,30 @@ const AdminAnalytics = () => {
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="space-y-1">
-                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Analytics Dashboard</h1>
-                <p className="text-gray-600 text-base">Monitor performance, insights, and business metrics</p>
+                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  Premium Analytics Dashboard
+                </h1>
+                <p className="text-muted-foreground text-base">
+                  Real-time insights, customer intelligence, and business metrics
+                </p>
               </div>
             </div>
             
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="orders">Orders</TabsTrigger>
-                <TabsTrigger value="products">Products</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="overview" className="space-y-6">
+            {/* Advanced Analytics Dashboard */}
+            <AdvancedAnalyticsDashboard />
+            
+            {/* Additional Analytics Sections */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="space-y-6">
                 <OrdersMetrics />
+              </div>
+              <div className="space-y-6">
                 <ProductAnalyticsDashboard />
-              </TabsContent>
-              
-              <TabsContent value="orders" className="space-y-6">
-                <OrdersMetrics />
-              </TabsContent>
-              
-              <TabsContent value="products" className="space-y-6">
-                <ProductAnalyticsDashboard />
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
+
+            {/* Cart Abandonment Analytics */}
+            <CartAbandonmentDashboard />
           </div>
         </ErrorBoundary>
     </AdminLayout>
