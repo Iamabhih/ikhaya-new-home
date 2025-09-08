@@ -186,6 +186,7 @@ export const UserManagement = () => {
     switch (role) {
       case 'superadmin': return 'destructive';
       case 'admin': return 'secondary';
+      case 'manager': return 'default';
       default: return 'outline';
     }
   };
@@ -233,6 +234,7 @@ export const UserManagement = () => {
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="customer">Customer</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="superadmin">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
@@ -352,7 +354,7 @@ const EditUserForm = ({ user, onSave, onAssignRole, onRemoveRole, validationErro
 
   if (!user) return null;
 
-  const availableRoles: AppRole[] = ['customer', 'admin', 'superadmin'];
+  const availableRoles: AppRole[] = ['customer', 'admin', 'manager', 'superadmin'];
 
   return (
     <div className="space-y-4">
