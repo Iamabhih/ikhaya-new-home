@@ -93,18 +93,18 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
 
       {/* Price */}
       <div className="space-y-2">
-        <div className="flex items-baseline gap-4">
-          <span className="text-4xl font-bold text-foreground">
+        <div className="flex items-baseline gap-4 justify-center">
+          <span className="text-4xl font-bold text-primary bg-gradient-to-r from-primary/10 to-secondary/10 px-4 py-2 rounded-lg">
             R{product.price.toFixed(2)}
           </span>
           {hasDiscount && (
-            <span className="text-2xl text-muted-foreground line-through">
+            <span className="text-2xl text-premium-muted line-through">
               R{product.compare_at_price.toFixed(2)}
             </span>
           )}
         </div>
         {hasDiscount && (
-          <Badge variant="destructive" className="text-sm font-medium">
+          <Badge variant="destructive" className="text-sm font-medium mx-auto block w-fit">
             Save {discountPercentage}% (R{(product.compare_at_price - product.price).toFixed(2)})
           </Badge>
         )}
@@ -120,7 +120,7 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
       )}
 
       {/* Stock Status & SKU */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-center">
         <Badge 
           variant={(product.stock_quantity && Number(product.stock_quantity) > 0) ? "default" : "destructive"}
           className="w-fit text-sm font-medium px-3 py-1"
@@ -131,7 +131,9 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
           }
         </Badge>
         {product.sku && (
-          <span className="text-sm text-muted-foreground font-mono">SKU: {product.sku}</span>
+          <span className="text-sm text-premium font-mono bg-gradient-to-r from-secondary/10 to-primary/10 px-3 py-1 rounded-md">
+            SKU: {product.sku}
+          </span>
         )}
       </div>
 
