@@ -69,14 +69,14 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
     <div className="space-y-8 sticky top-8">
       {/* Category */}
       {product.categories && (
-        <Badge variant="outline" className="text-xs font-medium px-3 py-1">
+        <p className="text-xs font-bold text-secondary hover:text-secondary-glow mb-0.5 sm:mb-1 uppercase tracking-widest transition-colors duration-300 drop-shadow-sm text-center">
           {product.categories.name}
-        </Badge>
+        </p>
       )}
 
       {/* Title */}
       <div className="space-y-3">
-        <h1 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight tracking-tight">
+        <h1 className="font-bold text-4xl lg:text-5xl text-center bg-gradient-to-r from-primary/15 via-primary-glow/10 to-secondary/15 rounded-lg px-6 py-4 text-primary hover:scale-[1.02] hover:shadow-glow hover:from-primary/25 hover:via-primary-glow/20 hover:to-secondary/25 transition-all duration-300 leading-tight tracking-tight">
           {product.name}
         </h1>
         
@@ -113,7 +113,7 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
       {/* Short Description */}
       {product.short_description && (
         <div className="space-y-2">
-          <p className="text-lg text-muted-foreground leading-relaxed">
+          <p className="text-lg text-premium leading-relaxed text-center">
             {product.short_description}
           </p>
         </div>
@@ -198,9 +198,9 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
       {/* Description */}
       {product.description && (
         <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-3">Description</h3>
+          <h3 className="text-lg font-bold text-primary mb-3 text-center">Description</h3>
           <div className="prose prose-sm max-w-none">
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+            <p className="text-premium leading-relaxed whitespace-pre-line">
               {product.description}
             </p>
           </div>
