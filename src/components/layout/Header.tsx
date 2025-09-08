@@ -15,7 +15,7 @@ import BackgroundRemovalStatus from "@/components/admin/BackgroundRemovalStatus"
 export const Header = () => {
   const { items } = useCart();
   const { user, signOut } = useAuth();
-  const { isAdmin, isManager, roles, loading } = useRoles(user);
+  const { isAdmin, isManager, isSuperAdmin, roles, loading } = useRoles(user);
   
   // Debug logging for manager role
   console.log('Header - User ID:', user?.id);
@@ -97,13 +97,13 @@ export const Header = () => {
                 OZZ SA
               </Link>
               
-              {/* Admin Dropdown */}
+              {/* Admin/Manager Dropdown */}
               {(isAdmin() || isManager()) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                       <Settings className="h-4 w-4 mr-2" />
-                      Admin
+                      {isManager() && !isAdmin() ? 'Manager' : 'Admin'}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
@@ -115,21 +115,9 @@ export const Header = () => {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link to="/admin/products" className="w-full">
-                        <Package className="h-4 w-4 mr-2" />
-                        Products
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
                       <Link to="/admin/orders" className="w-full">
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         Orders
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/users" className="w-full">
-                        <Users className="h-4 w-4 mr-2" />
-                        Users
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -138,36 +126,60 @@ export const Header = () => {
                         Analytics
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/returns" className="w-full">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Returns
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/payments" className="w-full">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Payments
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/subscriptions" className="w-full">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Subscriptions
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/homepage" className="w-full">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Homepage
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/production" className="w-full">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Production
-                      </Link>
-                    </DropdownMenuItem>
+                    {/* Admin-only features */}
+                    {isAdmin() && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/products" className="w-full">
+                            <Package className="h-4 w-4 mr-2" />
+                            Products
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/returns" className="w-full">
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Returns
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/payments" className="w-full">
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Payments
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/subscriptions" className="w-full">
+                            <Settings className="h-4 w-4 mr-2" />
+                            Subscriptions
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/homepage" className="w-full">
+                            <Settings className="h-4 w-4 mr-2" />
+                            Homepage
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/production" className="w-full">
+                            <Settings className="h-4 w-4 mr-2" />
+                            Production
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {/* SuperAdmin-only features */}
+                    {isSuperAdmin() && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/users" className="w-full">
+                            <Users className="h-4 w-4 mr-2" />
+                            Users
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
