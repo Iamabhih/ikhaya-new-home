@@ -74,21 +74,17 @@ const ProductDetailPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-subtle">
+      <div className="min-h-screen bg-background">
         <Header />
-        <main className="premium-container py-8">
-          <div className="animate-pulse premium-spacing">
-            <div className="glass-card p-4 mb-8">
-              <div className="h-6 bg-muted rounded w-64"></div>
-            </div>
-            <div className="glass-card p-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                <div className="aspect-square bg-muted rounded-lg"></div>
-                <div className="space-y-4">
-                  <div className="h-8 bg-muted rounded w-3/4"></div>
-                  <div className="h-6 bg-muted rounded w-1/2"></div>
-                  <div className="h-20 bg-muted rounded"></div>
-                </div>
+        <main className="container mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-8">
+            <div className="h-6 bg-muted rounded w-64"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="aspect-square bg-muted rounded-lg"></div>
+              <div className="space-y-4">
+                <div className="h-8 bg-muted rounded w-3/4"></div>
+                <div className="h-6 bg-muted rounded w-1/2"></div>
+                <div className="h-20 bg-muted rounded"></div>
               </div>
             </div>
           </div>
@@ -100,17 +96,17 @@ const ProductDetailPage = () => {
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-gradient-subtle">
+      <div className="min-h-screen bg-background">
         <Header />
-        <main className="premium-container py-8">
-          <div className="glass-card p-12 text-center hover-lift">
-            <h1 className="text-3xl font-bold gradient-text-brand mb-4">Product Not Found</h1>
-            <p className="text-premium-muted mb-6">
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+            <p className="text-muted-foreground mb-6">
               The product you're looking for doesn't exist or has been removed.
             </p>
             <Link 
               to="/products" 
-              className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 hover-lift focus-premium transition-all duration-300"
+              className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
             >
               Browse All Products
             </Link>
@@ -122,61 +118,54 @@ const ProductDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
+    <div className="min-h-screen bg-background">
       <MaintenanceBanner />
       <Header />
-      <main className="premium-container py-8 premium-spacing">
+      <main className="container mx-auto px-4 py-8">
         {/* Breadcrumbs */}
-        <div className="glass-card p-4 mb-8 hover-lift">
-          <StandardBreadcrumbs 
-            items={[
-              { label: "Home", href: "/" },
-              { label: "Products", href: "/products" },
-              ...(product.categories ? [{ label: product.categories.name, href: `/categories/${product.categories.slug}` }] : []),
-              { label: product.name, isActive: true }
-            ]} 
-          />
-        </div>
+        <StandardBreadcrumbs 
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Products", href: "/products" },
+            ...(product.categories ? [{ label: product.categories.name, href: `/categories/${product.categories.slug}` }] : []),
+            { label: product.name, isActive: true }
+          ]} 
+        />
 
         {/* Product Details */}
-        <div className="glass-card p-8 mb-12 hover-lift">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16">
-            <div className="hover-glow">
-              <ProductImageGallery 
-                images={product.product_images || []} 
-                productName={product.name}
-              />
-            </div>
-            <div className="lg:pl-8">
-              <ProductInfo product={product} />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16 mb-20">
+          <ProductImageGallery 
+            images={product.product_images || []} 
+            productName={product.name}
+          />
+          <div className="lg:pl-8">
+            <ProductInfo product={product} />
           </div>
         </div>
 
         {/* Reviews Section */}
-        <div className="glass-card p-8 mb-12 hover-lift">
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold gradient-text-brand text-center mb-2">Customer Reviews</h2>
-            <p className="text-premium-muted text-center">What our customers are saying</p>
-          </div>
+        <div className="mb-16">
           <ReviewsSection productId={product.id} />
         </div>
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <div className="glass-card p-8 hover-lift">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold gradient-text-brand mb-2">Related Products</h2>
-              <p className="text-premium-muted">
-                You might also like these products
-              </p>
-            </div>
-            <OptimizedProductGrid
-              products={relatedProducts}
-              isLoading={false}
-              viewMode="grid"
-            />
-          </div>
+          <>
+            <Separator className="mb-8" />
+            <section className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold mb-2">Related Products</h2>
+                <p className="text-muted-foreground">
+                  You might also like these products
+                </p>
+              </div>
+              <OptimizedProductGrid
+                products={relatedProducts}
+                isLoading={false}
+                viewMode="grid"
+              />
+            </section>
+          </>
         )}
       </main>
       <Footer />
