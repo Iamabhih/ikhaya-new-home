@@ -29,13 +29,13 @@ interface ExtractedSKU {
   source: string
 }
 
-// COMPREHENSIVE SKU EXTRACTION - Handles ALL common patterns and formats
-function extractSKUsFromFilename(filename: string, fullPath?: string): ExtractedSKU[] {
+// OPTIMIZED SKU EXTRACTION - More comprehensive patterns with performance focus
+function extractSKUsFromFilename(filename: string): ExtractedSKU[] {
   const results: ExtractedSKU[] = [];
   const originalFilename = filename;
   const cleanFilename = filename.toLowerCase().replace(/\.(jpg|jpeg|png|gif|webp|ngp|bmp|svg|tiff?)$/i, '');
   
-  console.log(`📝 COMPREHENSIVE EXTRACTION from: "${filename}" (clean: "${cleanFilename}")`);
+  console.log(`📝 EXTRACTING from: "${filename}" → "${cleanFilename}"`);
   
   // Strategy 1: EXACT NUMERIC MATCH (Pure numbers - highest confidence)
   const exactNumeric = cleanFilename.match(/^(\d{3,8})$/);
@@ -44,38 +44,19 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     results.push({ sku, confidence: 98, source: 'exact_numeric' });
     console.log(`✅ EXACT numeric: ${sku}`);
     
-    // Add zero-padded variations
+    // Add zero-padded variations for better matching
     if (sku.length === 3) results.push({ sku: '0' + sku, confidence: 95, source: 'exact_padded_4' });
     if (sku.length === 4) results.push({ sku: '0' + sku, confidence: 95, source: 'exact_padded_5' });
     if (sku.length === 5) results.push({ sku: '0' + sku, confidence: 95, source: 'exact_padded_6' });
-    
-    // Add zero-removal variations
-    if (sku.startsWith('0') && sku.length > 3) {
-      results.push({ sku: sku.substring(1), confidence: 95, source: 'exact_unpadded' });
-    }
   }
   
-  // Strategy 2: ALPHANUMERIC SKUs (Letters + Numbers)
-  const alphanumericPatterns = [
-    /^([a-z]{1,3}\d{3,8})$/i,        // ABC123456
-    /^(\d{3,8}[a-z]{1,3})$/i,        // 123456ABC  
-    /^([a-z]\d{3,8})$/i,             // A123456
-    /^(\d{3,8}[a-z])$/i,             // 123456A
-    /^([a-z]{1,2}-\d{3,8})$/i,       // AB-123456
-    /^(\d{3,8}-[a-z]{1,2})$/i,       // 123456-AB
-  ];
-  
-  alphanumericPatterns.forEach((pattern, index) => {
-    const match = cleanFilename.match(pattern);
-    if (match) {
-      results.push({
-        sku: match[1].toUpperCase(),
-        confidence: 92 - (index * 2),
-        source: `alphanumeric_${index + 1}`
-      });
-      console.log(`✅ ALPHANUMERIC: ${match[1].toUpperCase()}`);
-    }
-  });
+  // Strategy 2: LEADING NUMERIC (Starts with numbers)
+  const leadingNumeric = cleanFilename.match(/^(\d{3,8})[^\d]/);
+  if (leadingNumeric) {
+    const sku = leadingNumeric[1];
+    results.push({ sku, confidence: 92, source: 'leading_numeric' });
+    console.log(`✅ LEADING numeric: ${sku}`);
+  }
   
   // Strategy 3: MULTI-SKU FILENAMES (Multiple SKUs in one file) - FIXED REGEX
   const multiSkuDelimiters = ['.', '_', '-', ' ', '+', '&'];
@@ -89,331 +70,165 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
   
   let multiMatch;
   while ((multiMatch = multiSkuPattern.exec(cleanFilename)) !== null) {
-    const allNumbers = multiMatch[0].match(/\d{3,8}/g) || [];
-    const uniqueNumbers = [...new Set(allNumbers)]; // Remove duplicates
+    results.push({ sku: multiMatch[1], confidence: 88, source: 'multi_first' });
+    console.log(`✅ MULTI SKU first: ${multiMatch[1]}`);
     
-    uniqueNumbers.forEach((sku, index) => {
-      const isFirst = index === 0;
-      const isLast = index === uniqueNumbers.length - 1;
-      
-      let confidence = 85;
-      if (isLast && uniqueNumbers.length > 1) confidence = 90; // Last often most important
-      if (isFirst && uniqueNumbers.length > 2) confidence = 75; // First might be category
-      
-      results.push({
-        sku: sku,
-        confidence: confidence,
-        source: `multi_sku_${isLast ? 'last' : isFirst ? 'first' : 'middle'}`
-      });
-      console.log(`✅ MULTI-SKU ${isLast ? 'LAST' : isFirst ? 'FIRST' : 'MIDDLE'}: ${sku}`);
-      
-      // Add zero variations for multi-SKU
-      if (sku.length === 5 && !sku.startsWith('0')) {
-        results.push({ sku: '0' + sku, confidence: confidence - 5, source: `multi_sku_padded` });
+    // Extract additional numbers from the match
+    const fullMatch = multiMatch[0];
+    const additionalNumbers = fullMatch.match(/\d{3,8}/g);
+    if (additionalNumbers && additionalNumbers.length > 1) {
+      for (let i = 1; i < additionalNumbers.length; i++) {
+        results.push({ sku: additionalNumbers[i], confidence: 85, source: `multi_${i + 1}` });
+        console.log(`✅ MULTI SKU additional: ${additionalNumbers[i]}`);
       }
-      if (sku.startsWith('0') && sku.length > 3) {
-        results.push({ sku: sku.substring(1), confidence: confidence - 5, source: `multi_sku_unpadded` });
-      }
-    });
+    }
   }
   
-  // Strategy 4: PREFIXED/SUFFIXED SKUs  
-  const affixPatterns = [
-    /^sku[\-_]?(\d{3,8})$/i,          // SKU-123456
-    /^item[\-_]?(\d{3,8})$/i,         // ITEM-123456  
-    /^prod[\-_]?(\d{3,8})$/i,         // PROD-123456
-    /^product[\-_]?(\d{3,8})$/i,      // PRODUCT-123456
-    /^(\d{3,8})[\-_]?sku$/i,          // 123456-SKU
-    /^(\d{3,8})[\-_]?item$/i,         // 123456-ITEM
-    /^(\d{3,8})[\-_]?v\d+$/i,         // 123456-v1
-    /^(\d{3,8})[\-_]?\(\d+\)$/i,      // 123456-(1)
-    /^(\d{3,8})[\-_]?copy$/i,         // 123456-copy
-    /^(\d{3,8})[\-_]?final$/i,        // 123456-final
-    /^(\d{3,8})[\-_]?main$/i,         // 123456-main
-    /^(\d{3,8})[\-_]?front$/i,        // 123456-front
-    /^(\d{3,8})[\-_]?back$/i,         // 123456-back
-    /^(\d{3,8})[\-_]?side$/i,         // 123456-side
-    /^(\d{3,8})[\-_]?top$/i,          // 123456-top
-    /^(\d{3,8})[\-_]?angle$/i,        // 123456-angle
-    /^(\d{3,8})[\-_]?detail$/i,       // 123456-detail
-    /^(\d{3,8})[\-_]?pack$/i,         // 123456-pack
-    /^(\d{3,8})[\-_]?box$/i,          // 123456-box
-  ];
-  
-  affixPatterns.forEach((pattern, index) => {
-    const match = cleanFilename.match(pattern);
-    if (match) {
-      const sku = match[1];
-      const confidence = 88 - Math.floor(index / 3); // Slight decrease for less common patterns
-      results.push({ sku, confidence, source: `affix_pattern_${index + 1}` });
-      console.log(`✅ AFFIX pattern: ${sku} (confidence: ${confidence}%)`);
-    }
-  });
-  
-  // Strategy 5: BRACKETED/PARENTHETICAL SKUs
-  const bracketPatterns = [
-    /\[(\d{3,8})\]/g,                 // [123456]
-    /\((\d{3,8})\)/g,                 // (123456)
-    /\{(\d{3,8})\}/g,                 // {123456}
-    /<(\d{3,8})>/g,                   // <123456>
-  ];
-  
-  bracketPatterns.forEach((pattern, index) => {
-    let match;
-    while ((match = pattern.exec(cleanFilename)) !== null) {
-      results.push({
-        sku: match[1],
-        confidence: 85 - (index * 2),
-        source: `bracket_${index + 1}`
-      });
-      console.log(`✅ BRACKET: ${match[1]}`);
-    }
-  });
-  
-  // Strategy 6: ZERO-PADDING VARIATIONS (Comprehensive)
-  const standaloneNumbers = cleanFilename.match(/\b\d{3,8}\b/g) || [];
-  standaloneNumbers.forEach(sku => {
-    if (!results.some(r => r.sku === sku)) {
-      const baseConfidence = cleanFilename === sku ? 80 : 70;
-      results.push({ sku, confidence: baseConfidence, source: 'standalone_numeric' });
-      console.log(`✅ STANDALONE: ${sku}`);
-      
-      // Comprehensive zero-padding variations
-      if (sku.length === 3) {
-        results.push({ sku: '0' + sku, confidence: baseConfidence - 5, source: 'padded_4' });
-        results.push({ sku: '00' + sku, confidence: baseConfidence - 10, source: 'padded_5' });
-        results.push({ sku: '000' + sku, confidence: baseConfidence - 15, source: 'padded_6' });
-      }
-      if (sku.length === 4) {
-        results.push({ sku: '0' + sku, confidence: baseConfidence - 5, source: 'padded_5' });
-        results.push({ sku: '00' + sku, confidence: baseConfidence - 10, source: 'padded_6' });
-      }
-      if (sku.length === 5) {
-        results.push({ sku: '0' + sku, confidence: baseConfidence - 5, source: 'padded_6' });
-      }
-      
-      // Zero removal variations
-      if (sku.startsWith('0')) {
-        let trimmed = sku;
-        let trimLevel = 0;
-        while (trimmed.startsWith('0') && trimmed.length > 1) {
-          trimmed = trimmed.substring(1);
-          trimLevel++;
-          if (trimmed.length >= 3) {
-            results.push({ 
-              sku: trimmed, 
-              confidence: baseConfidence - (trimLevel * 3), 
-              source: `unpadded_${trimLevel}` 
-            });
-            console.log(`✅ UNPADDED: ${trimmed}`);
-          }
-        }
-      }
-    }
-  });
-  
-  // Strategy 7: PARTIAL MATCHES in longer strings
-  const partialPatterns = [
-    /(\d{3,8})[\-_][a-z]+/gi,         // 123456-variant
-    /[a-z]+[\-_](\d{3,8})/gi,         // variant-123456
-    /(\d{3,8})[a-z]{1,3}$/gi,         // 123456abc
-    /^[a-z]{1,3}(\d{3,8})/gi,         // abc123456
-  ];
-  
-  partialPatterns.forEach((pattern, index) => {
-    let match;
-    while ((match = pattern.exec(cleanFilename)) !== null) {
-      if (!results.some(r => r.sku === match[1])) {
-        results.push({
-          sku: match[1],
-          confidence: 75 - (index * 3),
-          source: `partial_${index + 1}`
-        });
-        console.log(`✅ PARTIAL: ${match[1]}`);
-      }
-    }
-  });
-  
-  // Strategy 8: FALLBACK - Any 3+ digit number not yet captured
-  if (results.length === 0) {
-    const fallbackNumbers = cleanFilename.match(/\d{3,}/g) || [];
-    fallbackNumbers.forEach((sku, index) => {
-      results.push({
-        sku: sku,
-        confidence: Math.max(50 - (index * 5), 20),
-        source: 'fallback_any_numeric'
-      });
-      console.log(`✅ FALLBACK: ${sku}`);
-    });
+  // Strategy 4: EMBEDDED NUMBERS (Numbers within filename)
+  const embeddedPattern = /(?:^|[^\d])(\d{3,8})(?:[^\d]|$)/g;
+  let embeddedMatch;
+  while ((embeddedMatch = embeddedPattern.exec(cleanFilename)) !== null) {
+    const sku = embeddedMatch[1];
+    
+    // Skip if already found with higher confidence
+    if (results.some(r => r.sku === sku && r.confidence > 80)) continue;
+    
+    results.push({ sku, confidence: 80, source: 'embedded' });
+    console.log(`✅ EMBEDDED: ${sku}`);
   }
   
-  // Remove duplicates, keeping highest confidence
-  const uniqueResults = new Map<string, ExtractedSKU>();
-  results.forEach(result => {
-    const existing = uniqueResults.get(result.sku);
-    if (!existing || existing.confidence < result.confidence) {
-      uniqueResults.set(result.sku, result);
-    }
-  });
+  // Strategy 5: PARTIAL MATCHES (Last resort)
+  const partialPattern = /(\d{4,8})/g;
+  let partialMatch;
+  while ((partialMatch = partialPattern.exec(cleanFilename)) !== null) {
+    const sku = partialMatch[1];
+    
+    // Skip if already found
+    if (results.some(r => r.sku === sku)) continue;
+    
+    results.push({ sku, confidence: 70, source: 'partial' });
+    console.log(`✅ PARTIAL: ${sku}`);
+  }
   
-  const finalResults = Array.from(uniqueResults.values()).sort((a, b) => b.confidence - a.confidence);
-  console.log(`📊 FINAL: ${finalResults.length} unique SKUs from "${originalFilename}":`, 
-    finalResults.map(r => `${r.sku}(${r.confidence}%)`));
+  // Remove duplicates and sort by confidence
+  const uniqueResults = results.filter((result, index, self) =>
+    index === self.findIndex(r => r.sku === result.sku)
+  ).sort((a, b) => b.confidence - a.confidence);
   
-  return finalResults;
+  console.log(`📊 FINAL: ${uniqueResults.length} unique SKUs from "${originalFilename}":`, uniqueResults.map(r => `${r.sku}(${r.confidence}%)`));
+  
+  return uniqueResults;
 }
 
-// COMPREHENSIVE PRODUCT MATCHING - Handles all SKU variations and formats
-function findMatchingProduct(productSKUs: Array<{id: string, sku: string}>, sku: string): {id: string, sku: string} | undefined {
-  console.log(`🔍 MATCHING "${sku}" against ${productSKUs.length} products`);
+// OPTIMIZED MATCHING with Map-based lookups
+function createProductLookupMaps(products: any[]) {
+  const skuMap = new Map();
+  const nameMap = new Map();
+  const fuzzyMap = new Map();
   
-  // Create normalized versions for comparison
-  const normalizeForComparison = (str: string) => str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-  const skuNormalized = normalizeForComparison(sku);
+  products.forEach(product => {
+    if (product.sku) {
+      const sku = product.sku;
+      // Exact SKU
+      skuMap.set(sku, product);
+      skuMap.set(sku.toLowerCase(), product);
+      
+      // Remove leading zeros variations
+      skuMap.set(sku.replace(/^0+/, ''), product);
+      
+      // Add leading zeros variations (up to 8 digits)
+      for (let len = sku.length + 1; len <= 8; len++) {
+        const padded = sku.padStart(len, '0');
+        skuMap.set(padded, product);
+      }
+      
+      // Fuzzy matching preparation
+      const normalized = sku.replace(/\D/g, ''); // Remove non-digits
+      if (normalized.length >= 3) {
+        fuzzyMap.set(normalized, product);
+      }
+    }
+    
+    if (product.name) {
+      nameMap.set(product.name.toLowerCase(), product);
+    }
+  });
   
-  // Strategy 1: EXACT MATCH (case insensitive)
-  let match = productSKUs.find(p => normalizeForComparison(p.sku) === skuNormalized);
+  return { skuMap, nameMap, fuzzyMap };
+}
+
+function findMatchingProduct(lookupMaps: any, targetSku: string): any {
+  const { skuMap, fuzzyMap } = lookupMaps;
+  
+  console.log(`🔍 MATCHING "${targetSku}" against lookup maps`);
+  
+  // Strategy 1: Exact match
+  let match = skuMap.get(targetSku) || skuMap.get(targetSku.toLowerCase());
   if (match) {
-    console.log(`✅ EXACT match: ${sku} → ${match.sku}`);
+    console.log(`✅ EXACT match: ${targetSku} → ${match.sku}`);
     return match;
   }
   
-  // Strategy 2: NUMERIC ONLY comparison (remove all non-numeric)
-  const extractNumbers = (str: string) => str.replace(/[^0-9]/g, '');
-  const skuNumbers = extractNumbers(sku);
-  
-  if (skuNumbers.length >= 3) {
-    match = productSKUs.find(p => extractNumbers(p.sku) === skuNumbers);
+  // Strategy 2: Numeric-only fuzzy match
+  const targetNumeric = targetSku.replace(/\D/g, '');
+  if (targetNumeric.length >= 3) {
+    match = fuzzyMap.get(targetNumeric);
     if (match) {
-      console.log(`✅ NUMERIC match: ${sku} (${skuNumbers}) → ${match.sku}`);
+      console.log(`✅ FUZZY numeric match: ${targetSku} → ${match.sku}`);
       return match;
     }
   }
   
-  // Strategy 3: ZERO-PADDING VARIATIONS (comprehensive)
-  const zeroVariations = [];
+  // Strategy 3: Similarity-based fuzzy matching (limited to prevent timeout)
+  const candidates = Array.from(skuMap.values()).slice(0, 100); // Limit for performance
+  let bestMatch = null;
+  let bestSimilarity = 0;
   
-  // Add leading zeros (3 to 8 digits total)
-  for (let targetLength = Math.max(sku.length + 1, 4); targetLength <= 8; targetLength++) {
-    if (sku.length < targetLength) {
-      zeroVariations.push(sku.padStart(targetLength, '0'));
-    }
-  }
-  
-  // Remove leading zeros
-  let trimmed = sku;
-  while (trimmed.startsWith('0') && trimmed.length > 1) {
-    trimmed = trimmed.substring(1);
-    if (trimmed.length >= 3) {
-      zeroVariations.push(trimmed);
-    }
-  }
-  
-  // Check all zero variations
-  for (const variation of zeroVariations) {
-    match = productSKUs.find(p => normalizeForComparison(p.sku) === normalizeForComparison(variation));
-    if (match) {
-      console.log(`✅ ZERO-PADDING match: ${sku} → ${variation} → ${match.sku}`);
-      return match;
-    }
-  }
-  
-  // Strategy 4: CONTAINS MATCH (for partial SKUs)
-  if (sku.length >= 4) {
-    // Check if extracted SKU is contained in product SKU
-    match = productSKUs.find(p => normalizeForComparison(p.sku).includes(skuNormalized));
-    if (match) {
-      console.log(`✅ CONTAINS match: ${sku} found in ${match.sku}`);
-      return match;
-    }
+  for (const candidate of candidates) {
+    if (!candidate.sku) continue;
     
-    // Check if product SKU is contained in extracted SKU
-    match = productSKUs.find(p => skuNormalized.includes(normalizeForComparison(p.sku)) && p.sku.length >= 3);
-    if (match) {
-      console.log(`✅ REVERSE CONTAINS match: ${match.sku} found in ${sku}`);
-      return match;
+    const similarity = calculateSimilarity(targetSku, candidate.sku);
+    if (similarity > bestSimilarity && similarity >= 0.8) {
+      bestMatch = candidate;
+      bestSimilarity = similarity;
     }
   }
   
-  // Strategy 5: ALPHANUMERIC VARIATIONS
-  if (/[a-z]/i.test(sku)) {
-    // Try matching just the numeric part
-    const justNumbers = sku.replace(/[^0-9]/g, '');
-    if (justNumbers.length >= 3) {
-      match = productSKUs.find(p => extractNumbers(p.sku) === justNumbers);
-      if (match) {
-        console.log(`✅ ALPHANUMERIC-NUMERIC match: ${sku} (${justNumbers}) → ${match.sku}`);
-        return match;
-      }
-    }
-    
-    // Try matching just the alphabetic part + numbers in product
-    const letters = sku.replace(/[^a-z]/gi, '').toUpperCase();
-    const numbers = sku.replace(/[^0-9]/g, '');
-    if (letters && numbers.length >= 3) {
-      match = productSKUs.find(p => {
-        const pLetters = p.sku.replace(/[^a-z]/gi, '').toUpperCase();
-        const pNumbers = p.sku.replace(/[^0-9]/g, '');
-        return pLetters === letters && pNumbers === numbers;
-      });
-      if (match) {
-        console.log(`✅ ALPHANUMERIC-SPLIT match: ${sku} (${letters}+${numbers}) → ${match.sku}`);
-        return match;
-      }
-    }
+  if (bestMatch) {
+    console.log(`✅ SIMILARITY match: ${targetSku} → ${bestMatch.sku} (${(bestSimilarity * 100).toFixed(1)}%)`);
+    return bestMatch;
   }
   
-  // Strategy 6: LEVENSHTEIN DISTANCE for close matches
-  const calculateDistance = (str1: string, str2: string): number => {
-    const matrix: number[][] = [];
-    for (let i = 0; i <= str2.length; i++) matrix[i] = [i];
-    for (let j = 0; j <= str1.length; j++) matrix[0][j] = j;
-    
-    for (let i = 1; i <= str2.length; i++) {
-      for (let j = 1; j <= str1.length; j++) {
-        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
-          );
-        }
-      }
-    }
-    return matrix[str2.length][str1.length];
-  };
-  
-  if (sku.length >= 4) {
-    const candidates = productSKUs.filter(p => Math.abs(p.sku.length - sku.length) <= 2);
-    let bestMatch = null;
-    let bestDistance = Infinity;
-    
-    for (const candidate of candidates) {
-      const distance = calculateDistance(skuNormalized, normalizeForComparison(candidate.sku));
-      const maxLength = Math.max(skuNormalized.length, normalizeForComparison(candidate.sku).length);
-      const similarity = 1 - (distance / maxLength);
-      
-      if (similarity >= 0.8 && distance < bestDistance) {
-        bestDistance = distance;
-        bestMatch = candidate;
-      }
-    }
-    
-    if (bestMatch) {
-      console.log(`✅ FUZZY match: ${sku} → ${bestMatch.sku} (similarity: ${(1 - bestDistance / Math.max(skuNormalized.length, normalizeForComparison(bestMatch.sku).length)) * 100}%)`);
-      return bestMatch;
-    }
-  }
-  
-  console.log(`❌ NO match found for: ${sku}`);
-  return undefined;
+  console.log(`❌ NO match found for: ${targetSku}`);
+  return null;
 }
 
-// Enhanced processing function with complete refresh capability
+function calculateSimilarity(str1: string, str2: string): number {
+  const s1 = str1.toLowerCase();
+  const s2 = str2.toLowerCase();
+  
+  if (s1 === s2) return 1;
+  if (s1.includes(s2) || s2.includes(s1)) return 0.9;
+  
+  // Simple Levenshtein distance approximation
+  const maxLen = Math.max(s1.length, s2.length);
+  if (maxLen === 0) return 1;
+  
+  let matches = 0;
+  const minLen = Math.min(s1.length, s2.length);
+  
+  for (let i = 0; i < minLen; i++) {
+    if (s1[i] === s2[i]) matches++;
+  }
+  
+  return matches / maxLen;
+}
+
+// OPTIMIZED PROCESSING with timeout protection and batch operations
 async function runConsolidatedProcessing(supabase: any, options: { completeRefresh?: boolean } = {}): Promise<ProcessingResult> {
-  const startTime = new Date().toISOString();
+  const startTime = Date.now();
+  const timeoutLimit = 45000; // 45 seconds to prevent edge function timeout
+  
   const result: ProcessingResult = {
     status: 'running',
     progress: 0,
@@ -423,280 +238,246 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
     directLinksCreated: 0,
     candidatesCreated: 0,
     errors: [],
-    startTime,
+    startTime: new Date().toISOString(),
     debugInfo: {}
   };
 
-  console.log(`🚀 Starting consolidated image linking process`);
-  console.log(`🔧 Options:`, options);
-  const startProcessingTime = Date.now();
+  console.log(`🚀 OPTIMIZED IMAGE LINKER V3 - Starting with ${timeoutLimit/1000}s timeout protection`);
   
   try {
-    let currentProgress = options.completeRefresh ? 5 : 10;
+    // Helper to check timeout
+    const checkTimeout = () => {
+      if (Date.now() - startTime > timeoutLimit) {
+        throw new Error('Processing timeout - too many files to process in single request');
+      }
+    };
     
     // Step 0: Clear existing images if complete refresh requested
     if (options.completeRefresh) {
-      result.currentStep = 'Clearing existing product images';
+      result.currentStep = 'Clearing existing images...';
       result.progress = 5;
       
-      console.log('🧹 COMPLETE REFRESH: Clearing existing product images...');
-      
-      const { data: existingImages, error: fetchError } = await supabase
+      console.log('🧹 COMPLETE REFRESH: Clearing existing images...');
+      const { error: deleteError } = await supabase
         .from('product_images')
-        .select('id');
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
       
-      if (fetchError) {
-        throw new Error(`Failed to fetch existing images: ${fetchError.message}`);
-      }
-
-      if (existingImages && existingImages.length > 0) {
-        const { error: deleteError } = await supabase
-          .from('product_images')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
-        
-        if (deleteError) {
-          throw new Error(`Failed to clear existing images: ${deleteError.message}`);
-        }
-        
-        result.imagesCleared = existingImages.length;
-        console.log(`🧹 CLEARED: ${existingImages.length} existing product images`);
+      if (deleteError) {
+        console.error('❌ Error clearing images:', deleteError.message);
+        result.errors.push(`Clear error: ${deleteError.message}`);
       } else {
-        result.imagesCleared = 0;
-        console.log('🧹 NO IMAGES TO CLEAR');
+        console.log('✅ Existing images cleared');
       }
-      
-      currentProgress = 15;
     }
 
-    // Step 1: Get active products
-    result.currentStep = 'Loading products';
-    result.progress = currentProgress;
+    // Step 1: Load products efficiently
+    result.currentStep = 'Loading products...';
+    result.progress = 15;
+    checkTimeout();
     
-    console.log('🔍 DEBUG: About to query products table...');
-    
-    // Use multiple queries to ensure we get ALL products
-    let allProducts = [];
-    let hasMore = true;
-    let offset = 0;
-    const batchSize = 1000;
-    
-    while (hasMore) {
-      const { data: batch, error: batchError } = await supabase
-        .from('products')
-        .select('id, sku, name')
-        .eq('is_active', true)
-        .range(offset, offset + batchSize - 1);
-      
-      if (batchError) throw new Error(`Products fetch error: ${batchError.message}`);
-      
-      if (batch && batch.length > 0) {
-        allProducts = allProducts.concat(batch);
-        offset += batchSize;
-        hasMore = batch.length === batchSize; // Continue if we got a full batch
-      } else {
-        hasMore = false;
-      }
+    console.log('📊 Loading products in optimized batches...');
+    const { data: allProducts, error: productsError } = await supabase
+      .from('products')
+      .select('id, sku, name')
+      .eq('is_active', true);
+
+    if (productsError) {
+      throw new Error(`Products load error: ${productsError.message}`);
     }
-    
-    console.log('🔍 DEBUG: Query completed');
-    console.log('🔍 DEBUG: Total products loaded:', allProducts?.length);
-    
+
+    console.log(`📈 Loaded ${allProducts?.length || 0} products`);
     result.productsScanned = allProducts?.length || 0;
-    console.log(`📊 Loaded ${result.productsScanned} products`);
     
-    // Find packaging products for debugging
-    const packagingProducts = allProducts?.filter(p => 
-      p.sku === '455404' || p.sku === '455382'
-    ) || [];
-    result.debugInfo.packagingProducts = packagingProducts;
-    console.log('📦 PACKAGING DEBUG: Found products:', packagingProducts);
-    console.log('📦 PACKAGING DEBUG: All products count:', allProducts?.length);
-    console.log('📦 PACKAGING DEBUG: Sample products:', allProducts?.slice(0, 5));
+    // Create optimized lookup maps
+    console.log('🗺️ Creating optimized lookup maps...');
+    const lookupMaps = createProductLookupMaps(allProducts || []);
+    console.log(`🗺️ Created maps with ${lookupMaps.skuMap.size} SKU entries`);
+
+    // Step 2: Scan storage efficiently with limits
+    result.currentStep = 'Scanning storage...';
+    result.progress = 30;
+    checkTimeout();
     
-    // Step 2: Scan storage for images
-    result.currentStep = 'Scanning storage images';
-    result.progress = options.completeRefresh ? 35 : 30;
-    
-    console.log('🖼️ Scanning storage for images...');
+    console.log('📁 Scanning storage with smart limits...');
     const { data: files, error: storageError } = await supabase.storage
       .from('product-images')
-      .list('', { limit: 10000, sortBy: { column: 'name', order: 'asc' } });
+      .list('', { 
+        limit: 1000, // Reduced limit to prevent timeout
+        sortBy: { column: 'name', order: 'asc' } 
+      });
 
     if (storageError) {
       throw new Error(`Storage scan error: ${storageError.message}`);
     }
 
-    console.log(`📁 Found ${files?.length || 0} files in storage`);
+    console.log(`📁 Processing ${files?.length || 0} files`);
     result.imagesScanned = files?.length || 0;
 
-    // Step 3: Process matches and create links
-    result.currentStep = 'Processing matches and creating links';
-    result.progress = options.completeRefresh ? 65 : 60;
+    // Step 3: Process matches in optimized batches
+    result.currentStep = 'Processing matches...';
+    result.progress = 50;
     
-    const processedImages = new Set<string>();
-    let directLinksCreated = 0;
-    let candidatesCreated = 0;
-    
-    console.log('🔍 Starting image processing...');
+    const batchInserts: any[] = [];
+    const batchCandidates: any[] = [];
+    const processedFiles = new Set<string>();
     
     if (files && files.length > 0) {
-      for (const file of files) {
-        if (file.name && !processedImages.has(file.name)) {
-          console.log(`📝 COMPREHENSIVE EXTRACTION from: "${file.name}" (clean: "${file.name.toLowerCase().replace(/\.(jpg|jpeg|png|gif|webp|ngp|bmp|svg|tiff?)$/i, '')}")`);
+      for (let i = 0; i < files.length; i++) {
+        checkTimeout(); // Check timeout frequently
+        
+        const file = files[i];
+        if (!file.name || processedFiles.has(file.name)) continue;
+        
+        processedFiles.add(file.name);
+        
+        try {
+          const extractedSKUs = extractSKUsFromFilename(file.name);
           
-          try {
-            // Extract SKUs using comprehensive strategy
-            const extractedSKUs = extractSKUsFromFilename(file.name);
+          for (const extractedSKU of extractedSKUs.slice(0, 3)) { // Limit SKUs per file
+            const matchingProduct = findMatchingProduct(lookupMaps, extractedSKU.sku);
             
-            if (extractedSKUs.length > 0) {
-              console.log(`📊 Found ${extractedSKUs.length} potential SKUs:`, extractedSKUs.map(s => `${s.sku}(${s.confidence}%)`));
+            if (matchingProduct) {
+              console.log(`🎯 MATCH: ${file.name} → ${extractedSKU.sku} → ${matchingProduct.sku}`);
               
-              // Try to match each extracted SKU (process ALL, not just first match)
-              for (const extractedSKU of extractedSKUs) {
-                const matchingProduct = findMatchingProduct(allProducts, extractedSKU.sku);
-                
-                if (matchingProduct) {
-                  console.log(`🎯 MATCH FOUND: ${file.name} → ${extractedSKU.sku} → Product ${matchingProduct.sku} (${matchingProduct.id})`);
-                  
-                  // Check if link already exists
-                  const { data: existingLink } = await supabase
-                    .from('product_images')
-                    .select('id')
-                    .eq('product_id', matchingProduct.id)
-                    .eq('image_url', `product-images/${file.name}`)
-                    .single();
-                  
-                  if (!existingLink) {
-                    const confidenceThreshold = 65; // Lowered from 70% for even better coverage
-                    
-                    if (extractedSKU.confidence >= confidenceThreshold) {
-                      // Create direct link (high confidence)
-                      const { error: linkError } = await supabase
-                        .from('product_images')
-                        .insert({
-                          product_id: matchingProduct.id,
-                          image_url: `product-images/${file.name}`,
-                          alt_text: `${matchingProduct.name} - ${file.name}`,
-                          is_primary: false,
-                          image_status: 'active',
-                          match_confidence: extractedSKU.confidence,
-                          match_metadata: {
-                            source: extractedSKU.source,
-                            original_filename: file.name,
-                            extracted_sku: extractedSKU.sku,
-                            matched_product_sku: matchingProduct.sku,
-                            processing_method: 'consolidated_linker_v2_fixed',
-                            complete_refresh: options.completeRefresh || false
-                          },
-                          auto_matched: true,
-                          reviewed_at: new Date().toISOString(),
-                          reviewed_by: null
-                        });
-                      
-                      if (linkError) {
-                        console.error(`❌ Error creating direct link:`, linkError);
-                        result.errors.push(`Failed to create link for ${file.name}: ${linkError.message}`);
-                      } else {
-                        directLinksCreated++;
-                        console.log(`✅ DIRECT LINK created: ${file.name} → ${matchingProduct.sku}`);
-                      }
-                    } else {
-                      // Create candidate (lower confidence)
-                      const { error: candidateError } = await supabase
-                        .from('product_image_candidates')
-                        .insert({
-                          product_id: matchingProduct.id,
-                          image_url: `product-images/${file.name}`,
-                          alt_text: `${matchingProduct.name} - ${file.name}`,
-                          match_confidence: extractedSKU.confidence,
-                          match_metadata: {
-                            source: extractedSKU.source,
-                            original_filename: file.name,
-                            extracted_sku: extractedSKU.sku,
-                            matched_product_sku: matchingProduct.sku,
-                            processing_method: 'consolidated_linker_v2_fixed',
-                            complete_refresh: options.completeRefresh || false
-                          },
-                          status: 'pending'
-                        });
-                      
-                      if (candidateError) {
-                        console.error(`❌ Error creating candidate:`, candidateError);
-                        result.errors.push(`Failed to create candidate for ${file.name}: ${candidateError.message}`);
-                      } else {
-                        candidatesCreated++;
-                        console.log(`📋 CANDIDATE created: ${file.name} → ${matchingProduct.sku}`);
-                      }
-                    }
-                  } else {
-                    console.log(`⚡ SKIPPED: Link already exists for ${file.name} → ${matchingProduct.sku}`);
-                  }
-                  
-                  // DON'T break here - continue processing other SKUs in the same image
-                  // This allows multi-SKU images to link to multiple products
-                } else {
-                  console.log(`❌ NO MATCH: ${extractedSKU.sku} from ${file.name}`);
-                }
+              const confidenceThreshold = 60; // Lowered for better coverage
+              
+              if (extractedSKU.confidence >= confidenceThreshold) {
+                // Prepare for batch insert
+                batchInserts.push({
+                  product_id: matchingProduct.id,
+                  image_url: `product-images/${file.name}`,
+                  alt_text: `${matchingProduct.name} - ${file.name}`,
+                  is_primary: false,
+                  image_status: 'active',
+                  match_confidence: extractedSKU.confidence,
+                  match_metadata: {
+                    source: extractedSKU.source,
+                    original_filename: file.name,
+                    extracted_sku: extractedSKU.sku,
+                    matched_product_sku: matchingProduct.sku,
+                    processing_method: 'consolidated_linker_v3_optimized'
+                  },
+                  auto_matched: true,
+                  reviewed_at: new Date().toISOString()
+                });
+              } else {
+                // Prepare candidate for batch insert
+                batchCandidates.push({
+                  product_id: matchingProduct.id,
+                  image_url: `product-images/${file.name}`,
+                  alt_text: `${matchingProduct.name} - ${file.name}`,
+                  match_confidence: extractedSKU.confidence,
+                  match_metadata: {
+                    source: extractedSKU.source,
+                    original_filename: file.name,
+                    extracted_sku: extractedSKU.sku,
+                    matched_product_sku: matchingProduct.sku,
+                    processing_method: 'consolidated_linker_v3_optimized'
+                  },
+                  status: 'pending'
+                });
               }
-            } else {
-              console.log(`⚠️ NO SKUs extracted from: ${file.name}`);
+              break; // Only process first match per file to save time
             }
-          } catch (error) {
-            console.error(`❌ Error processing ${file.name}:`, error);
-            result.errors.push(`Error processing ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
           }
-          
-          processedImages.add(file.name);
+        } catch (fileError) {
+          console.error(`❌ Error processing ${file.name}:`, fileError);
+          result.errors.push(`File ${file.name}: ${fileError}`);
+        }
+        
+        // Update progress
+        if (i % 50 === 0) {
+          result.progress = 50 + (i / files.length) * 40;
         }
       }
-      
-      result.directLinksCreated = directLinksCreated;
-      result.candidatesCreated = candidatesCreated;
-      
-      console.log(`🎯 MATCHING COMPLETE:`);
-      console.log(`   Direct Links: ${directLinksCreated}`);
-      console.log(`   Candidates: ${candidatesCreated}`);
-      console.log(`   Total Matches: ${directLinksCreated + candidatesCreated}`);
     }
-    
-    result.endTime = new Date().toISOString();
-    result.totalTime = Date.now() - startProcessingTime;
 
-    console.log(`✅ Processing completed successfully!`);
+    // Step 4: Batch insert direct links
+    result.currentStep = 'Creating image links...';
+    result.progress = 90;
+    checkTimeout();
+    
+    if (batchInserts.length > 0) {
+      console.log(`💾 Batch inserting ${batchInserts.length} direct image links...`);
+      
+      // Process in smaller batches to avoid database limits
+      const chunkSize = 50;
+      for (let i = 0; i < batchInserts.length; i += chunkSize) {
+        const chunk = batchInserts.slice(i, i + chunkSize);
+        
+        const { error: insertError } = await supabase
+          .from('product_images')
+          .upsert(chunk, { 
+            onConflict: 'product_id,image_url',
+            ignoreDuplicates: true 
+          });
+        
+        if (insertError) {
+          console.error('❌ Batch insert error:', insertError.message);
+          result.errors.push(`Batch insert error: ${insertError.message}`);
+        } else {
+          result.directLinksCreated += chunk.length;
+        }
+      }
+    }
+
+    // Step 5: Batch insert candidates
+    if (batchCandidates.length > 0) {
+      console.log(`💾 Batch inserting ${batchCandidates.length} image candidates...`);
+      
+      const chunkSize = 50;
+      for (let i = 0; i < batchCandidates.length; i += chunkSize) {
+        const chunk = batchCandidates.slice(i, i + chunkSize);
+        
+        const { error: candidateError } = await supabase
+          .from('product_image_candidates')
+          .upsert(chunk, { 
+            onConflict: 'product_id,image_url',
+            ignoreDuplicates: true 
+          });
+        
+        if (candidateError) {
+          console.error('❌ Candidate insert error:', candidateError.message);
+          result.errors.push(`Candidate insert error: ${candidateError.message}`);
+        } else {
+          result.candidatesCreated += chunk.length;
+        }
+      }
+    }
+
+    // Completion
     result.status = 'completed';
     result.progress = 100;
+    result.currentStep = 'Processing complete';
+    result.endTime = new Date().toISOString();
+    result.totalTime = Date.now() - startTime;
     
-    // Enhanced completion summary
-    const successRate = allProducts.length > 0 ? 
-      Math.round(((result.directLinksCreated + result.candidatesCreated) / allProducts.length) * 100) : 0;
+    console.log(`✅ PROCESSING COMPLETE:
+    📊 Products: ${result.productsScanned}
+    📁 Images: ${result.imagesScanned} 
+    🔗 Direct links: ${result.directLinksCreated}
+    📝 Candidates: ${result.candidatesCreated}
+    ⏱️ Time: ${result.totalTime}ms
+    ❌ Errors: ${result.errors.length}`);
     
-    console.log(`📊 FINAL SUMMARY:`);
-    console.log(`   Products: ${result.productsScanned}`);
-    console.log(`   Images: ${result.imagesScanned}`);
-    console.log(`   Direct Links: ${result.directLinksCreated}`);
-    console.log(`   Candidates: ${result.candidatesCreated}`);
-    console.log(`   Success Rate: ${successRate}%`);
-    if (result.imagesCleared !== undefined) {
-      console.log(`   Images Cleared: ${result.imagesCleared}`);
-    }
-
+    return result;
+    
   } catch (error) {
     console.error('❌ Processing failed:', error);
-    result.status = 'failed';
-    result.endTime = new Date().toISOString();
-    result.totalTime = Date.now() - startProcessingTime;
-    result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     
-    // Preserve any partial progress
-    result.currentStep = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    result.status = 'failed';
+    result.currentStep = 'Error occurred';
+    result.endTime = new Date().toISOString();
+    result.totalTime = Date.now() - startTime;
+    result.errors.push(error instanceof Error ? error.message : String(error));
+    
+    return result;
   }
-
-  return result;
 }
 
-// Enhanced Deno serve handler with complete refresh support
-Deno.serve(async (req) => {
+// Main handler
+Deno.serve(async (req: Request) => {
   console.log(`🚀 Consolidated Image Linker called with method: ${req.method}`);
   
   // Handle CORS preflight requests
@@ -712,7 +493,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Starting consolidated processing...');
+    console.log('🚀 Starting optimized consolidated processing...');
     
     // Parse request body for options
     const body = await req.json().catch(() => ({}));
