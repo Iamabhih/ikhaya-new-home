@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Simplified data structures
+// Enhanced data structures with complete refresh support
 interface ProcessingResult {
   status: 'running' | 'completed' | 'failed'
   progress: number
@@ -15,6 +15,7 @@ interface ProcessingResult {
   imagesScanned: number
   directLinksCreated: number
   candidatesCreated: number
+  imagesCleared?: number
   errors: string[]
   startTime: string
   endTime?: string
@@ -404,8 +405,8 @@ function findMatchingProduct(productSKUs: Array<{id: string, sku: string}>, sku:
   return undefined;
 }
 
-// Streamlined processing function
-async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResult> {
+// Enhanced processing function with complete refresh capability
+async function runConsolidatedProcessing(supabase: any, options: { completeRefresh?: boolean } = {}): Promise<ProcessingResult> {
   const startTime = new Date().toISOString();
   const result: ProcessingResult = {
     status: 'running',
@@ -420,13 +421,51 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
     debugInfo: {}
   };
 
-    console.log(`🚀 Starting consolidated image linking process`);
+  console.log(`🚀 Starting consolidated image linking process`);
+  console.log(`🔧 Options:`, options);
   const startProcessingTime = Date.now();
   
   try {
+    let currentProgress = options.completeRefresh ? 5 : 10;
+    
+    // Step 0: Clear existing images if complete refresh requested
+    if (options.completeRefresh) {
+      result.currentStep = 'Clearing existing product images';
+      result.progress = 5;
+      
+      console.log('🧹 COMPLETE REFRESH: Clearing existing product images...');
+      
+      const { data: existingImages, error: fetchError } = await supabase
+        .from('product_images')
+        .select('id');
+      
+      if (fetchError) {
+        throw new Error(`Failed to fetch existing images: ${fetchError.message}`);
+      }
+
+      if (existingImages && existingImages.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('product_images')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        
+        if (deleteError) {
+          throw new Error(`Failed to clear existing images: ${deleteError.message}`);
+        }
+        
+        result.imagesCleared = existingImages.length;
+        console.log(`🧹 CLEARED: ${existingImages.length} existing product images`);
+      } else {
+        result.imagesCleared = 0;
+        console.log('🧹 NO IMAGES TO CLEAR');
+      }
+      
+      currentProgress = 15;
+    }
+
     // Step 1: Get active products
     result.currentStep = 'Loading products';
-    result.progress = 10;
+    result.progress = currentProgress;
     
     console.log('🔍 DEBUG: About to query products table...');
     
@@ -471,200 +510,243 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
     
     // Step 2: Scan storage for images
     result.currentStep = 'Scanning storage images';
-    result.progress = 30;
+    result.progress = options.completeRefresh ? 35 : 30;
     
     console.log('🖼️ Scanning storage for images...');
     const { data: files, error: storageError } = await supabase.storage
       .from('product-images')
-      .list('', { limit: 2000, sortBy: { column: 'name', order: 'asc' } });
-    
-    if (storageError) throw new Error(`Storage error: ${storageError.message}`);
-    
+      .list('', { limit: 10000, sortBy: { column: 'name', order: 'asc' } });
+
+    if (storageError) {
+      throw new Error(`Storage scan error: ${storageError.message}`);
+    }
+
+    console.log(`📁 Found ${files?.length || 0} files in storage`);
     result.imagesScanned = files?.length || 0;
-    console.log(`📁 Found ${result.imagesScanned} files in storage`);
+
+    // Step 3: Process matches and create links
+    result.currentStep = 'Processing matches and creating links';
+    result.progress = options.completeRefresh ? 65 : 60;
     
-    // Process images and extract SKUs
-    const imageMatches = [];
-    const packagingImages = [];
+    const processedImages = new Set<string>();
+    let directLinksCreated = 0;
+    let candidatesCreated = 0;
     
-    for (const file of files || []) {
-      if (file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-        const imageUrl = supabase.storage.from('product-images').getPublicUrl(file.name).data.publicUrl;
-        const extractedSKUs = extractSKUsFromFilename(file.name);
-        
-        imageMatches.push({
-          filename: file.name,
-          url: imageUrl,
-          extractedSKUs
-        });
-        
-        // Track packaging images for debugging
-        if (file.name.includes('455404') || file.name.includes('455382')) {
-          packagingImages.push({ filename: file.name, extractedSKUs });
-        }
-      }
-    }
+    console.log('🔍 Starting image processing...');
     
-    result.debugInfo.packagingImages = packagingImages;
-    console.log(`📦 PACKAGING DEBUG: Found ${packagingImages.length} packaging images:`, packagingImages);
-    
-    // Step 3: Match images to products
-    result.currentStep = 'Matching images to products';
-    result.progress = 60;
-    
-    console.log(`🔗 Starting matching with ${imageMatches.length} images`);
-    
-    const productSKUs = allProducts?.map(p => ({ id: p.id, sku: p.sku })) || [];
-    const packagingMatches = [];
-    
-    for (const image of imageMatches) {
-      for (const extractedSKU of image.extractedSKUs) {
-        const matchedProduct = findMatchingProduct(productSKUs, extractedSKU.sku);
-        
-        if (matchedProduct) {
-          console.log(`🎯 MATCH: ${image.filename} → ${matchedProduct.sku} (${extractedSKU.confidence}%)`);
+    if (files && files.length > 0) {
+      for (const file of files) {
+        if (file.name && !processedImages.has(file.name)) {
+          console.log(`📝 COMPREHENSIVE EXTRACTION from: "${file.name}" (clean: "${file.name.toLowerCase().replace(/\.(jpg|jpeg|png|gif|webp|ngp|bmp|svg|tiff?)$/i, '')}")`);
           
-          // Track packaging matches
-          if (matchedProduct.sku === '455404' || matchedProduct.sku === '455382') {
-            packagingMatches.push({
-              filename: image.filename,
-              productSku: matchedProduct.sku,
-              confidence: extractedSKU.confidence
-            });
-            console.log(`📦 PACKAGING MATCH: ${image.filename} → ${matchedProduct.sku}`);
+          try {
+            // Extract SKUs using comprehensive strategy
+            const extractedSKUs = extractSKUsFromFilename(file.name);
+            
+            if (extractedSKUs.length > 0) {
+              console.log(`📊 Found ${extractedSKUs.length} potential SKUs:`, extractedSKUs.map(s => `${s.sku}(${s.confidence}%)`));
+              
+              // Try to match each extracted SKU (process ALL, not just first match)
+              for (const extractedSKU of extractedSKUs) {
+                const matchingProduct = findMatchingProduct(allProducts, extractedSKU.sku);
+                
+                if (matchingProduct) {
+                  console.log(`🎯 MATCH FOUND: ${file.name} → ${extractedSKU.sku} → Product ${matchingProduct.sku} (${matchingProduct.id})`);
+                  
+                  // Check if link already exists
+                  const { data: existingLink } = await supabase
+                    .from('product_images')
+                    .select('id')
+                    .eq('product_id', matchingProduct.id)
+                    .eq('image_url', `product-images/${file.name}`)
+                    .single();
+                  
+                  if (!existingLink) {
+                    const confidenceThreshold = 70; // Lowered from 80% for better coverage
+                    
+                    if (extractedSKU.confidence >= confidenceThreshold) {
+                      // Create direct link (high confidence)
+                      const { error: linkError } = await supabase
+                        .from('product_images')
+                        .insert({
+                          product_id: matchingProduct.id,
+                          image_url: `product-images/${file.name}`,
+                          alt_text: `${matchingProduct.name} - ${file.name}`,
+                          is_primary: false,
+                          image_status: 'active',
+                          match_confidence: extractedSKU.confidence,
+                          match_metadata: {
+                            source: extractedSKU.source,
+                            original_filename: file.name,
+                            extracted_sku: extractedSKU.sku,
+                            matched_product_sku: matchingProduct.sku,
+                            processing_method: 'consolidated_linker',
+                            complete_refresh: options.completeRefresh || false
+                          },
+                          auto_matched: true,
+                          reviewed_at: new Date().toISOString(),
+                          reviewed_by: null
+                        });
+                      
+                      if (linkError) {
+                        console.error(`❌ Error creating direct link:`, linkError);
+                        result.errors.push(`Failed to create link for ${file.name}: ${linkError.message}`);
+                      } else {
+                        directLinksCreated++;
+                        console.log(`✅ DIRECT LINK created: ${file.name} → ${matchingProduct.sku}`);
+                      }
+                    } else {
+                      // Create candidate (lower confidence)
+                      const { error: candidateError } = await supabase
+                        .from('product_image_candidates')
+                        .insert({
+                          product_id: matchingProduct.id,
+                          image_url: `product-images/${file.name}`,
+                          alt_text: `${matchingProduct.name} - ${file.name}`,
+                          match_confidence: extractedSKU.confidence,
+                          match_metadata: {
+                            source: extractedSKU.source,
+                            original_filename: file.name,
+                            extracted_sku: extractedSKU.sku,
+                            matched_product_sku: matchingProduct.sku,
+                            processing_method: 'consolidated_linker',
+                            complete_refresh: options.completeRefresh || false
+                          },
+                          status: 'pending'
+                        });
+                      
+                      if (candidateError) {
+                        console.error(`❌ Error creating candidate:`, candidateError);
+                        result.errors.push(`Failed to create candidate for ${file.name}: ${candidateError.message}`);
+                      } else {
+                        candidatesCreated++;
+                        console.log(`📋 CANDIDATE created: ${file.name} → ${matchingProduct.sku}`);
+                      }
+                    }
+                  } else {
+                    console.log(`⚡ SKIPPED: Link already exists for ${file.name} → ${matchingProduct.sku}`);
+                  }
+                  
+                  // DON'T break here - continue processing other SKUs in the same image
+                  // This allows multi-SKU images to link to multiple products
+                } else {
+                  console.log(`❌ NO MATCH: ${extractedSKU.sku} from ${file.name}`);
+                }
+              }
+            } else {
+              console.log(`⚠️ NO SKUs extracted from: ${file.name}`);
+            }
+          } catch (error) {
+            console.error(`❌ Error processing ${file.name}:`, error);
+            result.errors.push(`Error processing ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
           }
           
-          const isHighConfidence = extractedSKU.confidence >= 70; // Lower threshold for better coverage
-          
-          if (isHighConfidence) {
-            // Create direct link (with duplicate prevention via unique constraint)
-            const { error: linkError } = await supabase
-              .from('product_images')
-              .insert({
-                product_id: matchedProduct.id,
-                image_url: image.url, // Use full public URL
-                alt_text: `Product image for ${matchedProduct.sku}`,
-                image_status: 'active',
-                match_confidence: extractedSKU.confidence,
-                match_metadata: {
-                  source: extractedSKU.source,
-                  filename: image.filename,
-                  auto_matched: true
-                },
-                auto_matched: true
-              });
-            
-            if (!linkError) {
-              result.directLinksCreated++;
-              console.log(`✅ Created direct link: ${image.filename} → ${matchedProduct.sku}`);
-            } else if (linkError.code === '23505') {
-              // Unique constraint violation - image already linked
-              console.log(`⏭️ Image already linked: ${image.filename} → ${matchedProduct.sku}`);
-            } else {
-              result.errors.push(`Link error for ${matchedProduct.sku}: ${linkError.message}`);
-            }
-          } else {
-            // Create candidate (with duplicate prevention via unique constraint)
-            const { error: candidateError } = await supabase
-              .from('product_image_candidates')
-              .insert({
-                product_id: matchedProduct.id,
-                image_url: image.url, // Use full public URL
-                alt_text: `Candidate image for ${matchedProduct.sku}`,
-                match_confidence: extractedSKU.confidence,
-                match_metadata: {
-                  source: extractedSKU.source,
-                  filename: image.filename,
-                  auto_matched: true
-                },
-                status: 'pending'
-              });
-            
-            if (!candidateError) {
-              result.candidatesCreated++;
-              console.log(`📝 Created candidate: ${image.filename} → ${matchedProduct.sku}`);
-            } else if (candidateError.code === '23505') {
-              // Unique constraint violation - candidate already exists
-              console.log(`⏭️ Candidate already exists: ${image.filename} → ${matchedProduct.sku}`);
-            } else {
-              result.errors.push(`Candidate error for ${matchedProduct.sku}: ${candidateError.message}`);
-            }
-          }
-          
-          // Don't break - continue checking other SKUs in the same image for additional matches
+          processedImages.add(file.name);
         }
       }
+      
+      result.directLinksCreated = directLinksCreated;
+      result.candidatesCreated = candidatesCreated;
+      
+      console.log(`🎯 MATCHING COMPLETE:`);
+      console.log(`   Direct Links: ${directLinksCreated}`);
+      console.log(`   Candidates: ${candidatesCreated}`);
+      console.log(`   Total Matches: ${directLinksCreated + candidatesCreated}`);
     }
     
-    result.debugInfo.packagingMatches = packagingMatches;
-    
-    // Final step
-    result.currentStep = 'Complete';
-    result.progress = 100;
-    result.status = 'completed';
     result.endTime = new Date().toISOString();
     result.totalTime = Date.now() - startProcessingTime;
+
+    console.log(`✅ Processing completed successfully!`);
+    result.status = 'completed';
+    result.progress = 100;
     
-    console.log(`🏁 Processing completed in ${result.totalTime}ms`);
-    console.log(`📊 Results: ${result.directLinksCreated} direct links, ${result.candidatesCreated} candidates`);
-    console.log(`📦 PACKAGING RESULTS:`, packagingMatches);
+    // Enhanced completion summary
+    const successRate = allProducts.length > 0 ? 
+      Math.round(((result.directLinksCreated + result.candidatesCreated) / allProducts.length) * 100) : 0;
     
-    return result;
-    
+    console.log(`📊 FINAL SUMMARY:`);
+    console.log(`   Products: ${result.productsScanned}`);
+    console.log(`   Images: ${result.imagesScanned}`);
+    console.log(`   Direct Links: ${result.directLinksCreated}`);
+    console.log(`   Candidates: ${result.candidatesCreated}`);
+    console.log(`   Success Rate: ${successRate}%`);
+    if (result.imagesCleared !== undefined) {
+      console.log(`   Images Cleared: ${result.imagesCleared}`);
+    }
+
   } catch (error) {
-    console.error('❌ Fatal error:', error);
+    console.error('❌ Processing failed:', error);
     result.status = 'failed';
     result.endTime = new Date().toISOString();
     result.totalTime = Date.now() - startProcessingTime;
-    result.errors.push(`Fatal error: ${error}`);
-    return result;
+    result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    
+    // Preserve any partial progress
+    result.currentStep = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   }
+
+  return result;
 }
 
-// Main serverless function handler
+// Enhanced Deno serve handler with complete refresh support
 Deno.serve(async (req) => {
+  console.log(`🚀 Consolidated Image Linker called with method: ${req.method}`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
-    console.log(`🚀 Consolidated Image Linker called with method: ${req.method}`);
+    console.log('🚀 Starting consolidated processing...');
     
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Parse request body for options
+    const body = await req.json().catch(() => ({}));
+    const options = {
+      completeRefresh: body.completeRefresh || false
+    };
+    
+    console.log('🔧 Processing options:', options);
+    
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    if (req.method === 'POST') {
-      console.log(`🚀 Starting consolidated processing...`);
-      
-      // Run the processing directly and return results
-      const result = await runConsolidatedProcessing(supabase);
-      
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    }
-
-    // Default response for unsupported methods
-    return new Response(JSON.stringify({
-      error: 'Only POST method supported',
-      message: 'Send POST request to start consolidated processing'
-    }), {
+    const result = await runConsolidatedProcessing(supabase, options);
+    
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
     });
-
   } catch (error) {
-    console.error('❌ Consolidated Image Linker error:', error);
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      details: error.message
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    console.error('❌ Fatal error:', error);
+    return new Response(
+      JSON.stringify({
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        progress: 0,
+        currentStep: 'Error occurred',
+        productsScanned: 0,
+        imagesScanned: 0,
+        directLinksCreated: 0,
+        candidatesCreated: 0,
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        totalTime: 0
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });

@@ -1,26 +1,29 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  Play, Loader2, Trash2, Database, CheckCircle, AlertTriangle 
-} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { 
+  Database, RefreshCw, Activity, CheckCircle, AlertCircle, 
+  Image as ImageIcon, Loader2, Zap
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ConsolidatedResult {
-  status: 'running' | 'completed' | 'failed'
-  progress: number
-  currentStep: string
-  productsScanned: number
-  imagesScanned: number
-  directLinksCreated: number
-  candidatesCreated: number
-  errors: string[]
-  startTime: string
-  endTime?: string
-  totalTime?: number
-  debugInfo?: any
+  status: 'running' | 'completed' | 'failed';
+  progress: number;
+  currentStep: string;
+  productsScanned: number;
+  imagesScanned: number;
+  directLinksCreated: number;
+  candidatesCreated: number;
+  imagesCleared?: number;
+  errors: string[];
+  startTime: string;
+  endTime?: string;
+  totalTime?: number;
+  debugInfo?: any;
 }
 
 export const ConsolidatedImageLinker = () => {
@@ -28,67 +31,67 @@ export const ConsolidatedImageLinker = () => {
   const [result, setResult] = useState<ConsolidatedResult | null>(null);
   const { toast } = useToast();
 
-  const startConsolidatedProcessing = async () => {
-    if (isRunning) return;
-    
+  const startConsolidatedProcessing = async (refreshMode: boolean = false) => {
     setIsRunning(true);
     setResult(null);
     
     try {
       console.log('🚀 Starting consolidated processing...');
       
+      toast({
+        title: refreshMode ? "Complete Refresh Started" : "Image Linking Started",  
+        description: refreshMode 
+          ? "Clearing existing images and performing comprehensive scan..."
+          : "Scanning storage images and linking to products...",
+      });
+
       const { data, error } = await supabase.functions.invoke('consolidated-image-linker', {
-        body: { mode: 'consolidated_process' }
+        body: { 
+          completeRefresh: refreshMode 
+        }
       });
 
       if (error) {
-        console.error('❌ Error during processing:', error);
-        toast({
-          title: "Processing Failed",
-          description: `Processing failed: ${error.message}`,
-          variant: "destructive"
-        });
-        setIsRunning(false);
-        return;
+        throw new Error(error.message);
       }
 
-      console.log('✅ Processing completed:', data);
       setResult(data);
-      setIsRunning(false);
       
       if (data.status === 'completed') {
+        const successRate = data.productsScanned > 0 ? 
+          Math.round(((data.directLinksCreated + data.candidatesCreated) / data.productsScanned) * 100) : 0;
+          
         toast({
-          title: "Processing Complete!",
-          description: `${data.directLinksCreated} direct links, ${data.candidatesCreated} candidates created.`
+          title: refreshMode ? "Complete Refresh Finished" : "Processing Complete",
+          description: `Found ${data.imagesScanned} images, created ${data.directLinksCreated} direct links and ${data.candidatesCreated} candidates. Success rate: ${successRate}%`,
         });
-      } else {
+      } else if (data.status === 'failed') {
         toast({
           title: "Processing Failed",
-          description: `Processing failed with ${data.errors?.length || 0} errors.`,
-          variant: "destructive"
+          description: data.errors?.[0] || "Unknown error occurred",
+          variant: "destructive",
         });
       }
-      
+
     } catch (error) {
-      console.error('❌ Failed to process:', error);
+      console.error('Consolidated processing error:', error);
       toast({
-        title: "Processing Failed",
-        description: 'Failed to process images',
-        variant: "destructive"
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start processing",
+        variant: "destructive",
       });
+    } finally {
       setIsRunning(false);
     }
   };
-
-  // Remove progress checking - we now get results directly
 
   const clearResults = () => {
     setResult(null);
     setIsRunning(false);
   };
 
-  const formatTime = (milliseconds: number) => {
-    const seconds = Math.floor(milliseconds / 1000);
+  const formatTime = (ms: number): string => {
+    const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     
@@ -102,28 +105,35 @@ export const ConsolidatedImageLinker = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Database className="h-5 w-5" />
-          Streamlined Image Linking System
+          Enhanced Image Linking System
+          {isRunning && (
+            <Badge variant="outline" className="bg-blue-500 text-white">
+              Processing
+            </Badge>
+          )}
         </CardTitle>
         <CardDescription>
-          Direct processing of all storage images to match and link them to products automatically.
+          Advanced SKU pattern recognition with comprehensive matching algorithms.
+          Now includes complete refresh capability to clear existing images and re-scan everything.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
-          <AlertTriangle className="h-4 w-4" />
+          <Activity className="h-4 w-4" />
           <AlertDescription>
-            <strong>Complete Solution:</strong> This streamlined system processes ALL storage images 
-            against ALL products in a single operation without session complexity.
+            <strong>Enhanced Features:</strong> Handles 20+ SKU patterns including exact numeric, alphanumeric, 
+            multi-SKU files, zero-padding variations, fuzzy matching, and complete product refresh mode.
           </AlertDescription>
         </Alert>
 
-        {/* Control Buttons */}
+        {/* Processing Options */}
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
             <Button 
-              onClick={startConsolidatedProcessing}
+              onClick={() => startConsolidatedProcessing(false)} 
               disabled={isRunning}
               className="flex items-center gap-2"
+              size="lg"
             >
               {isRunning ? (
                 <>
@@ -132,149 +142,177 @@ export const ConsolidatedImageLinker = () => {
                 </>
               ) : (
                 <>
-                  <Play className="h-4 w-4" />
-                  Start Processing
+                  <Database className="h-4 w-4" />
+                  Link Images to Products
                 </>
               )}
             </Button>
-            
+
+            <Button 
+              onClick={() => startConsolidatedProcessing(true)} 
+              disabled={isRunning}
+              variant="destructive"
+              className="flex items-center gap-2"
+              size="lg"
+            >
+              {isRunning ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Complete Refresh
+                </>
+              )}
+            </Button>
+
             {result && (
               <Button 
                 onClick={clearResults}
                 variant="outline"
-                className="flex items-center gap-2"
+                size="lg"
               >
-                <Trash2 className="h-4 w-4" />
                 Clear Results
               </Button>
             )}
           </div>
-          
-          {/* Processing Steps */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
-            <div className="p-3 bg-blue-50 rounded-lg text-center">
-              <div className="font-medium">1. Load Products</div>
-              <div className="text-xs text-muted-foreground">Get active products</div>
-            </div>
-            <div className="p-3 bg-purple-50 rounded-lg text-center">
-              <div className="font-medium">2. Scan Storage</div>
-              <div className="text-xs text-muted-foreground">Find all images</div>
-            </div>
-            <div className="p-3 bg-green-50 rounded-lg text-center">
-              <div className="font-medium">3. Match SKUs</div>
-              <div className="text-xs text-muted-foreground">Link products</div>
-            </div>
-            <div className="p-3 bg-orange-50 rounded-lg text-center">
-              <div className="font-medium">4. Create Links</div>
-              <div className="text-xs text-muted-foreground">Save results</div>
-            </div>
+
+          <div className="text-sm text-muted-foreground">
+            <p><strong>Link Images:</strong> Scans storage and links images to products without clearing existing data.</p>
+            <p><strong>Complete Refresh:</strong> Clears ALL existing product images first, then performs comprehensive scan.</p>
           </div>
         </div>
+
+        {/* Processing Steps Visualization */}
+        {isRunning && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <div className="flex-1">
+                <div className="font-medium">Step 1: Initialize & Clear (if refresh)</div>
+                <div className="text-sm text-muted-foreground">
+                  Loading products and optionally clearing existing images
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+              <Activity className="h-4 w-4 text-orange-600" />
+              <div className="flex-1">
+                <div className="font-medium">Step 2: Comprehensive SKU Extraction</div>
+                <div className="text-sm text-muted-foreground">
+                  Analyzing filenames with 8 different extraction strategies
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+              <Zap className="h-4 w-4 text-purple-600" />
+              <div className="flex-1">
+                <div className="font-medium">Step 3: Advanced Product Matching</div>
+                <div className="text-sm text-muted-foreground">
+                  Using 6 matching strategies including fuzzy matching
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Results Section */}
         {result && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {result.productsScanned || 0}
-                </div>
-                <div className="text-sm text-blue-600">Products Scanned</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{result.productsScanned}</div>
+                <div className="text-sm text-muted-foreground">Products Scanned</div>
               </div>
-              
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {result.imagesScanned || 0}
-                </div>
-                <div className="text-sm text-green-600">Images Scanned</div>
+              <div className="text-center p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">{result.imagesScanned}</div>
+                <div className="text-sm text-muted-foreground">Images Scanned</div>
               </div>
-              
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {(result.directLinksCreated || 0) + (result.candidatesCreated || 0)}
-                </div>
-                <div className="text-sm text-purple-600">Total Matches</div>
+              <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{result.directLinksCreated}</div>
+                <div className="text-sm text-muted-foreground">Direct Links</div>
+              </div>
+              <div className="text-center p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">{result.candidatesCreated}</div>
+                <div className="text-sm text-muted-foreground">Candidates</div>
               </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-emerald-50 p-4 rounded-lg">
-                <div className="text-xl font-bold text-emerald-600">
-                  {result.directLinksCreated || 0}
-                </div>
-                <div className="text-sm text-emerald-600">Direct Links Created</div>
-                <div className="text-xs text-emerald-500 mt-1">High confidence matches (≥80%)</div>
+
+            {result.imagesCleared !== undefined && (
+              <div className="text-center p-4 bg-red-50 dark:bg-red-950 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{result.imagesCleared}</div>
+                <div className="text-sm text-muted-foreground">Images Cleared (Complete Refresh)</div>
               </div>
-              
-              <div className="bg-amber-50 p-4 rounded-lg">
-                <div className="text-xl font-bold text-amber-600">
-                  {result.candidatesCreated || 0}
-                </div>
-                <div className="text-sm text-amber-600">Candidates Created</div>
-                <div className="text-xs text-amber-500 mt-1">Lower confidence matches for review</div>
+            )}
+
+            {/* Status and Time */}
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                {result.status === 'completed' ? (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                ) : result.status === 'failed' ? (
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                ) : (
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                )}
+                <span className="font-medium capitalize">{result.status}</span>
               </div>
-            </div>
-            
-            {/* Status Badge */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Status:</span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                result.status === 'completed' ? 'bg-green-100 text-green-800' :
-                result.status === 'failed' ? 'bg-red-100 text-red-800' :
-                'bg-blue-100 text-blue-800'
-              }`}>
-                {result.status}
-              </span>
               {result.totalTime && (
-                <span className="text-xs text-gray-500 ml-2">
-                  Completed in {formatTime(result.totalTime)}
+                <span className="text-sm text-muted-foreground">
+                  Total time: {formatTime(result.totalTime)}
                 </span>
               )}
             </div>
-            
-            {/* Debug Info for Packaging */}
-            {result.debugInfo?.packagingMatches && result.debugInfo.packagingMatches.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-800 mb-2">
-                  📦 Packaging Matches Found ({result.debugInfo.packagingMatches.length})
-                </h4>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {result.debugInfo.packagingMatches.map((match, index) => (
-                    <p key={index} className="text-xs text-blue-700">
-                      {match.filename} → {match.productSku} ({match.confidence}%)
-                    </p>
+
+            {/* Debug Info */}
+            {result.debugInfo?.packagingProducts && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Packaging Matches</h4>
+                <div className="text-sm space-y-1">
+                  {result.debugInfo.packagingProducts.map((product: any, index: number) => (
+                    <div key={index} className="text-blue-700 dark:text-blue-300">
+                      {product.sku}: {product.name}
+                    </div>
                   ))}
                 </div>
               </div>
             )}
-            
+
             {/* Errors */}
             {result.errors && result.errors.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-red-800 mb-2">
-                  Errors ({result.errors.length})
-                </h4>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {result.errors.map((error, index) => (
-                    <p key={index} className="text-xs text-red-700">
+              <div className="p-4 bg-red-50 dark:bg-red-950 rounded-lg">
+                <h4 className="font-medium text-red-900 dark:text-red-100 mb-2">Errors</h4>
+                <div className="text-sm space-y-1">
+                  {result.errors.slice(0, 5).map((error, index) => (
+                    <div key={index} className="text-red-700 dark:text-red-300">
                       {error}
-                    </p>
+                    </div>
                   ))}
+                  {result.errors.length > 5 && (
+                    <div className="text-red-600 font-medium">
+                      ... and {result.errors.length - 5} more errors
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {result.status === 'completed' && (result.directLinksCreated > 0 || result.candidatesCreated > 0) && (
+              <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="font-medium">
+                    Successfully processed {result.imagesScanned} images and created {result.directLinksCreated + result.candidatesCreated} total matches!
+                  </span>
                 </div>
               </div>
             )}
           </div>
-        )}
-
-        {/* Success Message */}
-        {result?.status === 'completed' && (result.directLinksCreated > 0 || result.candidatesCreated > 0) && (
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription className="text-green-600">
-              <strong>Processing complete!</strong> Successfully processed {result.imagesScanned} images 
-              and created {result.directLinksCreated} direct links and {result.candidatesCreated} candidates.
-            </AlertDescription>
-          </Alert>
         )}
       </CardContent>
     </Card>
