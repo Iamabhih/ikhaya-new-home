@@ -28,177 +28,380 @@ interface ExtractedSKU {
   source: string
 }
 
-// Enhanced SKU extraction with better pattern matching for complex filenames
+// COMPREHENSIVE SKU EXTRACTION - Handles ALL common patterns and formats
 function extractSKUsFromFilename(filename: string, fullPath?: string): ExtractedSKU[] {
   const results: ExtractedSKU[] = [];
-  const cleanFilename = filename.toLowerCase().replace(/\.(jpg|jpeg|png|gif|webp|ngp)$/i, '');
+  const originalFilename = filename;
+  const cleanFilename = filename.toLowerCase().replace(/\.(jpg|jpeg|png|gif|webp|ngp|bmp|svg|tiff?)$/i, '');
   
-  console.log(`📝 Extracting SKUs from: "${filename}" (clean: "${cleanFilename}")`);
+  console.log(`📝 COMPREHENSIVE EXTRACTION from: "${filename}" (clean: "${cleanFilename}")`);
   
-  // Strategy 1: Direct numeric match (highest confidence)
-  const directNumeric = cleanFilename.match(/^(\d+)$/);
-  if (directNumeric) {
-    results.push({
-      sku: directNumeric[1],
-      confidence: 95,
-      source: 'direct_numeric'
-    });
-    console.log(`✅ Direct numeric match: ${directNumeric[1]}`);
-  }
-  
-  // Strategy 2: Numeric with extensions like (1), _copy, etc.
-  const numericWithSuffix = cleanFilename.match(/^(\d+)[\s\-_]*(?:\(\d+\)|copy|duplicate)?$/);
-  if (numericWithSuffix && !directNumeric) {
-    results.push({
-      sku: numericWithSuffix[1],
-      confidence: 85,
-      source: 'numeric_with_suffix'
-    });
-    console.log(`✅ Numeric with suffix: ${numericWithSuffix[1]}`);
-  }
-  
-  // Strategy 3: Enhanced dot-separated SKUs (e.g., "4262.25731.21722.png")
-  const dotSeparatedPattern = /(\d{4,})(?:\.(\d{4,}))*\.?(\d{4,})?/;
-  const dotMatches = cleanFilename.match(dotSeparatedPattern);
-  if (dotMatches) {
-    // Extract all numeric segments that are 4+ digits
-    const allNumbers = cleanFilename.match(/\d{4,}/g);
-    if (allNumbers && allNumbers.length > 1) {
-      // First number gets lower confidence, last number gets higher confidence
-      allNumbers.forEach((sku, index) => {
-        const isLast = index === allNumbers.length - 1;
-        const isFirst = index === 0;
-        let confidence = 70;
-        
-        if (isLast) confidence = 80; // Last SKU often most relevant
-        if (isFirst && allNumbers.length > 2) confidence = 60; // First might be category
-        
-        results.push({
-          sku: sku,
-          confidence: confidence,
-          source: `dot_separated_${isLast ? 'last' : isFirst ? 'first' : 'middle'}`
-        });
-        console.log(`✅ Dot-separated SKU (${isLast ? 'last' : isFirst ? 'first' : 'middle'}): ${sku}`);
-      });
+  // Strategy 1: EXACT NUMERIC MATCH (Pure numbers - highest confidence)
+  const exactNumeric = cleanFilename.match(/^(\d{3,8})$/);
+  if (exactNumeric) {
+    const sku = exactNumeric[1];
+    results.push({ sku, confidence: 98, source: 'exact_numeric' });
+    console.log(`✅ EXACT numeric: ${sku}`);
+    
+    // Add zero-padded variations
+    if (sku.length === 3) results.push({ sku: '0' + sku, confidence: 95, source: 'exact_padded_4' });
+    if (sku.length === 4) results.push({ sku: '0' + sku, confidence: 95, source: 'exact_padded_5' });
+    if (sku.length === 5) results.push({ sku: '0' + sku, confidence: 95, source: 'exact_padded_6' });
+    
+    // Add zero-removal variations
+    if (sku.startsWith('0') && sku.length > 3) {
+      results.push({ sku: sku.substring(1), confidence: 95, source: 'exact_unpadded' });
     }
   }
   
-  // Strategy 4: Space-separated SKUs (like "20749 21183 21478.png")
-  const spacePattern = /(\d{4,})(?:\s+(\d{4,}))+/g;
-  const spaceMatches = [...cleanFilename.matchAll(spacePattern)];
-  spaceMatches.forEach(match => {
-    // Extract all numbers from the match
-    const allNumbers = match[0].match(/\d{4,}/g);
-    if (allNumbers) {
-      allNumbers.forEach((sku, index) => {
-        const isLast = index === allNumbers.length - 1;
-        results.push({
-          sku: sku,
-          confidence: isLast ? 80 : 70,
-          source: `space_separated_${isLast ? 'last' : 'first'}`
-        });
-        console.log(`✅ Space-separated SKU: ${sku}`);
-      });
-    }
-  });
-
-  // Strategy 5: Multiple SKUs separated by other delimiters
-  const multiSKUPatterns = [
-    /(\d{4,})[\.\-_](\d{4,})[\.\-_](\d{4,})/g, // three or more with delimiters
-    /(\d{4,})[\.\-_](\d{4,})/g, // two with delimiters
+  // Strategy 2: ALPHANUMERIC SKUs (Letters + Numbers)
+  const alphanumericPatterns = [
+    /^([a-z]{1,3}\d{3,8})$/i,        // ABC123456
+    /^(\d{3,8}[a-z]{1,3})$/i,        // 123456ABC  
+    /^([a-z]\d{3,8})$/i,             // A123456
+    /^(\d{3,8}[a-z])$/i,             // 123456A
+    /^([a-z]{1,2}-\d{3,8})$/i,       // AB-123456
+    /^(\d{3,8}-[a-z]{1,2})$/i,       // 123456-AB
   ];
   
-  multiSKUPatterns.forEach((pattern, patternIndex) => {
-    const matches = [...cleanFilename.matchAll(pattern)];
-    matches.forEach(match => {
-      for (let i = 1; i < match.length; i++) {
-        if (match[i] && match[i].length >= 4) {
-          const isLast = i === match.length - 1;
-          results.push({
-            sku: match[i],
-            confidence: isLast ? 75 : 65,
-            source: `multi_delimiter_${isLast ? 'last' : 'middle'}`
-          });
-          console.log(`✅ Multi-delimiter SKU: ${match[i]}`);
+  alphanumericPatterns.forEach((pattern, index) => {
+    const match = cleanFilename.match(pattern);
+    if (match) {
+      results.push({
+        sku: match[1].toUpperCase(),
+        confidence: 92 - (index * 2),
+        source: `alphanumeric_${index + 1}`
+      });
+      console.log(`✅ ALPHANUMERIC: ${match[1].toUpperCase()}`);
+    }
+  });
+  
+  // Strategy 3: MULTI-SKU FILENAMES (Multiple SKUs in one file)
+  const multiSkuDelimiters = ['.', '_', '-', ' ', '+', '&'];
+  const multiSkuPattern = new RegExp(`(\\d{3,8})(?:[${multiSkuDelimiters.map(d => d === '.' || d === '+' ? '\\' + d : d).join('')}]+(\\d{3,8}))+`, 'g');
+  
+  let multiMatch;
+  while ((multiMatch = multiSkuPattern.exec(cleanFilename)) !== null) {
+    const allNumbers = multiMatch[0].match(/\d{3,8}/g) || [];
+    const uniqueNumbers = [...new Set(allNumbers)]; // Remove duplicates
+    
+    uniqueNumbers.forEach((sku, index) => {
+      const isFirst = index === 0;
+      const isLast = index === uniqueNumbers.length - 1;
+      
+      let confidence = 85;
+      if (isLast && uniqueNumbers.length > 1) confidence = 90; // Last often most important
+      if (isFirst && uniqueNumbers.length > 2) confidence = 75; // First might be category
+      
+      results.push({
+        sku: sku,
+        confidence: confidence,
+        source: `multi_sku_${isLast ? 'last' : isFirst ? 'first' : 'middle'}`
+      });
+      console.log(`✅ MULTI-SKU ${isLast ? 'LAST' : isFirst ? 'FIRST' : 'MIDDLE'}: ${sku}`);
+      
+      // Add zero variations for multi-SKU
+      if (sku.length === 5 && !sku.startsWith('0')) {
+        results.push({ sku: '0' + sku, confidence: confidence - 5, source: `multi_sku_padded` });
+      }
+      if (sku.startsWith('0') && sku.length > 3) {
+        results.push({ sku: sku.substring(1), confidence: confidence - 5, source: `multi_sku_unpadded` });
+      }
+    });
+  }
+  
+  // Strategy 4: PREFIXED/SUFFIXED SKUs  
+  const affixPatterns = [
+    /^sku[\-_]?(\d{3,8})$/i,          // SKU-123456
+    /^item[\-_]?(\d{3,8})$/i,         // ITEM-123456  
+    /^prod[\-_]?(\d{3,8})$/i,         // PROD-123456
+    /^product[\-_]?(\d{3,8})$/i,      // PRODUCT-123456
+    /^(\d{3,8})[\-_]?sku$/i,          // 123456-SKU
+    /^(\d{3,8})[\-_]?item$/i,         // 123456-ITEM
+    /^(\d{3,8})[\-_]?v\d+$/i,         // 123456-v1
+    /^(\d{3,8})[\-_]?\(\d+\)$/i,      // 123456-(1)
+    /^(\d{3,8})[\-_]?copy$/i,         // 123456-copy
+    /^(\d{3,8})[\-_]?final$/i,        // 123456-final
+    /^(\d{3,8})[\-_]?main$/i,         // 123456-main
+    /^(\d{3,8})[\-_]?front$/i,        // 123456-front
+    /^(\d{3,8})[\-_]?back$/i,         // 123456-back
+    /^(\d{3,8})[\-_]?side$/i,         // 123456-side
+    /^(\d{3,8})[\-_]?top$/i,          // 123456-top
+    /^(\d{3,8})[\-_]?angle$/i,        // 123456-angle
+    /^(\d{3,8})[\-_]?detail$/i,       // 123456-detail
+    /^(\d{3,8})[\-_]?pack$/i,         // 123456-pack
+    /^(\d{3,8})[\-_]?box$/i,          // 123456-box
+  ];
+  
+  affixPatterns.forEach((pattern, index) => {
+    const match = cleanFilename.match(pattern);
+    if (match) {
+      const sku = match[1];
+      const confidence = 88 - Math.floor(index / 3); // Slight decrease for less common patterns
+      results.push({ sku, confidence, source: `affix_pattern_${index + 1}` });
+      console.log(`✅ AFFIX pattern: ${sku} (confidence: ${confidence}%)`);
+    }
+  });
+  
+  // Strategy 5: BRACKETED/PARENTHETICAL SKUs
+  const bracketPatterns = [
+    /\[(\d{3,8})\]/g,                 // [123456]
+    /\((\d{3,8})\)/g,                 // (123456)
+    /\{(\d{3,8})\}/g,                 // {123456}
+    /<(\d{3,8})>/g,                   // <123456>
+  ];
+  
+  bracketPatterns.forEach((pattern, index) => {
+    let match;
+    while ((match = pattern.exec(cleanFilename)) !== null) {
+      results.push({
+        sku: match[1],
+        confidence: 85 - (index * 2),
+        source: `bracket_${index + 1}`
+      });
+      console.log(`✅ BRACKET: ${match[1]}`);
+    }
+  });
+  
+  // Strategy 6: ZERO-PADDING VARIATIONS (Comprehensive)
+  const standaloneNumbers = cleanFilename.match(/\b\d{3,8}\b/g) || [];
+  standaloneNumbers.forEach(sku => {
+    if (!results.some(r => r.sku === sku)) {
+      const baseConfidence = cleanFilename === sku ? 80 : 70;
+      results.push({ sku, confidence: baseConfidence, source: 'standalone_numeric' });
+      console.log(`✅ STANDALONE: ${sku}`);
+      
+      // Comprehensive zero-padding variations
+      if (sku.length === 3) {
+        results.push({ sku: '0' + sku, confidence: baseConfidence - 5, source: 'padded_4' });
+        results.push({ sku: '00' + sku, confidence: baseConfidence - 10, source: 'padded_5' });
+        results.push({ sku: '000' + sku, confidence: baseConfidence - 15, source: 'padded_6' });
+      }
+      if (sku.length === 4) {
+        results.push({ sku: '0' + sku, confidence: baseConfidence - 5, source: 'padded_5' });
+        results.push({ sku: '00' + sku, confidence: baseConfidence - 10, source: 'padded_6' });
+      }
+      if (sku.length === 5) {
+        results.push({ sku: '0' + sku, confidence: baseConfidence - 5, source: 'padded_6' });
+      }
+      
+      // Zero removal variations
+      if (sku.startsWith('0')) {
+        let trimmed = sku;
+        let trimLevel = 0;
+        while (trimmed.startsWith('0') && trimmed.length > 1) {
+          trimmed = trimmed.substring(1);
+          trimLevel++;
+          if (trimmed.length >= 3) {
+            results.push({ 
+              sku: trimmed, 
+              confidence: baseConfidence - (trimLevel * 3), 
+              source: `unpadded_${trimLevel}` 
+            });
+            console.log(`✅ UNPADDED: ${trimmed}`);
+          }
         }
       }
-    });
+    }
   });
-
-  // Strategy 6: SKUs with suffixes (like "313627-2.png")
-  const suffixPattern = /(\d{4,})[\-_](\d{1,3})$/;
-  const suffixMatch = cleanFilename.match(suffixPattern);
-  if (suffixMatch) {
-    results.push({
-      sku: suffixMatch[1],
-      confidence: 75,
-      source: 'numeric_with_numeric_suffix'
+  
+  // Strategy 7: PARTIAL MATCHES in longer strings
+  const partialPatterns = [
+    /(\d{3,8})[\-_][a-z]+/gi,         // 123456-variant
+    /[a-z]+[\-_](\d{3,8})/gi,         // variant-123456
+    /(\d{3,8})[a-z]{1,3}$/gi,         // 123456abc
+    /^[a-z]{1,3}(\d{3,8})/gi,         // abc123456
+  ];
+  
+  partialPatterns.forEach((pattern, index) => {
+    let match;
+    while ((match = pattern.exec(cleanFilename)) !== null) {
+      if (!results.some(r => r.sku === match[1])) {
+        results.push({
+          sku: match[1],
+          confidence: 75 - (index * 3),
+          source: `partial_${index + 1}`
+        });
+        console.log(`✅ PARTIAL: ${match[1]}`);
+      }
+    }
+  });
+  
+  // Strategy 8: FALLBACK - Any 3+ digit number not yet captured
+  if (results.length === 0) {
+    const fallbackNumbers = cleanFilename.match(/\d{3,}/g) || [];
+    fallbackNumbers.forEach((sku, index) => {
+      results.push({
+        sku: sku,
+        confidence: Math.max(50 - (index * 5), 20),
+        source: 'fallback_any_numeric'
+      });
+      console.log(`✅ FALLBACK: ${sku}`);
     });
-    console.log(`✅ SKU with numeric suffix: ${suffixMatch[1]}`);
   }
   
-  // Strategy 7: Single numeric patterns (fallback)
-  if (results.length === 0) {
-    const allNumbers = cleanFilename.match(/\d{4,}/g);
-    if (allNumbers) {
-      allNumbers.forEach(sku => {
-        results.push({
-          sku: sku,
-          confidence: 50,
-          source: 'fallback_numeric'
-        });
-        console.log(`✅ Fallback numeric: ${sku}`);
-      });
+  // Remove duplicates, keeping highest confidence
+  const uniqueResults = new Map<string, ExtractedSKU>();
+  results.forEach(result => {
+    const existing = uniqueResults.get(result.sku);
+    if (!existing || existing.confidence < result.confidence) {
+      uniqueResults.set(result.sku, result);
+    }
+  });
+  
+  const finalResults = Array.from(uniqueResults.values()).sort((a, b) => b.confidence - a.confidence);
+  console.log(`📊 FINAL: ${finalResults.length} unique SKUs from "${originalFilename}":`, 
+    finalResults.map(r => `${r.sku}(${r.confidence}%)`));
+  
+  return finalResults;
+}
+
+// COMPREHENSIVE PRODUCT MATCHING - Handles all SKU variations and formats
+function findMatchingProduct(productSKUs: Array<{id: string, sku: string}>, sku: string): {id: string, sku: string} | undefined {
+  console.log(`🔍 MATCHING "${sku}" against ${productSKUs.length} products`);
+  
+  // Create normalized versions for comparison
+  const normalizeForComparison = (str: string) => str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  const skuNormalized = normalizeForComparison(sku);
+  
+  // Strategy 1: EXACT MATCH (case insensitive)
+  let match = productSKUs.find(p => normalizeForComparison(p.sku) === skuNormalized);
+  if (match) {
+    console.log(`✅ EXACT match: ${sku} → ${match.sku}`);
+    return match;
+  }
+  
+  // Strategy 2: NUMERIC ONLY comparison (remove all non-numeric)
+  const extractNumbers = (str: string) => str.replace(/[^0-9]/g, '');
+  const skuNumbers = extractNumbers(sku);
+  
+  if (skuNumbers.length >= 3) {
+    match = productSKUs.find(p => extractNumbers(p.sku) === skuNumbers);
+    if (match) {
+      console.log(`✅ NUMERIC match: ${sku} (${skuNumbers}) → ${match.sku}`);
+      return match;
     }
   }
   
-  // Strategy 8: SKU patterns in various formats
-  const patterns = [
-    /sku[\-_]?(\d+)/gi,
-    /item[\-_]?(\d+)/gi,
-    /product[\-_]?(\d+)/gi
-  ];
+  // Strategy 3: ZERO-PADDING VARIATIONS (comprehensive)
+  const zeroVariations = [];
   
-  patterns.forEach((pattern, index) => {
-    const matches = [...cleanFilename.matchAll(pattern)];
-    matches.forEach(match => {
-      if (match[1] && match[1].length >= 3) {
-        results.push({
-          sku: match[1],
-          confidence: 55 - (index * 5),
-          source: `labeled_pattern_${index + 1}`
-        });
-        console.log(`✅ Labeled pattern: ${match[1]}`);
+  // Add leading zeros (3 to 8 digits total)
+  for (let targetLength = Math.max(sku.length + 1, 4); targetLength <= 8; targetLength++) {
+    if (sku.length < targetLength) {
+      zeroVariations.push(sku.padStart(targetLength, '0'));
+    }
+  }
+  
+  // Remove leading zeros
+  let trimmed = sku;
+  while (trimmed.startsWith('0') && trimmed.length > 1) {
+    trimmed = trimmed.substring(1);
+    if (trimmed.length >= 3) {
+      zeroVariations.push(trimmed);
+    }
+  }
+  
+  // Check all zero variations
+  for (const variation of zeroVariations) {
+    match = productSKUs.find(p => normalizeForComparison(p.sku) === normalizeForComparison(variation));
+    if (match) {
+      console.log(`✅ ZERO-PADDING match: ${sku} → ${variation} → ${match.sku}`);
+      return match;
+    }
+  }
+  
+  // Strategy 4: CONTAINS MATCH (for partial SKUs)
+  if (sku.length >= 4) {
+    // Check if extracted SKU is contained in product SKU
+    match = productSKUs.find(p => normalizeForComparison(p.sku).includes(skuNormalized));
+    if (match) {
+      console.log(`✅ CONTAINS match: ${sku} found in ${match.sku}`);
+      return match;
+    }
+    
+    // Check if product SKU is contained in extracted SKU
+    match = productSKUs.find(p => skuNormalized.includes(normalizeForComparison(p.sku)) && p.sku.length >= 3);
+    if (match) {
+      console.log(`✅ REVERSE CONTAINS match: ${match.sku} found in ${sku}`);
+      return match;
+    }
+  }
+  
+  // Strategy 5: ALPHANUMERIC VARIATIONS
+  if (/[a-z]/i.test(sku)) {
+    // Try matching just the numeric part
+    const justNumbers = sku.replace(/[^0-9]/g, '');
+    if (justNumbers.length >= 3) {
+      match = productSKUs.find(p => extractNumbers(p.sku) === justNumbers);
+      if (match) {
+        console.log(`✅ ALPHANUMERIC-NUMERIC match: ${sku} (${justNumbers}) → ${match.sku}`);
+        return match;
       }
-    });
-  });
+    }
+    
+    // Try matching just the alphabetic part + numbers in product
+    const letters = sku.replace(/[^a-z]/gi, '').toUpperCase();
+    const numbers = sku.replace(/[^0-9]/g, '');
+    if (letters && numbers.length >= 3) {
+      match = productSKUs.find(p => {
+        const pLetters = p.sku.replace(/[^a-z]/gi, '').toUpperCase();
+        const pNumbers = p.sku.replace(/[^0-9]/g, '');
+        return pLetters === letters && pNumbers === numbers;
+      });
+      if (match) {
+        console.log(`✅ ALPHANUMERIC-SPLIT match: ${sku} (${letters}+${numbers}) → ${match.sku}`);
+        return match;
+      }
+    }
+  }
   
-  // Remove duplicates and sort by confidence
-  const uniqueResults = results.filter((result, index, self) => 
-    index === self.findIndex(r => r.sku === result.sku)
-  );
+  // Strategy 6: LEVENSHTEIN DISTANCE for close matches
+  const calculateDistance = (str1: string, str2: string): number => {
+    const matrix: number[][] = [];
+    for (let i = 0; i <= str2.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= str1.length; j++) matrix[0][j] = j;
+    
+    for (let i = 1; i <= str2.length; i++) {
+      for (let j = 1; j <= str1.length; j++) {
+        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+    return matrix[str2.length][str1.length];
+  };
   
-  console.log(`📊 Extracted ${uniqueResults.length} unique SKUs:`, uniqueResults.map(r => `${r.sku}(${r.confidence}%)`));
+  if (sku.length >= 4) {
+    const candidates = productSKUs.filter(p => Math.abs(p.sku.length - sku.length) <= 2);
+    let bestMatch = null;
+    let bestDistance = Infinity;
+    
+    for (const candidate of candidates) {
+      const distance = calculateDistance(skuNormalized, normalizeForComparison(candidate.sku));
+      const maxLength = Math.max(skuNormalized.length, normalizeForComparison(candidate.sku).length);
+      const similarity = 1 - (distance / maxLength);
+      
+      if (similarity >= 0.8 && distance < bestDistance) {
+        bestDistance = distance;
+        bestMatch = candidate;
+      }
+    }
+    
+    if (bestMatch) {
+      console.log(`✅ FUZZY match: ${sku} → ${bestMatch.sku} (similarity: ${(1 - bestDistance / Math.max(skuNormalized.length, normalizeForComparison(bestMatch.sku).length)) * 100}%)`);
+      return bestMatch;
+    }
+  }
   
-  return uniqueResults.sort((a, b) => b.confidence - a.confidence);
-}
-
-// Helper function to find matching product
-function findMatchingProduct(productSKUs: Array<{id: string, sku: string}>, sku: string): {id: string, sku: string} | undefined {
-  // Direct match first
-  let match = productSKUs.find(p => p.sku === sku);
-  if (match) return match;
-  
-  // Try with leading zeros removed
-  const skuWithoutLeadingZeros = sku.replace(/^0+/, '');
-  match = productSKUs.find(p => p.sku.replace(/^0+/, '') === skuWithoutLeadingZeros);
-  if (match) return match;
-  
-  // Try with leading zeros added (up to 6 digits)
-  const paddedSKU = sku.padStart(6, '0');
-  match = productSKUs.find(p => p.sku === paddedSKU);
-  
-  return match;
+  console.log(`❌ NO match found for: ${sku}`);
+  return undefined;
 }
 
 // Streamlined processing function
@@ -331,7 +534,7 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
             console.log(`📦 PACKAGING MATCH: ${image.filename} → ${matchedProduct.sku}`);
           }
           
-          const isHighConfidence = extractedSKU.confidence >= 80;
+          const isHighConfidence = extractedSKU.confidence >= 70; // Lower threshold for better coverage
           
           if (isHighConfidence) {
             // Create direct link (with duplicate prevention via unique constraint)
@@ -388,7 +591,7 @@ async function runConsolidatedProcessing(supabase: any): Promise<ProcessingResul
             }
           }
           
-          break; // Found match, stop checking other SKUs
+          // Don't break - continue checking other SKUs in the same image for additional matches
         }
       }
     }
