@@ -77,9 +77,15 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     }
   });
   
-  // Strategy 3: MULTI-SKU FILENAMES (Multiple SKUs in one file)
+  // Strategy 3: MULTI-SKU FILENAMES (Multiple SKUs in one file) - FIXED REGEX
   const multiSkuDelimiters = ['.', '_', '-', ' ', '+', '&'];
-  const multiSkuPattern = new RegExp(`(\\d{3,8})(?:[${multiSkuDelimiters.map(d => d === '.' || d === '+' ? '\\' + d : d).join('')}]+(\\d{3,8}))+`, 'g');
+  // Properly escape special regex characters for character class
+  const escapedDelimiters = multiSkuDelimiters.map(d => {
+    if (d === '.' || d === '+' || d === '&') return '\\' + d;
+    if (d === '-') return '\\-'; // Hyphen must be escaped in character class
+    return d;
+  }).join('');
+  const multiSkuPattern = new RegExp(`(\\d{3,8})(?:[${escapedDelimiters}]+(\\d{3,8}))+`, 'g');
   
   let multiMatch;
   while ((multiMatch = multiSkuPattern.exec(cleanFilename)) !== null) {
@@ -562,7 +568,7 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
                     .single();
                   
                   if (!existingLink) {
-                    const confidenceThreshold = 70; // Lowered from 80% for better coverage
+                    const confidenceThreshold = 65; // Lowered from 70% for even better coverage
                     
                     if (extractedSKU.confidence >= confidenceThreshold) {
                       // Create direct link (high confidence)
@@ -580,7 +586,7 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
                             original_filename: file.name,
                             extracted_sku: extractedSKU.sku,
                             matched_product_sku: matchingProduct.sku,
-                            processing_method: 'consolidated_linker',
+                            processing_method: 'consolidated_linker_v2_fixed',
                             complete_refresh: options.completeRefresh || false
                           },
                           auto_matched: true,
@@ -609,7 +615,7 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
                             original_filename: file.name,
                             extracted_sku: extractedSKU.sku,
                             matched_product_sku: matchingProduct.sku,
-                            processing_method: 'consolidated_linker',
+                            processing_method: 'consolidated_linker_v2_fixed',
                             complete_refresh: options.completeRefresh || false
                           },
                           status: 'pending'
