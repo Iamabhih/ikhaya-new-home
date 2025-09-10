@@ -161,11 +161,12 @@ export const MasterImageLinker = () => {
 
     try {
       const sessionId = `master_${Date.now()}`;
-      console.log("🚀 Starting Master Image Linker...");
+      console.log("🚀 Starting Master Image Linker with session:", sessionId);
+      console.log("📋 Processing options:", options);
       
       toast({
         title: "Master Image Linker Started",
-        description: `Processing with ${options.mode} mode - No scale limitations applied`,
+        description: `Processing with ${options.mode} mode - Session: ${sessionId}`,
       });
 
       const { data, error } = await supabase.functions.invoke('master-image-linker', {
@@ -176,17 +177,40 @@ export const MasterImageLinker = () => {
         }
       });
 
+      console.log("📡 Edge function response:", { data, error });
+
       if (error) {
+        console.error("❌ Edge function error:", error);
         throw new Error(`Processing failed: ${error.message}`);
       }
 
+      if (!data?.success) {
+        console.error("❌ Processing start failed:", data);
+        throw new Error("Failed to start processing");
+      }
+
+      console.log("✅ Processing started successfully, setting up progress tracking...");
+
       // Set up real-time progress tracking with enhanced error handling
       const interval = setInterval(async () => {
+        console.log(`🔄 Checking progress for session: ${sessionId}`);
         const progress = await checkProgress(sessionId);
+        
         if (progress) {
+          console.log("📊 Progress update:", {
+            status: progress.status,
+            progress: progress.progress,
+            currentStep: progress.currentStep,
+            directLinks: progress.directLinksCreated,
+            candidates: progress.candidatesCreated,
+            errors: progress.errors?.length || 0,
+            warnings: progress.warnings?.length || 0
+          });
+          
           setResult(progress);
           
           if (progress.status === 'completed' || progress.status === 'failed') {
+            console.log(`🏁 Processing ${progress.status}!`);
             clearInterval(interval);
             setIsRunning(false);
             
@@ -199,8 +223,7 @@ export const MasterImageLinker = () => {
             });
           }
         } else {
-          // Handle case where progress check fails
-          console.warn('Failed to get progress update, will retry...');
+          console.warn(`⚠️ Failed to get progress for session ${sessionId}, will retry...`);
         }
       }, 1000); // Real-time updates every second
       
@@ -531,40 +554,63 @@ export const MasterImageLinker = () => {
             <>
               {/* Real-time Progress */}
               {result.status === 'running' && (
-                <Card>
+                <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/50">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Activity className="h-5 w-5 animate-pulse text-blue-600" />
                       Real-time Progress
+                      <Badge variant="outline" className="ml-2 animate-pulse">
+                        LIVE
+                      </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">{result.currentStep}</span>
+                      <span className="text-sm font-medium">{result.currentStep}</span>
                       <span className="text-sm text-muted-foreground">
                         Batch {result.currentBatch} of {result.totalBatches}
                       </span>
                     </div>
-                    <Progress value={result.progress} className="w-full h-3" />
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Progress</span>
+                        <span>{result.progress.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={result.progress} className="w-full h-3" />
+                    </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                      <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded">
-                        <div className="text-lg font-bold text-blue-600">{result.processingRate?.toFixed(1) || '0'}</div>
-                        <div className="text-xs text-muted-foreground">Items/sec</div>
-                      </div>
-                      <div className="p-3 bg-green-50 dark:bg-green-950 rounded">
-                        <div className="text-lg font-bold text-green-600">{result.directLinksCreated}</div>
-                        <div className="text-xs text-muted-foreground">Links Created</div>
-                      </div>
-                      <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded">
-                        <div className="text-lg font-bold text-orange-600">{result.candidatesCreated}</div>
-                        <div className="text-xs text-muted-foreground">Candidates</div>
-                      </div>
-                      <div className="p-3 bg-purple-50 dark:bg-purple-950 rounded">
-                        <div className="text-lg font-bold text-purple-600">
-                          {result.timeRemaining ? formatTime(result.timeRemaining * 1000) : 'Calculating...'}
+                    {/* Detailed Activity Feed */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold">Current Activity</h4>
+                        <div className="text-xs space-y-1 bg-background/80 rounded p-2 max-h-24 overflow-y-auto">
+                          <div>📊 Products: {result.productsScanned}</div>
+                          <div>🖼️ Images: {result.imagesScanned}</div>
+                          <div>🔗 Links: {result.directLinksCreated}</div>
+                          <div>📋 Candidates: {result.candidatesCreated}</div>
+                          {result.errors.length > 0 && (
+                            <div className="text-red-600">❌ Errors: {result.errors.length}</div>
+                          )}
+                          {result.warnings.length > 0 && (
+                            <div className="text-orange-600">⚠️ Warnings: {result.warnings.length}</div>
+                          )}
                         </div>
-                        <div className="text-xs text-muted-foreground">Est. Remaining</div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold">Performance</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-2 bg-blue-50 dark:bg-blue-950 rounded text-center">
+                            <div className="text-sm font-bold text-blue-600">{result.processingRate?.toFixed(1) || '0'}</div>
+                            <div className="text-xs text-muted-foreground">Items/sec</div>
+                          </div>
+                          <div className="p-2 bg-purple-50 dark:bg-purple-950 rounded text-center">
+                            <div className="text-sm font-bold text-purple-600">
+                              {result.timeRemaining ? formatTime(result.timeRemaining * 1000) : 'Calc...'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Remaining</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -706,8 +752,13 @@ export const MasterImageLinker = () => {
           ) : (
             <Card>
               <CardContent className="text-center py-8">
-                <div className="text-muted-foreground">
-                  No processing results available. Start processing to see progress.
+                <div className="space-y-4">
+                  <div className="text-muted-foreground">
+                    No processing results available. Start processing to see progress.
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    💡 Tip: Check browser console (F12) for detailed processing logs
+                  </div>
                 </div>
               </CardContent>
             </Card>
