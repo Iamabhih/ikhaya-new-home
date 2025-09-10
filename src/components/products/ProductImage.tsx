@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
+import { getSupabaseImageUrl } from "@/utils/imageUtils";
 
 interface ProductImageProps {
   product: {
@@ -49,7 +50,7 @@ export const ProductImage = ({
         <div className={`${imageClasses} bg-[hsl(var(--product-image-bg))] flex items-center justify-center overflow-hidden rounded-lg`}>
           {primaryImage ? (
             <OptimizedImage
-              src={primaryImage.image_url}
+              src={getSupabaseImageUrl(primaryImage.image_url)}
               alt={primaryImage.alt_text || product.name}
               className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
               lazy={true}
