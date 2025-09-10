@@ -15,7 +15,7 @@ import BulkBackgroundRemover from "@/components/admin/BulkBackgroundRemover";
 import { BulkStockManager } from "@/components/admin/BulkStockManager";
 import { WeeklyPromotionsManagement } from "@/components/admin/WeeklyPromotionsManagement";
 import { HideProductsWithoutImages } from "@/components/admin/HideProductsWithoutImages";
-import { ImageRepairTester } from "@/components/admin/ImageRepairTester";
+import { MasterImageLinker } from "@/components/admin/MasterImageLinker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors, Package, FileText, EyeOff, Wrench } from "lucide-react";

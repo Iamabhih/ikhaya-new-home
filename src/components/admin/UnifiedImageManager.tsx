@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ConsolidatedImageLinker } from "./ConsolidatedImageLinker";
+import { MasterImageLinker } from "./MasterImageLinker";
 import { ImageAuditTool } from "./ImageAuditTool";
 import { AutoPromoteCandidates } from "./AutoPromoteCandidates";
 import { Database, Wrench, Search, AlertTriangle, FileSearch, TrendingUp, Zap } from "lucide-react";
@@ -30,11 +30,11 @@ export const UnifiedImageManager = () => {
             </AlertDescription>
           </Alert>
 
-          <Tabs defaultValue="consolidated" className="w-full">
+          <Tabs defaultValue="master" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="consolidated" className="flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                Consolidated Linker
+              <TabsTrigger value="master" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Master Linker
               </TabsTrigger>
               <TabsTrigger value="promote" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
@@ -46,8 +46,8 @@ export const UnifiedImageManager = () => {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="consolidated" className="mt-6">
-              <ConsolidatedImageLinker />
+            <TabsContent value="master" className="mt-6">
+              <MasterImageLinker />
             </TabsContent>
             
             <TabsContent value="promote" className="mt-6">
