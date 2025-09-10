@@ -57,8 +57,139 @@ interface ExtractedSKU {
   source: string;
 }
 
-// In-memory session storage (for demo - use Redis/DB in production)
-const sessions = new Map<string, MasterResult>();
+// Database session management functions
+async function createSession(supabase: any, sessionId: string, options: ProcessingOptions): Promise<void> {
+  const { error } = await supabase
+    .from('processing_sessions')
+    .insert({
+      id: sessionId,
+      session_type: 'master_image_linker',
+      status: 'running',
+      progress: 0,
+      options: options,
+      matching_stats: {
+        exactMatch: 0,
+        multiSku: 0,
+        paddedSku: 0,
+        patternMatch: 0,
+        fuzzyMatch: 0
+      },
+      processing_stats: {
+        start_time: Date.now(),
+        processing_rate: 0,
+        estimated_completion: null
+      }
+    });
+  
+  if (error) {
+    console.error('❌ Failed to create session:', error);
+    throw new Error(`Failed to create processing session: ${error.message}`);
+  }
+}
+
+async function getSession(supabase: any, sessionId: string): Promise<MasterResult | null> {
+  const { data, error } = await supabase
+    .from('processing_sessions')
+    .select('*')
+    .eq('id', sessionId)
+    .single();
+  
+  if (error) {
+    console.warn(`⚠️ Session not found: ${sessionId}`);
+    return null;
+  }
+  
+  // Convert database format to MasterResult format
+  return {
+    sessionId: data.id,
+    status: data.status,
+    progress: data.progress,
+    currentStep: 'Processing...',
+    currentBatch: data.current_batch || 0,
+    totalBatches: data.total_batches || 0,
+    productsScanned: data.products_scanned || 0,
+    imagesScanned: data.images_scanned || 0,
+    directLinksCreated: data.links_created || 0,
+    candidatesCreated: data.candidates_created || 0,
+    startTime: data.started_at,
+    errors: data.errors || [],
+    warnings: data.warnings || [],
+    matchingStats: data.matching_stats || { exactMatch: 0, multiSku: 0, paddedSku: 0, patternMatch: 0, fuzzyMatch: 0 },
+    processingRate: data.processing_stats?.processing_rate || 0,
+    timeRemaining: data.processing_stats?.estimated_completion ? 
+      Math.max(0, new Date(data.processing_stats.estimated_completion).getTime() - Date.now()) / 1000 : undefined
+  };
+}
+
+async function updateSession(supabase: any, sessionId: string, updates: Partial<MasterResult>): Promise<void> {
+  const dbUpdates: any = {
+    updated_at: new Date().toISOString()
+  };
+  
+  if (updates.status !== undefined) dbUpdates.status = updates.status;
+  if (updates.progress !== undefined) dbUpdates.progress = updates.progress;
+  if (updates.currentBatch !== undefined) dbUpdates.current_batch = updates.currentBatch;
+  if (updates.totalBatches !== undefined) dbUpdates.total_batches = updates.totalBatches;
+  if (updates.productsScanned !== undefined) dbUpdates.products_scanned = updates.productsScanned;
+  if (updates.imagesScanned !== undefined) dbUpdates.images_scanned = updates.imagesScanned;
+  if (updates.directLinksCreated !== undefined) dbUpdates.links_created = updates.directLinksCreated;
+  if (updates.candidatesCreated !== undefined) dbUpdates.candidates_created = updates.candidatesCreated;
+  if (updates.errors !== undefined) dbUpdates.errors = updates.errors;
+  if (updates.warnings !== undefined) dbUpdates.warnings = updates.warnings;
+  if (updates.matchingStats !== undefined) dbUpdates.matching_stats = updates.matchingStats;
+  
+  if (updates.processingRate !== undefined || updates.timeRemaining !== undefined) {
+    const currentSession = await getSession(supabase, sessionId);
+    const processingStats = { ...currentSession?.processingRate ? { processing_rate: currentSession.processingRate } : {} };
+    if (updates.processingRate !== undefined) processingStats.processing_rate = updates.processingRate;
+    if (updates.timeRemaining !== undefined) {
+      processingStats.estimated_completion = new Date(Date.now() + updates.timeRemaining * 1000).toISOString();
+    }
+    dbUpdates.processing_stats = processingStats;
+  }
+  
+  if (updates.status === 'completed' || updates.status === 'failed') {
+    dbUpdates.completed_at = new Date().toISOString();
+  }
+  
+  const { error } = await supabase
+    .from('processing_sessions')
+    .update(dbUpdates)
+    .eq('id', sessionId);
+  
+  if (error) {
+    console.error('❌ Failed to update session:', error);
+  }
+}
+
+async function pauseSession(supabase: any, sessionId: string): Promise<void> {
+  await updateSession(supabase, sessionId, { status: 'paused' });
+}
+
+function createSafeSessionResult(sessionId: string): MasterResult {
+  return {
+    sessionId,
+    status: 'running',
+    progress: 0,
+    currentStep: 'Initializing...',
+    currentBatch: 0,
+    totalBatches: 0,
+    productsScanned: 0,
+    imagesScanned: 0,
+    directLinksCreated: 0,
+    candidatesCreated: 0,
+    startTime: new Date().toISOString(),
+    matchingStats: {
+      exactMatch: 0,
+      multiSku: 0,
+      paddedSku: 0,
+      patternMatch: 0,
+      fuzzyMatch: 0,
+    },
+    errors: [],
+    warnings: [],
+  };
+}
 
 // SKU extraction with strict full SKU matching only
 function extractSKUsFromFilename(filename: string): ExtractedSKU[] {
@@ -185,84 +316,22 @@ function findMatchingProduct(products: any[], targetSku: string): any | null {
   return null;
 }
 
-// Create a safe session result with guaranteed data structure
-function createSafeSessionResult(sessionId: string): MasterResult {
-  return {
-    sessionId,
-    status: 'running',
-    progress: 0,
-    currentStep: 'Initializing...',
-    currentBatch: 0,
-    totalBatches: 0,
-    productsScanned: 0,
-    imagesScanned: 0,
-    directLinksCreated: 0,
-    candidatesCreated: 0,
-    startTime: new Date().toISOString(),
-    matchingStats: {
-      exactMatch: 0,
-      multiSku: 0,
-      paddedSku: 0,
-      patternMatch: 0,
-      fuzzyMatch: 0,
-    },
-    errors: [],
-    warnings: [],
-  };
-}
-
-// Validate and sanitize session data
-function validateSessionResult(result: any): MasterResult {
-  if (!result || typeof result !== 'object') {
-    console.warn('Invalid session result, creating new one');
-    return createSafeSessionResult(result?.sessionId || 'unknown');
-  }
-
-  // Ensure matchingStats exists and has all required properties
-  if (!result.matchingStats || typeof result.matchingStats !== 'object') {
-    console.warn('Missing or invalid matchingStats, initializing');
-    result.matchingStats = {
-      exactMatch: 0,
-      multiSku: 0,
-      paddedSku: 0,
-      patternMatch: 0,
-      fuzzyMatch: 0,
-    };
-  } else {
-    // Ensure all required properties exist
-    const requiredStats = ['exactMatch', 'multiSku', 'paddedSku', 'patternMatch', 'fuzzyMatch'];
-    requiredStats.forEach(stat => {
-      if (typeof result.matchingStats[stat] !== 'number') {
-        result.matchingStats[stat] = 0;
-      }
-    });
-  }
-
-  // Ensure arrays exist
-  if (!Array.isArray(result.errors)) result.errors = [];
-  if (!Array.isArray(result.warnings)) result.warnings = [];
-
-  return result as MasterResult;
-}
-
-// Master processing function with no scale limitations
+// Master processing function with database session management
 async function runMasterProcessing(
   supabase: any, 
   sessionId: string, 
   options: ProcessingOptions
 ): Promise<void> {
-  const result = createSafeSessionResult(sessionId);
-  
-  sessions.set(sessionId, result);
-  
   try {
     console.log(`🚀 MASTER IMAGE LINKER V1 - Starting processing with NO SCALE LIMITS`);
     console.log(`📊 Configuration: ${JSON.stringify(options, null, 2)}`);
     
+    // Initialize session in database
+    await createSession(supabase, sessionId, options);
+    
     // Step 1: Clear existing data if refresh mode
     if (options.mode === 'refresh') {
-      result.currentStep = 'Clearing existing image links...';
-      sessions.set(sessionId, result);
+      await updateSession(supabase, sessionId, { currentStep: 'Clearing existing image links...' });
       
       const { error: clearError } = await supabase
         .from('product_images')
@@ -271,13 +340,10 @@ async function runMasterProcessing(
         
       if (clearError) throw clearError;
       console.log(`🧹 CLEARED existing product images`);
-      result.imagesCleared = 0; // Could count deleted if needed
     }
     
     // Step 2: Load ALL products (no limits)
-    result.currentStep = 'Loading products...';
-    result.progress = 5;
-    sessions.set(sessionId, result);
+    await updateSession(supabase, sessionId, { currentStep: 'Loading products...', progress: 5 });
     
     const { data: products, error: productsError } = await supabase
       .from('products')
@@ -286,12 +352,10 @@ async function runMasterProcessing(
       
     if (productsError) throw productsError;
     console.log(`📊 Loaded ${products.length} products`);
-    result.productsScanned = products.length;
+    await updateSession(supabase, sessionId, { productsScanned: products.length });
     
     // Step 3: Scan ALL storage files (no limits)
-    result.currentStep = 'Scanning storage files...';
-    result.progress = 10;
-    sessions.set(sessionId, result);
+    await updateSession(supabase, sessionId, { currentStep: 'Scanning storage files...', progress: 10 });
     
     let allFiles: any[] = [];
     let offset = 0;
@@ -319,8 +383,8 @@ async function runMasterProcessing(
       }
       
       // Update progress
-      result.progress = Math.min(10 + (allFiles.length / 50000) * 10, 20);
-      sessions.set(sessionId, result);
+      const scanProgress = Math.min(10 + (allFiles.length / 50000) * 10, 20);
+      await updateSession(supabase, sessionId, { progress: scanProgress });
     }
     
     // Filter to image files only
@@ -330,32 +394,45 @@ async function runMasterProcessing(
     });
     
     console.log(`📊 Found ${imageFiles.length} image files out of ${allFiles.length} total files`);
-    result.imagesScanned = imageFiles.length;
+    await updateSession(supabase, sessionId, { imagesScanned: imageFiles.length });
     
     // Step 4: Process images in large batches
-    result.currentStep = 'Processing image-product matching...';
-    result.progress = 25;
-    result.totalBatches = Math.ceil(imageFiles.length / options.batchSize);
-    sessions.set(sessionId, result);
+    await updateSession(supabase, sessionId, { 
+      currentStep: 'Processing image-product matching...', 
+      progress: 25, 
+      totalBatches: Math.ceil(imageFiles.length / options.batchSize) 
+    });
     
     const startProcessingTime = Date.now();
     const linksToCreate: any[] = [];
     const candidatesToCreate: any[] = [];
+    let currentSession = await getSession(supabase, sessionId);
+    let matchingStats = { ...currentSession?.matchingStats };
     
     for (let i = 0; i < imageFiles.length; i += options.batchSize) {
       const batch = imageFiles.slice(i, i + options.batchSize);
-      result.currentBatch = Math.floor(i / options.batchSize) + 1;
-      result.currentStep = `Processing batch ${result.currentBatch}/${result.totalBatches}...`;
+      const batchNumber = Math.floor(i / options.batchSize) + 1;
       
-      console.log(`\n📦 Processing batch ${result.currentBatch}/${result.totalBatches} (${batch.length} files)`);
+      await updateSession(supabase, sessionId, {
+        currentBatch: batchNumber,
+        currentStep: `Processing batch ${batchNumber}/${Math.ceil(imageFiles.length / options.batchSize)}...`
+      });
+      
+      console.log(`\n📦 Processing batch ${batchNumber}/${Math.ceil(imageFiles.length / options.batchSize)} (${batch.length} files)`);
       
       for (const file of batch) {
         try {
+          // Check if session is paused
+          currentSession = await getSession(supabase, sessionId);
+          if (currentSession?.status === 'paused') {
+            console.log('⏸️ Processing paused by user');
+            return;
+          }
+          
           // Extract SKUs with strict full SKU matching
           const extractedSKUs = extractSKUsFromFilename(file.name);
           
           if (extractedSKUs.length === 0) {
-            result.warnings.push(`No valid SKUs found in: ${file.name}`);
             continue;
           }
           
@@ -400,13 +477,11 @@ async function runMasterProcessing(
                       is_primary: linksToCreate.filter(l => l.product_id === matchingProduct.id).length === 0
                     });
                     
-                    result.directLinksCreated++;
-                    
                     // Update matching stats
-                    if (extractedSKU.source === 'exact_numeric') result.matchingStats.exactMatch++;
-                    else if (extractedSKU.source.startsWith('multi_sku')) result.matchingStats.multiSku++;
-                    else if (extractedSKU.source.startsWith('zero_padded')) result.matchingStats.paddedSku++;
-                    else if (extractedSKU.source === 'contextual') result.matchingStats.patternMatch++;
+                    if (extractedSKU.source === 'exact_numeric') matchingStats.exactMatch++;
+                    else if (extractedSKU.source.startsWith('multi_sku')) matchingStats.multiSku++;
+                    else if (extractedSKU.source.startsWith('zero_padded')) matchingStats.paddedSku++;
+                    else if (extractedSKU.source === 'contextual') matchingStats.patternMatch++;
                     
                     console.log(`🎯 LINK: ${file.name} → ${matchingProduct.sku} (${extractedSKU.confidence}%)`);
                   }
@@ -426,7 +501,6 @@ async function runMasterProcessing(
                     status: 'pending'
                   });
                   
-                  result.candidatesCreated++;
                   console.log(`📋 CANDIDATE: ${file.name} → ${matchingProduct.sku} (${extractedSKU.confidence}%)`);
                 }
                 
@@ -435,7 +509,9 @@ async function runMasterProcessing(
             }
           }
         } catch (error) {
-          result.errors.push(`Error processing ${file.name}: ${error.message}`);
+          currentSession = await getSession(supabase, sessionId);
+          const errors = [...(currentSession?.errors || []), `Error processing ${file.name}: ${error.message}`];
+          await updateSession(supabase, sessionId, { errors });
           console.error(`❌ Error processing ${file.name}:`, error);
         }
       }
@@ -444,20 +520,28 @@ async function runMasterProcessing(
       const currentTime = Date.now();
       const elapsed = currentTime - startProcessingTime;
       const processedItems = i + batch.length;
-      result.processingRate = processedItems / (elapsed / 1000);
-      result.timeRemaining = (imageFiles.length - processedItems) / result.processingRate;
-      result.progress = 25 + ((processedItems / imageFiles.length) * 50);
+      const processingRate = processedItems / (elapsed / 1000);
+      const timeRemaining = (imageFiles.length - processedItems) / processingRate;
+      const progress = 25 + ((processedItems / imageFiles.length) * 50);
       
-      sessions.set(sessionId, result);
+      await updateSession(supabase, sessionId, {
+        progress,
+        processingRate,
+        timeRemaining,
+        directLinksCreated: linksToCreate.length,
+        candidatesCreated: candidatesToCreate.length,
+        matchingStats
+      });
       
       // Small delay to prevent overwhelming the system
       await new Promise(resolve => setTimeout(resolve, 10));
     }
     
     // Step 5: Bulk insert links and candidates
-    result.currentStep = 'Creating database entries...';
-    result.progress = 80;
-    sessions.set(sessionId, result);
+    await updateSession(supabase, sessionId, { 
+      currentStep: 'Creating database entries...', 
+      progress: 80 
+    });
     
     if (linksToCreate.length > 0) {
       console.log(`💾 Inserting ${linksToCreate.length} direct links...`);
@@ -470,7 +554,9 @@ async function runMasterProcessing(
           
         if (linkError) {
           console.error('Link insertion error:', linkError);
-          result.errors.push(`Failed to insert links: ${linkError.message}`);
+          currentSession = await getSession(supabase, sessionId);
+          const errors = [...(currentSession?.errors || []), `Failed to insert links: ${linkError.message}`];
+          await updateSession(supabase, sessionId, { errors });
         }
       }
     }
@@ -486,128 +572,131 @@ async function runMasterProcessing(
           
         if (candidateError) {
           console.error('Candidate insertion error:', candidateError);
-          result.errors.push(`Failed to insert candidates: ${candidateError.message}`);
+          currentSession = await getSession(supabase, sessionId);
+          const errors = [...(currentSession?.errors || []), `Failed to insert candidates: ${candidateError.message}`];
+          await updateSession(supabase, sessionId, { errors });
         }
       }
     }
     
-    // Final results
-    result.progress = 100;
-    result.status = 'completed';
-    result.endTime = new Date().toISOString();
-    result.totalTime = Date.now() - new Date(result.startTime).getTime();
-    result.avgProcessingTime = result.totalTime / result.imagesScanned;
-    result.currentStep = 'Processing completed successfully';
-    
+    // Final update
+    const totalTime = Date.now() - startProcessingTime;
+    await updateSession(supabase, sessionId, {
+      status: 'completed',
+      progress: 100,
+      endTime: new Date().toISOString(),
+      totalTime,
+      directLinksCreated: linksToCreate.length,
+      candidatesCreated: candidatesToCreate.length
+    });
+
     console.log(`✅ MASTER PROCESSING COMPLETE:`);
-    console.log(`📊 Products: ${result.productsScanned}, Images: ${result.imagesScanned}`);
-    console.log(`🔗 Direct Links: ${result.directLinksCreated}, Candidates: ${result.candidatesCreated}`);
-    console.log(`⏱️ Total Time: ${result.totalTime}ms (${result.avgProcessingTime?.toFixed(2)}ms per image)`);
-    console.log(`❌ Errors: ${result.errors.length}, Warnings: ${result.warnings.length}`);
+    console.log(`📊 Products: ${products.length}, Images: ${imageFiles.length}`);
+    console.log(`🔗 Direct Links: ${linksToCreate.length}, Candidates: ${candidatesToCreate.length}`);
+    console.log(`⏱️ Total Time: ${totalTime}ms (${(totalTime / imageFiles.length).toFixed(2)}ms per image)`);
     
   } catch (error) {
-    console.error('❌ MASTER PROCESSING FAILED:', error);
-    result.status = 'failed';
-    result.errors.push(error.message);
-    result.currentStep = 'Processing failed';
+    console.error('❌ Master processing error:', error);
+    await updateSession(supabase, sessionId, {
+      status: 'failed',
+      errors: [`Processing failed: ${error.message}`]
+    });
+    throw error;
   }
-  
-  sessions.set(sessionId, result);
 }
 
-// Main handler
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-  
+
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    const { action, sessionId, options } = await req.json();
+    const { action, sessionId, ...body } = await req.json();
     
+    console.log(`📨 Action: ${action}, Session: ${sessionId}`);
+
     if (action === 'start') {
-      // Start processing in background
-      runMasterProcessing(supabase, sessionId, options);
-      
-      return new Response(
-        JSON.stringify({ success: true, sessionId }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
-      );
+      const options: ProcessingOptions = {
+        mode: body.mode || 'standard',
+        batchSize: body.batchSize || 10000,
+        confidenceThreshold: body.confidenceThreshold || 80,
+        enableFuzzyMatching: body.enableFuzzyMatching || false,
+        strictSkuMatching: body.strictSkuMatching !== false,
+        processMultiSku: body.processMultiSku !== false
+      };
+
+      // Start processing in background (don't await)
+      runMasterProcessing(supabase, sessionId, options).catch(async (error) => {
+        console.error('Background processing error:', error);
+        await updateSession(supabase, sessionId, {
+          status: 'failed',
+          errors: [`Background processing failed: ${error.message}`]
+        });
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        sessionId,
+        message: 'Master processing started'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-    
+
     if (action === 'check_progress') {
-      const rawResult = sessions.get(sessionId);
-      
-      if (!rawResult) {
-        console.warn(`Session not found: ${sessionId}`);
-        return new Response(
-          JSON.stringify({ error: 'Session not found', sessionId }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 404 
-          }
-        );
+      const result = await getSession(supabase, sessionId);
+      if (!result) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Session not found',
+          sessionId
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
-      // Validate and sanitize the session data before returning
-      const validatedResult = validateSessionResult(rawResult);
-      
-      // Log any issues found during validation
-      if (rawResult !== validatedResult) {
-        console.warn(`Session data sanitized for ${sessionId}`);
-      }
-      
-      return new Response(
-        JSON.stringify(validatedResult),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
-      );
+      return new Response(JSON.stringify({
+        success: true,
+        result
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-    
+
     if (action === 'pause') {
-      const result = sessions.get(sessionId);
-      if (result) {
-        result.status = 'paused';
-        sessions.set(sessionId, result);
-      }
-      return new Response(
-        JSON.stringify({ success: true }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
-      );
+      await pauseSession(supabase, sessionId);
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Processing paused'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-    
-    return new Response(
-      JSON.stringify({ error: 'Invalid action' }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400 
-      }
-    );
-    
+
+    return new Response(JSON.stringify({
+      success: false,
+      error: `Unknown action: ${action}`
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
-    console.error('Master Image Linker Error:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: 'Master Image Linker processing failed'
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
-    );
+    console.error('❌ Master Image Linker Error:', error);
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      details: error.stack
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

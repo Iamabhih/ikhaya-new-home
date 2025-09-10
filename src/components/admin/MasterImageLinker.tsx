@@ -131,26 +131,47 @@ export const MasterImageLinker = () => {
         return null;
       }
 
-      if (!data) {
-        console.warn('No data received from progress check');
+      // Handle 404 session not found
+      if (!data?.success) {
+        if (data?.error === 'Session not found') {
+          console.warn(`Session ${sessionId} not found - may have been cleaned up or edge function restarted`);
+          setIsRunning(false);
+          toast({
+            title: "Session Lost",
+            description: "The processing session was lost. This can happen when the system restarts. Please start a new session.",
+            variant: "destructive"
+          });
+          return null;
+        }
+        console.error('Progress check failed:', data?.error);
         return null;
       }
 
-      if (data.error) {
-        console.error('Server returned error:', data.error);
-        return null;
+      if (data?.result) {
+        // Validate and sanitize the result before using it
+        const validatedResult = validateResult(data.result);
+        if (!validatedResult) {
+          console.error('Failed to validate result data');
+          return null;
+        }
+
+        return validatedResult;
       }
 
-      // Validate and sanitize the result before using it
-      const validatedResult = validateResult(data);
-      if (!validatedResult) {
-        console.error('Failed to validate result data');
-        return null;
-      }
-
-      return validatedResult;
+      return null;
     } catch (error) {
       console.error('Exception during progress check:', error);
+      
+      // If we consistently fail to get progress, stop polling and show recovery option
+      if (error instanceof Error && error.message.includes('Edge Function returned a non-2xx status code')) {
+        console.warn('Detected edge function restart - stopping progress polling');
+        setIsRunning(false);
+        toast({
+          title: "Connection Lost", 
+          description: "Lost connection to processing session. The process may still be running in the background.",
+          variant: "destructive"
+        });
+      }
       return null;
     }
   };
@@ -397,14 +418,26 @@ export const MasterImageLinker = () => {
                 )}
                 
                 <Button 
-                  onClick={clearResults}
-                  variant="outline"
+                  onClick={clearResults} 
+                  variant="outline" 
                   size="lg"
                   className="flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
                   Clear Results
                 </Button>
+                
+                {!isRunning && result && result.status === 'failed' && (
+                  <Button 
+                    onClick={startProcessing} 
+                    variant="outline" 
+                    size="lg"
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Restart Session
+                  </Button>
+                )}
               </div>
 
               {/* Processing Mode Selection */}

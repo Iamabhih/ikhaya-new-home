@@ -1690,6 +1690,72 @@ export type Database = {
           },
         ]
       }
+      processing_sessions: {
+        Row: {
+          candidates_created: number
+          completed_at: string | null
+          created_by: string | null
+          current_batch: number
+          errors: Json | null
+          id: string
+          images_scanned: number
+          links_created: number
+          matching_stats: Json | null
+          options: Json | null
+          processing_stats: Json | null
+          products_scanned: number
+          progress: number
+          session_type: string
+          started_at: string
+          status: string
+          total_batches: number
+          updated_at: string
+          warnings: Json | null
+        }
+        Insert: {
+          candidates_created?: number
+          completed_at?: string | null
+          created_by?: string | null
+          current_batch?: number
+          errors?: Json | null
+          id: string
+          images_scanned?: number
+          links_created?: number
+          matching_stats?: Json | null
+          options?: Json | null
+          processing_stats?: Json | null
+          products_scanned?: number
+          progress?: number
+          session_type?: string
+          started_at?: string
+          status?: string
+          total_batches?: number
+          updated_at?: string
+          warnings?: Json | null
+        }
+        Update: {
+          candidates_created?: number
+          completed_at?: string | null
+          created_by?: string | null
+          current_batch?: number
+          errors?: Json | null
+          id?: string
+          images_scanned?: number
+          links_created?: number
+          matching_stats?: Json | null
+          options?: Json | null
+          processing_stats?: Json | null
+          products_scanned?: number
+          progress?: number
+          session_type?: string
+          started_at?: string
+          status?: string
+          total_batches?: number
+          updated_at?: string
+          warnings?: Json | null
+        }
+        Relationships: []
+      }
       product_attributes: {
         Row: {
           created_at: string
@@ -2802,6 +2868,10 @@ export type Database = {
         Returns: number
       }
       cleanup_old_batch_progress: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_processing_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
