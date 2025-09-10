@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Badge } from "@/components/ui/badge";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { getSupabaseImageUrl } from "@/utils/imageUtils";
 
 interface ProductImage {
   id: string;
@@ -46,7 +45,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   const currentImage = sortedImages[currentImageIndex];
   
   // Preload all images for smooth gallery experience
-  const imageUrls = useMemo(() => sortedImages.map(img => getSupabaseImageUrl(img.image_url)), [sortedImages]);
+  const imageUrls = useMemo(() => sortedImages.map(img => img.image_url), [sortedImages]);
   const { isLoading, progress } = useImagePreloader(imageUrls, { priority: true });
 
   // Reset zoom and position when image changes
@@ -126,7 +125,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
           <div onClick={() => setIsFullscreen(true)} className="cursor-zoom-in">
             <OptimizedImage
               key={currentImage.id}
-              src={getSupabaseImageUrl(currentImage.image_url)}
+              src={currentImage.image_url}
               alt={currentImage.alt_text || productName}
               className="w-full h-full object-contain transition-transform duration-500 hover:scale-105"
               lazy={false}
@@ -203,7 +202,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               >
                 <div className="w-full h-full bg-[hsl(var(--product-image-bg))] flex items-center justify-center">
                   <OptimizedImage
-                    src={getSupabaseImageUrl(image.image_url)}
+                    src={image.image_url}
                     alt={image.alt_text || `${productName} thumbnail ${index + 1}`}
                     className="w-full h-full object-contain"
                     lazy={true}
@@ -301,7 +300,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               >
                 <img
                   ref={imageRef}
-                  src={getSupabaseImageUrl(currentImage.image_url)}
+                  src={currentImage.image_url}
                   alt={currentImage.alt_text || productName}
                   className="max-w-full max-h-full object-contain transition-transform duration-200"
                   style={{
