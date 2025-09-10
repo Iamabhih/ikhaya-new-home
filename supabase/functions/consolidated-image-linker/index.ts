@@ -155,11 +155,79 @@ function extractSKUsFromFilename(filename: string, diagnostics: any): ExtractedS
     console.log(`✅ EMBEDDED: ${sku}`);
   }
   
-  // Strategy 6: PARTIAL MATCHES with better filtering
+  // Strategy 6: ENHANCED PARTIAL MATCHES with better filtering and short SKU support
   const partialPatterns = [
-    /(\d{4,8})/g,                   // 4-8 digit numbers
-    /(\d{3})(?![0-9]{7,})/g,        // 3 digit numbers (not part of longer number)
+    /(\d{5,8})/g,                   // 5-8 digit numbers (prioritize longer)
+    /(\d{4})(?![0-9]{5,})/g,        // 4 digit numbers (not part of longer number)  
+    /(\d{3})(?![0-9]{6,})/g,        // 3 digit numbers (not part of longer number)
   ];
+  
+  for (const pattern of partialPatterns) {
+    let match;
+    while ((match = pattern.exec(cleanFilename)) !== null) {
+      const sku = match[1];
+      
+      // Skip if already found or too common
+      if (results.some(r => r.sku === sku)) continue;
+      if (sku === '000' || sku === '123' || sku === '999' || sku === '111' || sku === '222') continue; // Skip obvious non-SKUs
+      
+      // Boost confidence for longer numbers
+      let confidence = 65;
+      if (sku.length >= 5) confidence = 72;
+      if (sku.length >= 6) confidence = 75;
+      if (sku.length === 4) confidence = 68;
+      
+      results.push({ sku, confidence, source: 'partial' });
+      console.log(`✅ PARTIAL: ${sku} (confidence: ${confidence}%)`);
+    }
+  }
+  
+  // Strategy 7: SHORT SKU PATTERNS (3-digit specific patterns that were missed)
+  const shortSkuPatterns = [
+    /^(\d{3})[-_\.]/,               // 3 digits at start with separator
+    /[-_\.](\d{3})[-_\.]/,          // 3 digits between separators
+    /[-_\.](\d{3})$/,               // 3 digits at end with separator
+  ];
+  
+  for (const pattern of shortSkuPatterns) {
+    let match;
+    while ((match = pattern.exec(cleanFilename)) !== null) {
+      const sku = match[1];
+      
+      // Skip if already found or too common
+      if (results.some(r => r.sku === sku)) continue;
+      if (sku === '000' || sku === '123' || sku === '999') continue;
+      
+      results.push({ sku, confidence: 70, source: 'short_sku_contextual' });
+      console.log(`✅ SHORT SKU: ${sku} (confidence: 70%)`);
+    }
+  }
+  
+  // Strategy 8: IMPROVED ALPHA-NUMERIC PATTERNS
+  const alphaNumericPatterns = [
+    /([a-z]{1,3}\d{3,6})/g,         // 1-3 letters followed by 3-6 numbers
+    /(\d{3,6}[a-z]{1,3})/g,         // 3-6 numbers followed by 1-3 letters
+    /([a-z]\d{4,8})/g,              // Single letter + 4-8 digits
+    /(\d{4,8}[a-z])/g,              // 4-8 digits + single letter
+  ];
+  
+  for (const pattern of alphaNumericPatterns) {
+    let match;
+    while ((match = pattern.exec(cleanFilename)) !== null) {
+      const sku = match[1];
+      
+      // Extract numeric part and check if significant
+      const numericPart = sku.match(/\d+/)?.[0];
+      if (numericPart && numericPart.length >= 3 && !results.some(r => r.sku === sku)) {
+        let confidence = 70;
+        if (numericPart.length >= 4) confidence = 75;
+        if (numericPart.length >= 5) confidence = 78;
+        
+        results.push({ sku, confidence, source: 'alphanumeric' });
+        console.log(`✅ ALPHANUMERIC: ${sku} (confidence: ${confidence}%)`);
+      }
+    }
+  }
   
   for (const pattern of partialPatterns) {
     let match;
@@ -556,14 +624,17 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
               productsWithoutImages.delete(matchingProduct.sku);
               matchedProducts.add(matchingProduct.sku);
               
-              // Strategic confidence thresholds
-              let confidenceThreshold = 60; // Base threshold
+              // ENHANCED TIERED CONFIDENCE THRESHOLDS - More aggressive auto-linking
+              let confidenceThreshold = 55; // Lowered base threshold from 60% to 55%
               
-              // Higher threshold for partial matches
-              if (extractedSKU.source === 'partial') confidenceThreshold = 70;
-              if (extractedSKU.source === 'embedded') confidenceThreshold = 65;
-              if (extractedSKU.source.startsWith('multi')) confidenceThreshold = 55;
-              if (extractedSKU.source === 'exact_numeric') confidenceThreshold = 50;
+              // Strategic thresholds by matching type
+              if (extractedSKU.source === 'exact_numeric') confidenceThreshold = 45; // Very high confidence for exact numeric
+              if (extractedSKU.source === 'leading_numeric') confidenceThreshold = 50; // High confidence for leading numbers
+              if (extractedSKU.source === 'contextual') confidenceThreshold = 50; // High confidence for contextual matches
+              if (extractedSKU.source.startsWith('multi')) confidenceThreshold = 52; // Good confidence for multi-SKU files
+              if (extractedSKU.source === 'embedded') confidenceThreshold = 58; // Slightly higher for embedded
+              if (extractedSKU.source === 'partial') confidenceThreshold = 62; // Higher for partial matches
+              if (extractedSKU.source === 'alphanumeric') confidenceThreshold = 60; // Moderate for alphanumeric
               
               if (extractedSKU.confidence >= confidenceThreshold) {
                 // Direct link
@@ -624,11 +695,11 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
         // Update performance metrics
         result.diagnostics.performanceMetrics.avgProcessingTimePerFile += Date.now() - fileProcessStart;
         
-        // Update progress
-        if (i % 100 === 0) {
-          result.progress = 50 + (i / allFiles.length) * 35;
-          console.log(`📊 Progress: ${Math.round(result.progress)}% (${i}/${allFiles.length} files)`);
-        }
+      // Update progress more frequently for better user feedback
+      if (i % 50 === 0 || i === allFiles.length - 1) {
+        result.progress = 50 + (i / allFiles.length) * 35;
+        console.log(`📊 Progress: ${Math.round(result.progress)}% (${i + 1}/${allFiles.length} files) - Links: ${batchInserts.length}, Candidates: ${batchCandidates.length}`);
+      }
       }
     }
     
@@ -643,10 +714,77 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
 
     // Step 4: Batch database operations with metrics
     result.currentStep = 'Creating image links and candidates...';
-    result.progress = 90;
+    result.progress = 85;
     checkTimeout();
     
     console.log(`💾 BATCH OPERATIONS: ${batchInserts.length} direct links, ${batchCandidates.length} candidates`);
+    
+    // AUTO-PROMOTE high-confidence existing candidates before inserting new ones
+    console.log('🚀 AUTO-PROMOTING high-confidence existing candidates...');
+    const dbStartPromotion = Date.now();
+    
+    const { data: highConfidenceCandidates, error: candidateError } = await supabase
+      .from('product_image_candidates')
+      .select('id, product_id, image_url, alt_text, match_confidence, match_metadata')
+      .eq('status', 'pending')
+      .gte('match_confidence', 85);
+    
+    if (candidateError) {
+      console.error('❌ Error fetching candidates for auto-promotion:', candidateError.message);
+    } else if (highConfidenceCandidates && highConfidenceCandidates.length > 0) {
+      console.log(`🎯 Found ${highConfidenceCandidates.length} high-confidence candidates to auto-promote`);
+      
+      const promotedImages = highConfidenceCandidates.map(candidate => ({
+        product_id: candidate.product_id,
+        image_url: candidate.image_url,
+        alt_text: candidate.alt_text,
+        is_primary: false,
+        image_status: 'active',
+        match_confidence: candidate.match_confidence,
+        match_metadata: {
+          ...candidate.match_metadata,
+          auto_promoted: true,
+          promoted_at: new Date().toISOString(),
+          promotion_reason: 'High confidence (85%+) auto-promotion'
+        },
+        auto_matched: true,
+        reviewed_at: new Date().toISOString()
+      }));
+      
+      // Insert promoted images
+      const { error: promoteError } = await supabase
+        .from('product_images')
+        .upsert(promotedImages, { 
+          onConflict: 'product_id,image_url',
+          ignoreDuplicates: true 
+        });
+      
+      if (promoteError) {
+        console.error('❌ Error promoting candidates:', promoteError.message);
+        result.errors.push(`Auto-promotion error: ${promoteError.message}`);
+      } else {
+        // Mark candidates as approved
+        const candidateIds = highConfidenceCandidates.map(c => c.id);
+        const { error: markError } = await supabase
+          .from('product_image_candidates')
+          .update({ 
+            status: 'approved', 
+            reviewed_at: new Date().toISOString(),
+            reviewed_by: null // Auto-promoted
+          })
+          .in('id', candidateIds);
+        
+        if (markError) {
+          console.error('❌ Error marking candidates as approved:', markError.message);
+        } else {
+          console.log(`✅ Auto-promoted ${promotedImages.length} high-confidence candidates`);
+          result.directLinksCreated += promotedImages.length;
+          result.candidatesCreated -= promotedImages.length; // Adjust count
+        }
+      }
+    }
+    
+    result.diagnostics.performanceMetrics.databaseTime += Date.now() - dbStartPromotion;
     
     // Batch insert direct links
     if (batchInserts.length > 0) {
@@ -711,8 +849,8 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
       ((result.productsScanned - result.diagnostics.unmatchedProducts.length) / result.productsScanned * 100).toFixed(1) : '0';
     
     console.log(`
-✅ ENHANCED PROCESSING COMPLETE - DIAGNOSTIC REPORT
-===============================================
+✅ ENHANCED PROCESSING COMPLETE V2 - COMPREHENSIVE DIAGNOSTIC REPORT
+================================================================
 📊 OVERVIEW:
    • Products: ${result.productsScanned}
    • Images Scanned: ${result.imagesScanned}
@@ -720,6 +858,7 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
    • Direct Links: ${result.directLinksCreated}
    • Candidates: ${result.candidatesCreated}
    • Match Rate: ${matchRate}%
+   • Improvements: Enhanced confidence thresholds, auto-promotion, expanded patterns
    
 📁 STORAGE ANALYSIS:
    • Total Files: ${result.diagnostics.storageInfo.totalFiles}
@@ -728,11 +867,11 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
    • Processed Files: ${result.diagnostics.storageInfo.processedFiles}
    • Skipped Files: ${result.diagnostics.storageInfo.skippedFiles}
    
-🎯 MATCHING STRATEGIES:
+🎯 MATCHING STRATEGIES (with enhanced patterns):
 ${Object.entries(result.diagnostics.matchingStrategies).map(([strategy, count]) => 
   `   • ${strategy}: ${count}`).join('\n')}
    
-📈 CONFIDENCE DISTRIBUTION:
+📈 CONFIDENCE DISTRIBUTION (with lowered thresholds):
 ${Object.entries(result.diagnostics.confidenceDistribution).map(([range, count]) => 
   `   • ${range}: ${count}`).join('\n')}
    
@@ -743,10 +882,22 @@ ${Object.entries(result.diagnostics.confidenceDistribution).map(([range, count])
    • Matching Time: ${result.diagnostics.performanceMetrics.matchingTime}ms
    • Database Time: ${result.diagnostics.performanceMetrics.databaseTime}ms
    
-❌ ISSUES:
+🚀 ENHANCEMENTS APPLIED:
+   • Lowered confidence thresholds (55% base, 45% for exact numeric)
+   • Auto-promoted high-confidence candidates (85%+)
+   • Added short SKU contextual patterns
+   • Enhanced alphanumeric matching
+   • Improved multi-SKU file handling
+   
+❌ REMAINING ISSUES:
    • Unmatched Files: ${result.diagnostics.unmatchedFiles.length}
    • Unmatched Products: ${result.diagnostics.unmatchedProducts.length}
    • Errors: ${result.errors.length}
+
+💡 NEXT STEPS:
+   • Review remaining ${result.candidatesCreated} candidates for manual approval
+   • Check unmatched files for pattern improvements
+   • Consider bulk operations for remaining unmatched products
 `);
     
     // Log some examples of unmatched files for analysis
