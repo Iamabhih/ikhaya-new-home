@@ -99,7 +99,7 @@ const SuperAdminSettings = () => {
                 </TabsTrigger>
                 <TabsTrigger value="repair-tester" className="flex items-center gap-2 text-xs">
                   <Wrench className="h-4 w-4" />
-                  <span className="hidden sm:inline">Repair Test</span>
+                  <span className="hidden sm:inline">Master Linker</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -338,13 +338,13 @@ const SuperAdminSettings = () => {
               <TabsContent value="repair-tester">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Image Repair Function Tester</CardTitle>
+                    <CardTitle>Master Image Linker</CardTitle>
                     <CardDescription>
-                      Test and diagnose all image repair and related edge functions to identify which ones are working properly.
+                      Comprehensive tool to link all product images using strict full SKU matching. Handles large datasets with 10,000+ products and images.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ImageRepairTester />
+                    <MasterImageLinker />
                   </CardContent>
                 </Card>
               </TabsContent>
