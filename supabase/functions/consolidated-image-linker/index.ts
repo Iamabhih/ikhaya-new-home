@@ -155,24 +155,26 @@ function extractSKUsFromFilename(filename: string, diagnostics: any): ExtractedS
     console.log(`✅ EMBEDDED: ${sku}`);
   }
   
-  // Strategy 6: PARTIAL MATCHES with better filtering
-  const partialPatterns = [
-    /(\d{4,8})/g,                   // 4-8 digit numbers
-    /(\d{3})(?![0-9]{7,})/g,        // 3 digit numbers (not part of longer number)
+  // Strategy 6: FULL SKU ONLY - No partial matches to avoid false positives
+  // Only extract additional full SKUs that might be missed by other strategies
+  const fullSkuPatterns = [
+    /(?:^|[^\d])(\d{4,8})(?:[^\d]|$)/g,  // 4-8 digit numbers only (minimum 4 digits for full SKUs)
   ];
   
-  for (const pattern of partialPatterns) {
+  for (const pattern of fullSkuPatterns) {
     let match;
     while ((match = pattern.exec(cleanFilename)) !== null) {
       const sku = match[1];
       
-      // Skip if already found or too common
+      // Skip if already found or too short (less than 4 digits)
       if (results.some(r => r.sku === sku)) continue;
-      if (sku === '000' || sku === '123' || sku === '999') continue; // Skip obvious non-SKUs
+      if (sku.length < 4) continue; // Only accept 4+ digit SKUs
+      if (sku === '0000' || sku === '1234' || sku === '9999') continue; // Skip obvious non-SKUs
       
-      const confidence = sku.length >= 4 ? 70 : 65;
-      results.push({ sku, confidence, source: 'partial' });
-      console.log(`✅ PARTIAL: ${sku} (confidence: ${confidence}%)`);
+      // Higher confidence for longer SKUs, minimum 4 digits
+      const confidence = sku.length >= 5 ? 75 : 70;
+      results.push({ sku, confidence, source: 'full_sku_only' });
+      console.log(`✅ FULL SKU: ${sku} (confidence: ${confidence}%)`);
     }
   }
   
@@ -556,14 +558,25 @@ async function runConsolidatedProcessing(supabase: any, options: { completeRefre
               productsWithoutImages.delete(matchingProduct.sku);
               matchedProducts.add(matchingProduct.sku);
               
-              // Strategic confidence thresholds
-              let confidenceThreshold = 60; // Base threshold
+              // Strategic confidence thresholds - Prioritize full SKU matches
+              let confidenceThreshold = 80; // Increased base threshold for better accuracy
               
-              // Higher threshold for partial matches
-              if (extractedSKU.source === 'partial') confidenceThreshold = 70;
-              if (extractedSKU.source === 'embedded') confidenceThreshold = 65;
-              if (extractedSKU.source.startsWith('multi')) confidenceThreshold = 55;
-              if (extractedSKU.source === 'exact_numeric') confidenceThreshold = 50;
+              // PRIORITIZE EXACT MATCHES - Lower thresholds for high-confidence patterns
+              if (extractedSKU.source === 'exact_numeric') confidenceThreshold = 50;      // Highest priority
+              if (extractedSKU.source === 'contextual') confidenceThreshold = 55;         // High priority
+              if (extractedSKU.source === 'leading_numeric') confidenceThreshold = 60;    // Good priority
+              if (extractedSKU.source.startsWith('exact_padded')) confidenceThreshold = 65; // Padded exact matches
+              
+              // MULTI-SKU PATTERNS - Medium priority
+              if (extractedSKU.source.startsWith('multi')) confidenceThreshold = 70;
+              if (extractedSKU.source === 'alphanumeric') confidenceThreshold = 75;
+              
+              // LOWER PRIORITY - Higher thresholds for less reliable patterns  
+              if (extractedSKU.source === 'embedded') confidenceThreshold = 80;
+              if (extractedSKU.source === 'full_sku_only') confidenceThreshold = 70;     // Our new full SKU strategy
+              
+              // REJECT PARTIAL MATCHES - Very high threshold to avoid false positives
+              if (extractedSKU.source === 'partial') confidenceThreshold = 95;           // Effectively disabled
               
               if (extractedSKU.confidence >= confidenceThreshold) {
                 // Direct link
