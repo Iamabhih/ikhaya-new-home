@@ -540,23 +540,23 @@ export const MasterImageLinker = () => {
                     <h4 className="font-semibold mb-3">SKU Matching Breakdown</h4>
                     <div className="grid grid-cols-5 gap-3">
                       <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-green-600">{result.matchingStats.exactMatch}</div>
+                        <div className="text-sm font-bold text-green-600">{result.matchingStats?.exactMatch || 0}</div>
                         <div className="text-xs text-muted-foreground">Exact</div>
                       </div>
                       <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-blue-600">{result.matchingStats.multiSku}</div>
+                        <div className="text-sm font-bold text-blue-600">{result.matchingStats?.multiSku || 0}</div>
                         <div className="text-xs text-muted-foreground">Multi-SKU</div>
                       </div>
                       <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-purple-600">{result.matchingStats.paddedSku}</div>
+                        <div className="text-sm font-bold text-purple-600">{result.matchingStats?.paddedSku || 0}</div>
                         <div className="text-xs text-muted-foreground">Padded</div>
                       </div>
                       <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-orange-600">{result.matchingStats.patternMatch}</div>
+                        <div className="text-sm font-bold text-orange-600">{result.matchingStats?.patternMatch || 0}</div>
                         <div className="text-xs text-muted-foreground">Pattern</div>
                       </div>
                       <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-amber-600">{result.matchingStats.fuzzyMatch}</div>
+                        <div className="text-sm font-bold text-amber-600">{result.matchingStats?.fuzzyMatch || 0}</div>
                         <div className="text-xs text-muted-foreground">Fuzzy</div>
                       </div>
                     </div>
