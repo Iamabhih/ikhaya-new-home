@@ -78,8 +78,47 @@ export const MasterImageLinker = () => {
   });
   const { toast } = useToast();
 
+  // Safe result validator to prevent frontend crashes
+  const validateResult = (data: any): MasterResult | null => {
+    if (!data || typeof data !== 'object') {
+      console.warn('Invalid result data received:', data);
+      return null;
+    }
+
+    // Ensure matchingStats exists with all required properties
+    if (!data.matchingStats || typeof data.matchingStats !== 'object') {
+      console.warn('Missing matchingStats, initializing');
+      data.matchingStats = {
+        exactMatch: 0,
+        multiSku: 0,
+        paddedSku: 0,
+        patternMatch: 0,
+        fuzzyMatch: 0,
+      };
+    } else {
+      // Validate each stat property
+      const requiredStats = ['exactMatch', 'multiSku', 'paddedSku', 'patternMatch', 'fuzzyMatch'];
+      requiredStats.forEach(stat => {
+        if (typeof data.matchingStats[stat] !== 'number') {
+          console.warn(`Invalid ${stat} value, setting to 0`);
+          data.matchingStats[stat] = 0;
+        }
+      });
+    }
+
+    // Ensure other required properties exist
+    if (!Array.isArray(data.errors)) data.errors = [];
+    if (!Array.isArray(data.warnings)) data.warnings = [];
+    if (typeof data.progress !== 'number') data.progress = 0;
+    if (typeof data.currentStep !== 'string') data.currentStep = 'Processing...';
+
+    return data as MasterResult;
+  };
+
   const checkProgress = async (sessionId: string): Promise<MasterResult | null> => {
     try {
+      console.log(`Checking progress for session: ${sessionId}`);
+      
       const { data, error } = await supabase.functions.invoke('master-image-linker', {
         body: { 
           action: 'check_progress',
@@ -87,9 +126,31 @@ export const MasterImageLinker = () => {
         }
       });
 
-      if (error || !data) return null;
-      return data;
-    } catch {
+      if (error) {
+        console.error('Progress check error:', error);
+        return null;
+      }
+
+      if (!data) {
+        console.warn('No data received from progress check');
+        return null;
+      }
+
+      if (data.error) {
+        console.error('Server returned error:', data.error);
+        return null;
+      }
+
+      // Validate and sanitize the result before using it
+      const validatedResult = validateResult(data);
+      if (!validatedResult) {
+        console.error('Failed to validate result data');
+        return null;
+      }
+
+      return validatedResult;
+    } catch (error) {
+      console.error('Exception during progress check:', error);
       return null;
     }
   };
@@ -119,7 +180,7 @@ export const MasterImageLinker = () => {
         throw new Error(`Processing failed: ${error.message}`);
       }
 
-      // Set up real-time progress tracking
+      // Set up real-time progress tracking with enhanced error handling
       const interval = setInterval(async () => {
         const progress = await checkProgress(sessionId);
         if (progress) {
@@ -137,6 +198,9 @@ export const MasterImageLinker = () => {
               variant: progress.status === 'failed' ? "destructive" : "default"
             });
           }
+        } else {
+          // Handle case where progress check fails
+          console.warn('Failed to get progress update, will retry...');
         }
       }, 1000); // Real-time updates every second
       
@@ -535,32 +599,44 @@ export const MasterImageLinker = () => {
                     </div>
                   </div>
                   
-                  {/* SKU Matching Breakdown */}
-                  <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                    <h4 className="font-semibold mb-3">SKU Matching Breakdown</h4>
-                    <div className="grid grid-cols-5 gap-3">
-                      <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-green-600">{result.matchingStats?.exactMatch || 0}</div>
-                        <div className="text-xs text-muted-foreground">Exact</div>
-                      </div>
-                      <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-blue-600">{result.matchingStats?.multiSku || 0}</div>
-                        <div className="text-xs text-muted-foreground">Multi-SKU</div>
-                      </div>
-                      <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-purple-600">{result.matchingStats?.paddedSku || 0}</div>
-                        <div className="text-xs text-muted-foreground">Padded</div>
-                      </div>
-                      <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-orange-600">{result.matchingStats?.patternMatch || 0}</div>
-                        <div className="text-xs text-muted-foreground">Pattern</div>
-                      </div>
-                      <div className="text-center p-2 bg-background rounded border">
-                        <div className="text-sm font-bold text-amber-600">{result.matchingStats?.fuzzyMatch || 0}</div>
-                        <div className="text-xs text-muted-foreground">Fuzzy</div>
+                   {/* SKU Matching Breakdown */}
+                  {result.matchingStats && (
+                    <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+                      <h4 className="font-semibold mb-3">SKU Matching Breakdown</h4>
+                      <div className="grid grid-cols-5 gap-3">
+                        <div className="text-center p-2 bg-background rounded border">
+                          <div className="text-sm font-bold text-green-600">
+                            {typeof result.matchingStats.exactMatch === 'number' ? result.matchingStats.exactMatch : 0}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Exact</div>
+                        </div>
+                        <div className="text-center p-2 bg-background rounded border">
+                          <div className="text-sm font-bold text-blue-600">
+                            {typeof result.matchingStats.multiSku === 'number' ? result.matchingStats.multiSku : 0}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Multi-SKU</div>
+                        </div>
+                        <div className="text-center p-2 bg-background rounded border">
+                          <div className="text-sm font-bold text-purple-600">
+                            {typeof result.matchingStats.paddedSku === 'number' ? result.matchingStats.paddedSku : 0}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Padded</div>
+                        </div>
+                        <div className="text-center p-2 bg-background rounded border">
+                          <div className="text-sm font-bold text-orange-600">
+                            {typeof result.matchingStats.patternMatch === 'number' ? result.matchingStats.patternMatch : 0}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Pattern</div>
+                        </div>
+                        <div className="text-center p-2 bg-background rounded border">
+                          <div className="text-sm font-bold text-amber-600">
+                            {typeof result.matchingStats.fuzzyMatch === 'number' ? result.matchingStats.fuzzyMatch : 0}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Fuzzy</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                   
                   {/* Performance Metrics */}
                   {result.totalTime && (

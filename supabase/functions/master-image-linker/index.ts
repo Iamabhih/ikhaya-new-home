@@ -185,13 +185,9 @@ function findMatchingProduct(products: any[], targetSku: string): any | null {
   return null;
 }
 
-// Master processing function with no scale limitations
-async function runMasterProcessing(
-  supabase: any, 
-  sessionId: string, 
-  options: ProcessingOptions
-): Promise<void> {
-  const result: MasterResult = {
+// Create a safe session result with guaranteed data structure
+function createSafeSessionResult(sessionId: string): MasterResult {
+  return {
     sessionId,
     status: 'running',
     progress: 0,
@@ -213,6 +209,49 @@ async function runMasterProcessing(
     errors: [],
     warnings: [],
   };
+}
+
+// Validate and sanitize session data
+function validateSessionResult(result: any): MasterResult {
+  if (!result || typeof result !== 'object') {
+    console.warn('Invalid session result, creating new one');
+    return createSafeSessionResult(result?.sessionId || 'unknown');
+  }
+
+  // Ensure matchingStats exists and has all required properties
+  if (!result.matchingStats || typeof result.matchingStats !== 'object') {
+    console.warn('Missing or invalid matchingStats, initializing');
+    result.matchingStats = {
+      exactMatch: 0,
+      multiSku: 0,
+      paddedSku: 0,
+      patternMatch: 0,
+      fuzzyMatch: 0,
+    };
+  } else {
+    // Ensure all required properties exist
+    const requiredStats = ['exactMatch', 'multiSku', 'paddedSku', 'patternMatch', 'fuzzyMatch'];
+    requiredStats.forEach(stat => {
+      if (typeof result.matchingStats[stat] !== 'number') {
+        result.matchingStats[stat] = 0;
+      }
+    });
+  }
+
+  // Ensure arrays exist
+  if (!Array.isArray(result.errors)) result.errors = [];
+  if (!Array.isArray(result.warnings)) result.warnings = [];
+
+  return result as MasterResult;
+}
+
+// Master processing function with no scale limitations
+async function runMasterProcessing(
+  supabase: any, 
+  sessionId: string, 
+  options: ProcessingOptions
+): Promise<void> {
+  const result = createSafeSessionResult(sessionId);
   
   sessions.set(sessionId, result);
   
@@ -505,9 +544,29 @@ serve(async (req) => {
     }
     
     if (action === 'check_progress') {
-      const result = sessions.get(sessionId);
+      const rawResult = sessions.get(sessionId);
+      
+      if (!rawResult) {
+        console.warn(`Session not found: ${sessionId}`);
+        return new Response(
+          JSON.stringify({ error: 'Session not found', sessionId }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 404 
+          }
+        );
+      }
+
+      // Validate and sanitize the session data before returning
+      const validatedResult = validateSessionResult(rawResult);
+      
+      // Log any issues found during validation
+      if (rawResult !== validatedResult) {
+        console.warn(`Session data sanitized for ${sessionId}`);
+      }
+      
       return new Response(
-        JSON.stringify(result || { error: 'Session not found' }),
+        JSON.stringify(validatedResult),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 
