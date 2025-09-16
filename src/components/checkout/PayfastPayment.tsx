@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { Loader2, CreditCard, ShieldCheck, AlertCircle } from "lucide-react";
 import { initializePayfastPayment, submitPayfastForm } from "@/utils/payment/payfast";
 import { PAYFAST_CONFIG } from "@/utils/payment/constants";
-import { usePendingOrder } from "@/hooks/usePendingOrder";
 
 interface PayfastPaymentProps {
   formData: {
@@ -37,7 +36,6 @@ export const PayfastPayment = ({
   user
 }: PayfastPaymentProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { storePendingOrder } = usePendingOrder();
 
   // Format product name for better display
   const formatProductName = (name: string): string => {
@@ -103,29 +101,18 @@ export const PayfastPayment = ({
         environment: PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'
       });
       
-      // Store pending order data in database instead of sessionStorage
-      const pendingOrderData = {
-        orderNumber: orderId,
-        userId: user?.id,
-        cartData: {
-          items: cartItems,
-          subtotal: cartTotal
-        },
+      // Store order data for success page
+      const orderData = {
+        orderId,
         formData,
-        deliveryData: {
-          option: 'standard',
-          fee: deliveryFee
-        },
-        totalAmount
+        cartItems,
+        cartTotal,
+        deliveryFee,
+        totalAmount,
+        userId: user?.id,
+        timestamp: new Date().toISOString()
       };
-      
-      const success = await storePendingOrder(pendingOrderData);
-      if (!success) {
-        setIsProcessing(false);
-        return;
-      }
-      
-      console.log('Stored pending order data for:', orderId);
+      sessionStorage.setItem(`pending_order_${orderId}`, JSON.stringify(orderData));
       
       // Get PayFast form data - using the imported function
       const paymentDetails = initializePayfastPayment(

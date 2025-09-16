@@ -61,27 +61,30 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Process successful payment by calling order processing function
+    // Process successful payment
     if (data.payment_status === 'COMPLETE') {
       const orderNumber = data.m_payment_id;
       
-      try {
-        // Call centralized order processing function
-        const { data: processResult, error: processError } = await supabase.functions.invoke('process-order', {
-          body: {
-            orderNumber: orderNumber,
-            source: 'webhook',
-            paymentData: data
-          }
-        });
+      // Create/update order in database
+      const { data: order, error } = await supabase
+        .from('orders')
+        .upsert({
+          order_number: orderNumber,
+          email: data.email_address,
+          total_amount: parseFloat(data.amount_gross),
+          status: 'confirmed',
+          payment_status: 'paid',
+          payment_gateway: 'payfast',
+          payment_reference: data.pf_payment_id,
+          payment_gateway_response: data,
+        })
+        .select()
+        .single();
 
-        if (processError) {
-          console.error('Error calling order processing function:', processError);
-        } else {
-          console.log('Order processing result:', processResult);
-        }
-      } catch (error) {
-        console.error('Failed to process order:', error);
+      if (error) {
+        console.error('Failed to create/update order:', error);
+      } else {
+        console.log('Order confirmed:', order.id);
       }
     }
 
