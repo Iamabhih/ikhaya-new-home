@@ -1746,6 +1746,42 @@ export type Database = {
           },
         ]
       }
+      pending_orders: {
+        Row: {
+          cart_data: Json
+          created_at: string
+          delivery_data: Json
+          expires_at: string
+          form_data: Json
+          id: string
+          order_number: string
+          total_amount: number
+          user_id: string | null
+        }
+        Insert: {
+          cart_data: Json
+          created_at?: string
+          delivery_data: Json
+          expires_at?: string
+          form_data: Json
+          id?: string
+          order_number: string
+          total_amount: number
+          user_id?: string | null
+        }
+        Update: {
+          cart_data?: Json
+          created_at?: string
+          delivery_data?: Json
+          expires_at?: string
+          form_data?: Json
+          id?: string
+          order_number?: string
+          total_amount?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       processing_sessions: {
         Row: {
           candidates_created: number
@@ -3010,6 +3046,10 @@ export type Database = {
           order_ids: string[]
         }
         Returns: number
+      }
+      cleanup_expired_pending_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       cleanup_old_batch_progress: {
         Args: Record<PropertyKey, never>
