@@ -80,6 +80,13 @@ export type Database = {
             foreignKeyName: "analytics_events_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "analytics_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_performance"
             referencedColumns: ["id"]
           },
@@ -325,6 +332,13 @@ export type Database = {
             foreignKeyName: "cached_drive_images_linked_product_id_fkey"
             columns: ["linked_product_id"]
             isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "cached_drive_images_linked_product_id_fkey"
+            columns: ["linked_product_id"]
+            isOneToOne: false
             referencedRelation: "product_performance"
             referencedColumns: ["id"]
           },
@@ -492,6 +506,13 @@ export type Database = {
             foreignKeyName: "cart_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_performance"
             referencedColumns: ["id"]
           },
@@ -585,6 +606,13 @@ export type Database = {
           utm_source?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cart_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "clean_customer_analytics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cart_sessions_user_id_fkey"
             columns: ["user_id"]
@@ -714,6 +742,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_engagement_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "clean_customer_analytics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customer_engagement_metrics_user_id_fkey"
             columns: ["user_id"]
@@ -914,6 +949,13 @@ export type Database = {
             foreignKeyName: "enhanced_cart_tracking_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "enhanced_cart_tracking_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_performance"
             referencedColumns: ["id"]
           },
@@ -1099,6 +1141,13 @@ export type Database = {
             foreignKeyName: "homepage_featured_products_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: true
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "homepage_featured_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
             referencedRelation: "product_performance"
             referencedColumns: ["id"]
           },
@@ -1212,6 +1261,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "order_items_product_id_fkey"
@@ -1834,6 +1890,13 @@ export type Database = {
             foreignKeyName: "product_image_candidates_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_image_candidates_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_performance"
             referencedColumns: ["id"]
           },
@@ -1896,6 +1959,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
           {
             foreignKeyName: "product_images_product_id_fkey"
             columns: ["product_id"]
@@ -2042,6 +2112,13 @@ export type Database = {
           wholesale_price?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_variants_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
           {
             foreignKeyName: "product_variants_parent_product_id_fkey"
             columns: ["parent_product_id"]
@@ -2478,6 +2555,13 @@ export type Database = {
             foreignKeyName: "reviews_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_performance"
             referencedColumns: ["id"]
           },
@@ -2600,6 +2684,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "stock_movements_product_id_fkey"
@@ -2766,6 +2857,13 @@ export type Database = {
             foreignKeyName: "wishlists_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "wishlists_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "product_performance"
             referencedColumns: ["id"]
           },
@@ -2789,6 +2887,52 @@ export type Database = {
           slug: string | null
         }
         Relationships: []
+      }
+      clean_customer_analytics: {
+        Row: {
+          avg_order_value: number | null
+          days_since_last_order: number | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          last_order_date: string | null
+          registration_date: string | null
+          total_orders: number | null
+          total_spent: number | null
+        }
+        Relationships: []
+      }
+      clean_product_performance: {
+        Row: {
+          category_id: string | null
+          category_name: string | null
+          conversion_rate: number | null
+          price: number | null
+          product_id: string | null
+          product_name: string | null
+          sku: string | null
+          total_cart_adds: number | null
+          total_revenue: number | null
+          total_sold: number | null
+          total_views: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_product_counts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customer_analytics: {
         Row: {
@@ -2891,6 +3035,10 @@ export type Database = {
         Args: { base_name: string }
         Returns: string
       }
+      get_realtime_metrics: {
+        Args: { hours_back?: number }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2898,9 +3046,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_authentic_user: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
       promote_image_candidate: {
         Args: { candidate_id: string }
         Returns: string
+      }
+      refresh_analytics_views: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       refresh_category_counts: {
         Args: Record<PropertyKey, never>

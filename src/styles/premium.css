@@ -1,4 +1,6 @@
 /* Premium utility classes for enhanced theming */
+@tailwind utilities;
+@tailwind components;
 
 @layer utilities {
   /* Glass morphism effects */

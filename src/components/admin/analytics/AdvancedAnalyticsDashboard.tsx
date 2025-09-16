@@ -1,35 +1,33 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RealTimeMetrics } from "./RealTimeMetrics";
-import { CustomerInsights } from "./CustomerInsights";
+import { EnhancedRealTimeMetrics } from "./EnhancedRealTimeMetrics";
+import { EnhancedCustomerInsights } from "./EnhancedCustomerInsights";
 import { ConversionFunnel } from "./ConversionFunnel";
 import { ActivityFeed } from "./ActivityFeed";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { useAnalyticsData } from "@/hooks/useAnalyticsData";
-import { TrendingUp, Users, ShoppingCart, DollarSign } from "lucide-react";
+import { useEnhancedAnalytics } from "@/hooks/useEnhancedAnalytics";
+import { TrendingUp, Users, ShoppingCart, DollarSign, Sparkles } from "lucide-react";
 
 export const AdvancedAnalyticsDashboard = () => {
-  const { dailyMetrics, eventAnalytics } = useAnalyticsData();
+  const { productPerformance, overviewStats } = useEnhancedAnalytics();
 
-  // Sample data for advanced charts
-  const revenueData = dailyMetrics?.map(metric => ({
-    date: new Date(metric.date).toLocaleDateString(),
-    revenue: metric.value,
-    orders: Math.floor(metric.value / 150) // Estimated orders
+  // Enhanced data for charts
+  const revenueData = productPerformance?.slice(0, 10).map(product => ({
+    name: product.productName.substring(0, 20),
+    revenue: product.totalRevenue,
+    sold: product.totalSold
   })) || [];
 
-  const channelData = [
-    { name: 'Direct', value: 45, color: '#8884d8' },
-    { name: 'Social Media', value: 25, color: '#82ca9d' },
-    { name: 'Email', value: 15, color: '#ffc658' },
-    { name: 'Search', value: 10, color: '#ff7300' },
-    { name: 'Referral', value: 5, color: '#0088fe' }
-  ];
+  const conversionData = productPerformance?.slice(0, 5).map(product => ({
+    name: product.productName.substring(0, 15),
+    value: product.conversionRate,
+    color: `hsl(${Math.random() * 360}, 70%, 50%)`
+  })) || [];
 
   return (
     <div className="space-y-6">
-      {/* Real-time metrics at the top */}
-      <RealTimeMetrics />
+      {/* Enhanced Real-time metrics at the top */}
+      <EnhancedRealTimeMetrics />
 
       {/* Main analytics tabs */}
       <Tabs defaultValue="overview" className="w-full">
@@ -70,53 +68,53 @@ export const AdvancedAnalyticsDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Traffic Sources */}
+            {/* Product Conversion Rates */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  Traffic Sources
+                  <Sparkles className="h-5 w-5 text-blue-600" />
+                  Top Converting Products
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
-                      data={channelData}
+                      data={conversionData}
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, value }) => `${name} ${typeof value === 'number' ? value.toFixed(1) : value}%`}
                     >
-                      {channelData.map((entry, index) => (
+                      {conversionData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip formatter={(value) => [`${typeof value === 'number' ? value.toFixed(1) : value}%`, 'Conversion Rate']} />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
 
-          {/* Event Analytics Bar Chart */}
+          {/* Product Performance Bar Chart */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5 text-purple-600" />
-                User Events (Last 7 Days)
+                Top Product Revenue
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={eventAnalytics}>
+                <BarChart data={revenueData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="event_type" />
+                  <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#8b5cf6" />
+                  <Tooltip formatter={(value) => [`R${value?.toLocaleString()}`, 'Revenue']} />
+                  <Bar dataKey="revenue" fill="#8b5cf6" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -124,7 +122,7 @@ export const AdvancedAnalyticsDashboard = () => {
         </TabsContent>
 
         <TabsContent value="customers" className="space-y-6">
-          <CustomerInsights />
+          <EnhancedCustomerInsights />
         </TabsContent>
 
         <TabsContent value="conversion" className="space-y-6">
