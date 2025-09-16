@@ -9,12 +9,14 @@ import { CheckCircle, Package, Home, Mail } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { usePendingOrder } from "@/hooks/usePendingOrder";
 
 const CheckoutSuccessPage = () => {
   const [searchParams] = useSearchParams();
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { clearCart } = useCart();
+  const { clearPendingOrder } = usePendingOrder();
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -34,96 +36,42 @@ const CheckoutSuccessPage = () => {
       console.log('Processing PayFast return:', { orderId, fromPayfast, paymentStatus });
 
       try {
-        // Check if order already exists (avoid duplicate creation)
-        const { data: existingOrder } = await supabase
-          .from('orders')
-          .select('*, order_items(*)')
-          .eq('order_number', orderId)
-          .maybeSingle();
-        
-        if (existingOrder) {
-          console.log('Order already exists:', existingOrder.id);
-          setOrderDetails(existingOrder);
-          clearCart();
-          sessionStorage.removeItem(`pending_order_${orderId}`);
-          toast.success('Order confirmed!');
-        } else {
-          // Get order data from sessionStorage
-          const pendingOrderData = sessionStorage.getItem(`pending_order_${orderId}`);
-          
-          if (pendingOrderData) {
-            const orderData = JSON.parse(pendingOrderData);
-            
-            console.log('Creating new order from sessionStorage data');
-            
-            // Create order in database
-            const { data: order, error } = await supabase
-              .from('orders')
-              .insert({
-                order_number: orderId,
-                user_id: orderData.userId || null,
-                email: orderData.formData.email,
-                subtotal: orderData.cartTotal,
-                shipping_amount: orderData.deliveryFee,
-                total_amount: orderData.totalAmount,
-                status: 'processing',
-                payment_status: 'paid',
-                payment_gateway: 'payfast',
-                billing_address: {
-                  first_name: orderData.formData.firstName,
-                  last_name: orderData.formData.lastName,
-                  email: orderData.formData.email,
-                  phone: orderData.formData.phone,
-                  address: orderData.formData.address,
-                  city: orderData.formData.city,
-                  province: orderData.formData.province,
-                  postal_code: orderData.formData.postalCode
-                },
-                shipping_address: {
-                  first_name: orderData.formData.firstName,
-                  last_name: orderData.formData.lastName,
-                  email: orderData.formData.email,
-                  phone: orderData.formData.phone,
-                  address: orderData.formData.address,
-                  city: orderData.formData.city,
-                  province: orderData.formData.province,
-                  postal_code: orderData.formData.postalCode
-                }
-              })
-              .select()
-              .single();
+        // Call centralized order processing function
+        const { data: processResult, error: processError } = await supabase.functions.invoke('process-order', {
+          body: {
+            orderNumber: orderId,
+            source: 'success_page'
+          }
+        });
 
-            if (error) {
-              console.error('Error creating order:', error);
-              throw error;
-            }
-            
-            setOrderDetails(order);
-            
-            // Create order items
-            const orderItems = orderData.cartItems.map((item: any) => ({
-              order_id: order.id,
-              product_id: item.product_id || item.product?.id,
-              quantity: item.quantity,
-              unit_price: item.product?.price || 0,
-              total_price: (item.product?.price || 0) * item.quantity,
-              product_name: item.product?.name || 'Product'
-            }));
+        if (processError) {
+          console.error('Error calling order processing function:', processError);
+          toast.error('Error processing your order. Please contact support.');
+          navigate('/');
+          return;
+        }
 
-            await supabase.from('order_items').insert(orderItems);
-            
-            // Clear sessionStorage
-            sessionStorage.removeItem(`pending_order_${orderId}`);
-            
-            // Clear cart
+        if (processResult?.success) {
+          // Get the completed order details
+          const { data: orderData } = await supabase
+            .from('orders')
+            .select('*, order_items(*)')
+            .eq('order_number', orderId)            .maybeSingle();
+
+          if (orderData) {
+            setOrderDetails(orderData);
             clearCart();
-            
+            await clearPendingOrder(orderId);
             toast.success('Payment successful! Your order has been confirmed.');
           } else {
-            console.error('No order data found in sessionStorage');
-            toast.error('Order data not found. Please contact support.');
+            console.error('Order not found after processing');
+            toast.error('Order not found. Please contact support.');
             navigate('/');
           }
+        } else {
+          console.error('Order processing failed:', processResult);
+          toast.error('Failed to process order. Please contact support.');
+          navigate('/');
         }
       } catch (error) {
         console.error('Error processing order:', error);
@@ -135,7 +83,7 @@ const CheckoutSuccessPage = () => {
     };
 
     processSuccessfulPayment();
-  }, [searchParams, clearCart, navigate]);
+  }, [searchParams, clearCart, clearPendingOrder, navigate]);
 
   if (loading) {
     return (
