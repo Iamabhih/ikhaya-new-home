@@ -3,6 +3,7 @@ import { EnhancedRealTimeMetrics } from "./EnhancedRealTimeMetrics";
 import { EnhancedCustomerInsights } from "./EnhancedCustomerInsights";
 import { ConversionFunnel } from "./ConversionFunnel";
 import { ActivityFeed } from "./ActivityFeed";
+import { AnalyticsTestPanel } from "./AnalyticsTestPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { useEnhancedAnalytics } from "@/hooks/useEnhancedAnalytics";
@@ -31,12 +32,13 @@ export const AdvancedAnalyticsDashboard = () => {
 
       {/* Main analytics tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="conversion">Conversion</TabsTrigger>
           <TabsTrigger value="activity">Live Activity</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -215,6 +217,10 @@ export const AdvancedAnalyticsDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="diagnostics" className="space-y-6">
+          <AnalyticsTestPanel />
         </TabsContent>
       </Tabs>
     </div>

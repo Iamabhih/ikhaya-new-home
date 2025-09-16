@@ -192,9 +192,11 @@ export const useEnhancedAnalytics = () => {
       }
     };
 
-    // Only connect WebSocket in production or if explicitly enabled
-    if (window.location.hostname !== 'localhost') {
+    // Only connect WebSocket in production environment
+    if (window.location.hostname !== 'localhost' &&  window.location.hostname !== '127.0.0.1') {
       connectWebSocket();
+    } else {
+      console.log('WebSocket disabled in development mode');
     }
 
     return () => {
