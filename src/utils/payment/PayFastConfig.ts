@@ -1,27 +1,23 @@
-import { PAYFAST_CONFIG as CONFIG } from './constants';
-
-// Simplified PayFast configuration based on working example
-const getEnvironmentConfig = () => {
-  return CONFIG;
-};
-
+// Simplified PayFast configuration - no external dependencies
 export const getPayFastConfig = () => {
-  const config = getEnvironmentConfig();
+  // Environment flag - change this for production vs testing
+  const useSandbox = true; // Set to false for production
+  
   return {
-    // Use sandbox credentials when in test mode, live when not
-    MERCHANT_ID: config.useSandbox ? config.sandbox.merchant_id : config.live.merchant_id,
-    MERCHANT_KEY: config.useSandbox ? config.sandbox.merchant_key : config.live.merchant_key,
+    // Use appropriate credentials based on environment
+    MERCHANT_ID: useSandbox ? '10000100' : '13644558',
+    MERCHANT_KEY: useSandbox ? '46f0cd694581a' : 'u6ksewx8j6xzx',
     
     // URLs
-    SANDBOX_URL: config.sandbox.host,
-    PRODUCTION_URL: config.live.host,
+    SANDBOX_URL: 'https://sandbox.payfast.co.za/eng/process',
+    PRODUCTION_URL: 'https://www.payfast.co.za/eng/process',
     
-    // Environment - set to true for sandbox testing, false for production
-    IS_TEST_MODE: config.useSandbox,
+    // Environment setting
+    IS_TEST_MODE: useSandbox,
     
     // Return URLs - dynamically set based on current domain
     getReturnUrls: () => {
-      const baseUrl = config.siteUrl;
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
       return {
         return_url: `${baseUrl}/checkout-success`,
         cancel_url: `${baseUrl}/checkout?cancelled=true`,
