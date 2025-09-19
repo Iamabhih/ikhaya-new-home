@@ -60,6 +60,16 @@ const adminRoutes = [
     icon: Mail 
   },
   { 
+    title: "Cart Abandonment", 
+    url: "/admin/cart-abandonment", 
+    icon: Users 
+  },
+  { 
+    title: "Order Recovery", 
+    url: "/admin/order-recovery", 
+    icon: Package 
+  },
+  { 
     title: "Homepage", 
     url: "/admin/homepage", 
     icon: Home 

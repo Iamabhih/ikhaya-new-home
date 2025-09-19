@@ -1,94 +1,172 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { md5 } from 'https://esm.sh/js-md5@0.7.3'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { crypto } from "https://deno.land/std@0.168.0/crypto/crypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Signature verification for webhooks ONLY
-function generateSignature(data: Record<string, string>, passPhrase: string = ''): string {
+const generateSignature = async (data: Record<string, string>, passPhrase: string = ''): Promise<string> => {
   let pfOutput = '';
   
-  for (const key of Object.keys(data).sort()) {
-    if (key !== 'signature' && data[key] !== '') {
-      pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, '+')}&`;
-    }
+  // Remove empty values and sort
+  const filteredData = Object.entries(data)
+    .filter(([key, value]) => value && value !== '')
+    .sort(([a], [b]) => a.localeCompare(b));
+  
+  // Create parameter string
+  for (const [key, value] of filteredData) {
+    pfOutput += `${key}=${encodeURIComponent(value.trim()).replace(/%20/g, "+")}&`;
   }
   
+  // Remove the last '&' and add passphrase if provided
   pfOutput = pfOutput.slice(0, -1);
-  
-  if (passPhrase !== '') {
-    pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`;
+  if (passPhrase) {
+    pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, "+")}`;
   }
   
-  return md5(pfOutput);
-}
+  // Generate MD5 hash
+  const encoder = new TextEncoder();
+  const data_array = encoder.encode(pfOutput);
+  const hashBuffer = await crypto.subtle.digest("MD5", data_array);
+  const hashArray = new Uint8Array(hashBuffer);
+  const hashHex = Array.from(hashArray)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  return hashHex;
+};
 
-Deno.serve(async (req) => {
+// Enhanced logging function
+const logWebhookEvent = async (supabase: any, eventType: string, data: any, error?: string) => {
+  try {
+    await supabase.from('payment_logs').insert({
+      event_type: eventType,
+      message: error || `PayFast webhook ${eventType}`,
+      metadata: data,
+      created_at: new Date().toISOString()
+    });
+  } catch (logError) {
+    console.error('Failed to log webhook event:', logError);
+  }
+};
+
+serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('=== PayFast Webhook Received ===');
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const formData = await req.formData();
     const data: Record<string, string> = {};
     
-    for (const [key, value] of formData) {
-      data[key] = value.toString();
+    for (const [key, value] of formData.entries()) {
+      data[key] = value as string;
     }
 
-    console.log('Payment Status:', data.payment_status);
-    console.log('Order ID:', data.m_payment_id);
-
-    // Verify signature only in production
-    const isTestMode = Deno.env.get('PAYFAST_TEST_MODE') === 'true';
+    console.log('PayFast webhook received:', data);
     
-    if (!isTestMode && data.signature) {
-      const passphrase = Deno.env.get('PAYFAST_PASSPHRASE') || '';
-      const signature = generateSignature(data, passphrase);
+    // Log webhook event
+    await logWebhookEvent(supabase, 'webhook_received', data);
+
+    // In production, verify the signature
+    const isTestMode = Deno.env.get('PAYFAST_MODE') !== 'live';
+    
+    if (!isTestMode) {
+      const receivedSignature = data.signature;
+      const passPhrase = Deno.env.get('PAYFAST_PASSPHRASE') || '';
       
-      if (signature !== data.signature) {
-        console.error('Invalid webhook signature');
-        // In production, you should reject invalid signatures
-        // For testing, just log the error
+      // Remove signature from data before generating our own
+      const { signature, ...dataForSigning } = data;
+      
+      const expectedSignature = await generateSignature(dataForSigning, passPhrase);
+      
+      if (receivedSignature !== expectedSignature) {
+        const errorMsg = 'Signature verification failed';
+        console.error(errorMsg);
+        await logWebhookEvent(supabase, 'signature_verification_failed', { receivedSignature, expectedSignature }, errorMsg);
+        return new Response('Invalid signature', { status: 400, headers: corsHeaders });
       }
     }
 
-    // Process successful payment by calling order processing function
+    // Process completed payments with retry logic
     if (data.payment_status === 'COMPLETE') {
-      const orderNumber = data.m_payment_id;
+      console.log('Processing completed payment:', data.m_payment_id);
       
-      try {
-        // Call centralized order processing function
-        const { data: processResult, error: processError } = await supabase.functions.invoke('process-order', {
-          body: {
-            orderNumber: orderNumber,
-            source: 'webhook',
-            paymentData: data
+      let retries = 3;
+      let processResult = null;
+      let processError = null;
+      
+      while (retries > 0) {
+        try {
+          // Call the process-order function
+          const { data: result, error } = await supabase.functions.invoke('process-order', {
+            body: {
+              orderNumber: data.m_payment_id,
+              source: 'payfast_webhook',
+              paymentData: {
+                payment_status: data.payment_status,
+                pf_payment_id: data.pf_payment_id,
+                amount_gross: data.amount_gross,
+                amount_fee: data.amount_fee,
+                amount_net: data.amount_net,
+              }
+            }
+          });
+          
+          processResult = result;
+          processError = error;
+          
+          if (!error) {
+            break; // Success, exit retry loop
           }
-        });
-
-        if (processError) {
-          console.error('Error calling order processing function:', processError);
-        } else {
-          console.log('Order processing result:', processResult);
+          
+        } catch (invokeError) {
+          processError = invokeError;
         }
-      } catch (error) {
-        console.error('Failed to process order:', error);
+        
+        retries--;
+        if (retries > 0) {
+          console.log(`Retrying order processing, ${retries} attempts remaining...`);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+        }
       }
+
+      if (processError) {
+        const errorMsg = `Error processing order after retries: ${processError.message || processError}`;
+        console.error(errorMsg);
+        await logWebhookEvent(supabase, 'order_processing_failed', data, errorMsg);
+        return new Response('Error processing order', { status: 500, headers: corsHeaders });
+      }
+
+      console.log('Order processed successfully:', processResult);
+      await logWebhookEvent(supabase, 'order_processed', { orderNumber: data.m_payment_id, result: processResult });
+    } else {
+      // Log other payment statuses
+      await logWebhookEvent(supabase, 'payment_status_received', { 
+        payment_status: data.payment_status, 
+        orderNumber: data.m_payment_id 
+      });
     }
 
-    return new Response('OK', { status: 200 });
-
+    return new Response('OK', { status: 200, headers: corsHeaders });
+    
   } catch (error) {
-    console.error('Webhook error:', error);
-    return new Response('Internal error', { status: 500 });
+    const errorMsg = `PayFast webhook error: ${error.message || error}`;
+    console.error(errorMsg);
+    
+    try {
+      await logWebhookEvent(supabase, 'webhook_error', { error: errorMsg }, errorMsg);
+    } catch (logError) {
+      console.error('Failed to log webhook error:', logError);
+    }
+    
+    return new Response('Internal server error', { status: 500, headers: corsHeaders });
   }
 });

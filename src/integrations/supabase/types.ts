@@ -3071,6 +3071,15 @@ export type Database = {
         Args: { user_email: string }
         Returns: boolean
       }
+      create_user_from_order: {
+        Args: {
+          p_email: string
+          p_first_name?: string
+          p_last_name?: string
+          p_order_id?: string
+        }
+        Returns: string
+      }
       generate_unique_sku: {
         Args: { base_name: string }
         Returns: string
@@ -3089,6 +3098,10 @@ export type Database = {
       is_authentic_user: {
         Args: { user_id_param: string }
         Returns: boolean
+      }
+      link_anonymous_orders_to_user: {
+        Args: { p_email: string; p_user_id: string }
+        Returns: number
       }
       promote_image_candidate: {
         Args: { candidate_id: string }
