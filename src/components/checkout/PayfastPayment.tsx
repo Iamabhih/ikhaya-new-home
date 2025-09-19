@@ -63,7 +63,7 @@ export const PayfastPayment = ({
   };
 
   const handlePayment = async () => {
-    if (!user || !cartItems.length) return;
+    if (!cartItems.length) return;
 
     setIsProcessing(true);
     
@@ -72,41 +72,27 @@ export const PayfastPayment = ({
       const returnUrls = PAYFAST_CONFIG.getReturnUrls();
       const totalAmount = cartTotal + deliveryFee;
       
-      // Create order record in database first
-      const { error: orderError } = await supabase
-        .from('orders')
+      // Create pending order record first (this is what process-order expects)
+      const { error: pendingOrderError } = await supabase
+        .from('pending_orders')
         .insert({
-          user_id: user.id,
-          email: formData.email,
           order_number: paymentReference,
-          subtotal: cartTotal,
-          shipping_amount: deliveryFee,
-          total_amount: totalAmount,
-          status: 'pending',
-          payment_status: 'pending',
-          billing_address: {
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            address: formData.address,
-            city: formData.city,
-            province: formData.province,
-            postalCode: formData.postalCode
+          user_id: user?.id || null,
+          cart_data: {
+            items: cartItems,
+            total: cartTotal
           },
-          shipping_address: {
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            address: formData.address,
-            city: formData.city,
-            province: formData.province,
-            postalCode: formData.postalCode
-          }
+          form_data: formData,
+          delivery_data: {
+            fee: deliveryFee,
+            method: 'standard'
+          },
+          total_amount: totalAmount
         });
 
-      if (orderError) {
-        console.error('Order creation error:', orderError);
-        toast.error("Failed to create order. Please try again.");
+      if (pendingOrderError) {
+        console.error('Pending order creation error:', pendingOrderError);
+        toast.error("Failed to initialize payment. Please try again.");
         setIsProcessing(false);
         return;
       }

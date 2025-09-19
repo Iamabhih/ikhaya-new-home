@@ -4,7 +4,7 @@ const SITE_URL = 'https://ikhayahomeware.online';
 const getEnvironmentConfig = () => {
   // Use a more reliable method to determine environment
   // Set to false for production, true for testing
-  const isTestMode = false; // Change this to true for sandbox testing
+  const isTestMode = true; // Change this to false for production
   
   return {
     useSandbox: isTestMode,
