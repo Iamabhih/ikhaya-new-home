@@ -7,49 +7,38 @@ const corsHeaders = {
 }
 
 const generateSignature = async (data: Record<string, string>, passPhrase: string = ''): Promise<string> => {
-  // Define the exact field order as per PayFast documentation
-  const fieldOrder = [
-    'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
-    'name_first', 'name_last', 'email_address', 'cell_number',
-    'm_payment_id', 'amount', 'item_name', 'item_description',
-    'custom_int1', 'custom_int2', 'custom_int3', 'custom_int4', 'custom_int5',
-    'custom_str1', 'custom_str2', 'custom_str3', 'custom_str4', 'custom_str5',
-    'email_confirmation', 'confirmation_address', 'payment_method',
-    'pf_payment_id', 'payment_status', 'amount_gross', 'amount_fee', 'amount_net'
-  ];
+  console.log('Generating signature with data:', Object.keys(data));
   
-  let pfOutput = '';
+  // Remove signature field from data for verification
+  const { signature, ...dataToSign } = data;
   
-  // Process fields in the correct order (not alphabetical) - match client exactly
-  fieldOrder.forEach(key => {
-    const value = data[key];
-    if (value && value !== '') {
-      // Use standard URL encoding with + for spaces (as per PayFast docs)
-      const encodedValue = encodeURIComponent(value.trim()).replace(/%20/g, '+');
-      pfOutput += `${key}=${encodedValue}&`;
+  // Sort parameters alphabetically (standard approach for webhook verification)
+  const sortedKeys = Object.keys(dataToSign).sort();
+  const params: string[] = [];
+  
+  for (const key of sortedKeys) {
+    if (dataToSign[key] !== undefined && dataToSign[key] !== null && dataToSign[key] !== '') {
+      params.push(`${key}=${encodeURIComponent(dataToSign[key])}`);
     }
-  });
-  
-  // Remove last ampersand
-  pfOutput = pfOutput.slice(0, -1);
-  
-  // Add passphrase if provided
-  if (passPhrase && passPhrase.trim() !== '') {
-    const encodedPassphrase = encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+');
-    pfOutput += `&passphrase=${encodedPassphrase}`;
   }
   
-  console.log('Webhook signature string:', pfOutput);
+  // Add passphrase if provided
+  let paramString = params.join('&');
+  if (passPhrase && passPhrase.trim() !== '') {
+    paramString += `&passphrase=${encodeURIComponent(passPhrase)}`;
+  }
   
-  // Generate MD5 hash using Web Crypto API
+  console.log('Signature parameter string:', paramString);
+  
+  // Generate MD5 hash
   const encoder = new TextEncoder();
-  const data_array = encoder.encode(pfOutput);
-  const hashBuffer = await crypto.subtle.digest("MD5", data_array);
-  const hashArray = new Uint8Array(hashBuffer);
-  const hashHex = Array.from(hashArray)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-  return hashHex;
+  const data_bytes = encoder.encode(paramString);
+  const hash = await crypto.subtle.digest('MD5', data_bytes);
+  const hashArray = Array.from(new Uint8Array(hash));
+  const signature_calculated = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  console.log('Generated signature:', signature_calculated);
+  return signature_calculated;
 };
 
 // Enhanced logging function

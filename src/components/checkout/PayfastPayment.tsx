@@ -1,16 +1,11 @@
-// ================================================
-// FIXED: src/components/checkout/PayfastPayment.tsx
-// Only import functions, don't redefine them
-// ================================================
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CreditCard, ShieldCheck, AlertCircle } from "lucide-react";
-import { initializePayfastPayment, submitPayfastForm } from "@/utils/payment/payfast";
-import { PAYFAST_CONFIG } from "@/utils/payment/constants";
-import { usePendingOrder } from "@/hooks/usePendingOrder";
+import PayFastForm from "./PayFastForm";
+import { PAYFAST_CONFIG, generatePaymentReference } from "@/utils/payment/PayFastConfig";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CreditCard, AlertCircle } from "lucide-react";
 
 interface PayfastPaymentProps {
   formData: {
@@ -37,25 +32,23 @@ export const PayfastPayment = ({
   user
 }: PayfastPaymentProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { storePendingOrder } = usePendingOrder();
+  const [showPayFastForm, setShowPayFastForm] = useState(false);
+  const [payFastFormData, setPayFastFormData] = useState<any>(null);
 
   // Format product name for better display
   const formatProductName = (name: string): string => {
-    // Remove excessive caps and clean up
     return name
       .split(' ')
       .map(word => {
-        // Keep acronyms in caps (2-4 letter words)
         if (word.length >= 2 && word.length <= 4 && word === word.toUpperCase()) {
           return word;
         }
-        // Capitalize first letter of other words
         return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
       })
       .join(' ');
   };
 
-  // Create a clean order description
+  // Create order description
   const createOrderDescription = (items: any[]): string => {
     if (items.length === 0) return 'Order';
     
@@ -65,96 +58,97 @@ export const PayfastPayment = ({
       return `${name} (${item.quantity}x)`.substring(0, 100);
     }
     
-    if (items.length <= 3) {
-      // Show all items if 3 or fewer
-      return items
-        .map(item => {
-          const name = formatProductName(item.product?.name || 'Item');
-          return `${name} (${item.quantity}x)`;
-        })
-        .join(', ')
-        .substring(0, 100);
-    }
-    
-    // For many items, show count
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
     return `${totalItems} items from Ikhaya Homeware`.substring(0, 100);
   };
 
   const handlePayment = async () => {
+    if (!user || !cartItems.length) return;
+
     setIsProcessing(true);
     
     try {
-      // Generate order ID with better format
-      const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
-      const random = Math.random().toString(36).substr(2, 6).toUpperCase();
-      const orderId = `IKH${timestamp}-${random}`;
-      
+      const paymentReference = generatePaymentReference();
+      const returnUrls = PAYFAST_CONFIG.getReturnUrls();
       const totalAmount = cartTotal + deliveryFee;
       
-      // Create clean item description
-      const itemName = createOrderDescription(cartItems);
-      
-      console.log('Processing PayFast payment:', {
-        orderId,
-        amount: totalAmount,
-        customer: `${formData.firstName} ${formData.lastName}`,
-        itemDescription: itemName,
-        environment: PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'
-      });
-      
-      // Store pending order data in database instead of sessionStorage
-      const pendingOrderData = {
-        orderNumber: orderId,
-        userId: user?.id,
-        cartData: {
-          items: cartItems,
-          subtotal: cartTotal
-        },
-        formData,
-        deliveryData: {
-          option: 'standard',
-          fee: deliveryFee
-        },
-        totalAmount
-      };
-      
-      const success = await storePendingOrder(pendingOrderData);
-      if (!success) {
+      // Create order record in database first
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          email: formData.email,
+          order_number: paymentReference,
+          subtotal: cartTotal,
+          shipping_amount: deliveryFee,
+          total_amount: totalAmount,
+          status: 'pending',
+          payment_status: 'pending',
+          billing_address: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            province: formData.province,
+            postalCode: formData.postalCode
+          },
+          shipping_address: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            address: formData.address,
+            city: formData.city,
+            province: formData.province,
+            postalCode: formData.postalCode
+          }
+        });
+
+      if (orderError) {
+        console.error('Order creation error:', orderError);
+        toast.error("Failed to create order. Please try again.");
         setIsProcessing(false);
         return;
       }
+
+      // Prepare PayFast form data (simplified - no signature generation)
+      const payfastData = {
+        merchant_id: PAYFAST_CONFIG.MERCHANT_ID,
+        merchant_key: PAYFAST_CONFIG.MERCHANT_KEY,
+        return_url: returnUrls.return_url,
+        cancel_url: returnUrls.cancel_url,
+        notify_url: returnUrls.notify_url,
+        amount: totalAmount.toFixed(2),
+        item_name: createOrderDescription(cartItems),
+        item_description: `Ikhaya Homeware order ${paymentReference}`,
+        m_payment_id: paymentReference,
+        name_first: formData.firstName || '',
+        name_last: formData.lastName || '',
+        email_address: formData.email || ''
+      };
+
+      setPayFastFormData(payfastData);
+      setShowPayFastForm(true);
       
-      console.log('Stored pending order data for:', orderId);
-      
-      // Get PayFast form data - using the imported function
-      const paymentDetails = initializePayfastPayment(
-        orderId,
-        `${formData.firstName} ${formData.lastName}`,
-        formData.email,
-        totalAmount,
-        itemName,
-        {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone
-        }
-      );
-      
-      // Show user feedback
-      toast.info('Redirecting to PayFast secure payment...');
-      
-      // Submit form
-      setTimeout(() => {
-        submitPayfastForm(paymentDetails.formAction, paymentDetails.formData);
-      }, 500);
-      
-    } catch (error: any) {
-      console.error('Payment error:', error);
-      toast.error('Failed to initiate payment. Please try again.');
+    } catch (error) {
+      console.error('PayFast error:', error);
+      toast.error("Payment initialization failed. Please try again.");
       setIsProcessing(false);
     }
   };
+
+  if (showPayFastForm && payFastFormData) {
+    return (
+      <PayFastForm 
+        formData={payFastFormData}
+        isTestMode={PAYFAST_CONFIG.IS_TEST_MODE}
+        onSubmit={() => {
+          toast.success("Redirecting to PayFast...");
+          setIsProcessing(false);
+        }}
+      />
+    );
+  }
 
   return (
     <Card className="w-full">
@@ -165,7 +159,7 @@ export const PayfastPayment = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Order Summary with Better Formatting */}
+        {/* Order Summary */}
         <div className="bg-secondary/10 p-4 rounded-lg">
           <h4 className="font-medium mb-3">Order Summary</h4>
           
@@ -199,14 +193,14 @@ export const PayfastPayment = ({
         </div>
 
         {/* Test Mode Warning */}
-        {PAYFAST_CONFIG.useSandbox && (
+        {PAYFAST_CONFIG.IS_TEST_MODE && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
               <div className="text-sm">
                 <p className="font-medium text-amber-800">Test Mode Active</p>
                 <p className="text-amber-700 mt-1">
-                  Use test card: 4000 0000 0000 0002, CVV: 123
+                  This is a test transaction
                 </p>
               </div>
             </div>
@@ -221,22 +215,18 @@ export const PayfastPayment = ({
           size="lg"
         >
           {isProcessing ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Redirecting to PayFast...
-            </>
+            "Processing..."
           ) : (
             <>
               <CreditCard className="w-4 h-4 mr-2" />
-              Pay Now - R {(cartTotal + deliveryFee).toFixed(2)}
+              Pay R {(cartTotal + deliveryFee).toFixed(2)} with PayFast
             </>
           )}
         </Button>
 
         {/* Security Badge */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <ShieldCheck className="w-4 h-4" />
-          <span>Secured by PayFast | PCI DSS Compliant</span>
+          <span>🔒 Secured by PayFast | PCI DSS Compliant</span>
         </div>
       </CardContent>
     </Card>
