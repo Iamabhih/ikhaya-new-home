@@ -2,8 +2,9 @@ const SITE_URL = 'https://ikhayahomeware.online';
 
 // Get environment-based configuration
 const getEnvironmentConfig = () => {
-  // Check if we're in test mode based on environment or config
-  const isTestMode = import.meta.env?.VITE_PAYFAST_TEST_MODE === 'true' || false;
+  // Use a more reliable method to determine environment
+  // Set to false for production, true for testing
+  const isTestMode = false; // Change this to true for sandbox testing
   
   return {
     useSandbox: isTestMode,
