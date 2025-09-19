@@ -5,7 +5,7 @@ import { useCheckoutForm } from '@/hooks/useCheckoutForm';
 import { useCheckoutOptions } from '@/hooks/useCheckoutOptions';
 import { FormData, DeliveryOption, PaymentMethod } from '@/types/checkout';
 import { processPayment } from '@/services/paymentService';
-import { initializePayfastPayment, submitPayfastForm } from '@/utils/payment/payfast';
+import { getPayFastConfig } from '@/utils/payment/PayFastConfig';
 import { toast } from 'sonner';
 
 export function useCheckout() {
@@ -67,8 +67,8 @@ export function useCheckout() {
             console.log('Starting payment process...');
 
             if (paymentMethod.id === 'payfast') {
-                // Generate order ID (like RnR-Live)
-                const tempOrderId = Math.floor(Math.random() * 1000000).toString();
+                // Generate order ID
+                const tempOrderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 setOrderId(tempOrderId);
                 
                 // Create cart summary
@@ -76,24 +76,30 @@ export function useCheckout() {
                     `${item.product.name} x${item.quantity}`
                 ).join(", ");
                 
-                // Call initializePayfastPayment to get the form details (like RnR-Live)
-                const paymentDetails = initializePayfastPayment(
-                    tempOrderId,
-                    `${formData.firstName} ${formData.lastName}`,
-                    formData.email,
-                    totalAmount,
-                    cartSummary,
-                    formData
-                );
+                const config = getPayFastConfig();
+                const returnUrls = config.getReturnUrls();
+                
+                // Prepare PayFast form data (simplified approach)
+                const payfastFormData = {
+                    merchant_id: config.MERCHANT_ID,
+                    merchant_key: config.MERCHANT_KEY,
+                    return_url: returnUrls.return_url,
+                    cancel_url: returnUrls.cancel_url,
+                    notify_url: returnUrls.notify_url,
+                    amount: totalAmount.toFixed(2),
+                    item_name: `Ikhaya Order ${tempOrderId}`,
+                    item_description: cartSummary.substring(0, 100),
+                    m_payment_id: tempOrderId,
+                    name_first: formData.firstName || '',
+                    name_last: formData.lastName || '',
+                    email_address: formData.email || ''
+                };
 
-                console.log('PayFast Form Action:', paymentDetails.formAction);
-                console.log('PayFast Form Data:', paymentDetails.formData);
-
-                // Return these details so the frontend can submit the form
+                // Return form data for PayFastForm component
                 return {
                     redirect: true,
-                    formAction: paymentDetails.formAction,
-                    formData: paymentDetails.formData,
+                    formData: payfastFormData,
+                    isTestMode: config.IS_TEST_MODE
                 };
             } else if (paymentMethod.id === 'eft') {
                 // Handle EFT logic (show bank details etc.)
@@ -149,11 +155,9 @@ export function useCheckout() {
         const paymentResult = await handlePayment(formData, paymentMethodObj, selectedDeliveryOption);
 
         if (paymentResult?.redirect) {
-            // Submit using shared helper to ensure consistency
-            submitPayfastForm(paymentResult.formAction, paymentResult.formData);
-
-            // Show feedback to user
-            toast.info('Redirecting to PayFast payment gateway...');
+            // PayFast form data is ready for PayFastForm component
+            toast.info('Preparing PayFast payment...');
+            return paymentResult;
         }
     };
 

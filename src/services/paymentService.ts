@@ -1,7 +1,6 @@
 import { FormData, DeliveryOption } from '@/types/checkout';
 import { CartItem } from '@/contexts/CartContext';
-import { initializePayfastPayment, submitPayfastForm } from '@/utils/payment/payfast';
-import { PAYFAST_CONFIG } from '@/utils/payment/constants';
+import { getPayFastConfig } from '@/utils/payment/PayFastConfig';
 import { toast } from 'sonner';
 
 export interface BankDetails {
@@ -34,34 +33,38 @@ export interface ProcessPaymentParams {
 export const processPayfastPayment = async (
   { formData, cartItems, totalAmount, orderId }: ProcessPaymentParams & { orderId: string }
 ): Promise<PaymentResult> => {
-  console.log('Processing simplified PayFast payment for order:', orderId);
-  console.log(`Environment: ${PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
+  console.log('Processing PayFast payment for order:', orderId);
   
   try {
+    const config = getPayFastConfig();
+    const returnUrls = config.getReturnUrls();
+    
     // Create simple cart summary
     const cartSummary = cartItems
       .map(item => `${item.product?.name || 'Product'} x${item.quantity}`)
       .join(', ')
       .substring(0, 100);
     
-    // Get PayFast form data
-    const { formAction, formData: payfastFormData } = initializePayfastPayment(
-      orderId,
-      `${formData.firstName} ${formData.lastName}`,
-      formData.email,
-      totalAmount,
-      cartSummary,
-      formData
-    );
-    
-    // Submit PayFast form directly
-    submitPayfastForm(formAction, payfastFormData);
-
-    toast.info('Redirecting to PayFast...');
+    // Prepare PayFast form data
+    const payfastFormData = {
+      merchant_id: config.MERCHANT_ID,
+      merchant_key: config.MERCHANT_KEY,
+      return_url: returnUrls.return_url,
+      cancel_url: returnUrls.cancel_url,
+      notify_url: returnUrls.notify_url,
+      amount: totalAmount.toFixed(2),
+      item_name: `Ikhaya Order ${orderId}`,
+      item_description: cartSummary,
+      m_payment_id: orderId,
+      name_first: formData.firstName || '',
+      name_last: formData.lastName || '',
+      email_address: formData.email || ''
+    };
     
     return {
       success: true,
-      orderId
+      orderId,
+      redirectUrl: config.IS_TEST_MODE ? config.SANDBOX_URL : config.PRODUCTION_URL
     };
   } catch (error) {
     console.error('PayFast payment error:', error);
