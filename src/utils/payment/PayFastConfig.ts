@@ -1,7 +1,7 @@
 // Simplified PayFast configuration - no external dependencies
 export const getPayFastConfig = () => {
   // Environment flag - change this for production vs testing
-  const useSandbox = true; // Set to false for production
+  const useSandbox = false; // Set to false for production
   
   return {
     // Use appropriate credentials based on environment
