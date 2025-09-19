@@ -10,8 +10,8 @@ export const getPayFastConfig = () => {
     SANDBOX_URL: 'https://sandbox.payfast.co.za/eng/process',
     PRODUCTION_URL: 'https://www.payfast.co.za/eng/process',
     
-    // Environment - set to false for production, true for testing
-    IS_TEST_MODE: false, // Change this to true for sandbox testing
+    // Environment - set to true for sandbox testing, false for production
+    IS_TEST_MODE: true, // Change to false for production
     
     // Return URLs - dynamically set based on current domain
     getReturnUrls: () => {
@@ -19,7 +19,8 @@ export const getPayFastConfig = () => {
       return {
         return_url: `${baseUrl}/checkout-success`,
         cancel_url: `${baseUrl}/checkout?cancelled=true`,
-        notify_url: `${baseUrl}/api/payfast-webhook`,
+        // Use your actual Supabase webhook URL
+        notify_url: `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`,
       };
     }
   };
