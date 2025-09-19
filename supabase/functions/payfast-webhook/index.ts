@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { crypto } from "https://deno.land/std@0.168.0/crypto/crypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,23 +9,27 @@ const corsHeaders = {
 const generateSignature = async (data: Record<string, string>, passPhrase: string = ''): Promise<string> => {
   let pfOutput = '';
   
-  // Remove empty values and sort
-  const filteredData = Object.entries(data)
-    .filter(([key, value]) => value && value !== '')
-    .sort(([a], [b]) => a.localeCompare(b));
+  // Sort keys and create URL encoded string - match client-side exactly
+  Object.keys(data)
+    .sort()
+    .forEach(key => {
+      const value = data[key];
+      if (value && value !== '') {
+        pfOutput += `${key}=${encodeURIComponent(value.trim())}&`;
+      }
+    });
   
-  // Create parameter string
-  for (const [key, value] of filteredData) {
-    pfOutput += `${key}=${encodeURIComponent(value.trim()).replace(/%20/g, "+")}&`;
-  }
-  
-  // Remove the last '&' and add passphrase if provided
+  // Remove last ampersand
   pfOutput = pfOutput.slice(0, -1);
+  
+  // Add passphrase if provided
   if (passPhrase) {
-    pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, "+")}`;
+    pfOutput += `&passphrase=${encodeURIComponent(passPhrase.trim())}`;
   }
   
-  // Generate MD5 hash
+  console.log('Signature string:', pfOutput);
+  
+  // Generate MD5 hash using Web Crypto API
   const encoder = new TextEncoder();
   const data_array = encoder.encode(pfOutput);
   const hashBuffer = await crypto.subtle.digest("MD5", data_array);

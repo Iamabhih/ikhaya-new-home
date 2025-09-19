@@ -102,12 +102,28 @@ export const initializePayfastPayment = (
   const signature = generateSignature(pfData, config.passphrase || '');
   pfData.signature = signature;
   
-  console.log('PayFast payment initialized with signature:', {
+  // Create signature string for debugging
+  let debugString = '';
+  Object.keys(pfData)
+    .sort()
+    .forEach(key => {
+      const value = pfData[key];
+      if (value && value !== '' && key !== 'signature') {
+        debugString += `${key}=${encodeURIComponent(value.trim())}&`;
+      }
+    });
+  debugString = debugString.slice(0, -1);
+  if (config.passphrase) {
+    debugString += `&passphrase=${encodeURIComponent(config.passphrase.trim())}`;
+  }
+
+  console.log('PayFast payment initialized:', {
     environment: PAYFAST_CONFIG.useSandbox ? 'SANDBOX' : 'PRODUCTION',
     orderId,
     amount: formattedAmount,
     merchantId: config.merchant_id,
-    signatureGenerated: !!signature
+    signatureString: debugString,
+    signatureGenerated: signature
   });
   
   return {
