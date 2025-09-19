@@ -172,7 +172,7 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
       <div className="flex items-center justify-between p-6 border-b border-border">
         {!collapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary-glow rounded-lg flex items-center justify-center">
               <Shield className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>

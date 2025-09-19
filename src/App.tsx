@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SecurityProvider } from "@/contexts/SecurityContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { EnhancedCartProvider } from "@/components/cart/EnhancedCartProvider";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { BackgroundRemovalProvider } from "@/contexts/BackgroundRemovalContext";
 import { BrowserCompatibilityChecker } from "@/components/common/BrowserCompatibilityChecker";
