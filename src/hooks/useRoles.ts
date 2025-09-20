@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -75,29 +75,21 @@ export const useRoles = (user: User | null) => {
     fetchRoles();
   }, [user?.id]);
 
-  const hasRole = (role: AppRole): boolean => {
-    const result = roles.includes(role);
-    console.log(`[useRoles] hasRole(${role}): ${result}, current roles:`, roles);
-    return result;
-  };
+  const hasRole = useCallback((role: AppRole): boolean => {
+    return roles.includes(role);
+  }, [roles]);
 
-  const isAdmin = (): boolean => {
-    const result = hasRole('admin') || hasRole('superadmin');
-    console.log(`[useRoles] isAdmin(): ${result}`);
-    return result;
-  };
+  const isAdmin = useCallback((): boolean => {
+    return roles.includes('admin') || roles.includes('superadmin');
+  }, [roles]);
 
-  const isManager = (): boolean => {
-    const result = hasRole('manager');
-    console.log(`[useRoles] isManager(): ${result}`);
-    return result;
-  };
+  const isManager = useCallback((): boolean => {
+    return roles.includes('manager');
+  }, [roles]);
 
-  const isSuperAdmin = (): boolean => {
-    const result = hasRole('superadmin');
-    console.log(`[useRoles] isSuperAdmin(): ${result}`);
-    return result;
-  };
+  const isSuperAdmin = useCallback((): boolean => {
+    return roles.includes('superadmin');
+  }, [roles]);
 
   return {
     roles,

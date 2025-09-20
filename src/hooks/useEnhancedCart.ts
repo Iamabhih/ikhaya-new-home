@@ -28,7 +28,6 @@ export const useEnhancedCart = () => {
   // Track cart creation when first item is added - optimized to prevent loops
   useEffect(() => {
     if (cart.items && cart.items.length > 0 && (!lastCartState.current || lastCartState.current.length === 0)) {
-      console.log('[useEnhancedCart] Tracking cart created event');
       trackCartEvent.mutate({
         sessionId,
         userId,
@@ -95,9 +94,6 @@ export const useEnhancedCart = () => {
 
   // Enhanced add to cart with analytics - memoized to prevent loops
   const enhancedAddToCart = useCallback(async (productId: string, quantity: number = 1, productData?: any) => {
-    const startTime = Date.now();
-    console.log('[useEnhancedCart] Adding to cart:', { productId, quantity, startTime });
-    
     try {
       cart.addToCart({ productId, quantity });
       
@@ -113,8 +109,6 @@ export const useEnhancedCart = () => {
         cartValue: cart.total + (productData?.price * quantity),
         pageUrl: window.location.pathname
       });
-
-      console.log('[useEnhancedCart] Add to cart completed:', { duration: Date.now() - startTime });
     } catch (error) {
       console.error('Failed to add to cart:', error);
       throw error;
@@ -143,9 +137,16 @@ export const useEnhancedCart = () => {
     }
   }, [cart, sessionId, userId, trackCartEvent]);
 
-  // Track checkout initiation - memoized to prevent loops
+  // Track checkout initiation - memoized to prevent loops with debounce
   const trackCheckoutInitiated = useCallback(() => {
-    console.log('[useEnhancedCart] Tracking checkout initiated');
+    // Prevent duplicate tracking within 5 seconds
+    const lastTracked = localStorage.getItem('last_checkout_track');
+    const now = Date.now();
+    if (lastTracked && (now - parseInt(lastTracked)) < 5000) {
+      return;
+    }
+    localStorage.setItem('last_checkout_track', now.toString());
+    
     trackCartEvent.mutate({
       sessionId,
       userId,
@@ -157,7 +158,6 @@ export const useEnhancedCart = () => {
 
   // Track payment attempt - memoized to prevent loops
   const trackPaymentAttempted = useCallback(() => {
-    console.log('[useEnhancedCart] Tracking payment attempted');
     trackCartEvent.mutate({
       sessionId,
       userId,
