@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -9,43 +8,60 @@ import { CheckCircle, Package, Home, Mail } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { usePendingOrder } from "@/hooks/usePendingOrder";
 
 const CheckoutSuccessPage = () => {
   const [searchParams] = useSearchParams();
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { clearCart } = useCart();
-  const { clearPendingOrder } = usePendingOrder();
   const navigate = useNavigate();
   
   useEffect(() => {
     const processSuccessfulPayment = async () => {
-      // Get PayFast return parameters
-      const orderId = searchParams.get('order_id');
-      const fromPayfast = searchParams.get('from');
-      const paymentStatus = searchParams.get('payment_status');
+      // PayFast sends these parameters in the return URL
+      const paymentId = searchParams.get('pf_payment_id');
+      const merchantId = searchParams.get('merchant_id');
+      const amount = searchParams.get('amount_gross');
+      const orderNumber = searchParams.get('m_payment_id'); // This is our order reference
       
-      if (!orderId) {
-        console.error('No order ID in URL');
-        toast.error('Invalid order reference');
+      console.log('PayFast return parameters:', {
+        paymentId,
+        merchantId,
+        amount,
+        orderNumber
+      });
+
+      // If no order number, try to get it from session storage
+      let orderRef = orderNumber;
+      if (!orderRef) {
+        orderRef = sessionStorage.getItem('currentOrderRef');
+        console.log('Order ref from session:', orderRef);
+      }
+
+      if (!orderRef) {
+        console.error('No order reference found');
+        toast.error('No order reference found. Please contact support.');
         navigate('/');
         return;
       }
 
-      console.log('Processing PayFast return:', { orderId, fromPayfast, paymentStatus });
-
       try {
-        // Call centralized order processing function
+        // Call the process-order function with the order reference
         const { data: processResult, error: processError } = await supabase.functions.invoke('process-order', {
           body: {
-            orderNumber: orderId,
-            source: 'success_page'
+            orderNumber: orderRef,
+            source: 'success_page',
+            paymentData: {
+              pf_payment_id: paymentId,
+              merchant_id: merchantId,
+              amount_gross: amount,
+              payment_status: 'COMPLETE'
+            }
           }
         });
 
         if (processError) {
-          console.error('Error calling order processing function:', processError);
+          console.error('Error calling process-order function:', processError);
           toast.error('Error processing your order. Please contact support.');
           navigate('/');
           return;
@@ -53,20 +69,26 @@ const CheckoutSuccessPage = () => {
 
         if (processResult?.success) {
           // Get the completed order details
-          const { data: orderData } = await supabase
+          const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .select('*, order_items(*)')
-            .eq('order_number', orderId)            .maybeSingle();
+            .eq('order_number', orderRef)
+            .maybeSingle();
+
+          if (orderError) {
+            console.error('Error fetching order:', orderError);
+          }
 
           if (orderData) {
             setOrderDetails(orderData);
             clearCart();
-            await clearPendingOrder(orderId);
+            sessionStorage.removeItem('currentOrderRef');
             toast.success('Payment successful! Your order has been confirmed.');
           } else {
-            console.error('Order not found after processing');
-            toast.error('Order not found. Please contact support.');
-            navigate('/');
+            console.warn('Order not found in database, but payment was successful');
+            clearCart();
+            setOrderDetails({ order_number: orderRef });
+            toast.success('Payment successful! Your order has been received.');
           }
         } else {
           console.error('Order processing failed:', processResult);
@@ -83,7 +105,7 @@ const CheckoutSuccessPage = () => {
     };
 
     processSuccessfulPayment();
-  }, [searchParams, clearCart, clearPendingOrder, navigate]);
+  }, [searchParams, clearCart, navigate]);
 
   if (loading) {
     return (
