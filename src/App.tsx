@@ -34,6 +34,7 @@ import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
 import OzzSAPage from "./pages/OzzSAPage";
 import PromotionsPage from "./pages/PromotionsPage";
+import GuestOrderTrackingPage from "./pages/GuestOrderTrackingPage";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
@@ -100,6 +101,7 @@ function App() {
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/promotions" element={<PromotionsPage />} />
+                <Route path="/track-order" element={<GuestOrderTrackingPage />} />
                 <Route path="/ozz-sa" element={<OzzSAPage />} />
                 
                 {/* Protected routes */}

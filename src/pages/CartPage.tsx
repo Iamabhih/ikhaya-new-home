@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const CartPage = () => {
   const { items, updateQuantity, removeFromCart, total, isLoading } = useEnhancedCart();
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const { trackEvent } = useAnalytics();
 
   // Safe image URL getter for product_images table
   const getProductImageUrl = (product: any) => {
@@ -44,10 +46,44 @@ const CartPage = () => {
     setFailedImages(prev => new Set([...prev, itemId]));
   };
 
+  // Track cart view analytics
+  useEffect(() => {
+    if (items && items.length > 0) {
+      trackEvent({
+        event_type: 'page_view',
+        event_name: 'cart_viewed',
+        page_path: window.location.pathname,
+        metadata: { 
+          cart_value: total,
+          item_count: items.length,
+          cart_items: items.map(item => ({ 
+            product_id: item.product?.id, 
+            quantity: item.quantity 
+          }))
+        }
+      });
+    }
+  }, [items, total, trackEvent]);
+
   // Safe quantity update handler
   const handleQuantityChange = (itemId: string, newQuantity: string | number) => {
     const quantity = Math.max(1, parseInt(newQuantity.toString()) || 1);
     updateQuantity({ itemId, quantity });
+    
+    // Track quantity change
+    const item = items.find(i => i.id === itemId);
+    if (item) {
+      trackEvent({
+        event_type: 'cart',
+        event_name: 'quantity_updated',
+        product_id: item.product?.id,
+        metadata: { 
+          old_quantity: item.quantity,
+          new_quantity: quantity,
+          price_difference: (quantity - item.quantity) * (item.product?.price || 0)
+        }
+      });
+    }
   };
 
   if (isLoading) {

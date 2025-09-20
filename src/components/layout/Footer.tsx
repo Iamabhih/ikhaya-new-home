@@ -57,6 +57,9 @@ export const Footer = () => {
               <Link to="/contact" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </Link>
+              <Link to="/track-order" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Track Order
+              </Link>
             </div>
           </div>
 

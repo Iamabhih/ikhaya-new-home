@@ -13,11 +13,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Eye, EyeOff, UserPlus, LogIn } from "lucide-react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
+  const { trackEvent } = useAnalytics();
   
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -33,16 +35,30 @@ const AuthPage = () => {
   // Get redirect path from location state
   const from = location.state?.from?.pathname || "/";
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated and track page view
   useEffect(() => {
     if (!loading && user) {
       navigate(from, { replace: true });
+    } else if (!loading) {
+      trackEvent({
+        event_type: 'page_view',
+        event_name: 'auth_page_viewed',
+        page_path: window.location.pathname,
+        metadata: { active_tab: activeTab, referrer: from }
+      });
     }
-  }, [user, loading, navigate, from]);
+  }, [user, loading, navigate, from, activeTab, trackEvent]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Track sign in attempt
+    trackEvent({
+      event_type: 'auth',
+      event_name: 'signin_attempted',
+      metadata: { email: email.trim() }
+    });
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -51,6 +67,17 @@ const AuthPage = () => {
       });
 
       if (error) {
+        // Track sign in failure
+        trackEvent({
+          event_type: 'auth',
+          event_name: 'signin_failed',
+          metadata: { 
+            email: email.trim(), 
+            error_type: error.message.includes('Invalid login credentials') ? 'invalid_credentials' : 'other',
+            error_message: error.message 
+          }
+        });
+        
         if (error.message.includes('Invalid login credentials')) {
           toast.error("Invalid email or password. Please check your credentials and try again.");
         } else if (error.message.includes('Email not confirmed')) {
@@ -59,10 +86,23 @@ const AuthPage = () => {
           toast.error(error.message);
         }
       } else {
+        // Track successful sign in
+        trackEvent({
+          event_type: 'auth',
+          event_name: 'signin_successful',
+          metadata: { email: email.trim() }
+        });
+        
         toast.success("Welcome back!");
         navigate(from, { replace: true });
       }
     } catch (error) {
+      trackEvent({
+        event_type: 'auth',
+        event_name: 'signin_error',
+        metadata: { email: email.trim(), error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      
       toast.error("An unexpected error occurred. Please try again.");
       console.error("Sign in error:", error);
     } finally {
@@ -85,6 +125,13 @@ const AuthPage = () => {
 
     setIsLoading(true);
 
+    // Track sign up attempt
+    trackEvent({
+      event_type: 'auth',
+      event_name: 'signup_attempted',
+      metadata: { email: email.trim(), first_name: firstName.trim(), last_name: lastName.trim() }
+    });
+
     try {
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
@@ -98,6 +145,17 @@ const AuthPage = () => {
       });
 
       if (error) {
+        // Track sign up failure
+        trackEvent({
+          event_type: 'auth',
+          event_name: 'signup_failed',
+          metadata: { 
+            email: email.trim(), 
+            error_type: error.message.includes('User already registered') ? 'already_exists' : 'other',
+            error_message: error.message 
+          }
+        });
+        
         if (error.message.includes('User already registered')) {
           toast.error("An account with this email already exists. Please sign in instead.");
           setActiveTab("signin");
@@ -105,6 +163,13 @@ const AuthPage = () => {
           toast.error(error.message);
         }
       } else {
+        // Track successful sign up
+        trackEvent({
+          event_type: 'auth',
+          event_name: 'signup_successful',
+          metadata: { email: email.trim(), first_name: firstName.trim(), last_name: lastName.trim() }
+        });
+        
         toast.success("Account created successfully! Please check your email for verification.");
         setActiveTab("signin");
         // Clear signup form
@@ -113,6 +178,12 @@ const AuthPage = () => {
         setConfirmPassword("");
       }
     } catch (error) {
+      trackEvent({
+        event_type: 'auth',
+        event_name: 'signup_error',
+        metadata: { email: email.trim(), error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      
       toast.error("An unexpected error occurred. Please try again.");
       console.error("Sign up error:", error);
     } finally {

@@ -177,6 +177,36 @@ serve(async (req) => {
       console.error('Error deleting pending order:', deleteError);
     }
 
+    // Track purchase analytics
+    try {
+      const { error: analyticsError } = await supabase
+        .from('analytics_events')
+        .insert({
+          user_id: pendingOrder.user_id,
+          event_type: 'purchase',
+          event_name: 'order_completed',
+          order_id: newOrder.id,
+          metadata: {
+            total_amount: pendingOrder.total_amount,
+            item_count: pendingOrder.cart_data.items.length,
+            payment_method: 'payfast',
+            source: source,
+            products: pendingOrder.cart_data.items.map((item: any) => ({
+              product_id: item.product.id,
+              quantity: item.quantity,
+              price: item.product.price
+            }))
+          }
+        });
+
+      if (analyticsError) {
+        console.error('Error tracking purchase analytics:', analyticsError);
+        // Don't fail the order process if analytics fails
+      }
+    } catch (analyticsError) {
+      console.error('Analytics tracking error:', analyticsError);
+    }
+
     console.log('Order processing completed successfully');
 
     return new Response(

@@ -14,10 +14,13 @@ import { StandardBreadcrumbs } from "@/components/common/StandardBreadcrumbs";
 import { ResponsiveGrid } from "@/components/ui/responsive-layout";
 import { Separator } from "@/components/ui/separator";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { useEffect } from "react";
 
 const ProductDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { settings } = useSiteSettings();
+  const { trackProductView, trackEvent } = useAnalytics();
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', slug],
@@ -71,6 +74,27 @@ const ProductDetailPage = () => {
     },
     enabled: !!product?.category_id,
   });
+
+  // Track product view analytics
+  useEffect(() => {
+    if (product?.id) {
+      trackProductView(product.id, product.category_id);
+      
+      // Track time spent on page
+      const startTime = Date.now();
+      
+      return () => {
+        const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+        trackEvent({
+          event_type: 'engagement',
+          event_name: 'product_time_spent',
+          product_id: product.id,
+          category_id: product.category_id,
+          metadata: { time_spent_seconds: timeSpent }
+        });
+      };
+    }
+  }, [product, trackProductView, trackEvent]);
 
   if (isLoading) {
     return (

@@ -6,8 +6,10 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
-import { User, Package, Heart, Settings } from "lucide-react";
+import { User, Package, Heart, Settings, Search } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
+import { GuestOrderLookup } from "@/components/account/GuestOrderLookup";
+import { Separator } from "@/components/ui/separator";
 
 const AccountPage = () => {
   const { user, loading } = useAuth();
@@ -116,6 +118,19 @@ const AccountPage = () => {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        <Separator className="my-12" />
+
+        {/* Guest Order Lookup Section */}
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">Order Lookup for Guests</h2>
+            <p className="text-muted-foreground">
+              Track any order using your email and order number, even if you don't have an account
+            </p>
+          </div>
+          <GuestOrderLookup />
         </div>
       </main>
       <Footer />

@@ -17,11 +17,13 @@ import { Grid, List, Search, SlidersHorizontal } from "lucide-react";
 import { UniversalLoading } from "@/components/ui/universal-loading";
 import { ResponsiveGrid } from "@/components/ui/responsive-layout";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { settings } = useSiteSettings();
+  const { trackEvent, trackSearch } = useAnalytics();
   
   // State management
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
@@ -114,6 +116,25 @@ const CategoryPage = () => {
   const products = productsData?.products || [];
   const totalCount = productsData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
+
+  // Track category view and search analytics
+  useEffect(() => {
+    if (category?.id) {
+      trackEvent({
+        event_type: 'page_view',
+        event_name: 'category_viewed',
+        category_id: category.id,
+        page_path: window.location.pathname,
+        metadata: { category_name: category.name }
+      });
+    }
+  }, [category, trackEvent]);
+
+  useEffect(() => {
+    if (searchQuery && totalCount !== undefined) {
+      trackSearch(searchQuery, totalCount);
+    }
+  }, [searchQuery, totalCount, trackSearch]);
 
   // Handlers
   const handleSearch = (query: string) => {
