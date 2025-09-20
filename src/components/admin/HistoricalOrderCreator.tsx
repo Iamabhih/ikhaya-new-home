@@ -55,29 +55,49 @@ export function HistoricalOrderCreator() {
 
   const createHistoricalOrder = async () => {
     setIsCreating(true);
+    console.log('🔄 Starting historical order creation process...');
+    console.log('📋 Order data:', HISTORICAL_ORDER_DATA);
+    
     try {
       // Check if order already exists
-      const { data: existingOrder } = await supabase
+      console.log('🔍 Checking for existing order...');
+      const { data: existingOrder, error: existingOrderError } = await supabase
         .from('orders')
         .select('id, order_number')
         .eq('order_number', HISTORICAL_ORDER_DATA.orderNumber)
         .single();
 
+      if (existingOrderError && existingOrderError.code !== 'PGRST116') {
+        console.error('❌ Error checking existing order:', existingOrderError);
+        throw existingOrderError;
+      }
+
       if (existingOrder) {
+        console.log('⚠️ Order already exists:', existingOrder);
         toast.error(`Order ${HISTORICAL_ORDER_DATA.orderNumber} already exists`);
         return;
       }
+      
+      console.log('✅ No existing order found, proceeding with creation...');
 
       // Check if user exists or create one
-      const { data: existingProfile } = await supabase
+      console.log('👤 Checking for existing user profile...');
+      const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', HISTORICAL_ORDER_DATA.customerEmail)
         .single();
 
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('❌ Error checking profile:', profileError);
+        throw profileError;
+      }
+
       let userId = existingProfile?.id;
+      console.log('👤 Existing user ID:', userId);
 
       if (!userId) {
+        console.log('🆕 Creating new user from order...');
         const { data: newUserId, error: createUserError } = await supabase
           .rpc('create_user_from_order', {
             p_email: HISTORICAL_ORDER_DATA.customerEmail,
@@ -86,12 +106,15 @@ export function HistoricalOrderCreator() {
           });
 
         if (createUserError) {
+          console.error('❌ Error creating user:', createUserError);
           throw createUserError;
         }
+        console.log('✅ New user created with ID:', newUserId);
         userId = newUserId;
       }
 
       // Create the historical order with proper timestamps
+      console.log('📝 Preparing order data...');
       const orderData = {
         order_number: HISTORICAL_ORDER_DATA.orderNumber,
         user_id: userId,
@@ -132,15 +155,24 @@ export function HistoricalOrderCreator() {
         delivered_at: '2025-09-18T14:00:00Z'
       };
 
+      console.log('💾 Inserting order into database...');
+      console.log('📄 Order data:', orderData);
+      
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert(orderData)
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('❌ Error creating order:', orderError);
+        throw orderError;
+      }
+      
+      console.log('✅ Order created successfully:', order);
 
       // Create order items
+      console.log('📦 Creating order items...');
       const orderItems = HISTORICAL_ORDER_DATA.items.map(item => ({
         order_id: order.id,
         product_name: item.name,
@@ -149,12 +181,19 @@ export function HistoricalOrderCreator() {
         quantity: item.qty,
         total_price: item.price
       }));
+      
+      console.log('📦 Order items to insert:', orderItems);
 
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('❌ Error creating order items:', itemsError);
+        throw itemsError;
+      }
+      
+      console.log('✅ Order items created successfully');
 
       // Create order timeline entries for historical tracking
       const timelineEntries = [
@@ -188,16 +227,20 @@ export function HistoricalOrderCreator() {
         }
       ];
 
+      console.log('📅 Creating timeline entries...');
       const { error: timelineError } = await supabase
         .from('order_timeline')
         .insert(timelineEntries);
 
       if (timelineError) {
-        console.warn('Timeline creation failed:', timelineError);
+        console.warn('⚠️ Timeline creation failed:', timelineError);
+      } else {
+        console.log('✅ Timeline entries created successfully');
       }
 
       // Log analytics events
-      await supabase.from('analytics_events').insert([
+      console.log('📊 Logging analytics events...');
+      const analyticsResult = await supabase.from('analytics_events').insert([
         {
           event_type: 'purchase',
           event_name: 'historical_order_recovered',
@@ -222,7 +265,14 @@ export function HistoricalOrderCreator() {
           }
         }
       ]);
+      
+      if (analyticsResult.error) {
+        console.warn('⚠️ Analytics logging failed:', analyticsResult.error);
+      } else {
+        console.log('✅ Analytics events logged successfully');
+      }
 
+      console.log('🎉 Historical order creation completed successfully!');
       toast.success(`Historical order ${HISTORICAL_ORDER_DATA.orderNumber} created successfully!`);
       setOrderCreated(true);
 
