@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import PayFastForm from "./PayFastForm";
-import { PAYFAST_CONFIG, generatePaymentReference } from "@/utils/payment/PayFastConfig";
+import { getPayFastConfig, generatePaymentReference } from "@/utils/payment/PayFastConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, AlertCircle } from "lucide-react";
@@ -34,6 +34,9 @@ export const PayfastPayment = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPayFastForm, setShowPayFastForm] = useState(false);
   const [payFastFormData, setPayFastFormData] = useState<any>(null);
+
+  // Get current config
+  const config = getPayFastConfig();
 
   // Format product name for better display
   const formatProductName = (name: string): string => {
@@ -69,10 +72,17 @@ export const PayfastPayment = ({
     
     try {
       const paymentReference = generatePaymentReference();
-      const returnUrls = PAYFAST_CONFIG.getReturnUrls();
+      const returnUrls = config.getReturnUrls();
       const totalAmount = cartTotal + deliveryFee;
       
-      // Create pending order record first (this is what process-order expects)
+      console.log('Creating payment with config:', {
+        merchant_id: config.MERCHANT_ID,
+        amount: totalAmount,
+        reference: paymentReference,
+        test_mode: config.IS_TEST_MODE
+      });
+
+      // Create pending order record first
       const { error: pendingOrderError } = await supabase
         .from('pending_orders')
         .insert({
@@ -97,21 +107,29 @@ export const PayfastPayment = ({
         return;
       }
 
-      // Prepare PayFast form data (simplified - no signature generation)
+      // Store order reference for success page
+      sessionStorage.setItem('currentOrderRef', paymentReference);
+
+      // Prepare PayFast form data
       const payfastData = {
-        merchant_id: PAYFAST_CONFIG.MERCHANT_ID,
-        merchant_key: PAYFAST_CONFIG.MERCHANT_KEY,
+        merchant_id: config.MERCHANT_ID,
+        merchant_key: config.MERCHANT_KEY,
         return_url: returnUrls.return_url,
         cancel_url: returnUrls.cancel_url,
         notify_url: returnUrls.notify_url,
         amount: totalAmount.toFixed(2),
         item_name: createOrderDescription(cartItems),
-        item_description: `Ikhaya Homeware order ${paymentReference}`,
+        item_description: `Order ${paymentReference} from Ikhaya Homeware`,
         m_payment_id: paymentReference,
         name_first: formData.firstName || '',
         name_last: formData.lastName || '',
         email_address: formData.email || ''
       };
+
+      console.log('PayFast form data prepared:', {
+        ...payfastData,
+        merchant_key: '[HIDDEN]' // Don't log sensitive data
+      });
 
       setPayFastFormData(payfastData);
       setShowPayFastForm(true);
@@ -127,7 +145,7 @@ export const PayfastPayment = ({
     return (
       <PayFastForm 
         formData={payFastFormData}
-        isTestMode={PAYFAST_CONFIG.IS_TEST_MODE}
+        isTestMode={config.IS_TEST_MODE}
         onSubmit={() => {
           toast.success("Redirecting to PayFast...");
           setIsProcessing(false);
@@ -179,14 +197,14 @@ export const PayfastPayment = ({
         </div>
 
         {/* Test Mode Warning */}
-        {PAYFAST_CONFIG.IS_TEST_MODE && (
+        {config.IS_TEST_MODE && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
               <div className="text-sm">
                 <p className="font-medium text-amber-800">Test Mode Active</p>
                 <p className="text-amber-700 mt-1">
-                  This is a test transaction
+                  This is a test transaction. No real payment will be processed.
                 </p>
               </div>
             </div>
@@ -214,6 +232,16 @@ export const PayfastPayment = ({
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <span>🔒 Secured by PayFast | PCI DSS Compliant</span>
         </div>
+        
+        {/* Debug info in test mode */}
+        {config.IS_TEST_MODE && (
+          <div className="text-xs text-muted-foreground p-2 bg-gray-50 rounded">
+            <p><strong>Debug Info:</strong></p>
+            <p>Merchant ID: {config.MERCHANT_ID}</p>
+            <p>API URL: {config.IS_TEST_MODE ? config.SANDBOX_URL : config.PRODUCTION_URL}</p>
+            <p>Test Mode: {config.IS_TEST_MODE ? 'Yes' : 'No'}</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
