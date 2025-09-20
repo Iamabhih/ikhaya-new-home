@@ -34,13 +34,12 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
     : 'https://www.payfast.co.za/eng/process';
 
   useEffect(() => {
-    // Auto-submit the form when component mounts
+    // Auto-submit the form when component mounts (immediate submission)
     const form = document.getElementById('payfast-form') as HTMLFormElement;
     if (form && onSubmit) {
       onSubmit();
-      setTimeout(() => {
-        form.submit();
-      }, 1000);
+      // Remove artificial delay - submit immediately
+      form.submit();
     }
   }, [onSubmit]);
 

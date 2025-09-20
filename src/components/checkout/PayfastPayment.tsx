@@ -68,6 +68,8 @@ export const PayfastPayment = ({
   const handlePayment = async () => {
     if (!cartItems.length) return;
 
+    const startTime = Date.now();
+    console.log('[PayfastPayment] Starting payment process:', { startTime });
     setIsProcessing(true);
     
     try {
@@ -75,14 +77,16 @@ export const PayfastPayment = ({
       const returnUrls = config.getReturnUrls();
       const totalAmount = cartTotal + deliveryFee;
       
-      console.log('Creating payment with config:', {
+      console.log('[PayfastPayment] Payment config prepared:', {
         merchant_id: config.MERCHANT_ID,
         amount: totalAmount,
         reference: paymentReference,
-        test_mode: config.IS_TEST_MODE
+        test_mode: config.IS_TEST_MODE,
+        timing: Date.now() - startTime
       });
 
       // Create pending order record first
+      const dbStartTime = Date.now();
       const { error: pendingOrderError } = await supabase
         .from('pending_orders')
         .insert({
@@ -99,6 +103,8 @@ export const PayfastPayment = ({
           },
           total_amount: totalAmount
         });
+
+      console.log('[PayfastPayment] DB operation completed:', { duration: Date.now() - dbStartTime });
 
       if (pendingOrderError) {
         console.error('Pending order creation error:', pendingOrderError);
@@ -126,13 +132,19 @@ export const PayfastPayment = ({
         email_address: formData.email || ''
       };
 
-      console.log('PayFast form data prepared:', {
+      console.log('[PayfastPayment] PayFast form data prepared:', {
         ...payfastData,
-        merchant_key: '[HIDDEN]' // Don't log sensitive data
+        merchant_key: '[HIDDEN]', // Don't log sensitive data
+        totalDuration: Date.now() - startTime
       });
 
       setPayFastFormData(payfastData);
       setShowPayFastForm(true);
+      
+      console.log('[PayfastPayment] Payment process completed:', { 
+        totalDuration: Date.now() - startTime,
+        showForm: true 
+      });
       
     } catch (error) {
       console.error('PayFast error:', error);

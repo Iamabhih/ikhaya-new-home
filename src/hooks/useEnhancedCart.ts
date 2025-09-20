@@ -1,13 +1,17 @@
 import { useCart } from '@/hooks/useCart';
 import { useCartAnalytics } from '@/hooks/useCartAnalytics';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 
 // Enhanced cart hook that includes analytics tracking
 export const useEnhancedCart = () => {
   const cart = useCart();
   const { trackCartEvent } = useCartAnalytics();
   const { user } = useAuth();
+  
+  // Memoize user ID to prevent auth loops
+  const userId = useMemo(() => user?.id, [user?.id]);
+  
   const [sessionId] = useState(() => {
     // Get or create session ID from localStorage
     let storedSessionId = localStorage.getItem('cart_session_id');
@@ -21,12 +25,13 @@ export const useEnhancedCart = () => {
   const lastCartState = useRef<any>(null);
   const addToCartStartTime = useRef<number | null>(null);
 
-  // Track cart creation when first item is added
+  // Track cart creation when first item is added - optimized to prevent loops
   useEffect(() => {
     if (cart.items && cart.items.length > 0 && (!lastCartState.current || lastCartState.current.length === 0)) {
+      console.log('[useEnhancedCart] Tracking cart created event');
       trackCartEvent.mutate({
         sessionId,
-        userId: user?.id,
+        userId,
         eventType: 'cart_created',
         cartValue: cart.total,
         pageUrl: window.location.pathname,
@@ -42,44 +47,43 @@ export const useEnhancedCart = () => {
       });
     }
     lastCartState.current = cart.items;
-  }, [cart.items, cart.total, sessionId, user?.id, trackCartEvent]);
+  }, [cart.items, cart.total, sessionId, userId, trackCartEvent]);
 
-  // Track cart abandonment on page unload
+  // Track cart abandonment on page unload - memoized handlers to prevent loops
+  const handleBeforeUnload = useCallback(() => {
+    if (cart.items && cart.items.length > 0) {
+      // Use navigator.sendBeacon for reliable tracking on page unload
+      const eventData = {
+        sessionId,
+        userId,
+        eventType: 'cart_abandoned',
+        cartValue: cart.total,
+        abandonmentReason: 'page_exit',
+        pageUrl: window.location.pathname
+      };
+
+      const blob = new Blob([JSON.stringify(eventData)], { type: 'application/json' });
+      navigator.sendBeacon(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-cart-events`,
+        blob
+      );
+    }
+  }, [cart.items, cart.total, sessionId, userId]);
+
+  const handleVisibilityChange = useCallback(() => {
+    if (document.hidden && cart.items && cart.items.length > 0) {
+      trackCartEvent.mutate({
+        sessionId,
+        userId,
+        eventType: 'cart_abandoned',
+        cartValue: cart.total,
+        abandonmentReason: 'tab_hidden',
+        pageUrl: window.location.pathname
+      });
+    }
+  }, [cart.items, cart.total, sessionId, userId, trackCartEvent]);
+
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (cart.items && cart.items.length > 0) {
-        // Use navigator.sendBeacon for reliable tracking on page unload
-        const eventData = {
-          sessionId,
-          userId: user?.id,
-          eventType: 'cart_abandoned',
-          cartValue: cart.total,
-          abandonmentReason: 'page_exit',
-          pageUrl: window.location.pathname
-        };
-
-        const blob = new Blob([JSON.stringify(eventData)], { type: 'application/json' });
-        navigator.sendBeacon(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-cart-events`,
-          blob
-        );
-      }
-    };
-
-    // Track abandonment on page visibility change (mobile)
-    const handleVisibilityChange = () => {
-      if (document.hidden && cart.items && cart.items.length > 0) {
-        trackCartEvent.mutate({
-          sessionId,
-          userId: user?.id,
-          eventType: 'cart_abandoned',
-          cartValue: cart.total,
-          abandonmentReason: 'tab_hidden',
-          pageUrl: window.location.pathname
-        });
-      }
-    };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -87,11 +91,12 @@ export const useEnhancedCart = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [cart.items, cart.total, sessionId, user?.id, trackCartEvent]);
+  }, [handleBeforeUnload, handleVisibilityChange]);
 
-  // Enhanced add to cart with analytics
-  const enhancedAddToCart = async (productId: string, quantity: number = 1, productData?: any) => {
-    addToCartStartTime.current = Date.now();
+  // Enhanced add to cart with analytics - memoized to prevent loops
+  const enhancedAddToCart = useCallback(async (productId: string, quantity: number = 1, productData?: any) => {
+    const startTime = Date.now();
+    console.log('[useEnhancedCart] Adding to cart:', { productId, quantity, startTime });
     
     try {
       cart.addToCart({ productId, quantity });
@@ -99,7 +104,7 @@ export const useEnhancedCart = () => {
       // Track successful add to cart
       trackCartEvent.mutate({
         sessionId,
-        userId: user?.id,
+        userId,
         eventType: 'item_added',
         productId,
         productName: productData?.name,
@@ -109,20 +114,21 @@ export const useEnhancedCart = () => {
         pageUrl: window.location.pathname
       });
 
+      console.log('[useEnhancedCart] Add to cart completed:', { duration: Date.now() - startTime });
     } catch (error) {
       console.error('Failed to add to cart:', error);
       throw error;
     }
-  };
+  }, [cart, sessionId, userId, trackCartEvent]);
 
-  // Enhanced remove from cart with analytics
-  const enhancedRemoveFromCart = async (itemId: string, productData?: any) => {
+  // Enhanced remove from cart with analytics - memoized to prevent loops
+  const enhancedRemoveFromCart = useCallback(async (itemId: string, productData?: any) => {
     try {
       cart.removeItem(itemId);
       
       trackCartEvent.mutate({
         sessionId,
-        userId: user?.id,
+        userId,
         eventType: 'item_removed',
         productId: productData?.product_id,
         productName: productData?.name,
@@ -135,35 +141,37 @@ export const useEnhancedCart = () => {
       console.error('Failed to remove from cart:', error);
       throw error;
     }
-  };
+  }, [cart, sessionId, userId, trackCartEvent]);
 
-  // Track checkout initiation
-  const trackCheckoutInitiated = () => {
+  // Track checkout initiation - memoized to prevent loops
+  const trackCheckoutInitiated = useCallback(() => {
+    console.log('[useEnhancedCart] Tracking checkout initiated');
     trackCartEvent.mutate({
       sessionId,
-      userId: user?.id,
+      userId,
       eventType: 'checkout_initiated',
       cartValue: cart.total,
       pageUrl: window.location.pathname
     });
-  };
+  }, [sessionId, userId, trackCartEvent, cart.total]);
 
-  // Track payment attempt
-  const trackPaymentAttempted = () => {
+  // Track payment attempt - memoized to prevent loops
+  const trackPaymentAttempted = useCallback(() => {
+    console.log('[useEnhancedCart] Tracking payment attempted');
     trackCartEvent.mutate({
       sessionId,
-      userId: user?.id,
+      userId,
       eventType: 'payment_attempted',
       cartValue: cart.total,
       pageUrl: window.location.pathname
     });
-  };
+  }, [sessionId, userId, trackCartEvent, cart.total]);
 
-  // Track cart conversion
-  const trackCartConverted = (orderId?: string) => {
+  // Track cart conversion - memoized to prevent loops
+  const trackCartConverted = useCallback((orderId?: string) => {
     trackCartEvent.mutate({
       sessionId,
-      userId: user?.id,
+      userId,
       eventType: 'cart_converted',
       cartValue: cart.total,
       pageUrl: window.location.pathname
@@ -171,21 +179,21 @@ export const useEnhancedCart = () => {
 
     // Clear session after successful conversion
     localStorage.removeItem('cart_session_id');
-  };
+  }, [sessionId, userId, trackCartEvent, cart.total]);
 
-  // Get email for abandoned cart recovery
-  const captureEmailForRecovery = (email: string) => {
+  // Get email for abandoned cart recovery - memoized to prevent loops
+  const captureEmailForRecovery = useCallback((email: string) => {
     if (cart.items && cart.items.length > 0) {
       trackCartEvent.mutate({
         sessionId,
-        userId: user?.id,
+        userId,
         email,
         eventType: 'cart_created', // Update existing session with email
         cartValue: cart.total,
         pageUrl: window.location.pathname
       });
     }
-  };
+  }, [cart.items, cart.total, sessionId, userId, trackCartEvent]);
 
   return {
     ...cart,
