@@ -1,41 +1,37 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { GuestOrderLookup } from "@/components/account/GuestOrderLookup";
-import { StandardBreadcrumbs } from "@/components/common/StandardBreadcrumbs";
-import { useEffect } from "react";
-import { useAnalytics } from "@/hooks/useAnalytics";
+import { GuestOrderLookup } from "@/components/orders/GuestOrderLookup";
+import { OrderErrorBoundary } from "@/components/orders/OrderErrorBoundary";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 
 const GuestOrderTrackingPage = () => {
-  const { trackEvent } = useAnalytics();
-
-  useEffect(() => {
-    trackEvent({
-      event_type: 'page_view',
-      event_name: 'guest_order_tracking_viewed',
-      page_path: window.location.pathname
-    });
-  }, [trackEvent]);
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <StandardBreadcrumbs 
-          items={[
-            { label: "Home", href: "/" },
-            { label: "Track Order", isActive: true }
-          ]} 
-        />
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Order Tracking</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">Track Your Order</h1>
-            <p className="text-lg text-muted-foreground">
-              Enter your order details below to check the status of your purchase
+        <div className="space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold">Track Your Order</h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Enter your email address or order number to track your order status. 
+              No account required - we'll find your orders using the information provided during checkout.
             </p>
           </div>
 
-          <GuestOrderLookup />
+          <OrderErrorBoundary>
+            <GuestOrderLookup />
+          </OrderErrorBoundary>
 
           <div className="mt-12 text-center">
             <h2 className="text-xl font-semibold mb-4">Need Help?</h2>

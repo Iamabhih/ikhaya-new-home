@@ -25,11 +25,12 @@ export const OrderCard = ({ order }: OrderCardProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'secondary';
-      case 'confirmed': return 'default';
       case 'processing': return 'default';
       case 'shipped': return 'default';
       case 'delivered': return 'default';
+      case 'completed': return 'default';
       case 'cancelled': return 'destructive';
+      case 'returned': return 'destructive';
       default: return 'secondary';
     }
   };
@@ -37,18 +38,19 @@ export const OrderCard = ({ order }: OrderCardProps) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending': return <Clock className="h-4 w-4" />;
-      case 'confirmed': return <CheckCircle className="h-4 w-4" />;
       case 'processing': return <Package className="h-4 w-4" />;
       case 'shipped': return <Truck className="h-4 w-4" />;
       case 'delivered': return <CheckCircle className="h-4 w-4" />;
+      case 'completed': return <CheckCircle className="h-4 w-4" />;
       case 'cancelled': return <XCircle className="h-4 w-4" />;
+      case 'returned': return <RotateCcw className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
 
-  // Check if order can be returned (delivered orders within 30 days)
+  // Check if order can be returned (delivered/completed orders within 30 days)
   const canRequestReturn = () => {
-    if (order.status !== 'delivered') return false;
+    if (!['delivered', 'completed'].includes(order.status)) return false;
     const deliveryDate = new Date(order.created_at);
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
