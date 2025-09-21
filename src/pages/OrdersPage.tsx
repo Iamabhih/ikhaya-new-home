@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { OrderCard } from "@/components/orders/OrderCard";
+import { OrderErrorBoundary } from "@/components/orders/OrderErrorBoundary";
 import { Package } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 
@@ -64,11 +65,13 @@ const OrdersPage = () => {
             <p className="text-muted-foreground">When you place your first order, it will appear here.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
-            ))}
-          </div>
+          <OrderErrorBoundary>
+            <div className="space-y-4">
+              {orders.map((order) => (
+                <OrderCard key={order.id} order={order} />
+              ))}
+            </div>
+          </OrderErrorBoundary>
         )}
       </main>
       <Footer />

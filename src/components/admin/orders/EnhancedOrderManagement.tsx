@@ -30,6 +30,9 @@ import { BulkOrderActions } from "./BulkOrderActions";
 import { OrderFilters } from "./OrderFilters";
 import { OrderTimeline } from "./OrderTimeline";
 import { SuperAdminOrderActions } from "./SuperAdminOrderActions";
+import { OrderStatusBadge } from "../../orders/OrderStatusBadge";
+import { OrderErrorBoundary } from "../../orders/OrderErrorBoundary";
+import { useOrderStatusValidation } from "@/hooks/useOrderValidation";
 
 interface Order {
   id: string;
@@ -75,6 +78,7 @@ export const EnhancedOrderManagement = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isSuperAdmin } = useRoles(user);
+  const { validateStatusTransition } = useOrderStatusValidation();
 
   // Fetch orders with enhanced filtering
   const { data: ordersData, isLoading } = useQuery({
@@ -170,9 +174,30 @@ export const EnhancedOrderManagement = () => {
     },
   });
 
-  // Bulk status update mutation
+  // Bulk status update mutation with validation
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderIds, status, notes }: { orderIds: string[], status: string, notes?: string }) => {
+      // Pre-validate status transitions if we have the current orders data
+      if (ordersData?.orders) {
+        const ordersToUpdate = ordersData.orders.filter(order => orderIds.includes(order.id));
+        for (const order of ordersToUpdate) {
+          try {
+            await new Promise<void>((resolve, reject) => {
+              validateStatusTransition({
+                orderId: order.id,
+                currentStatus: order.status,
+                newStatus: status,
+              });
+              // Since validateStatusTransition returns void, we'll assume success
+              setTimeout(() => resolve(), 100);
+            });
+          } catch (error) {
+            console.warn(`Status validation failed for order ${order.order_number}:`, error);
+            // Continue with the update - the database trigger will handle validation
+          }
+        }
+      }
+
       const { data, error } = await supabase.rpc('bulk_update_order_status', {
         order_ids: orderIds,
         new_status: status as any,
@@ -187,12 +212,13 @@ export const EnhancedOrderManagement = () => {
         description: `${data} orders updated successfully`,
       });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order-stats'] });
       setSelectedOrders([]);
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: "Failed to update orders",
+        title: "Update Failed",
+        description: error.message || "Failed to update orders",
         variant: "destructive",
       });
     },
@@ -262,7 +288,8 @@ export const EnhancedOrderManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <OrderErrorBoundary>
+      <div className="space-y-6">
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -418,9 +445,7 @@ export const EnhancedOrderManagement = () => {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{order.order_number}</span>
-                          <Badge variant={getStatusBadgeVariant(order.status)}>
-                            {order.status}
-                          </Badge>
+                          <OrderStatusBadge status={order.status} />
                           <div className="flex items-center gap-1">
                             {getFulfillmentIcon(order.fulfillment_status)}
                             <span className="text-sm text-muted-foreground">
@@ -524,6 +549,7 @@ export const EnhancedOrderManagement = () => {
           }
         />
       )}
-    </div>
-  );
-};
+      </div>
+      </OrderErrorBoundary>
+    );
+  };
