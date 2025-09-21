@@ -3153,13 +3153,15 @@ export type Database = {
         }[]
       }
       update_product_stock: {
-        Args: {
-          p_movement_type: string
-          p_notes?: string
-          p_order_id?: string
-          p_product_id: string
-          p_quantity_change: number
-        }
+        Args:
+          | {
+              p_movement_type: string
+              p_notes?: string
+              p_order_id?: string
+              p_product_id: string
+              p_quantity_change: number
+            }
+          | { product_id: string; quantity_sold: number }
         Returns: boolean
       }
     }
