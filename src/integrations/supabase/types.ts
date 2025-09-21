@@ -3164,6 +3164,24 @@ export type Database = {
           | { product_id: string; quantity_sold: number }
         Returns: boolean
       }
+      validate_order_creation: {
+        Args: {
+          p_billing_address: Json
+          p_customer_email: string
+          p_order_items?: Json
+          p_payment_method?: string
+          p_shipping_address?: Json
+        }
+        Returns: Json
+      }
+      validate_order_status_transition: {
+        Args: {
+          p_current_status: Database["public"]["Enums"]["order_status"]
+          p_new_status: Database["public"]["Enums"]["order_status"]
+          p_order_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "customer" | "wholesale" | "admin" | "superadmin" | "manager"
