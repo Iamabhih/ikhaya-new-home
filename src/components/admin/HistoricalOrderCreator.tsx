@@ -133,44 +133,10 @@ export function HistoricalOrderCreator() {
       setDebugInfo('No existing order found, proceeding with creation...');
       console.log('✅ No existing order found, proceeding with creation...');
 
-      // Check if user exists or create one
-      setDebugInfo('Checking for existing user profile...');
-      console.log('👤 Checking for existing user profile...');
-      const { data: existingProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, email, first_name, last_name')
-        .eq('email', HISTORICAL_ORDER_DATA.customerEmail)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error('❌ Error checking profile:', profileError);
-        setDebugInfo(`Error checking profile: ${profileError.message}`);
-        throw profileError;
-      }
-
-      let userId = existingProfile?.id;
-      console.log('👤 Existing user profile:', existingProfile);
-      setDebugInfo(`User check: ${existingProfile ? `Found user ${existingProfile.email}` : 'No user found, will create new user'}`);
-
-      if (!userId) {
-        setDebugInfo('Creating new user from order data...');
-        console.log('🆕 Creating new user from order...');
-        const { data: newUserId, error: createUserError } = await supabase
-          .rpc('create_user_from_order', {
-            p_email: HISTORICAL_ORDER_DATA.customerEmail,
-            p_first_name: HISTORICAL_ORDER_DATA.customerFirstName,
-            p_last_name: HISTORICAL_ORDER_DATA.customerLastName
-          });
-
-        if (createUserError) {
-          console.error('❌ Error creating user:', createUserError);
-          setDebugInfo(`Error creating user: ${createUserError.message}`);
-          throw createUserError;
-        }
-        console.log('✅ New user created with ID:', newUserId);
-        setDebugInfo(`New user created with ID: ${newUserId}`);
-        userId = newUserId;
-      }
+      // Skip user creation for historical orders - store customer info directly in order
+      setDebugInfo('Skipping user creation for historical order...');
+      console.log('📝 Creating historical order without user account (user_id = null)');
+      const userId = null; // Historical orders don't need user accounts
 
       // Create the historical order with proper timestamps
       setDebugInfo('Preparing order data for insertion...');
