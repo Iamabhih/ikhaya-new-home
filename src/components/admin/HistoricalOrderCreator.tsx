@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Calendar, CheckCircle, Loader2, Package } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Loader2, Package, Search } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRoles } from '@/hooks/useRoles';
 
 const HISTORICAL_ORDER_DATA = {
   orderNumber: 'IKH-20250915-249240509',
@@ -52,51 +54,106 @@ const HISTORICAL_ORDER_DATA = {
 export function HistoricalOrderCreator() {
   const [isCreating, setIsCreating] = useState(false);
   const [orderCreated, setOrderCreated] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
+  const { user } = useAuth();
+  const { isAdmin, isSuperAdmin } = useRoles(user);
+
+  const checkOrderExists = async () => {
+    setIsChecking(true);
+    setDebugInfo('');
+    
+    try {
+      const { data: existingOrder, error } = await supabase
+        .from('orders')
+        .select('id, order_number, email, total_amount, created_at, status')
+        .eq('order_number', HISTORICAL_ORDER_DATA.orderNumber)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking order:', error);
+        setDebugInfo(`Error checking order: ${error.message}`);
+        toast.error('Failed to check order status');
+        return;
+      }
+
+      if (existingOrder) {
+        setDebugInfo(`Order found: ${existingOrder.order_number} - ${existingOrder.email} - Status: ${existingOrder.status} - Total: R${existingOrder.total_amount} - Created: ${new Date(existingOrder.created_at).toLocaleString()}`);
+        toast.info('Order already exists in the system');
+      } else {
+        setDebugInfo('No existing order found. Ready to create historical order.');
+        toast.success('Order does not exist. Ready to create.');
+      }
+    } catch (error: any) {
+      console.error('Error:', error);
+      setDebugInfo(`Unexpected error: ${error.message}`);
+      toast.error('Failed to check order');
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   const createHistoricalOrder = async () => {
+    // Check admin permissions first
+    if (!isAdmin() && !isSuperAdmin()) {
+      toast.error('Admin access required to create historical orders');
+      console.error('❌ Insufficient permissions:', { user: user?.email, isAdmin: isAdmin(), isSuperAdmin: isSuperAdmin() });
+      return;
+    }
+
     setIsCreating(true);
+    setDebugInfo('Starting historical order creation...');
     console.log('🔄 Starting historical order creation process...');
     console.log('📋 Order data:', HISTORICAL_ORDER_DATA);
+    console.log('👤 User info:', { email: user?.email, isAdmin: isAdmin(), isSuperAdmin: isSuperAdmin() });
     
     try {
       // Check if order already exists
+      setDebugInfo('Checking for existing order...');
       console.log('🔍 Checking for existing order...');
       const { data: existingOrder, error: existingOrderError } = await supabase
         .from('orders')
-        .select('id, order_number')
+        .select('id, order_number, email, total_amount')
         .eq('order_number', HISTORICAL_ORDER_DATA.orderNumber)
-        .single();
+        .maybeSingle();
 
-      if (existingOrderError && existingOrderError.code !== 'PGRST116') {
+      if (existingOrderError) {
         console.error('❌ Error checking existing order:', existingOrderError);
+        setDebugInfo(`Error checking existing order: ${existingOrderError.message}`);
         throw existingOrderError;
       }
 
       if (existingOrder) {
         console.log('⚠️ Order already exists:', existingOrder);
+        setDebugInfo(`Order already exists: ${existingOrder.order_number} for ${existingOrder.email}`);
         toast.error(`Order ${HISTORICAL_ORDER_DATA.orderNumber} already exists`);
         return;
       }
       
+      setDebugInfo('No existing order found, proceeding with creation...');
       console.log('✅ No existing order found, proceeding with creation...');
 
       // Check if user exists or create one
+      setDebugInfo('Checking for existing user profile...');
       console.log('👤 Checking for existing user profile...');
       const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, email, first_name, last_name')
         .eq('email', HISTORICAL_ORDER_DATA.customerEmail)
-        .single();
+        .maybeSingle();
 
-      if (profileError && profileError.code !== 'PGRST116') {
+      if (profileError) {
         console.error('❌ Error checking profile:', profileError);
+        setDebugInfo(`Error checking profile: ${profileError.message}`);
         throw profileError;
       }
 
       let userId = existingProfile?.id;
-      console.log('👤 Existing user ID:', userId);
+      console.log('👤 Existing user profile:', existingProfile);
+      setDebugInfo(`User check: ${existingProfile ? `Found user ${existingProfile.email}` : 'No user found, will create new user'}`);
 
       if (!userId) {
+        setDebugInfo('Creating new user from order data...');
         console.log('🆕 Creating new user from order...');
         const { data: newUserId, error: createUserError } = await supabase
           .rpc('create_user_from_order', {
@@ -107,13 +164,16 @@ export function HistoricalOrderCreator() {
 
         if (createUserError) {
           console.error('❌ Error creating user:', createUserError);
+          setDebugInfo(`Error creating user: ${createUserError.message}`);
           throw createUserError;
         }
         console.log('✅ New user created with ID:', newUserId);
+        setDebugInfo(`New user created with ID: ${newUserId}`);
         userId = newUserId;
       }
 
       // Create the historical order with proper timestamps
+      setDebugInfo('Preparing order data for insertion...');
       console.log('📝 Preparing order data...');
       const orderData = {
         order_number: HISTORICAL_ORDER_DATA.orderNumber,
@@ -155,23 +215,27 @@ export function HistoricalOrderCreator() {
         delivered_at: '2025-09-18T14:00:00Z'
       };
 
+      setDebugInfo('Inserting order into database...');
       console.log('💾 Inserting order into database...');
       console.log('📄 Order data:', orderData);
       
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert(orderData)
-        .select()
+        .select('*')
         .single();
 
       if (orderError) {
         console.error('❌ Error creating order:', orderError);
+        setDebugInfo(`Order creation failed: ${orderError.message} - Code: ${orderError.code}`);
         throw orderError;
       }
       
       console.log('✅ Order created successfully:', order);
+      setDebugInfo(`Order created successfully: ${order.order_number} (ID: ${order.id})`);
 
       // Create order items
+      setDebugInfo('Creating order items...');
       console.log('📦 Creating order items...');
       const orderItems = HISTORICAL_ORDER_DATA.items.map(item => ({
         order_id: order.id,
@@ -190,10 +254,12 @@ export function HistoricalOrderCreator() {
 
       if (itemsError) {
         console.error('❌ Error creating order items:', itemsError);
+        setDebugInfo(`Order items creation failed: ${itemsError.message}`);
         throw itemsError;
       }
       
       console.log('✅ Order items created successfully');
+      setDebugInfo(`${orderItems.length} order items created successfully`);
 
       // Create order timeline entries for historical tracking
       const timelineEntries = [
@@ -273,11 +339,13 @@ export function HistoricalOrderCreator() {
       }
 
       console.log('🎉 Historical order creation completed successfully!');
+      setDebugInfo(`✅ Historical order creation completed successfully! Order: ${HISTORICAL_ORDER_DATA.orderNumber}`);
       toast.success(`Historical order ${HISTORICAL_ORDER_DATA.orderNumber} created successfully!`);
       setOrderCreated(true);
 
     } catch (error: any) {
-      console.error('Error creating historical order:', error);
+      console.error('❌ Complete error creating historical order:', error);
+      setDebugInfo(`❌ Error: ${error.message} ${error.code ? `(Code: ${error.code})` : ''}`);
       toast.error(`Failed to create historical order: ${error.message}`);
     } finally {
       setIsCreating(false);
@@ -407,11 +475,40 @@ export function HistoricalOrderCreator() {
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="flex justify-center pt-4">
+        {/* Debug Info */}
+        {debugInfo && (
+          <Alert className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="font-mono text-sm">
+              {debugInfo}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-4 pt-4">
+          <Button
+            onClick={checkOrderExists}
+            disabled={isChecking || isCreating}
+            variant="outline"
+            size="lg"
+          >
+            {isChecking ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Checking...
+              </>
+            ) : (
+              <>
+                <Search className="h-4 w-4 mr-2" />
+                Check if Order Exists
+              </>
+            )}
+          </Button>
+
           <Button
             onClick={createHistoricalOrder}
-            disabled={isCreating}
+            disabled={isCreating || isChecking}
             size="lg"
             className="min-w-48"
           >
