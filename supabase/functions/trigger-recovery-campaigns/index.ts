@@ -164,14 +164,14 @@ const handler = async (req: Request): Promise<Response> => {
             campaign_type: `email_${campaignType}`,
             email_address: cart.email,
             status: 'failed',
-            metadata: { error: emailError.message }
+            metadata: { error: (emailError as Error).message }
           });
 
         campaignResults.push({
           cartId: cart.id,
           email: cart.email,
           status: 'failed',
-          error: emailError.message
+          error: (emailError as Error).message
         });
       }
     }
@@ -194,7 +194,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error('Error in recovery campaign:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

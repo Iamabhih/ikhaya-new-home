@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
 
       } catch (error) {
         console.error(`Storage scan error:`, error);
-        result.errors.push(`Storage scan failed: ${error.message}`);
+        result.errors.push(`Storage scan failed: ${(error as Error).message}`);
         break;
       }
     }
@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
 
       } catch (error) {
         console.error(`Error processing ${image.name}:`, error);
-        result.errors.push(`Processing error for ${image.name}: ${error.message}`);
+        result.errors.push(`Processing error for ${image.name}: ${(error as Error).message}`);
       }
     }
 
@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('❌ Fatal error:', error);
     result.status = 'error';
-    result.errors.push(`Fatal error: ${error.message}`);
+    result.errors.push(`Fatal error: ${(error as Error).message}`);
     result.processingTime = Date.now() - startTime;
 
     return new Response(JSON.stringify(result), {

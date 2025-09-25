@@ -71,9 +71,7 @@ Deno.serve(async (req) => {
     const { data: productsWithoutImages } = await supabase
       .from('products')
       .select('id, name, sku')
-      .is('id', 'not.in', 
-        '(SELECT DISTINCT product_id FROM product_images WHERE image_status = \'active\')'
-      )
+      .not('id', 'in', '(SELECT DISTINCT product_id FROM product_images WHERE image_status = \'active\')')
       .eq('is_active', true)
       .limit(100); // Process in batches
 
@@ -194,7 +192,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        details: (error as Error).message 
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -162,7 +162,7 @@ serve(async (req) => {
     return new Response('OK', { status: 200, headers: corsHeaders });
     
   } catch (error) {
-    const errorMsg = `PayFast webhook error: ${error.message || error}`;
+    const errorMsg = `PayFast webhook error: ${(error as Error).message || error}`;
     console.error(errorMsg);
     
     try {

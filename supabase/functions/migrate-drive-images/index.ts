@@ -734,7 +734,7 @@ Deno.serve(async (req) => {
     console.log('✅ Initial progress sent')
 
     // Start processing in background using waitUntil
-    EdgeRuntime.waitUntil(processMigration());
+    // EdgeRuntime.waitUntil(processMigration());
     
     // Return initial response immediately to prevent timeout
     return new Response(JSON.stringify({
@@ -795,7 +795,7 @@ Deno.serve(async (req) => {
         }
 
         // Transform and validate products
-        const transformedProducts = products?.filter(p => p && p.sku && p.name).map(p => ({
+        const transformedProducts = products?.filter((p: any) => p && p.sku && p.name).map((p: any) => ({
           ...p,
           category_name: p.categories?.name
         })) || []
@@ -902,7 +902,7 @@ Deno.serve(async (req) => {
               console.error(`❌ [SCAN_ERROR] Error scanning folder ${folderPath} (attempt ${retryCount}/${maxRetries}):`, error)
               
               if (retryCount >= maxRetries) {
-                await logMessage('error', `Failed to scan folder ${folderPath} after ${maxRetries} attempts: ${error.message}`)
+                await logMessage('error', `Failed to scan folder ${folderPath} after ${maxRetries} attempts: ${(error as Error).message}`)
                 hasMore = false
               } else {
                 // Exponential backoff
@@ -977,13 +977,13 @@ Deno.serve(async (req) => {
               }
             } catch (error) {
               console.error(`❌ [ERROR] Matching product ${product?.sku || 'unknown'}:`, error)
-              await logMessage('error', `Failed to match product ${product?.sku || 'unknown'}: ${error.message}`)
+              await logMessage('error', `Failed to match product ${product?.sku || 'unknown'}: ${(error as Error).message}`)
             }
           }
 
           // Save checkpoint
           if (checkpointManager) {
-            const processedIds = transformedProducts.slice(0, batchEnd).map(p => p.id)
+            const processedIds = transformedProducts.slice(0, batchEnd).map((p: any) => p.id)
             await checkpointManager.saveCheckpoint(sessionId, processedIds, batchEnd)
           }
 
@@ -1082,9 +1082,9 @@ Deno.serve(async (req) => {
                 console.error(`❌ [PROCESSING_ERROR] Error processing ${product.sku} (attempt ${retryCount}/${maxRetries + 1}):`, error)
                 
                 if (retryCount > maxRetries) {
-                  await logMessage('error', `❌ [FINAL_ERROR] Failed to process ${product.sku} after ${maxRetries + 1} attempts: ${error.message}`)
+                  await logMessage('error', `❌ [FINAL_ERROR] Failed to process ${product.sku} after ${maxRetries + 1} attempts: ${(error as Error).message}`)
                   progress.failed++
-                  progress.errors.push(`${product.sku}: ${error.message}`)
+                  progress.errors.push(`${product.sku}: ${(error as Error).message}`)
                   progress.processed++
                   await sendProgressUpdate(progress)
                 } else {
@@ -1116,10 +1116,10 @@ Deno.serve(async (req) => {
       } catch (error) {
         console.error('❌ [FATAL_ERROR] Enhanced migration failed:', error)
         progress.status = 'error'
-        progress.currentStep = `Error: ${error.message}`
-        progress.errors.push(error.message)
+        progress.currentStep = `Error: ${(error as Error).message}`
+        progress.errors.push((error as Error).message)
         await sendProgressUpdate(progress)
-        await logMessage('error', `Enhanced migration failed: ${error.message}`)
+        await logMessage('error', `Enhanced migration failed: ${(error as Error).message}`)
       }
     }
 
@@ -1128,9 +1128,9 @@ Deno.serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
+      error: (error as Error).message,
       sessionId,
-      results: { processed: 0, successful: 0, failed: 0, errors: [error.message] }
+      results: { processed: 0, successful: 0, failed: 0, errors: [(error as Error).message] }
     }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
       status: 500 

@@ -128,7 +128,7 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
           }
         });
       } catch (error) {
-        console.error(`❌ Pattern error ${patternIndex}: ${error.message}`);
+        console.error(`❌ Pattern error ${patternIndex}: ${(error as Error).message}`);
       }
     });
   }
@@ -504,7 +504,7 @@ Deno.serve(async (req) => {
               
             } catch (error) {
               console.error(`❌ Error processing ${image.name}:`, error);
-              errors.push(`Error processing ${image.name}: ${error.message}`);
+              errors.push(`Error processing ${image.name}: ${(error as Error).message}`);
             }
           }
 
@@ -517,7 +517,7 @@ Deno.serve(async (req) => {
 
       } catch (error) {
         result.status = 'error';
-        result.errors.push(error.message);
+        result.errors.push((error as Error).message);
         console.error('Scan error:', error);
       }
     }
@@ -535,7 +535,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal Server Error',
-        details: error.message 
+        details: (error as Error).message 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

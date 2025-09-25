@@ -108,13 +108,13 @@ function extractSKUsFromFilename(filename: string, diagnostics: any): ExtractedS
   ];
   
   for (const pattern of multiSkuPatterns) {
-    let match;
+    let match: RegExpMatchArray | null;
     while ((match = pattern.exec(cleanFilename)) !== null) {
-      if (!results.some(r => r.sku === match[1])) {
+      if (!results.some(r => r.sku === match![1])) {
         results.push({ sku: match[1], confidence: 88, source: 'multi_first' });
         console.log(`✅ MULTI SKU first: ${match[1]}`);
       }
-      if (!results.some(r => r.sku === match[2])) {
+      if (!results.some(r => r.sku === match![2])) {
         results.push({ sku: match[2], confidence: 85, source: 'multi_second' });
         console.log(`✅ MULTI SKU second: ${match[2]}`);
       }
@@ -277,9 +277,9 @@ function findMatchingProduct(lookupMaps: any, targetSku: string): any {
   let bestSimilarity = 0;
   
   for (const candidate of candidates) {
-    if (!candidate.sku) continue;
+    if (!(candidate as any)?.sku) continue;
     
-    const similarity = calculateSimilarity(targetSku, candidate.sku);
+    const similarity = calculateSimilarity(targetSku, (candidate as any).sku);
     if (similarity > bestSimilarity && similarity >= 0.8) {
       bestMatch = candidate;
       bestSimilarity = similarity;
@@ -287,7 +287,7 @@ function findMatchingProduct(lookupMaps: any, targetSku: string): any {
   }
   
   if (bestMatch) {
-    console.log(`✅ SIMILARITY match: ${targetSku} → ${bestMatch.sku} (${(bestSimilarity * 100).toFixed(1)}%)`);
+    console.log(`✅ SIMILARITY match: ${targetSku} → ${(bestMatch as { sku: string }).sku} (${(bestSimilarity * 100).toFixed(1)}%)`);
     return bestMatch;
   }
   

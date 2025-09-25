@@ -143,7 +143,7 @@ async function updateSession(supabase: any, sessionId: string, updates: Partial<
     const processingStats = { ...currentSession?.processingRate ? { processing_rate: currentSession.processingRate } : {} };
     if (updates.processingRate !== undefined) processingStats.processing_rate = updates.processingRate;
     if (updates.timeRemaining !== undefined) {
-      processingStats.estimated_completion = new Date(Date.now() + updates.timeRemaining * 1000).toISOString();
+      (processingStats as any).estimated_completion = new Date(Date.now() + updates.timeRemaining * 1000).toISOString();
     }
     dbUpdates.processing_stats = processingStats;
   }
@@ -478,10 +478,10 @@ async function runMasterProcessing(
                     });
                     
                     // Update matching stats
-                    if (extractedSKU.source === 'exact_numeric') matchingStats.exactMatch++;
-                    else if (extractedSKU.source.startsWith('multi_sku')) matchingStats.multiSku++;
-                    else if (extractedSKU.source.startsWith('zero_padded')) matchingStats.paddedSku++;
-                    else if (extractedSKU.source === 'contextual') matchingStats.patternMatch++;
+                    if (extractedSKU.source === 'exact_numeric') (matchingStats as any).exactMatch++;
+                    else if (extractedSKU.source.startsWith('multi_sku')) (matchingStats as any).multiSku++;
+                    else if (extractedSKU.source.startsWith('zero_padded')) (matchingStats as any).paddedSku++;
+                    else if (extractedSKU.source === 'contextual') (matchingStats as any).patternMatch++;
                     
                     console.log(`🎯 LINK: ${file.name} → ${matchingProduct.sku} (${extractedSKU.confidence}%)`);
                   }
@@ -510,7 +510,7 @@ async function runMasterProcessing(
           }
         } catch (error) {
           currentSession = await getSession(supabase, sessionId);
-          const errors = [...(currentSession?.errors || []), `Error processing ${file.name}: ${error.message}`];
+          const errors = [...(currentSession?.errors || []), `Error processing ${file.name}: ${(error as Error).message}`];
           await updateSession(supabase, sessionId, { errors });
           console.error(`❌ Error processing ${file.name}:`, error);
         }
@@ -530,7 +530,7 @@ async function runMasterProcessing(
         timeRemaining,
         directLinksCreated: linksToCreate.length,
         candidatesCreated: candidatesToCreate.length,
-        matchingStats
+        matchingStats: matchingStats as any
       });
       
       // Small delay to prevent overwhelming the system
@@ -599,7 +599,7 @@ async function runMasterProcessing(
     console.error('❌ Master processing error:', error);
     await updateSession(supabase, sessionId, {
       status: 'failed',
-      errors: [`Processing failed: ${error.message}`]
+      errors: [`Processing failed: ${(error as Error).message}`]
     });
     throw error;
   }
@@ -692,8 +692,8 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
-      details: error.stack
+      error: (error as Error).message,
+      details: (error as Error).stack
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

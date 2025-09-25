@@ -111,7 +111,7 @@ function extractSKUs(filename: string, fullPath?: string): ExtractedSKU[] {
         }
       });
     } catch (error) {
-      console.error(`Error in enhanced pattern ${index} (${pattern}): ${error.message}`);
+      console.error(`Error in enhanced pattern ${index} (${pattern}): ${(error as Error).message}`);
     }
   });
 
@@ -456,7 +456,7 @@ Deno.serve(async (req) => {
               allImages.push({
                 filename: file.name,
                 path: fullPath,
-                extractedSkus: extractedSkus.length > 0 ? extractedSkus : [
+                extractedSkus: extractedSkus.length > 0 ? extractedSkus as any[] : [
                   // Fallback: try simple numeric extraction like storage scanner
                   ...((file.name.match(/\b\d{4,6}\b/g) || []).map(num => ({
                     value: num,

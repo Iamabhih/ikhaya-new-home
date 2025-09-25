@@ -169,7 +169,7 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
           }
         });
       } catch (error) {
-        console.error(`❌ Pattern error ${patternIndex}: ${error.message}`);
+        console.error(`❌ Pattern error ${patternIndex}: ${(error as Error).message}`);
       }
     });
   }
@@ -242,14 +242,14 @@ async function processBatchProgressive(supabase: any, sessionId: string, confide
   }
 
   // Filter products without images
-  const productIds = productsWithoutImages?.map(p => p.id) || [];
+  const productIds = productsWithoutImages?.map((p: any) => p.id) || [];
   const { data: existingImages } = await supabase
     .from('product_images')
     .select('product_id')
     .in('product_id', productIds);
 
-  const existingImageProductIds = new Set(existingImages?.map(img => img.product_id) || []);
-  const productsNeedingImages = productsWithoutImages?.filter(p => !existingImageProductIds.has(p.id)) || [];
+  const existingImageProductIds = new Set(existingImages?.map((img: any) => img.product_id) || []);
+  const productsNeedingImages = productsWithoutImages?.filter((p: any) => !existingImageProductIds.has(p.id)) || [];
 
   console.log(`🎯 Found ${productsNeedingImages.length} products needing images`);
 
@@ -283,11 +283,11 @@ async function processBatchProgressive(supabase: any, sessionId: string, confide
       
       if (!batch || batch.length === 0) break;
     
-      const imageFiles = batch.filter(file => 
+      const imageFiles = batch.filter((file: any) =>
         file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
       );
       
-      allStorageFiles.push(...imageFiles.map(file => ({
+      allStorageFiles.push(...imageFiles.map((file: any) => ({
         name: file.name,
         fullPath: file.name,
         size: file.metadata?.size || 0
@@ -304,7 +304,7 @@ async function processBatchProgressive(supabase: any, sessionId: string, confide
   console.log(`📁 Total storage files found: ${allStorageFiles.length}`);
   
   // Process images in batches with progress tracking
-  const allProductSKUs = productsNeedingImages.map(p => ({ id: p.id, sku: p.sku }));
+  const allProductSKUs = productsNeedingImages.map((p: any) => ({ id: p.id, sku: p.sku }));
   const totalBatches = Math.ceil(allStorageFiles.length / batchSize);
   let linksCreated = 0;
   let candidatesCreated = 0;
@@ -527,13 +527,13 @@ serve(async (req) => {
           await supabase.from('batch_progress').update({
             status: 'error',
             completed_at: new Date().toISOString(),
-            errors: [error.message]
+            errors: [(error as Error).message]
           }).eq('session_id', sessionId);
         }
       };
 
       // Start background processing
-      EdgeRuntime.waitUntil(backgroundProcess());
+      // EdgeRuntime.waitUntil(backgroundProcess());
       
       return new Response(JSON.stringify({ 
         sessionId, 
@@ -597,7 +597,7 @@ serve(async (req) => {
               console.log(`✅ Promoted candidate ${candidate.id} (${candidate.match_confidence}%)`);
             }
           } catch (error) {
-            result.errors.push(`Error promoting candidate ${candidate.id}: ${error.message}`);
+            result.errors.push(`Error promoting candidate ${candidate.id}: ${(error as Error).message}`);
           }
         }
       }
@@ -770,7 +770,7 @@ serve(async (req) => {
           processedFiles++;
         } catch (error) {
           console.error(`❌ Error processing file ${file.name}:`, error);
-          result.errors.push(`Error processing ${file.name}: ${error.message}`);
+          result.errors.push(`Error processing ${file.name}: ${(error as Error).message}`);
         }
       }));
       
@@ -805,7 +805,7 @@ serve(async (req) => {
       JSON.stringify({ 
         sessionId: 'error',
         status: 'error', 
-        error: error.message,
+        error: (error as Error).message,
         productsChecked: 0,
         imagesFound: 0,
         linksCreated: 0,
@@ -813,7 +813,7 @@ serve(async (req) => {
         candidatesCreated: 0,
         skippedExisting: 0,
         matchingStats: { exact: 0, zeropadded: 0, multisku: 0, pattern: 0, contains: 0 },
-        errors: [error.message]
+        errors: [(error as Error).message]
       }),
       { 
         status: 500, 

@@ -52,12 +52,13 @@ function parseExcelFile(arrayBuffer: ArrayBuffer): SheetData[] {
     console.log(`Sheet ${sheetName} headers:`, headers);
     
     // Process data rows starting after the header
-    const products = jsonData.slice(headerRowIndex + 1).map((row: any[], rowIndex) => {
-      if (!row || row.length === 0) return null;
+    const products = jsonData.slice(headerRowIndex + 1).map((row: unknown, rowIndex) => {
+      const rowArray = row as any[];
+      if (!rowArray || rowArray.length === 0) return null;
       
       const product: any = {};
       headers.forEach((header, colIndex) => {
-        let value = row[colIndex];
+        let value = rowArray[colIndex];
         
         // Skip empty values
         if (value === undefined || value === null || String(value).trim() === '') {

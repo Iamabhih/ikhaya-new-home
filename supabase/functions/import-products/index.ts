@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
       } catch (error) {
         console.error('CSV parsing error:', error)
         return new Response(
-          JSON.stringify({ error: `CSV parsing error: ${error.message}` }),
+          JSON.stringify({ error: `CSV parsing error: ${(error as Error).message}` }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
         console.error('Import error:', error)
         
         return new Response(
-          JSON.stringify({ error: `Import failed: ${error.message}` }),
+          JSON.stringify({ error: `Import failed: ${(error as Error).message}` }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
