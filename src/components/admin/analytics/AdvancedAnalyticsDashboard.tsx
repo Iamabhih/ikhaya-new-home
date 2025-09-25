@@ -12,11 +12,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { useEnhancedAnalytics } from "@/hooks/useEnhancedAnalytics";
 import { useState } from "react";
 import { TrendingUp, Users, ShoppingCart, DollarSign, Sparkles } from "lucide-react";
-
-interface DateRange {
-  from: Date;
-  to: Date;
-}
+import { DateRange } from "react-day-picker";
 
 export const AdvancedAnalyticsDashboard = () => {
   const [dateRange, setDateRange] = useState<DateRange>({
