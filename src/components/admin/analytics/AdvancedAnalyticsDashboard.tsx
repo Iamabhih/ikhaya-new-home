@@ -9,9 +9,11 @@ import { ConversionFunnel } from "./ConversionFunnel";
 import { ActivityFeed } from "./ActivityFeed";
 import { AnalyticsTestPanel } from "./AnalyticsTestPanel";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import { useEnhancedAnalytics } from "@/hooks/useEnhancedAnalytics";
+import { useImprovedAnalytics } from "@/hooks/useImprovedAnalytics";
 import { useChartData } from "@/hooks/useChartData";
 import { useAnalyticsInsights } from "@/hooks/useAnalyticsInsights";
+import { ImprovedAnalyticsCharts } from "./ImprovedAnalyticsCharts";
+import { ImprovedRealTimeMetrics } from "./ImprovedRealTimeMetrics";
 import { useState } from "react";
 import { TrendingUp, Users, ShoppingCart, DollarSign, Sparkles } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -22,17 +24,16 @@ export const AdvancedAnalyticsDashboard = () => {
     to: new Date()
   });
 
-  const { realTimeMetrics, customerAnalytics, productPerformance, overviewStats, isConnected } = useEnhancedAnalytics(dateRange);
+  const { overviewStats, customerAnalytics, productPerformance, isLoading: analyticsLoading } = useImprovedAnalytics(dateRange);
   const { data: chartData, isLoading: isChartLoading } = useChartData(dateRange);
   const { data: insights } = useAnalyticsInsights(dateRange);
 
   const handleExport = async () => {
     try {
       const data = { 
-        realTimeMetrics, 
+        overviewStats, 
         customerAnalytics,
         productPerformance, 
-        overviewStats, 
         chartData,
         timestamp: new Date() 
       };
@@ -102,11 +103,78 @@ export const AdvancedAnalyticsDashboard = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <PremiumRealTimeMetrics onExport={handleExport} />
-          <PremiumAnalyticsCharts 
-            categoryPerformance={chartData?.categoryPerformance || []}
-            salesTrend={chartData?.salesTrend || []}
-            isLoading={isChartLoading}
+          <ImprovedRealTimeMetrics onExport={handleExport} />
+          
+          {/* Overview Stats Cards */}
+          {overviewStats && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Customers</p>
+                      <p className="text-2xl font-bold">{overviewStats.totalCustomers}</p>
+                    </div>
+                    <Users className="h-8 w-8 text-chart-1" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
+                      <p className="text-2xl font-bold">{overviewStats.totalOrders}</p>
+                    </div>
+                    <ShoppingCart className="h-8 w-8 text-chart-2" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                      <p className="text-2xl font-bold">R{overviewStats.totalRevenue.toFixed(2)}</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-chart-3" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
+                      <p className="text-2xl font-bold">{overviewStats.conversionRate}%</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-chart-4" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <ImprovedAnalyticsCharts 
+            customerSegments={customerAnalytics ? [{
+              name: 'VIP',
+              value: customerAnalytics.filter(c => c.customer_segment === 'VIP').length
+            }, {
+              name: 'Loyal', 
+              value: customerAnalytics.filter(c => c.customer_segment === 'Loyal').length
+            }, {
+              name: 'Regular',
+              value: customerAnalytics.filter(c => c.customer_segment === 'Regular').length  
+            }, {
+              name: 'New',
+              value: customerAnalytics.filter(c => c.customer_segment === 'New').length
+            }] : []}
+            productPerformance={productPerformance?.slice(0, 5).map(p => ({
+              name: p.product_name,
+              value: p.total_sold,
+              revenue: p.total_revenue
+            })) || []}
+            isLoading={analyticsLoading}
           />
         </TabsContent>
 
