@@ -34,7 +34,7 @@ export const EnhancedCustomerInsights = () => {
     const csvContent = [
       ['Name', 'Email', 'Total Spent', 'Orders', 'Registration Date'].join(','),
       ...customerAnalytics.topCustomers.map(customer => [
-        `"${customer.first_name || ''} ${customer.last_name || ''}"`.trim(),
+        `"${customer.display_name || customer.email}"`,
         customer.email,
         customer.total_spent,
         customer.total_orders,
@@ -218,10 +218,7 @@ export const EnhancedCustomerInsights = () => {
                   </div>
                   <div>
                     <p className="font-medium">
-                      {customer.first_name && customer.last_name 
-                        ? `${customer.first_name} ${customer.last_name}`
-                        : customer.email
-                      }
+                      {customer.display_name || customer.email}
                     </p>
                     <p className="text-sm text-muted-foreground">{customer.email}</p>
                     <div className="flex items-center gap-2 mt-1">
@@ -245,7 +242,9 @@ export const EnhancedCustomerInsights = () => {
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {customer.days_since_last_order || 0}d ago
+                      {customer.last_order_date ? 
+                        `${Math.ceil((new Date().getTime() - new Date(customer.last_order_date).getTime()) / (1000 * 60 * 60 * 24))}d ago` 
+                        : 'No orders'}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">

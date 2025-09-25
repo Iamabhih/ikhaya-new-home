@@ -10,6 +10,7 @@ import { ActivityFeed } from "./ActivityFeed";
 import { AnalyticsTestPanel } from "./AnalyticsTestPanel";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { useEnhancedAnalytics } from "@/hooks/useEnhancedAnalytics";
+import { useChartData } from "@/hooks/useChartData";
 import { useState } from "react";
 import { TrendingUp, Users, ShoppingCart, DollarSign, Sparkles } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -20,11 +21,19 @@ export const AdvancedAnalyticsDashboard = () => {
     to: new Date()
   });
 
-  const { productPerformance, overviewStats } = useEnhancedAnalytics();
+  const { realTimeMetrics, customerAnalytics, productPerformance, overviewStats, isConnected } = useEnhancedAnalytics();
+  const { data: chartData, isLoading: isChartLoading } = useChartData(7);
 
   const handleExport = async () => {
     try {
-      const data = { productPerformance, overviewStats, timestamp: new Date() };
+      const data = { 
+        realTimeMetrics, 
+        customerAnalytics,
+        productPerformance, 
+        overviewStats, 
+        chartData,
+        timestamp: new Date() 
+      };
       const jsonContent = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonContent], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -91,7 +100,11 @@ export const AdvancedAnalyticsDashboard = () => {
 
         <TabsContent value="overview" className="space-y-6">
           <PremiumRealTimeMetrics onExport={handleExport} />
-          <PremiumAnalyticsCharts />
+          <PremiumAnalyticsCharts 
+            categoryPerformance={chartData?.categoryPerformance || []}
+            salesTrend={chartData?.salesTrend || []}
+            isLoading={isChartLoading}
+          />
         </TabsContent>
 
         <TabsContent value="customers" className="space-y-6">

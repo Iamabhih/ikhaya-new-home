@@ -41,6 +41,7 @@ interface SalesTrend {
 interface PremiumAnalyticsChartsProps {
   categoryPerformance?: CategoryPerformance[];
   salesTrend?: SalesTrend[];
+  isLoading?: boolean;
 }
 
 // Premium chart configuration using design system colors
@@ -78,7 +79,8 @@ const CHART_COLORS = [
 
 export const PremiumAnalyticsCharts = ({ 
   categoryPerformance = [], 
-  salesTrend = [] 
+  salesTrend = [],
+  isLoading = false
 }: PremiumAnalyticsChartsProps) => {
   
   // Enhanced default data with better formatting
@@ -104,6 +106,20 @@ export const PremiumAnalyticsCharts = ({
     ...item,
     fill: item.fill || CHART_COLORS[index % CHART_COLORS.length]
   })) : defaultCategoryPerformance;
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-card rounded-lg border border-border/50 p-6 animate-pulse">
+            <div className="h-6 bg-muted rounded mb-4"></div>
+            <div className="h-[300px] bg-muted rounded"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">

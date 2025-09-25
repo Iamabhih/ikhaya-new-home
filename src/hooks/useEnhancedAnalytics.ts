@@ -156,7 +156,7 @@ export const useEnhancedAnalytics = () => {
     refetchInterval: 60000
   });
 
-  // WebSocket connection for real-time updates
+  // WebSocket connection for real-time updates (enabled in development)
   useEffect(() => {
     const connectWebSocket = () => {
       try {
@@ -164,14 +164,20 @@ export const useEnhancedAnalytics = () => {
         
         wsRef.current.onopen = () => {
           console.log('Analytics WebSocket connected');
+          // Subscribe to metrics updates
+          wsRef.current?.send(JSON.stringify({
+            type: 'subscribe_metrics',
+            timestamp: new Date().toISOString()
+          }));
         };
 
         wsRef.current.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
+            console.log('WebSocket message received:', data.type);
             
             // Handle real-time analytics updates
-            if (data.type === 'metrics_update') {
+            if (data.type === 'metrics_update' || data.type === 'periodic_metrics') {
               refetchMetrics();
             }
           } catch (error) {
@@ -189,15 +195,13 @@ export const useEnhancedAnalytics = () => {
         };
       } catch (error) {
         console.error('Failed to connect WebSocket:', error);
+        // Fallback to polling more frequently
+        setTimeout(connectWebSocket, 10000);
       }
     };
 
-    // Only connect WebSocket in production environment
-    if (window.location.hostname !== 'localhost' &&  window.location.hostname !== '127.0.0.1') {
-      connectWebSocket();
-    } else {
-      console.log('WebSocket disabled in development mode');
-    }
+    // Enable WebSocket in both development and production
+    connectWebSocket();
 
     return () => {
       if (wsRef.current) {

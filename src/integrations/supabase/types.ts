@@ -617,6 +617,13 @@ export type Database = {
             foreignKeyName: "cart_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "clean_customer_analytics"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "cart_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "customer_analytics"
             referencedColumns: ["id"]
           },
@@ -748,6 +755,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "clean_customer_analytics"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_engagement_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "clean_customer_analytics"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "customer_engagement_metrics_user_id_fkey"
@@ -2927,15 +2941,15 @@ export type Database = {
       clean_customer_analytics: {
         Row: {
           avg_order_value: number | null
-          days_since_last_order: number | null
+          customer_segment: string | null
+          display_name: string | null
           email: string | null
-          first_name: string | null
           id: string | null
-          last_name: string | null
           last_order_date: string | null
           registration_date: string | null
           total_orders: number | null
           total_spent: number | null
+          user_id: string | null
         }
         Relationships: []
       }
