@@ -28,14 +28,20 @@ export interface ProductInsight {
   conversionRate: number;
 }
 
-export const useEnhancedAnalytics = () => {
+export const useEnhancedAnalytics = (dateRange?: { from?: Date; to?: Date }) => {
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Real-time metrics using database function (authentic data only)
+  // Real-time metrics using database function with date range support
   const { data: realTimeMetrics, refetch: refetchMetrics } = useQuery({
-    queryKey: ['enhanced-realtime-metrics'],
+    queryKey: ['enhanced-realtime-metrics', dateRange],
     queryFn: async () => {
-      const { data } = await supabase.rpc('get_realtime_metrics', { hours_back: 1 });
+      const startDate = dateRange?.from || new Date(Date.now() - 60 * 60 * 1000); // Default 1 hour
+      const endDate = dateRange?.to || new Date();
+      
+      const { data } = await supabase.rpc('get_realtime_metrics_with_date_range', { 
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString()
+      });
       const dataResult = data as any;
       return dataResult ? {
         activeUsers: dataResult.active_users || 0,
@@ -50,9 +56,9 @@ export const useEnhancedAnalytics = () => {
     staleTime: 3000
   });
 
-  // Clean customer analytics using materialized view
+  // Clean customer analytics using materialized view with date filtering
   const { data: customerAnalytics } = useQuery({
-    queryKey: ['clean-customer-analytics'],
+    queryKey: ['clean-customer-analytics', dateRange],
     queryFn: async () => {
       const { data } = await supabase
         .from('clean_customer_analytics')
@@ -111,9 +117,9 @@ export const useEnhancedAnalytics = () => {
     refetchInterval: 30000
   });
 
-  // Clean product performance using materialized view
+  // Clean product performance using materialized view with date filtering
   const { data: productPerformance } = useQuery({
-    queryKey: ['clean-product-performance'],
+    queryKey: ['clean-product-performance', dateRange],
     queryFn: async () => {
       const { data } = await supabase
         .from('clean_product_performance')
@@ -133,9 +139,9 @@ export const useEnhancedAnalytics = () => {
     refetchInterval: 30000
   });
 
-  // Overview stats (authentic data only)
+  // Overview stats (authentic data only) with date filtering
   const { data: overviewStats } = useQuery({
-    queryKey: ['enhanced-overview-stats'],
+    queryKey: ['enhanced-overview-stats', dateRange],
     queryFn: async () => {
       // Get authentic customers count
       const { count: totalCustomers } = await supabase

@@ -11,6 +11,7 @@ import { AnalyticsTestPanel } from "./AnalyticsTestPanel";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { useEnhancedAnalytics } from "@/hooks/useEnhancedAnalytics";
 import { useChartData } from "@/hooks/useChartData";
+import { useAnalyticsInsights } from "@/hooks/useAnalyticsInsights";
 import { useState } from "react";
 import { TrendingUp, Users, ShoppingCart, DollarSign, Sparkles } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -21,8 +22,9 @@ export const AdvancedAnalyticsDashboard = () => {
     to: new Date()
   });
 
-  const { realTimeMetrics, customerAnalytics, productPerformance, overviewStats, isConnected } = useEnhancedAnalytics();
-  const { data: chartData, isLoading: isChartLoading } = useChartData(7);
+  const { realTimeMetrics, customerAnalytics, productPerformance, overviewStats, isConnected } = useEnhancedAnalytics(dateRange);
+  const { data: chartData, isLoading: isChartLoading } = useChartData(dateRange);
+  const { data: insights } = useAnalyticsInsights(dateRange);
 
   const handleExport = async () => {
     try {
@@ -71,6 +73,7 @@ export const AdvancedAnalyticsDashboard = () => {
           <Button 
             variant="outline" 
             size="sm"
+            onClick={() => window.location.reload()}
             className="flex items-center gap-2"
           >
             <Filter className="h-4 w-4" />
@@ -125,18 +128,18 @@ export const AdvancedAnalyticsDashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-chart-1" />
-                  Revenue Insights
+                  Performance Insights
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-3 bg-chart-1/10 rounded-lg">
                     <span className="text-sm font-medium">Best Performing Day</span>
-                    <span className="text-lg font-bold text-chart-1">Monday</span>
+                    <span className="text-lg font-bold text-chart-1">{insights?.peakDay || 'Loading...'}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-chart-2/10 rounded-lg">
                     <span className="text-sm font-medium">Peak Hours</span>
-                    <span className="text-lg font-bold text-chart-2">2PM - 4PM</span>
+                    <span className="text-lg font-bold text-chart-2">{insights?.peakHour || 'Loading...'}</span>
                   </div>
                 </div>
               </CardContent>
@@ -152,12 +155,12 @@ export const AdvancedAnalyticsDashboard = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-3 bg-chart-3/10 rounded-lg">
-                    <span className="text-sm font-medium">Avg Session Duration</span>
-                    <span className="text-lg font-bold text-chart-3">8m 24s</span>
+                    <span className="text-sm font-medium">Total Sessions</span>
+                    <span className="text-lg font-bold text-chart-3">{insights?.totalSessions || 0}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-chart-4/10 rounded-lg">
                     <span className="text-sm font-medium">Conversion Rate</span>
-                    <span className="text-lg font-bold text-chart-4">2.4%</span>
+                    <span className="text-lg font-bold text-chart-4">{insights?.conversionRate || 0}%</span>
                   </div>
                 </div>
               </CardContent>

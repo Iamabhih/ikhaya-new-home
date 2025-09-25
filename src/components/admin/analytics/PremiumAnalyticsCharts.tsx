@@ -83,29 +83,15 @@ export const PremiumAnalyticsCharts = ({
   isLoading = false
 }: PremiumAnalyticsChartsProps) => {
   
-  // Enhanced default data with better formatting
-  const defaultSalesTrend = [
-    { date: 'Jan', sales: 4200, orders: 245, revenue: 42500 },
-    { date: 'Feb', sales: 3800, orders: 189, revenue: 38900 },
-    { date: 'Mar', sales: 5100, orders: 298, revenue: 51200 },
-    { date: 'Apr', sales: 4600, orders: 267, revenue: 46800 },
-    { date: 'May', sales: 5500, orders: 324, revenue: 55300 },
-    { date: 'Jun', sales: 4900, orders: 289, revenue: 49100 },
-  ];
-
-  const defaultCategoryPerformance = [
-    { name: 'Electronics', products: 45, totalValue: 125000, avgPrice: 2780, fill: CHART_COLORS[0] },
-    { name: 'Clothing', products: 89, totalValue: 89000, avgPrice: 1000, fill: CHART_COLORS[1] },
-    { name: 'Home & Garden', products: 34, totalValue: 67000, avgPrice: 1970, fill: CHART_COLORS[2] },
-    { name: 'Sports', products: 23, totalValue: 45000, avgPrice: 1956, fill: CHART_COLORS[3] },
-    { name: 'Books', products: 67, totalValue: 23000, avgPrice: 343, fill: CHART_COLORS[4] },
-  ];
-
-  const trendData = salesTrend.length > 0 ? salesTrend : defaultSalesTrend;
-  const categoryData = categoryPerformance.length > 0 ? categoryPerformance.map((item, index) => ({
+  // Use real data only - no fallback to demo data
+  const trendData = salesTrend;
+  const categoryData = categoryPerformance.map((item, index) => ({
     ...item,
     fill: item.fill || CHART_COLORS[index % CHART_COLORS.length]
-  })) : defaultCategoryPerformance;
+  }));
+
+  // Show empty state when no data
+  const hasData = trendData.length > 0 || categoryData.length > 0;
 
   // Loading state
   if (isLoading) {
@@ -115,6 +101,22 @@ export const PremiumAnalyticsCharts = ({
           <div key={i} className="bg-card rounded-lg border border-border/50 p-6 animate-pulse">
             <div className="h-6 bg-muted rounded mb-4"></div>
             <div className="h-[300px] bg-muted rounded"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Empty state when no data available
+  if (!hasData) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-card rounded-lg border border-border/50 p-6">
+            <div className="h-6 bg-muted rounded mb-4"></div>
+            <div className="h-[300px] bg-muted/30 rounded flex items-center justify-center">
+              <p className="text-muted-foreground text-sm">No data available for selected period</p>
+            </div>
           </div>
         ))}
       </div>

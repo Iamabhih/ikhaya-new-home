@@ -17,39 +17,25 @@ export interface ChartDataResponse {
   }>;
 }
 
-export const useChartData = (daysBack: number = 7) => {
+export const useChartData = (dateRange?: { from?: Date; to?: Date }) => {
   return useQuery({
-    queryKey: ['chart-data', daysBack],
+    queryKey: ['chart-data', dateRange],
     queryFn: async () => {
-      // Get sales trend from raw analytics events (last 7 days)
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - daysBack);
+      const startDate = dateRange?.from || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const endDate = dateRange?.to || new Date();
       
-      const { data: analyticsData } = await supabase
-        .from('analytics_events')
-        .select('*')
-        .gte('created_at', startDate.toISOString())
-        .order('created_at', { ascending: true });
-
-      // Group by day for sales trend
-      const salesByDay: Record<string, { sales: number; orders: number; revenue: number }> = {};
-      
-      (analyticsData || []).forEach(event => {
-        const day = new Date(event.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric' });
-        if (!salesByDay[day]) {
-          salesByDay[day] = { sales: 0, orders: 0, revenue: 0 };
-        }
-        
-        if (event.event_type === 'page_view') {
-          salesByDay[day].sales += 1;
-        }
+      // Get sales trend using new database function
+      const { data: salesTrendData } = await supabase.rpc('get_sales_trend_data', {
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString()
       });
 
-      const salesTrend = Object.entries(salesByDay).map(([date, data]) => ({
-        date,
-        sales: data.sales,
-        orders: data.orders,
-        revenue: data.revenue
+      // Format sales trend data from database function
+      const salesTrend = (salesTrendData || []).map((item: any) => ({
+        date: item.date,
+        sales: Number(item.sales) || 0,
+        orders: Number(item.orders) || 0,
+        revenue: Number(item.revenue) || 0
       }));
 
       // Get category performance from categories and products

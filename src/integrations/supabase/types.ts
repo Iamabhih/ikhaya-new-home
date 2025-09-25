@@ -3098,9 +3098,26 @@ export type Database = {
         Args: { base_name: string }
         Returns: string
       }
+      get_analytics_insights: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: Json
+      }
       get_realtime_metrics: {
         Args: { hours_back?: number }
         Returns: Json
+      }
+      get_realtime_metrics_with_date_range: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: Json
+      }
+      get_sales_trend_data: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: {
+          date: string
+          orders: number
+          revenue: number
+          sales: number
+        }[]
       }
       has_role: {
         Args: {
