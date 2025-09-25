@@ -1,13 +1,56 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
-import { renderAsync } from "npm:@react-email/components@0.0.22";
-import React from "npm:react@18.3.1";
-import { OrderConfirmationEmail } from "./_templates/order-confirmation.tsx";
-import { OrderStatusEmail } from "./_templates/order-status.tsx";
-import { WelcomeEmail } from "./_templates/welcome.tsx";
-import { AdminNotificationEmail } from "./_templates/admin-notification.tsx";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
+
+// Simple HTML email templates without React Email
+const generateOrderConfirmationHtml = (data: any) => `
+<!DOCTYPE html>
+<html>
+<head><title>Order Confirmation</title></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h1>Order Confirmation</h1>
+  <p>Dear ${data.customerName},</p>
+  <p>Your order #${data.orderNumber} has been confirmed.</p>
+  <p>Thank you for your purchase!</p>
+</body>
+</html>
+`;
+
+const generateWelcomeHtml = (data: any) => `
+<!DOCTYPE html>
+<html>
+<head><title>Welcome</title></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h1>Welcome!</h1>
+  <p>Hello ${data.firstName},</p>
+  <p>Welcome to our platform!</p>
+</body>
+</html>
+`;
+
+const generateOrderStatusHtml = (data: any) => `
+<!DOCTYPE html>
+<html>
+<head><title>Order Status Update</title></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h1>Order Status Update</h1>
+  <p>Dear ${data.customerName},</p>
+  <p>Your order #${data.orderNumber} status: ${data.status}</p>
+</body>
+</html>
+`;
+
+const generateAdminNotificationHtml = (data: any) => `
+<!DOCTYPE html>
+<html>
+<head><title>Admin Notification</title></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h1>Admin Notification</h1>
+  <p>${data.message}</p>
+</body>
+</html>
+`;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,19 +87,19 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate email content based on type
     switch (type) {
       case 'order-confirmation':
-        html = await renderAsync(React.createElement(OrderConfirmationEmail, data));
+        html = generateOrderConfirmationHtml(data);
         subject = `Order Confirmation #${data.orderNumber}`;
         break;
       case 'order-status':
-        html = await renderAsync(React.createElement(OrderStatusEmail, data));
+        html = generateOrderStatusHtml(data);
         subject = `Order Update #${data.orderNumber}`;
         break;
       case 'welcome':
-        html = await renderAsync(React.createElement(WelcomeEmail, data));
+        html = generateWelcomeHtml(data);
         subject = "Welcome to Our Store!";
         break;
       case 'admin-notification':
-        html = await renderAsync(React.createElement(AdminNotificationEmail, data));
+        html = generateAdminNotificationHtml(data);
         subject = data.subject || "Admin Notification";
         break;
       default:

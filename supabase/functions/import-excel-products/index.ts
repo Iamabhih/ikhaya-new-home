@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0'
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
 
 const corsHeaders = {
@@ -369,7 +369,7 @@ Deno.serve(async (req) => {
               totalFailed += batch.length;
               allErrors.push({ 
                 sheet: sheetData.sheetName, 
-                error: error.message || 'Batch timeout or processing error',
+                error: (error as Error).message || 'Batch timeout or processing error',
                 batch: batchNum
               });
             }
@@ -390,7 +390,7 @@ Deno.serve(async (req) => {
           totalFailed += sheetData.products.length;
           allErrors.push({ 
             sheet: sheetData.sheetName, 
-            error: error.message
+            error: (error as Error).message
           });
         }
         

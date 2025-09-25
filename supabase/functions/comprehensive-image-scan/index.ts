@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -348,7 +348,7 @@ Deno.serve(async (req) => {
 
       } catch (error) {
         console.error(`Error processing ${image.name}:`, error);
-        report.errors.push(`Error processing ${image.name}: ${error.message}`);
+        report.errors.push(`Error processing ${image.name}: ${(error as Error).message}`);
       }
     }
 
@@ -379,7 +379,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('❌ Scan failed:', error);
     report.status = 'error';
-    report.errors.push(`Fatal error: ${error.message}`);
+    report.errors.push(`Fatal error: ${(error as Error).message}`);
     report.summary.processingTime = Date.now() - startTime;
 
     return new Response(JSON.stringify(report), {
