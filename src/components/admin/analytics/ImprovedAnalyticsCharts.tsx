@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, ShoppingCart, DollarSign } from 'lucide-react';
+import type { DailyMetric } from "@/hooks/useDailyMetrics";
 
 interface ChartData {
   name: string;
@@ -12,7 +13,7 @@ interface ChartData {
 interface ImprovedAnalyticsChartsProps {
   customerSegments?: ChartData[];
   productPerformance?: ChartData[];
-  dailyMetrics?: ChartData[];
+  dailyMetrics?: DailyMetric[];
   isLoading?: boolean;
 }
 
@@ -58,15 +59,20 @@ export const ImprovedAnalyticsCharts = ({
     { name: 'Product E', value: 60, revenue: 400 },
   ];
 
-  const sampleDailyMetrics = dailyMetrics.length > 0 ? dailyMetrics : [
-    { name: 'Mon', value: 25, orders: 5 },
-    { name: 'Tue', value: 32, orders: 8 },
-    { name: 'Wed', value: 28, orders: 6 },
-    { name: 'Thu', value: 45, orders: 12 },
-    { name: 'Fri', value: 52, orders: 15 },
-    { name: 'Sat', value: 48, orders: 11 },
-    { name: 'Sun', value: 35, orders: 9 },
-  ];
+  // Transform daily metrics for charts
+  const trafficData = dailyMetrics?.length 
+    ? dailyMetrics.map(m => ({
+        name: new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        value: m.pageViews
+      }))
+    : [];
+
+  const ordersData = dailyMetrics?.length
+    ? dailyMetrics.map(m => ({
+        name: new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        orders: m.orders
+      }))
+    : [];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -142,21 +148,28 @@ export const ImprovedAnalyticsCharts = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={sampleDailyMetrics}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="hsl(var(--chart-3))" 
-                strokeWidth={2}
-                dot={{ fill: "hsl(var(--chart-3))" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          {trafficData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={trafficData}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="hsl(var(--chart-3))" 
+                  strokeWidth={2}
+                  dot={{ fill: "hsl(var(--chart-3))" }}
+                  name="Page Views"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+              No traffic data available
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -169,15 +182,21 @@ export const ImprovedAnalyticsCharts = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={sampleDailyMetrics}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="orders" fill="hsl(var(--chart-4))" />
-            </BarChart>
-          </ResponsiveContainer>
+          {ordersData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={ordersData}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="orders" fill="hsl(var(--chart-4))" name="Orders" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+              No orders data available
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

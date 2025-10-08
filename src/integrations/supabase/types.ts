@@ -2955,34 +2955,15 @@ export type Database = {
       }
       clean_product_performance: {
         Row: {
-          category_id: string | null
-          category_name: string | null
           conversion_rate: number | null
-          price: number | null
           product_id: string | null
           product_name: string | null
           sku: string | null
-          total_cart_adds: number | null
           total_revenue: number | null
           total_sold: number | null
           total_views: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "products_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "category_product_counts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       customer_analytics: {
         Row: {
@@ -3101,6 +3082,16 @@ export type Database = {
       get_analytics_insights: {
         Args: { end_date?: string; start_date?: string }
         Returns: Json
+      }
+      get_daily_metrics: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: {
+          cart_events: number
+          date: string
+          orders: number
+          page_views: number
+          revenue: number
+        }[]
       }
       get_realtime_metrics: {
         Args: { hours_back?: number }

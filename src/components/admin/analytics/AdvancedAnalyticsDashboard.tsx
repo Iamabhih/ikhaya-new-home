@@ -2,20 +2,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Filter } from "lucide-react";
-import { PremiumRealTimeMetrics } from "./PremiumRealTimeMetrics";
-import { PremiumAnalyticsCharts } from "./PremiumAnalyticsCharts";
 import { EnhancedCustomerInsights } from "./EnhancedCustomerInsights";
 import { ConversionFunnel } from "./ConversionFunnel";
 import { ActivityFeed } from "./ActivityFeed";
 import { AnalyticsTestPanel } from "./AnalyticsTestPanel";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { useImprovedAnalytics } from "@/hooks/useImprovedAnalytics";
-import { useChartData } from "@/hooks/useChartData";
+import { useDailyMetrics } from "@/hooks/useDailyMetrics";
 import { useAnalyticsInsights } from "@/hooks/useAnalyticsInsights";
 import { ImprovedAnalyticsCharts } from "./ImprovedAnalyticsCharts";
 import { ImprovedRealTimeMetrics } from "./ImprovedRealTimeMetrics";
 import { useState } from "react";
-import { TrendingUp, Users, ShoppingCart, DollarSign, Sparkles } from "lucide-react";
+import { TrendingUp, Users, ShoppingCart, DollarSign } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
 export const AdvancedAnalyticsDashboard = () => {
@@ -24,9 +22,27 @@ export const AdvancedAnalyticsDashboard = () => {
     to: new Date()
   });
 
-  const { overviewStats, customerAnalytics, productPerformance, isLoading: analyticsLoading } = useImprovedAnalytics(dateRange);
-  const { data: chartData, isLoading: isChartLoading } = useChartData(dateRange);
+  const { overviewStats, customerAnalytics, productPerformance, isLoading: analyticsLoading } = useImprovedAnalytics();
+  const { data: dailyMetrics, isLoading: metricsLoading } = useDailyMetrics(dateRange);
   const { data: insights } = useAnalyticsInsights(dateRange);
+
+  // Transform customer analytics into chart segments
+  const customerSegments = customerAnalytics?.reduce((acc, customer) => {
+    const segment = acc.find(s => s.name === customer.customer_segment);
+    if (segment) {
+      segment.value++;
+    } else {
+      acc.push({ name: customer.customer_segment, value: 1 });
+    }
+    return acc;
+  }, [] as Array<{ name: string; value: number }>);
+
+  // Transform product performance into chart data
+  const productChartData = productPerformance?.slice(0, 10).map(p => ({
+    name: p.product_name.substring(0, 20),
+    value: p.total_revenue,
+    revenue: p.total_revenue
+  }));
 
   const handleExport = async () => {
     try {
@@ -34,7 +50,7 @@ export const AdvancedAnalyticsDashboard = () => {
         overviewStats, 
         customerAnalytics,
         productPerformance, 
-        chartData,
+        dailyMetrics,
         timestamp: new Date() 
       };
       const jsonContent = JSON.stringify(data, null, 2);
@@ -156,25 +172,10 @@ export const AdvancedAnalyticsDashboard = () => {
           )}
 
           <ImprovedAnalyticsCharts 
-            customerSegments={customerAnalytics ? [{
-              name: 'VIP',
-              value: customerAnalytics.filter(c => c.customer_segment === 'VIP').length
-            }, {
-              name: 'Loyal', 
-              value: customerAnalytics.filter(c => c.customer_segment === 'Loyal').length
-            }, {
-              name: 'Regular',
-              value: customerAnalytics.filter(c => c.customer_segment === 'Regular').length  
-            }, {
-              name: 'New',
-              value: customerAnalytics.filter(c => c.customer_segment === 'New').length
-            }] : []}
-            productPerformance={productPerformance?.slice(0, 5).map(p => ({
-              name: p.product_name,
-              value: p.total_sold,
-              revenue: p.total_revenue
-            })) || []}
-            isLoading={analyticsLoading}
+            customerSegments={customerSegments}
+            productPerformance={productChartData}
+            dailyMetrics={dailyMetrics}
+            isLoading={metricsLoading}
           />
         </TabsContent>
 
