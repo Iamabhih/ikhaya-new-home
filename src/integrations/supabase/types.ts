@@ -2980,6 +2980,15 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_metrics_cache: {
+        Row: {
+          cart_events: number | null
+          metric_date: string | null
+          page_views: number | null
+          unique_sessions: number | null
+        }
+        Relationships: []
+      }
       product_performance: {
         Row: {
           avg_rating: number | null
