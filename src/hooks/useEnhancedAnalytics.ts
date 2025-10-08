@@ -162,14 +162,21 @@ export const useEnhancedAnalytics = (dateRange?: { from?: Date; to?: Date }) => 
     refetchInterval: 60000
   });
 
-  // WebSocket connection for real-time updates (enabled in development)
+  // WebSocket connection for real-time updates with improved stability
   useEffect(() => {
+    let reconnectTimeout: number;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const baseDelay = 1000;
+    
     const connectWebSocket = () => {
       try {
         wsRef.current = new WebSocket(`wss://kauostzhxqoxggwqgtym.functions.supabase.co/analytics-stream`);
         
         wsRef.current.onopen = () => {
           console.log('Analytics WebSocket connected');
+          reconnectAttempts = 0; // Reset on successful connection
+          
           // Subscribe to metrics updates
           wsRef.current?.send(JSON.stringify({
             type: 'subscribe_metrics',
@@ -182,6 +189,14 @@ export const useEnhancedAnalytics = (dateRange?: { from?: Date; to?: Date }) => 
             const data = JSON.parse(event.data);
             console.log('WebSocket message received:', data.type);
             
+            // Handle ping/pong for keep-alive
+            if (data.type === 'ping') {
+              wsRef.current?.send(JSON.stringify({
+                type: 'pong',
+                timestamp: new Date().toISOString()
+              }));
+            }
+            
             // Handle real-time analytics updates
             if (data.type === 'metrics_update' || data.type === 'periodic_metrics') {
               refetchMetrics();
@@ -191,18 +206,32 @@ export const useEnhancedAnalytics = (dateRange?: { from?: Date; to?: Date }) => 
           }
         };
 
-        wsRef.current.onclose = () => {
-          console.log('Analytics WebSocket disconnected, attempting reconnect...');
-          setTimeout(connectWebSocket, 5000);
+        wsRef.current.onclose = (event) => {
+          console.log('Analytics WebSocket disconnected:', event.code, event.reason);
+          
+          // Implement exponential backoff for reconnection
+          if (reconnectAttempts < maxReconnectAttempts) {
+            const delay = Math.min(baseDelay * Math.pow(2, reconnectAttempts), 30000);
+            console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+            reconnectAttempts++;
+            reconnectTimeout = setTimeout(connectWebSocket, delay) as unknown as number;
+          } else {
+            console.error('Max reconnection attempts reached. Switching to polling mode.');
+          }
         };
 
         wsRef.current.onerror = (error) => {
           console.error('Analytics WebSocket error:', error);
+          wsRef.current?.close();
         };
       } catch (error) {
         console.error('Failed to connect WebSocket:', error);
-        // Fallback to polling more frequently
-        setTimeout(connectWebSocket, 10000);
+        // Retry with exponential backoff
+        if (reconnectAttempts < maxReconnectAttempts) {
+          const delay = Math.min(baseDelay * Math.pow(2, reconnectAttempts), 30000);
+          reconnectAttempts++;
+          reconnectTimeout = setTimeout(connectWebSocket, delay) as unknown as number;
+        }
       }
     };
 
@@ -210,8 +239,12 @@ export const useEnhancedAnalytics = (dateRange?: { from?: Date; to?: Date }) => 
     connectWebSocket();
 
     return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
     };
   }, [refetchMetrics]);

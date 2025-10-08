@@ -6,22 +6,23 @@ import {
   Users, Star, ShoppingBag, Calendar, TrendingUp, UserCheck,
   Download, Filter, BarChart3
 } from "lucide-react";
-import { useEnhancedAnalytics } from "@/hooks/useEnhancedAnalytics";
+import { useImprovedAnalytics } from "@/hooks/useImprovedAnalytics";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const EnhancedCustomerInsights = () => {
-  const { customerAnalytics, overviewStats } = useEnhancedAnalytics();
+  const { customerAnalytics, overviewStats } = useImprovedAnalytics();
 
-  if (!customerAnalytics) {
+  if (!customerAnalytics || !overviewStats) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i}>
               <CardHeader className="pb-2">
-                <div className="h-4 bg-muted rounded w-24"></div>
+                <Skeleton className="h-4 w-24" />
               </CardHeader>
               <CardContent>
-                <div className="h-8 bg-muted rounded w-16"></div>
+                <Skeleton className="h-8 w-16" />
               </CardContent>
             </Card>
           ))}
@@ -30,25 +31,40 @@ export const EnhancedCustomerInsights = () => {
     );
   }
 
-  const exportCustomerData = async () => {
-    const csvContent = [
-      ['Name', 'Email', 'Total Spent', 'Orders', 'Registration Date'].join(','),
-      ...customerAnalytics.topCustomers.map(customer => [
-        `"${customer.display_name || customer.email}"`,
-        customer.email,
-        customer.total_spent,
-        customer.total_orders,
-        new Date(customer.registration_date).toLocaleDateString()
-      ].join(','))
-    ].join('\n');
+  // Transform data for display
+  const topCustomers = customerAnalytics.slice(0, 8);
+  const totalCustomers = overviewStats.totalCustomers;
+  const newThisMonth = customerAnalytics.filter(c => {
+    const thisMonth = new Date();
+    thisMonth.setDate(1);
+    return new Date(c.registration_date) >= thisMonth;
+  }).length;
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `customer-insights-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const exportCustomerData = async () => {
+    try {
+      const csvContent = [
+        ['Name', 'Email', 'Total Spent', 'Orders', 'Segment', 'Registered'],
+        ...topCustomers.map(customer => [
+          customer.display_name || 'N/A',
+          customer.email || 'N/A',
+          `R${customer.total_spent.toFixed(2)}`,
+          customer.total_orders.toString(),
+          customer.customer_segment || 'N/A',
+          new Date(customer.registration_date).toLocaleDateString()
+        ])
+      ]
+        .map(row => row.join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `customer-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    } catch (error) {
+      console.error('Error exporting customer data:', error);
+    }
   };
 
   return (
@@ -89,7 +105,7 @@ export const EnhancedCustomerInsights = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-900">{customerAnalytics.totalCustomers}</p>
+            <p className="text-2xl font-bold text-blue-900">{totalCustomers.toLocaleString()}</p>
             <p className="text-xs text-blue-700">Verified accounts only</p>
           </CardContent>
         </Card>
@@ -102,10 +118,10 @@ export const EnhancedCustomerInsights = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-900">{customerAnalytics.newCustomersThisMonth}</p>
+            <p className="text-2xl font-bold text-green-900">{newThisMonth.toLocaleString()}</p>
             <p className="text-xs text-green-700">
-              {customerAnalytics.totalCustomers > 0 
-                ? `${Math.round((customerAnalytics.newCustomersThisMonth / customerAnalytics.totalCustomers) * 100)}% growth`
+              {totalCustomers > 0 
+                ? `${Math.round((newThisMonth / totalCustomers) * 100)}% growth`
                 : 'No data'
               }
             </p>
@@ -121,12 +137,9 @@ export const EnhancedCustomerInsights = () => {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-purple-900">
-              R{customerAnalytics.topCustomers.length > 0 
-                ? Math.round(customerAnalytics.topCustomers.reduce((sum, c) => sum + (c.avg_order_value || 0), 0) / customerAnalytics.topCustomers.length)
-                : 0
-              }
+              R{((overviewStats.totalRevenue || 0) / Math.max(overviewStats.totalOrders || 1, 1)).toFixed(2)}
             </p>
-            <p className="text-xs text-purple-700">Across all customers</p>
+            <p className="text-xs text-purple-700">Per transaction</p>
           </CardContent>
         </Card>
 
@@ -158,41 +171,36 @@ export const EnhancedCustomerInsights = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {customerAnalytics.segments.map((segment, index) => (
-              <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
-                <div className="flex items-center gap-3 flex-1">
-                  <Badge className={segment.color}>
-                    {segment.segment}
-                  </Badge>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">
-                      {segment.count} customers
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {segment.count > 0 
-                        ? `Avg: R${Math.round(customerAnalytics.topCustomers
-                            .filter(c => {
-                              if (segment.segment === "VIP Customers") return c.total_spent > 5000;
-                              if (segment.segment === "Loyal Customers") return c.total_orders >= 5 && c.total_spent <= 5000;
-                              if (segment.segment === "Regular Customers") return c.total_orders >= 2 && c.total_orders < 5;
-                              return c.total_orders === 1;
-                            })
-                            .reduce((sum, c) => sum + (c.avg_order_value || 0), 0) / segment.count || 0
-                          )} per order`
-                        : 'No orders'
-                      }
+          <div className="space-y-6">
+            {[
+              { segment: 'VIP', count: customerAnalytics.filter(c => c.customer_segment === 'VIP').length, color: 'bg-purple-100 text-purple-800' },
+              { segment: 'Loyal', count: customerAnalytics.filter(c => c.customer_segment === 'Loyal').length, color: 'bg-blue-100 text-blue-800' },
+              { segment: 'Regular', count: customerAnalytics.filter(c => c.customer_segment === 'Regular').length, color: 'bg-green-100 text-green-800' },
+              { segment: 'New', count: customerAnalytics.filter(c => c.customer_segment === 'New').length, color: 'bg-yellow-100 text-yellow-800' },
+            ].map((segment, index) => {
+              const percentage = totalCustomers > 0 ? Math.round((segment.count / totalCustomers) * 100) : 0;
+              const avgOrderValue = customerAnalytics
+                .filter(c => c.customer_segment === segment.segment)
+                .reduce((sum, c) => sum + c.avg_order_value, 0) / Math.max(segment.count, 1);
+              
+              return (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={segment.color}>
+                        {segment.segment}
+                      </Badge>
+                      <span className="text-sm font-medium">{segment.count} customers</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      Avg: R{avgOrderValue.toFixed(2)}
                     </span>
                   </div>
+                  <Progress value={percentage} className="h-2" />
+                  <p className="text-xs text-muted-foreground">{percentage}% of total</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Progress value={segment.percentage} className="w-24" />
-                  <span className="text-sm font-medium w-12 text-right">
-                    {segment.percentage}%
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -210,7 +218,7 @@ export const EnhancedCustomerInsights = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {customerAnalytics.topCustomers.slice(0, 8).map((customer, index) => (
+            {topCustomers.map((customer, index) => (
               <div key={customer.id} className="flex items-center justify-between p-4 rounded-lg border hover:shadow-md transition-all">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
@@ -223,9 +231,7 @@ export const EnhancedCustomerInsights = () => {
                     <p className="text-sm text-muted-foreground">{customer.email}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="secondary" className="text-xs">
-                        {customer.total_spent > 5000 ? 'VIP' : 
-                         customer.total_orders >= 5 ? 'Loyal' : 
-                         customer.total_orders >= 2 ? 'Regular' : 'New'}
+                        {customer.customer_segment}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         Member since {new Date(customer.registration_date).toLocaleDateString()}

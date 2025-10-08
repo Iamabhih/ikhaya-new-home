@@ -18,6 +18,7 @@ export interface CustomerAnalytic {
   avg_order_value: number;
   last_order_date: string | null;
   customer_segment: string;
+  registration_date: string;
 }
 
 export interface ProductPerformance {
@@ -29,15 +30,18 @@ export interface ProductPerformance {
   conversion_rate: number;
 }
 
-export const useImprovedAnalytics = () => {
+export const useImprovedAnalytics = (dateRange?: { from?: Date; to?: Date }) => {
   // Overview Stats using RPC function (no N+1 queries!)
   const { data: overviewStats, isLoading: overviewLoading, error: overviewError } = useQuery({
-    queryKey: ['improved-analytics-overview'],
+    queryKey: ['improved-analytics-overview', dateRange],
     queryFn: async (): Promise<AnalyticsOverview> => {
+      const startDate = dateRange?.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = dateRange?.to || new Date();
       try {
-        // Use RPC function for real-time metrics
-        const { data: metrics } = await supabase.rpc('get_realtime_metrics', { 
-          hours_back: 24 * 30 // Last 30 days
+        // Use RPC function for real-time metrics with date range
+        const { data: metrics } = await supabase.rpc('get_realtime_metrics_with_date_range', { 
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString()
         });
 
         const metricsData = metrics as any;
@@ -71,7 +75,7 @@ export const useImprovedAnalytics = () => {
 
   // Customer Analytics from materialized view (no N+1 queries!)
   const { data: customerAnalytics, isLoading: customersLoading } = useQuery({
-    queryKey: ['improved-customer-analytics'],
+    queryKey: ['improved-customer-analytics', dateRange],
     queryFn: async (): Promise<CustomerAnalytic[]> => {
       try {
         const { data } = await supabase
@@ -93,7 +97,7 @@ export const useImprovedAnalytics = () => {
 
   // Product Performance from materialized view (includes products without orders!)
   const { data: productPerformance, isLoading: productsLoading } = useQuery({
-    queryKey: ['improved-product-performance'],
+    queryKey: ['improved-product-performance', dateRange],
     queryFn: async (): Promise<ProductPerformance[]> => {
       try {
         const { data } = await supabase
