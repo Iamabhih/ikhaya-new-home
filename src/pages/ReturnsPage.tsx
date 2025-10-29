@@ -124,14 +124,8 @@ const ReturnsPage = () => {
 
           {/* Return Requests */}
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="mb-6">
               <h2 className="text-2xl font-semibold">Your Return Requests</h2>
-              <Link to="/orders">
-                <Button variant="outline">
-                  <Package className="h-4 w-4 mr-2" />
-                  View Orders
-                </Button>
-              </Link>
             </div>
 
             {isLoading ? (
@@ -145,12 +139,9 @@ const ReturnsPage = () => {
                 <CardContent className="text-center py-12">
                   <RotateCcw className="mx-auto h-24 w-24 text-muted-foreground mb-4" />
                   <h2 className="text-xl font-semibold mb-2">No Return Requests</h2>
-                  <p className="text-muted-foreground mb-4">
-                    You haven't submitted any return requests yet.
+                  <p className="text-muted-foreground">
+                    You haven't submitted any return requests yet. Return requests can be initiated from your order history.
                   </p>
-                  <Link to="/orders">
-                    <Button>View Your Orders</Button>
-                  </Link>
                 </CardContent>
               </Card>
             ) : (
