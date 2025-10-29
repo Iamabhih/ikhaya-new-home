@@ -15,15 +15,15 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 9% 12%;
 
-    /* Premium Brand Colors */
-    --primary: 82 59% 25%;          /* #4c7110 - Forest Green */
-    --primary-foreground: 0 0% 98%;
-    --primary-glow: 82 59% 35%;     /* Lighter green for effects */
+    /* Premium Brand Colors - OZZ Logo */
+    --primary: 274 80% 55%;          /* Vibrant Purple/Magenta */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 274 80% 65%;     /* Lighter purple for effects */
 
-    /* Secondary colors - warm orange accent */
-    --secondary: 27 100% 42%;       /* #d76e00 - Warm Orange */
-    --secondary-foreground: 0 0% 98%;
-    --secondary-glow: 27 100% 52%;  /* Lighter orange for effects */
+    /* Secondary colors - Lime Green */
+    --secondary: 82 88% 68%;         /* Lime Green */
+    --secondary-foreground: 274 80% 20%;
+    --secondary-glow: 82 88% 78%;    /* Lighter lime for effects */
 
     /* Muted colors - subtle greys for contrast */
     --muted: 220 6% 96%;
@@ -42,43 +42,43 @@
     /* Borders and inputs - modern subtle greys */
     --border: 220 8% 90%;
     --input: 220 8% 90%;
-    --ring: 82 59% 25%;             /* Primary for focus rings */
+    --ring: 274 80% 55%;             /* Primary purple for focus rings */
 
     --radius: 0.5rem;
 
     /* Sidebar - modern sleek styling */
     --sidebar-background: 220 6% 98%;
     --sidebar-foreground: 220 12% 25%;
-    --sidebar-primary: 82 59% 25%;
-    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary: 274 80% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 8% 94%;
-    --sidebar-accent-foreground: 82 59% 25%;
+    --sidebar-accent-foreground: 274 80% 55%;
     --sidebar-border: 220 8% 88%;
-    --sidebar-ring: 82 59% 25%;
+    --sidebar-ring: 274 80% 55%;
 
-    /* Chart colors - premium brand palette */
-    --chart-1: 82 59% 25%;          /* Primary green */
-    --chart-2: 27 100% 42%;         /* Secondary orange */
-    --chart-3: 220 12% 65%;         /* Neutral grey */
-    --chart-4: 82 59% 35%;          /* Primary glow */
-    --chart-5: 27 100% 52%;         /* Secondary glow */
+    /* Chart colors - OZZ brand palette */
+    --chart-1: 274 80% 55%;          /* Primary purple */
+    --chart-2: 82 88% 68%;           /* Lime green */
+    --chart-3: 328 98% 47%;          /* Hot pink */
+    --chart-4: 187 95% 43%;          /* Cyan */
+    --chart-5: 0 84% 60%;            /* Red */
 
-    /* Premium brand gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(82 59% 25%), hsl(82 59% 35%));
-    --gradient-secondary: linear-gradient(135deg, hsl(27 100% 42%), hsl(27 100% 52%));
-    --gradient-hero: linear-gradient(135deg, hsl(82 59% 25%) 0%, hsl(27 100% 42%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(220 6% 96%) 100%);
-    --brand-gradient: linear-gradient(135deg, hsl(82 59% 25%) 0%, hsl(27 100% 42%) 100%);
-    --glass-gradient: linear-gradient(145deg, hsl(0 0% 100% / 0.8) 0%, hsl(220 6% 96% / 0.4) 100%);
+    /* Premium brand gradients - OZZ */
+    --gradient-primary: linear-gradient(135deg, hsl(274 80% 55%), hsl(274 80% 65%));
+    --gradient-secondary: linear-gradient(135deg, hsl(82 88% 68%), hsl(82 88% 78%));
+    --gradient-hero: linear-gradient(135deg, hsl(274 80% 55%) 0%, hsl(328 98% 47%) 50%, hsl(82 88% 68%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(274 80% 98%) 100%);
+    --brand-gradient: linear-gradient(135deg, hsl(274 80% 55%) 0%, hsl(82 88% 68%) 100%);
+    --glass-gradient: linear-gradient(145deg, hsl(274 80% 98% / 0.8) 0%, hsl(220 6% 96% / 0.4) 100%);
 
-    /* Premium shadows with brand colors */
-    --shadow-sm: 0 1px 2px 0 hsl(82 59% 25% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(82 59% 25% / 0.1), 0 2px 4px -1px hsl(82 59% 25% / 0.06);
-    --shadow-lg: 0 10px 15px -3px hsl(82 59% 25% / 0.1), 0 4px 6px -2px hsl(82 59% 25% / 0.05);
-    --shadow-xl: 0 20px 25px -5px hsl(82 59% 25% / 0.1), 0 10px 10px -5px hsl(82 59% 25% / 0.04);
-    --shadow-glow: 0 0 20px hsl(82 59% 25% / 0.15);
-    --shadow-glow-secondary: 0 0 20px hsl(27 100% 42% / 0.15);
-    --shadow-premium: 0 10px 30px -10px hsl(82 59% 25% / 0.2), 0 0 40px -10px hsl(82 59% 25% / 0.1);
+    /* Premium shadows with OZZ brand colors */
+    --shadow-sm: 0 1px 2px 0 hsl(274 80% 55% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(274 80% 55% / 0.1), 0 2px 4px -1px hsl(274 80% 55% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(274 80% 55% / 0.1), 0 4px 6px -2px hsl(274 80% 55% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(274 80% 55% / 0.1), 0 10px 10px -5px hsl(274 80% 55% / 0.04);
+    --shadow-glow: 0 0 20px hsl(274 80% 55% / 0.15);
+    --shadow-glow-secondary: 0 0 20px hsl(82 88% 68% / 0.15);
+    --shadow-premium: 0 10px 30px -10px hsl(274 80% 55% / 0.2), 0 0 40px -10px hsl(274 80% 55% / 0.1);
     
     /* Glass morphism effects */
     --glass-bg: hsl(0 0% 100% / 0.8);
@@ -104,13 +104,13 @@
     --popover: 220 20% 10%;
     --popover-foreground: 220 8% 94%;
 
-    --primary: 82 59% 35%;          /* Lighter green for dark mode */
+    --primary: 274 80% 65%;          /* Lighter purple for dark mode */
     --primary-foreground: 220 25% 8%;
-    --primary-glow: 82 59% 45%;
+    --primary-glow: 274 80% 75%;
 
-    --secondary: 27 100% 52%;       /* Lighter orange for dark mode */
+    --secondary: 82 88% 75%;         /* Lighter lime for dark mode */
     --secondary-foreground: 220 25% 8%;
-    --secondary-glow: 27 100% 62%;
+    --secondary-glow: 82 88% 85%;
 
     --muted: 220 15% 15%;
     --muted-foreground: 220 8% 60%;
@@ -126,29 +126,29 @@
 
     --border: 220 15% 18%;
     --input: 220 15% 18%;
-    --ring: 82 59% 35%;
+    --ring: 274 80% 65%;
     
     --sidebar-background: 220 25% 6%;
     --sidebar-foreground: 220 8% 88%;
-    --sidebar-primary: 82 59% 35%;
+    --sidebar-primary: 274 80% 65%;
     --sidebar-primary-foreground: 220 25% 8%;
     --sidebar-accent: 220 15% 12%;
-    --sidebar-accent-foreground: 82 59% 35%;
+    --sidebar-accent-foreground: 274 80% 65%;
     --sidebar-border: 220 15% 15%;
-    --sidebar-ring: 82 59% 35%;
+    --sidebar-ring: 274 80% 65%;
 
-    /* Chart colors for dark mode */
-    --chart-1: 82 59% 35%;
-    --chart-2: 27 100% 52%;
-    --chart-3: 220 15% 50%;
-    --chart-4: 82 59% 45%;
-    --chart-5: 27 100% 62%;
+    /* Chart colors for dark mode - OZZ palette */
+    --chart-1: 274 80% 65%;
+    --chart-2: 82 88% 75%;
+    --chart-3: 328 98% 57%;
+    --chart-4: 187 95% 53%;
+    --chart-5: 0 84% 70%;
 
-    /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(82 59% 35%), hsl(82 59% 45%));
-    --gradient-secondary: linear-gradient(135deg, hsl(27 100% 52%), hsl(27 100% 62%));
-    --gradient-hero: linear-gradient(135deg, hsl(82 59% 35%) 0%, hsl(27 100% 52%) 100%);
-    --brand-gradient: linear-gradient(135deg, hsl(82 59% 35%) 0%, hsl(27 100% 52%) 100%);
+    /* Dark mode gradients - OZZ */
+    --gradient-primary: linear-gradient(135deg, hsl(274 80% 65%), hsl(274 80% 75%));
+    --gradient-secondary: linear-gradient(135deg, hsl(82 88% 75%), hsl(82 88% 85%));
+    --gradient-hero: linear-gradient(135deg, hsl(274 80% 65%) 0%, hsl(328 98% 57%) 50%, hsl(82 88% 75%) 100%);
+    --brand-gradient: linear-gradient(135deg, hsl(274 80% 65%) 0%, hsl(82 88% 75%) 100%);
     --glass-gradient: linear-gradient(145deg, hsl(220 25% 8% / 0.8) 0%, hsl(220 20% 10% / 0.4) 100%);
 
     /* Dark shadows */
@@ -156,9 +156,9 @@
     --shadow-md: 0 4px 6px -1px hsl(220 25% 0% / 0.4), 0 2px 4px -1px hsl(220 25% 0% / 0.2);
     --shadow-lg: 0 10px 15px -3px hsl(220 25% 0% / 0.4), 0 4px 6px -2px hsl(220 25% 0% / 0.2);
     --shadow-xl: 0 20px 25px -5px hsl(220 25% 0% / 0.4), 0 10px 10px -5px hsl(220 25% 0% / 0.15);
-    --shadow-glow: 0 0 20px hsl(82 59% 35% / 0.25);
-    --shadow-glow-secondary: 0 0 20px hsl(27 100% 52% / 0.25);
-    --shadow-premium: 0 10px 30px -10px hsl(82 59% 35% / 0.3), 0 0 40px -10px hsl(82 59% 35% / 0.15);
+    --shadow-glow: 0 0 20px hsl(274 80% 65% / 0.25);
+    --shadow-glow-secondary: 0 0 20px hsl(82 88% 75% / 0.25);
+    --shadow-premium: 0 10px 30px -10px hsl(274 80% 65% / 0.3), 0 0 40px -10px hsl(274 80% 65% / 0.15);
     
     /* Glass morphism effects for dark mode */
     --glass-bg: hsl(220 25% 8% / 0.8);
