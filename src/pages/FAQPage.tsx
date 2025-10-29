@@ -104,7 +104,7 @@ const FAQPage = () => {
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Frequently Asked Questions</h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Find answers to common questions about shopping with Ikhaya Homeware. 
+              Find answers to common questions about shopping with OZZ Cash & Carry. 
               Can't find what you're looking for? Contact our customer service team.
             </p>
           </div>
@@ -142,7 +142,7 @@ const FAQPage = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <div className="text-center">
                   <p className="font-medium">Email Support</p>
-                  <p className="text-muted-foreground">hello@ikhayahomeware.co.za</p>
+                  <p className="text-muted-foreground">support@ozzgroup.co.za</p>
                   <p className="text-sm text-muted-foreground">Response within 24 hours</p>
                 </div>
                 <div className="text-center">

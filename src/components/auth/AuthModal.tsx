@@ -124,7 +124,7 @@ export const AuthModal = ({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Welcome to Ikhaya Homeware</DialogTitle>
+          <DialogTitle>Welcome to OZZ Cash & Carry</DialogTitle>
           <DialogDescription>Sign in to your account or create a new one to start shopping</DialogDescription>
         </DialogHeader>
         

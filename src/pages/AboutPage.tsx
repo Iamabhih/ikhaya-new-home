@@ -17,17 +17,17 @@ const AboutPage = () => {
         </Breadcrumb>
 
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8">About Ikhaya Homeware</h1>
+          <h1 className="text-4xl font-bold mb-8">About OZZ Cash & Carry</h1>
           
           <div className="prose max-w-none">
             <p className="text-lg mb-6">
-              Welcome to Ikhaya Homeware, where we believe that every house should feel like home. 
-              "Ikhaya" means "home" in isiZulu, reflecting our commitment to bringing warmth, 
-              comfort, and style to South African homes.
+              Welcome to OZZ Cash & Carry, your trusted manufacturer, importer, and distributor 
+              of quality homeware products in South Africa. For decades, we've been bringing 
+              warmth, comfort, and style to South African homes.
             </p>
             
             <h2 className="text-2xl font-semibold mb-4">Our Story</h2>
-            <p className="mb-6">Founded with a passion for beautiful living spaces, Ikhaya Homeware curates a carefully selected collection of home essentials that blend functionality with aesthetic appeal. From kitchen essentials to bedroom comfort, we offer everything you need to create spaces that truly feel like home. Proudly by OZZ Cash and Carry</p>
+            <p className="mb-6">Founded with a passion for beautiful living spaces, OZZ Cash & Carry curates a carefully selected collection of home essentials that blend functionality with aesthetic appeal. From kitchen essentials to bedroom comfort, we offer everything you need to create spaces that truly feel like home.</p>
             
             <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
             <p className="mb-6">
@@ -50,7 +50,7 @@ const AboutPage = () => {
             <h2 className="text-2xl font-semibold mb-4">Quality Promise</h2>
             <p className="mb-6">
               Every product in our collection is chosen for its quality, durability, and design. 
-              We work with trusted suppliers to ensure that when you shop with Ikhaya Homeware, 
+              We work with trusted suppliers to ensure that when you shop with OZZ Cash & Carry, 
               you're investing in items that will serve your home for years to come.
             </p>
           </div>

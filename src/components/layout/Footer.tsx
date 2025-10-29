@@ -15,10 +15,13 @@ export const Footer = () => {
             <div className="flex items-center">
               <img src="/lovable-uploads/goc-ozz-group.png" alt="OZZ Group of Companies" className="h-64 w-auto" />
             </div>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Your home is your sanctuary. We provide quality homeware to make it beautiful, functional, and uniquely
-              yours.
-            </p>
+            <div className="space-y-2">
+              <p className="text-primary font-bold text-sm tracking-wide">YOUR TRUSTED</p>
+              <p className="text-foreground font-semibold text-sm">Manufacturer - Importer - Distributor</p>
+              <p className="text-muted-foreground text-xs leading-relaxed uppercase">
+                Glassware • Aluminiumware • Enamelware • Stainless Steelware • Cutlery • Plasticware • Carpets • Artificial Flowers • Homedecor • General Homeware • Hardware
+              </p>
+            </div>
 
             {/* Social Links */}
             <div className="flex space-x-4">
@@ -135,12 +138,12 @@ export const Footer = () => {
               </div>
             </div>
 
-            {/* IKHAYA Homestore */}
+            {/* OZZ Homestore */}
             <div className="space-y-2">
               <div className="flex items-start space-x-2">
                 <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
                 <div>
-                  <p className="font-medium text-foreground text-sm">IKHAYA HOMESTORE</p>
+                  <p className="font-medium text-foreground text-sm">OZZ HOMESTORE</p>
                   <p className="text-muted-foreground text-sm leading-relaxed">
                     Block D, Shop 88 China City
                     <br />
@@ -162,11 +165,11 @@ export const Footer = () => {
                 <span>+27 31 332 7192</span>
               </a>
               <a
-                href="mailto:info@ikhaya.shop"
+                href="mailto:info@ozzgroup.co.za"
                 className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Mail className="h-4 w-4" />
-                <span>info@ikhayahomeware.online</span>
+                <span>info@ozzgroup.co.za</span>
               </a>
             </div>
           </div>
@@ -175,7 +178,7 @@ export const Footer = () => {
         {/* Bottom Section */}
         <div className="border-t border-border/40 mt-12 pt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            © 2025 IKHAYA Homeware by Ozz Cash & Carry. All rights reserved.
+            © 2025 OZZ Cash & Carry. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground mt-2">
             Designed and managed by Black Orchid Consulting{" "}

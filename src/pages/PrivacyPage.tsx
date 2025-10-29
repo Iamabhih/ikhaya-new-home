@@ -43,7 +43,7 @@ const PrivacyPage = () => {
             </CardHeader>
             <CardContent className="prose prose-sm max-w-none">
               <p>
-                Ikhaya Homeware ("we," "our," or "us") is committed to protecting your privacy. 
+                OZZ Cash & Carry ("we," "our," or "us") is committed to protecting your privacy. 
                 This Privacy Policy explains how we collect, use, disclose, and safeguard your 
                 information when you visit our website or make a purchase from us.
               </p>
@@ -208,7 +208,7 @@ const PrivacyPage = () => {
                 please contact us:
               </p>
               <div className="space-y-2 text-sm">
-                <p><strong>Email:</strong> privacy@ikhaya.shop</p>
+                <p><strong>Email:</strong> info@ozzgroup.co.za</p>
                 <p><strong>Phone:</strong> +27 31 332 7192</p>
                 <p><strong>Address:</strong> 40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa</p>
               </div>

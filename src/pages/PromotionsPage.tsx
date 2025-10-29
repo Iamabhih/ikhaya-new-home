@@ -102,10 +102,10 @@ const PromotionsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* SEO Meta Tags */}
-      <title>{pageTitle} - IKHAYA Homeware</title>
+      <title>{pageTitle} - OZZ Cash & Carry</title>
       <meta name="description" content={pageDescription} />
-      <meta name="keywords" content="promotions, weekly specials, discounts, homeware offers, IKHAYA" />
-      <meta property="og:title" content={`${pageTitle} - IKHAYA Homeware`} />
+      <meta name="keywords" content="promotions, weekly specials, discounts, homeware offers, OZZ" />
+      <meta property="og:title" content={`${pageTitle} - OZZ Cash & Carry`} />
       <meta property="og:description" content={pageDescription} />
       
       <Header />

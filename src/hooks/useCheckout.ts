@@ -87,7 +87,7 @@ export function useCheckout() {
                     cancel_url: returnUrls.cancel_url,
                     notify_url: returnUrls.notify_url,
                     amount: totalAmount.toFixed(2),
-                    item_name: `Ikhaya Order ${tempOrderId}`,
+                    item_name: `OZZ Order ${tempOrderId}`,
                     item_description: cartSummary.substring(0, 100),
                     m_payment_id: tempOrderId,
                     name_first: formData.firstName || '',

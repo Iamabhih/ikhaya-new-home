@@ -43,7 +43,7 @@ const TermsPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                By accessing and using Ikhaya Homeware's website and services, you accept and agree 
+                By accessing and using OZZ Cash & Carry's website and services, you accept and agree 
                 to be bound by the terms and provision of this agreement. If you do not agree to 
                 these terms, you should not use this website.
               </p>
@@ -168,7 +168,7 @@ const TermsPage = () => {
               <div>
                 <h4 className="font-medium mb-2">Limitation</h4>
                 <p className="text-sm text-muted-foreground">
-                  In no event shall Ikhaya Homeware be liable for any indirect, incidental, 
+                  In no event shall OZZ Cash & Carry be liable for any indirect, incidental, 
                   special, consequential, or punitive damages.
                 </p>
               </div>
@@ -194,7 +194,7 @@ const TermsPage = () => {
                 <h4 className="font-medium mb-2">Ownership</h4>
                 <p className="text-sm text-muted-foreground">
                   All content on this website, including text, graphics, logos, images, 
-                  and software, is owned by Ikhaya Homeware or its content suppliers.
+                  and software, is owned by OZZ Cash & Carry or its content suppliers.
                 </p>
               </div>
               <div>
@@ -249,8 +249,8 @@ const TermsPage = () => {
                 If you have any questions about these Terms of Service, please contact us:
               </p>
               <div className="space-y-1 text-sm">
-                <p><strong>Email:</strong> legal@ikhayahomeware.co.za</p>
-                <p><strong>Phone:</strong> +27 21 123 4567</p>
+                <p><strong>Email:</strong> info@ozzgroup.co.za</p>
+                <p><strong>Phone:</strong> +27 31 332 7192</p>
               </div>
             </CardContent>
           </Card>

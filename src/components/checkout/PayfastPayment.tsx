@@ -62,7 +62,7 @@ export const PayfastPayment = ({
     }
     
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-    return `${totalItems} items from Ikhaya Homeware`.substring(0, 100);
+    return `${totalItems} items from OZZ Cash & Carry`.substring(0, 100);
   };
 
   const handlePayment = async () => {
@@ -125,7 +125,7 @@ export const PayfastPayment = ({
         notify_url: returnUrls.notify_url,
         amount: totalAmount.toFixed(2),
         item_name: createOrderDescription(cartItems),
-        item_description: `Order ${paymentReference} from Ikhaya Homeware`,
+        item_description: `Order ${paymentReference} from OZZ Cash & Carry`,
         m_payment_id: paymentReference,
         name_first: formData.firstName || '',
         name_last: formData.lastName || '',
