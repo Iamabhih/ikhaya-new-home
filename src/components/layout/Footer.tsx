@@ -165,11 +165,11 @@ export const Footer = () => {
                 <span>+27 31 332 7192</span>
               </a>
               <a
-                href="mailto:info@ozzgroup.co.za"
+                href="mailto:queries@ozzsa.com"
                 className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Mail className="h-4 w-4" />
-                <span>info@ozzgroup.co.za</span>
+                <span>queries@ozzsa.com</span>
               </a>
             </div>
           </div>

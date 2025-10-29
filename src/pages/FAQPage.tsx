@@ -142,7 +142,7 @@ const FAQPage = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <div className="text-center">
                   <p className="font-medium">Email Support</p>
-                  <p className="text-muted-foreground">support@ozzgroup.co.za</p>
+                  <p className="text-muted-foreground">queries@ozzsa.com</p>
                   <p className="text-sm text-muted-foreground">Response within 24 hours</p>
                 </div>
                 <div className="text-center">

@@ -249,7 +249,7 @@ const TermsPage = () => {
                 If you have any questions about these Terms of Service, please contact us:
               </p>
               <div className="space-y-1 text-sm">
-                <p><strong>Email:</strong> info@ozzgroup.co.za</p>
+                <p><strong>Email:</strong> queries@ozzsa.com</p>
                 <p><strong>Phone:</strong> +27 31 332 7192</p>
               </div>
             </CardContent>

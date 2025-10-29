@@ -228,7 +228,7 @@ const CheckoutPage = () => {
                     </p>
                     <p className="flex items-center justify-center gap-2">
                       <span>✉️</span>
-                      <span>info@ozzgroup.co.za</span>
+                      <span>queries@ozzsa.com</span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
                       Available Monday - Friday, 9AM - 5PM
