@@ -13,7 +13,7 @@ export const Footer = () => {
           {/* Brand Section */}
           <div className="space-y-6">
             <div className="flex items-center">
-              <img src="/lovable-uploads/goc-ozz-group.png" alt="OZZ Group of Companies" className="h-32 w-auto" />
+              <img src="/lovable-uploads/goc-ozz-group.png" alt="OZZ Group of Companies" className="h-64 w-auto" />
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
               Your home is your sanctuary. We provide quality homeware to make it beautiful, functional, and uniquely
@@ -50,15 +50,6 @@ export const Footer = () => {
               </a>
             </div>
 
-            {/* Partner Logo */}
-            <div className="pt-8">
-              <p className="text-xs text-muted-foreground mb-2">Proudly by</p>
-              <img
-                src="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png"
-                alt="OZZ Cash & Carry"
-                className="h-28 w-auto"
-              />
-            </div>
           </div>
 
           {/* Quick Links */}
