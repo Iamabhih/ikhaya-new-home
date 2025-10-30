@@ -11,6 +11,7 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { MobileNav } from "./MobileNav";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundRemovalStatus from "@/components/admin/BackgroundRemovalStatus";
+import ozzLogo from "@/assets/ozz-logo-main.png";
 
 export const Header = () => {
   const { items } = useCart();
@@ -44,7 +45,7 @@ export const Header = () => {
             {/* Logo - Mobile Optimized */}
             <Link to="/" className="flex items-center flex-shrink-0 min-w-0">
               <img 
-                src="/lovable-uploads/6fdda264-ce80-44ec-9836-c9c81756c513.png" 
+                src={ozzLogo} 
                 alt="OZZ Cash & Carry" 
                 className="h-8 xs:h-10 sm:h-12 md:h-14 lg:h-16 w-auto max-w-[120px] xs:max-w-none"
               />
