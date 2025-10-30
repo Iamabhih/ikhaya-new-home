@@ -11,8 +11,8 @@ export const Footer = () => {
       <div className="container mx-auto px-4 lg:px-6 py-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand Section */}
-          <div className="space-y-6">
-            <div className="flex items-center">
+          <div className="space-y-6 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start">
               <img src="/lovable-uploads/goc-ozz-group.png" alt="OZZ Group of Companies" className="h-64 w-auto" />
             </div>
             <div className="space-y-2">
@@ -24,7 +24,7 @@ export const Footer = () => {
             </div>
 
             {/* Social Links */}
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 justify-center md:justify-start">
               <a
                 href="https://facebook.com/homeware.ikhaya"
                 target="_blank"
