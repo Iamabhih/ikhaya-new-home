@@ -29,8 +29,8 @@ export const HeroSection = () => {
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 leading-tight text-center">
-            <span className="block text-foreground">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 leading-tight text-center mx-auto">
+            <span className="block text-foreground text-center">
               Manufacturer - Importer - Distributor
             </span>
           </h1>
