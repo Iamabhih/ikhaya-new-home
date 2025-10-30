@@ -29,14 +29,14 @@ export const HeroSection = () => {
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 leading-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 leading-tight text-center">
             <span className="block text-foreground">
               Manufacturer - Importer - Distributor
             </span>
           </h1>
 
           {/* Subheading - Product Categories */}
-          <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 md:mb-10 leading-relaxed max-w-4xl mx-auto px-2 sm:px-0">
+          <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 md:mb-10 leading-relaxed max-w-4xl mx-auto px-2 sm:px-0 text-center">
             <span className="block text-muted-foreground font-medium mb-2">
               Glassware • Aluminiumware • Enamelware • Stainless Steelware • Cutlery
             </span>

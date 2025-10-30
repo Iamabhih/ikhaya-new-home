@@ -15,7 +15,7 @@ export const Footer = () => {
             <div className="flex items-center justify-center md:justify-start">
               <img src="/lovable-uploads/goc-ozz-group.png" alt="OZZ Group of Companies" className="h-64 w-auto" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-center md:text-left">
               <p className="text-primary font-bold text-sm tracking-wide">YOUR TRUSTED</p>
               <p className="text-foreground font-semibold text-sm">Manufacturer - Importer - Distributor</p>
               <p className="text-muted-foreground text-xs leading-relaxed uppercase">
