@@ -23,22 +23,26 @@ export const HeroSection = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 sm:px-4 py-1.5 sm:py-2 mb-6 sm:mb-8">
             <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
-            <span className="text-xs sm:text-sm font-medium text-primary">
-              Premium Homeware Collection
+            <span className="text-xs sm:text-sm font-bold text-primary tracking-wider">
+              YOUR TRUSTED
             </span>
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 leading-tight text-foreground">
-            Transform Your House Into a 
-            <span className="block text-primary mt-1 sm:mt-2">
-              Beautiful Home
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 leading-tight">
+            <span className="block text-foreground">
+              Manufacturer - Importer - Distributor
             </span>
           </h1>
 
-          {/* Subheading */}
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl mb-6 sm:mb-8 md:mb-10 leading-relaxed max-w-3xl mx-auto text-muted-foreground px-2 sm:px-0">
-            Discover our curated collection of quality homeware, furniture, and decor items that make your space uniquely yours. From kitchen essentials to bedroom comfort, we have everything you need.
+          {/* Subheading - Product Categories */}
+          <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 md:mb-10 leading-relaxed max-w-4xl mx-auto px-2 sm:px-0">
+            <span className="block text-muted-foreground font-medium mb-2">
+              Glassware • Aluminiumware • Enamelware • Stainless Steelware • Cutlery
+            </span>
+            <span className="block text-muted-foreground font-medium">
+              Plasticware • Carpets • Artificial Flowers • Homedecor • General Homeware • Hardware
+            </span>
           </p>
 
           {/* CTA Buttons */}
