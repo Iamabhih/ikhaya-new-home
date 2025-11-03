@@ -65,9 +65,7 @@ export const Header = () => {
               <Link to="/promotions" className="premium-nav-item">
                 Promotions
               </Link>
-              <Link to="/ozz-sa" className="premium-nav-item">
-                OZZ SA
-              </Link>
+              
               
               {/* Admin/Manager Dropdown */}
               {(isAdmin() || isManager()) && <DropdownMenu>
