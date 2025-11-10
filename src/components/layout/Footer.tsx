@@ -138,23 +138,6 @@ export const Footer = () => {
               </div>
             </div>
 
-            {/* OZZ Homestore */}
-            <div className="space-y-2">
-              <div className="flex items-start space-x-2">
-                <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-foreground text-sm">OZZ HOMESTORE</p>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    Block D, Shop 88 China City
-                    <br />
-                    Springfield Park, Durban
-                    <br />
-                    KwaZulu-Natal, South Africa
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Contact Info */}
             <div className="space-y-3 pt-2">
               <a
