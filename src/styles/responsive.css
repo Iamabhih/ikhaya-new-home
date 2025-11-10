@@ -110,6 +110,69 @@
       container-type: inline-size;
     }
   }
+
+  /* Banner optimizations */
+  .banner-container {
+    @apply w-full overflow-hidden;
+    will-change: transform;
+  }
+
+  .banner-main {
+    @apply relative flex items-center justify-center text-white;
+    aspect-ratio: auto;
+    contain: layout style paint;
+  }
+
+  .banner-image-wrapper {
+    @apply absolute inset-0;
+    contain: strict;
+  }
+
+  .banner-content {
+    will-change: opacity;
+  }
+
+  .banner-title,
+  .banner-subtitle,
+  .banner-description {
+    /* Cross-browser gradient text support */
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Fallback for browsers without gradient text support */
+  @supports not (background-clip: text) {
+    .banner-title,
+    .banner-subtitle,
+    .banner-description {
+      -webkit-text-fill-color: currentColor;
+      background: none !important;
+    }
+  }
+
+  .banner-nav {
+    @apply z-20;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    contain: layout style;
+  }
+
+  /* Fallback for browsers without backdrop-filter */
+  @supports not (backdrop-filter: blur(8px)) {
+    .banner-nav {
+      background-color: rgba(255, 255, 255, 0.2) !important;
+    }
+  }
+
+  .banner-strips {
+    contain: layout style;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* Tablet specific optimizations */

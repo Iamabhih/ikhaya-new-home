@@ -44,8 +44,8 @@ export const PromotionalBanners = () => {
   };
   if (loading) {
     return (
-      <div className="relative w-full bg-primary/5 overflow-hidden">
-        <div className="relative min-h-[400px] md:min-h-[500px] flex items-center justify-center">
+      <div className="relative w-full bg-primary/5 overflow-hidden banner-loading">
+        <div className="relative min-h-[300px] sm:min-h-[400px] md:min-h-[500px] flex items-center justify-center">
           <UniversalLoading 
             variant="spinner" 
             size="lg" 
@@ -60,14 +60,27 @@ export const PromotionalBanners = () => {
     return null;
   }
   const currentBanner = banners[currentIndex];
-  return <div className="relative w-full overflow-hidden">
+  return <div className="relative w-full overflow-hidden banner-container">
       {/* Main promotional banner */}
-      <div className="relative min-h-[500px] md:min-h-[600px] flex items-center justify-center text-white transition-all duration-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{
-      background: currentBanner.background_color ? `linear-gradient(135deg, ${currentBanner.background_color} 0%, ${currentBanner.background_color}cc 50%, ${currentBanner.background_color}99 100%)` : undefined
-    }}>
+      <div 
+        className="relative banner-main min-h-[300px] sm:min-h-[400px] md:min-h-[500px] lg:min-h-[600px] flex items-center justify-center text-white transition-all duration-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" 
+        style={{
+          background: currentBanner.background_color ? `linear-gradient(135deg, ${currentBanner.background_color} 0%, ${currentBanner.background_color}cc 50%, ${currentBanner.background_color}99 100%)` : undefined,
+          aspectRatio: 'auto'
+        }}
+      >
         {/* Background Image */}
-        {currentBanner.image_url && <div className="absolute inset-0">
-            <img src={currentBanner.image_url} alt="" className="w-full h-full object-cover scale-105" />
+        {currentBanner.image_url && <div className="absolute inset-0 banner-image-wrapper">
+            <img 
+              src={currentBanner.image_url} 
+              alt={currentBanner.title || "Promotional banner"} 
+              className="w-full h-full object-cover"
+              loading="eager"
+              style={{
+                objectFit: 'cover',
+                objectPosition: 'center'
+              }}
+            />
             {((currentBanner as any).overlay_opacity ?? 0) > 0 && <div className="absolute inset-0" style={{
           background: `linear-gradient(135deg, rgba(0,0,0,${(currentBanner as any).overlay_opacity}) 0%, rgba(0,0,0,${((currentBanner as any).overlay_opacity) * 0.7}) 100%)`
         }} />}
@@ -75,12 +88,12 @@ export const PromotionalBanners = () => {
 
 
         {/* Content */}
-        <div className="relative z-10 container mx-auto px-6">
+        <div className="relative z-10 container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-12 items-center min-h-[500px]">
+            <div className="grid md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center min-h-[300px] sm:min-h-[400px] md:min-h-[500px]">
               {/* Left side - Text content */}
               <div 
-                className="space-y-8 text-left" 
+                className="space-y-4 sm:space-y-6 md:space-y-8 text-left banner-content" 
                 style={{
                   color: currentBanner.text_color,
                   textShadow: (currentBanner as any).text_shadow !== 'none' ? (currentBanner as any).text_shadow : '0 2px 8px rgba(0,0,0,0.3)',
@@ -88,7 +101,7 @@ export const PromotionalBanners = () => {
               >
                 {currentBanner.title && currentBanner.title.trim() && (
                   <h1 
-                    className="text-5xl md:text-7xl xl:text-8xl font-black leading-none tracking-tight"
+                    className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight banner-title"
                     style={{ 
                       fontFamily: (currentBanner as any).title_font_family || 'Playfair Display',
                       fontWeight: (currentBanner as any).title_font_weight || '900',
@@ -96,7 +109,8 @@ export const PromotionalBanners = () => {
                       background: 'linear-gradient(135deg, currentColor 0%, rgba(255,255,255,0.8) 100%)',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text'
+                      backgroundClip: 'text',
+                      color: currentBanner.text_color
                     }}
                   >
                     {currentBanner.title}
@@ -105,7 +119,7 @@ export const PromotionalBanners = () => {
                 
                 {currentBanner.subtitle && (
                   <h2 
-                    className="text-2xl md:text-4xl font-light opacity-95 tracking-wide"
+                    className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-light opacity-95 tracking-wide banner-subtitle"
                     style={{ 
                       fontFamily: (currentBanner as any).subtitle_font_family || 'Inter',
                       fontWeight: (currentBanner as any).subtitle_font_weight || '300',
@@ -118,7 +132,7 @@ export const PromotionalBanners = () => {
                 
                 {currentBanner.description && (
                   <p 
-                    className="text-xl md:text-2xl opacity-90 max-w-lg leading-relaxed"
+                    className="text-base sm:text-lg md:text-xl opacity-90 max-w-lg leading-relaxed banner-description"
                     style={{ 
                       fontFamily: (currentBanner as any).description_font_family || 'Inter',
                       fontWeight: (currentBanner as any).description_font_weight || '400',
@@ -130,11 +144,12 @@ export const PromotionalBanners = () => {
                 )}
                 
                 {currentBanner.button_text && currentBanner.button_url && (
-                  <div className="pt-4">
+                  <div className="pt-2 sm:pt-4">
                     <Link to={currentBanner.button_url}>
                       <Button 
                         size="lg" 
-                        className="px-12 py-6 text-lg font-semibold bg-white text-slate-900 hover:bg-white/95 shadow-2xl hover:shadow-white/20 transition-all duration-300 hover:scale-105 hover:-translate-y-1 border-0 rounded-full"
+                        className="px-8 sm:px-12 py-4 sm:py-6 text-base sm:text-lg font-semibold bg-white text-slate-900 hover:bg-white/95 shadow-2xl hover:shadow-white/20 transition-all duration-300 hover:scale-105 hover:-translate-y-1 border-0 rounded-full touch-target"
+                        aria-label={`${currentBanner.button_text} - ${currentBanner.title}`}
                       >
                         {currentBanner.button_text}
                       </Button>
@@ -149,33 +164,57 @@ export const PromotionalBanners = () => {
 
         {/* Navigation arrows */}
         {banners.length > 1 && <>
-            <button onClick={prevSlide} className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-4 transition-all duration-300 hover:scale-110 border border-white/20" style={{
-          color: currentBanner.text_color
-        }}>
-              <ChevronLeft className="h-8 w-8" />
+            <button 
+              onClick={prevSlide} 
+              className="banner-nav banner-nav-left absolute left-2 sm:left-4 md:left-6 top-1/2 transform -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-2 sm:p-3 md:p-4 transition-all duration-300 hover:scale-110 border border-white/20 touch-target z-20" 
+              style={{
+                color: currentBanner.text_color,
+                WebkitBackdropFilter: 'blur(8px)',
+                backdropFilter: 'blur(8px)'
+              }}
+              aria-label="Previous banner"
+            >
+              <ChevronLeft className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" />
             </button>
-            <button onClick={nextSlide} className="absolute right-6 top-1/2 transform -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-4 transition-all duration-300 hover:scale-110 border border-white/20" style={{
-          color: currentBanner.text_color
-        }}>
-              <ChevronRight className="h-8 w-8" />
+            <button 
+              onClick={nextSlide} 
+              className="banner-nav banner-nav-right absolute right-2 sm:right-4 md:right-6 top-1/2 transform -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-2 sm:p-3 md:p-4 transition-all duration-300 hover:scale-110 border border-white/20 touch-target z-20" 
+              style={{
+                color: currentBanner.text_color,
+                WebkitBackdropFilter: 'blur(8px)',
+                backdropFilter: 'blur(8px)'
+              }}
+              aria-label="Next banner"
+            >
+              <ChevronRight className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" />
             </button>
           </>}
 
         {/* Slide indicators */}
-        {banners.length > 1 && <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3">
-            {banners.map((_, index) => <button key={index} onClick={() => setCurrentIndex(index)} className={`w-4 h-4 rounded-full transition-all duration-300 border-2 border-white/30 ${index === currentIndex ? 'bg-white scale-110' : 'bg-white/30 hover:bg-white/50'}`} />)}
+        {banners.length > 1 && <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 sm:gap-3 z-20">
+            {banners.map((_, index) => <button 
+              key={index} 
+              onClick={() => setCurrentIndex(index)} 
+              className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full transition-all duration-300 border-2 border-white/30 touch-target ${index === currentIndex ? 'bg-white scale-110' : 'bg-white/30 hover:bg-white/50'}`}
+              aria-label={`Go to banner ${index + 1}`}
+              aria-current={index === currentIndex ? 'true' : 'false'}
+            />)}
           </div>}
       </div>
 
       {/* Premium promotional strips */}
-      <div className="bg-gradient-to-r from-slate-50 to-white border-t border-slate-200/50">
-        <div className="container mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-gradient-to-r from-slate-50 to-white border-t border-slate-200/50 banner-strips">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {banners.slice(0, 3).map((banner, index) => (
               <div 
                 key={banner.id} 
-                className="group relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer touch-target"
                 onClick={() => setCurrentIndex(index)}
+                role="button"
+                tabIndex={0}
+                onKeyPress={(e) => e.key === 'Enter' && setCurrentIndex(index)}
+                aria-label={`View ${banner.title} banner`}
               >
                 {/* Banner Image Background */}
                 {banner.image_url && (
@@ -184,6 +223,11 @@ export const PromotionalBanners = () => {
                       src={banner.image_url} 
                       alt={banner.title}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      style={{
+                        objectFit: 'cover',
+                        objectPosition: 'center'
+                      }}
                     />
                     <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-300" />
                   </div>
@@ -198,23 +242,24 @@ export const PromotionalBanners = () => {
                 />
                 
                 {/* Content */}
-                <div className="relative p-6 flex items-center justify-between min-h-[120px]">
-                  <div className="flex items-center gap-4">
+                <div className="relative p-4 sm:p-6 flex items-center justify-between min-h-[100px] sm:min-h-[120px]">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     {/* Premium badge with banner color */}
                     <div 
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg border-2 border-white/20"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-lg border-2 border-white/20 flex-shrink-0"
                       style={{ backgroundColor: banner.background_color }}
+                      aria-hidden="true"
                     >
                       {index + 1}
                     </div>
                     
                     {/* Text content */}
-                    <div>
-                      <div className="font-bold text-lg text-white group-hover:text-white/90 transition-colors drop-shadow-lg">
+                    <div className="min-w-0">
+                      <div className="font-bold text-base sm:text-lg text-white group-hover:text-white/90 transition-colors drop-shadow-lg truncate">
                         {banner.title}
                       </div>
                       {banner.subtitle && (
-                        <div className="text-sm text-white/90 font-medium drop-shadow-md">
+                        <div className="text-xs sm:text-sm text-white/90 font-medium drop-shadow-md truncate">
                           {banner.subtitle}
                         </div>
                       )}
@@ -222,8 +267,8 @@ export const PromotionalBanners = () => {
                   </div>
                   
                   {/* Arrow indicator */}
-                  <div className="text-white/80 group-hover:text-white transition-colors drop-shadow-lg">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="text-white/80 group-hover:text-white transition-colors drop-shadow-lg flex-shrink-0" aria-hidden="true">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>

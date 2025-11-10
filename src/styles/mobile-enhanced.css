@@ -1,7 +1,29 @@
 /* Enhanced Mobile Responsiveness for iOS and Android */
 
+/* Banner accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .banner-main,
+  .banner-nav,
+  .banner-strips > * {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Extra small screens (320px and up) */
 @media (max-width: 374px) {
+  /* Banner optimizations for very small screens */
+  .banner-main {
+    min-height: 250px !important;
+  }
+
+  .banner-content {
+    padding: 1rem;
+  }
+
+  .banner-nav {
+    padding: 0.5rem !important;
+  }
   .container {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
@@ -40,6 +62,32 @@
     min-height: 44px;
     min-width: 44px;
   }
+
+  /* Banner mobile optimizations */
+  .banner-main {
+    min-height: 300px !important;
+  }
+
+  .banner-nav-left {
+    left: 0.5rem;
+  }
+
+  .banner-nav-right {
+    right: 0.5rem;
+  }
+
+  .banner-title {
+    font-size: clamp(1.5rem, 5vw, 2rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  .banner-subtitle {
+    font-size: clamp(1rem, 3vw, 1.25rem) !important;
+  }
+
+  .banner-description {
+    font-size: clamp(0.875rem, 2.5vw, 1rem) !important;
+  }
   
   /* Better product card layout */
   .product-card-mobile {
@@ -75,6 +123,10 @@
   
   .card-mobile {
     padding: 1rem;
+  }
+
+  .banner-strips {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
@@ -164,6 +216,16 @@
   .modal-landscape {
     max-height: 80vh;
     overflow-y: auto;
+  }
+
+  /* Banner landscape adjustments */
+  .banner-main {
+    min-height: 300px !important;
+    max-height: 70vh;
+  }
+
+  .banner-content {
+    padding: 1rem !important;
   }
 }
 
