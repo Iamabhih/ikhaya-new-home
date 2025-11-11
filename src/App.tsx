@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { EnhancedCartProvider } from "@/components/cart/EnhancedCartProvider";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { BackgroundRemovalProvider } from "@/contexts/BackgroundRemovalContext";
+import { AudioProvider } from "@/contexts/AudioContext";
 import { BrowserCompatibilityChecker } from "@/components/common/BrowserCompatibilityChecker";
 import { ConditionalScriptLoader } from "@/components/common/ConditionalScriptLoader";
 import { EmergencyLoader } from "@/components/common/EmergencyLoader";
@@ -76,10 +77,11 @@ function App() {
         <AuthProvider>
           <WishlistProvider>
             <BackgroundRemovalProvider>
-              <TooltipProvider>
-              <Toaster />
-              <SecurityMonitor />
-              <BrowserRouter>
+              <AudioProvider>
+                <TooltipProvider>
+                <Toaster />
+                <SecurityMonitor />
+                <BrowserRouter>
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />
@@ -135,7 +137,8 @@ function App() {
                 <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
-              </TooltipProvider>
+                </TooltipProvider>
+              </AudioProvider>
             </BackgroundRemovalProvider>
           </WishlistProvider>
         </AuthProvider>

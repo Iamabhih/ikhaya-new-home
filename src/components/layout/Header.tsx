@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart, User, Search, Menu, X, Package, Settings, BarChart3, Users, CreditCard, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { MobileNav } from "./MobileNav";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundRemovalStatus from "@/components/admin/BackgroundRemovalStatus";
+import { BackgroundAudioPlayer } from "@/components/audio/BackgroundAudioPlayer";
+import { useAudio } from "@/contexts/AudioContext";
 import ozzLogo from "@/assets/ozz-logo-main.png";
 export const Header = () => {
   const {
@@ -25,11 +27,23 @@ export const Header = () => {
     isManager,
     isSuperAdmin
   } = useRoles(user);
+  const { markInteraction } = useAudio();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+  
+  // Mark interaction on any click to auto-play audio
+  useEffect(() => {
+    const handleInteraction = () => {
+      markInteraction();
+      document.removeEventListener('click', handleInteraction);
+    };
+    document.addEventListener('click', handleInteraction);
+    return () => document.removeEventListener('click', handleInteraction);
+  }, [markInteraction]);
+
   const handleSearch = e => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -163,6 +177,9 @@ export const Header = () => {
 
             {/* Right Side Actions - Mobile Enhanced */}
             <div className="flex items-center space-x-0.5 xs:space-x-1 sm:space-x-2 flex-shrink-0">
+              {/* Background Audio Player */}
+              <BackgroundAudioPlayer />
+              
               {/* Mobile Search Button */}
               <Button variant="ghost" size="icon" className="sm:hidden h-8 w-8 xs:h-9 xs:w-9 text-muted-foreground hover:text-foreground" onClick={() => navigate('/products')}>
                 <Search className="h-3.5 w-3.5 xs:h-4 xs:w-4" />
