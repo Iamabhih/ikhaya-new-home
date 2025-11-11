@@ -41,7 +41,6 @@ export const AudioProvider = ({ children }: AudioProviderProps) => {
 
   useEffect(() => {
     audioRef.current = new Audio('/audio/ozz-background.mp3');
-    audioRef.current.loop = true;
     audioRef.current.volume = volume;
     audioRef.current.muted = isMuted;
 
@@ -49,9 +48,19 @@ export const AudioProvider = ({ children }: AudioProviderProps) => {
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
+    const handleTimeUpdate = () => {
+      if (audioRef.current) {
+        const timeLeft = audioRef.current.duration - audioRef.current.currentTime;
+        if (timeLeft <= 3 && timeLeft > 0 && !audioRef.current.muted) {
+          startFadeOut(3000);
+        }
+      }
+    };
+
     audioRef.current.addEventListener('ended', handleEnded);
     audioRef.current.addEventListener('play', handlePlay);
     audioRef.current.addEventListener('pause', handlePause);
+    audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
 
     return () => {
       if (audioRef.current) {
@@ -59,6 +68,7 @@ export const AudioProvider = ({ children }: AudioProviderProps) => {
         audioRef.current.removeEventListener('ended', handleEnded);
         audioRef.current.removeEventListener('play', handlePlay);
         audioRef.current.removeEventListener('pause', handlePause);
+        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
       }
     };
   }, []);
@@ -77,12 +87,39 @@ export const AudioProvider = ({ children }: AudioProviderProps) => {
     }
   }, [isMuted]);
 
+  const startFadeOut = (duration: number = 3000) => {
+    if (!audioRef.current) return;
+    
+    const startVolume = audioRef.current.volume;
+    const startTime = Date.now();
+    
+    const fade = () => {
+      if (!audioRef.current) return;
+      
+      const elapsed = Date.now() - startTime;
+      const progress = elapsed / duration;
+      
+      if (progress < 1) {
+        audioRef.current.volume = startVolume * (1 - progress);
+        requestAnimationFrame(fade);
+      } else {
+        audioRef.current.volume = 0;
+        audioRef.current.pause();
+      }
+    };
+    
+    requestAnimationFrame(fade);
+  };
+
   const markInteraction = () => {
     if (!hasInteracted) {
       setHasInteracted(true);
-      // Auto-play on first interaction if not muted
-      if (!isMuted && audioRef.current) {
+      
+      const hasPlayed = sessionStorage.getItem('ozz-welcome-audio-played');
+      
+      if (!hasPlayed && !isMuted && audioRef.current) {
         audioRef.current.play().catch(console.error);
+        sessionStorage.setItem('ozz-welcome-audio-played', 'true');
       }
     }
   };

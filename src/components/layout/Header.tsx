@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ShoppingCart, User, Search, Menu, X, Package, Settings, BarChart3, Users, CreditCard, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,17 +32,20 @@ export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
   
-  // Mark interaction on any click to auto-play audio
+  // Mark interaction on homepage only to auto-play audio
   useEffect(() => {
+    if (location.pathname !== '/') return;
+    
     const handleInteraction = () => {
       markInteraction();
       document.removeEventListener('click', handleInteraction);
     };
     document.addEventListener('click', handleInteraction);
     return () => document.removeEventListener('click', handleInteraction);
-  }, [markInteraction]);
+  }, [markInteraction, location.pathname]);
 
   const handleSearch = e => {
     e.preventDefault();
