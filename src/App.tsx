@@ -52,6 +52,7 @@ import AdminOrderRecovery from "./pages/admin/AdminOrderRecovery";
 import SuperAdminSettings from "./pages/admin/SuperAdminSettings";
 import AdminProduction from "./pages/admin/AdminProduction";
 import AdminCartAbandonment from "./pages/admin/AdminCartAbandonment";
+import AdminQuotes from "./pages/admin/AdminQuotes";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import "./App.css";
 
@@ -120,6 +121,7 @@ function App() {
                  <Route path="/admin/payments" element={<AdminProtectedRoute><AdminPayments /></AdminProtectedRoute>} />
                  <Route path="/admin/subscriptions" element={<AdminProtectedRoute><AdminSubscriptions /></AdminProtectedRoute>} />
                  <Route path="/admin/cart-abandonment" element={<AdminProtectedRoute><AdminCartAbandonment /></AdminProtectedRoute>} />
+                 <Route path="/admin/quotes" element={<AdminProtectedRoute><AdminQuotes /></AdminProtectedRoute>} />
                  <Route path="/admin/order-recovery" element={<AdminProtectedRoute><AdminOrderRecovery /></AdminProtectedRoute>} />
                  <Route path="/admin/homepage" element={<AdminProtectedRoute><AdminHomepage /></AdminProtectedRoute>} />
                  <Route path="/admin/production" element={<AdminProtectedRoute><AdminProduction /></AdminProtectedRoute>} />

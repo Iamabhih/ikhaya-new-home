@@ -18,7 +18,8 @@ import { HideProductsWithoutImages } from "@/components/admin/HideProductsWithou
 import { MasterImageLinker } from "@/components/admin/MasterImageLinker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors, Package, FileText, EyeOff, Wrench } from "lucide-react";
+import { PricingVisibilityToggle } from "@/components/admin/PricingVisibilityToggle";
+import { Settings, Tags, Building2, Truck, CreditCard, TestTube, Activity, Megaphone, Image, Folder, Scissors, Package, FileText, EyeOff, Wrench, DollarSign } from "lucide-react";
 
 const SuperAdminSettings = () => {
   return (
@@ -37,6 +38,10 @@ const SuperAdminSettings = () => {
 
             <Tabs defaultValue="orders" className="space-y-6">
               <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 xl:grid-cols-15 gap-1 h-auto flex-wrap">
+                <TabsTrigger value="site-settings" className="flex items-center gap-2 text-xs">
+                  <DollarSign className="h-4 w-4" />
+                  <span className="hidden sm:inline">Site</span>
+                </TabsTrigger>
                 <TabsTrigger value="orders" className="flex items-center gap-2 text-xs">
                   <Settings className="h-4 w-4" />
                   <span className="hidden sm:inline">Orders</span>
@@ -102,6 +107,20 @@ const SuperAdminSettings = () => {
                   <span className="hidden sm:inline">Master Linker</span>
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="site-settings">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Site Settings</CardTitle>
+                    <CardDescription>
+                      Configure global site settings including pricing visibility and customer experience options.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PricingVisibilityToggle />
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               <TabsContent value="orders">
                 <Card>

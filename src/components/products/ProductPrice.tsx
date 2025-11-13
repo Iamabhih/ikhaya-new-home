@@ -1,4 +1,6 @@
 
+import { useSiteSettings } from '@/hooks/useSiteSettings';
+
 interface ProductPriceProps {
   price: number;
   compareAtPrice?: number;
@@ -6,7 +8,19 @@ interface ProductPriceProps {
 }
 
 export const ProductPrice = ({ price, compareAtPrice, viewMode }: ProductPriceProps) => {
+  const { settings } = useSiteSettings();
+  const hidePricing = settings?.hide_pricing === true;
   const hasDiscount = compareAtPrice && compareAtPrice > price;
+
+  if (hidePricing) {
+    return (
+      <div className={`flex items-center gap-1.5 ${viewMode === "grid" ? "mt-auto" : ""}`}>
+        <span className="text-sm font-medium text-muted-foreground">
+          Request Quote
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex items-center gap-1.5 ${viewMode === "grid" ? "mt-auto" : ""}`}>

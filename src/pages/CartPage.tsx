@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useSiteSettings } from '@/hooks/useSiteSettings';
+import { RequestQuoteButton } from '@/components/quotes/RequestQuoteButton';
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MaintenanceBanner } from "@/components/common/MaintenanceBanner";
@@ -369,6 +371,7 @@ const CartPage = () => {
                   </div>
                 </div>
               </div>
+              <RequestQuoteButton />
               <Link to="/checkout" className="w-full">
                 <Button className="w-full h-11 lg:h-12 text-sm lg:text-base" disabled={!items || items.length === 0}>
                   Proceed to Checkout
