@@ -82,7 +82,7 @@ function extractSKUsFromFilename(filename: string, diagnostics: any): ExtractedS
   // Strategy 2: LEADING NUMERIC (Starts with numbers)
   const leadingPatterns = [
     /^(\d{3,10})[^\d]/,        // Standard leading digits
-    /^(\d{3,10})[-_\.]/,       // Digits followed by separators
+    /^(\d{3,10})[-_.]/,       // Digits followed by separators
     /^(\d{3,10})[a-z]/,        // Digits followed by letters
   ];
   

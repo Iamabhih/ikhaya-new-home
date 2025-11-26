@@ -114,7 +114,7 @@ export const ReportGenerator = () => {
       let filename = '';
 
       switch (reportConfig.report_type) {
-        case 'sales':
+        case 'sales': {
           const { data: salesData } = await supabase
             .from('orders')
             .select('*')
@@ -122,22 +122,25 @@ export const ReportGenerator = () => {
           data = salesData || [];
           filename = 'sales-report.csv';
           break;
+        }
 
-        case 'customers':
+        case 'customers': {
           const { data: customerData } = await supabase
             .from('customer_analytics')
             .select('*');
           data = customerData || [];
           filename = 'customer-report.csv';
           break;
+        }
 
-        case 'products':
+        case 'products': {
           const { data: productData } = await supabase
             .from('product_performance')
             .select('*');
           data = productData || [];
           filename = 'product-report.csv';
           break;
+        }
 
         default:
           throw new Error('Invalid report type');

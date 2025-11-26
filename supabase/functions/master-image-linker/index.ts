@@ -357,7 +357,7 @@ async function runMasterProcessing(
     // Step 3: Scan ALL storage files (no limits)
     await updateSession(supabase, sessionId, { currentStep: 'Scanning storage files...', progress: 10 });
     
-    let allFiles: any[] = [];
+    const allFiles: any[] = [];
     let offset = 0;
     const batchSize = 10000; // Large batches for efficiency
     let hasMoreFiles = true;
@@ -407,7 +407,7 @@ async function runMasterProcessing(
     const linksToCreate: any[] = [];
     const candidatesToCreate: any[] = [];
     let currentSession = await getSession(supabase, sessionId);
-    let matchingStats = { ...currentSession?.matchingStats };
+    const matchingStats = { ...currentSession?.matchingStats };
     
     for (let i = 0; i < imageFiles.length; i += options.batchSize) {
       const batch = imageFiles.slice(i, i + options.batchSize);

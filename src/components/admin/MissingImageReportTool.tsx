@@ -109,20 +109,20 @@ export const MissingImageReportTool = () => {
     }
     
     // Multi-SKU patterns
-    const multiMatch = cleanName.match(/^(\d{3,8}(?:[\.\-_]\d{3,8})+)[\.\-_]?[a-zA-Z]*\.?$/);
+    const multiMatch = cleanName.match(/^(\d{3,8}(?:[._-]\d{3,8})+)[._-]?[a-zA-Z]*\.?$/);
     if (multiMatch) {
       const numbers = multiMatch[1].match(/\d{3,8}/g) || [];
       numbers.forEach((num, index) => {
-        skus.push({ 
-          sku: num, 
-          confidence: Math.max(90 - (index * 3), 70), 
-          source: 'multi' 
+        skus.push({
+          sku: num,
+          confidence: Math.max(90 - (index * 3), 70),
+          source: 'multi'
         });
       });
     }
-    
+
     // Pattern extraction
-    const patterns = [/(\d{3,8})(?:[\.\-_][a-zA-Z]+)+/g, /(\d{3,8})/g];
+    const patterns = [/(\d{3,8})(?:[._-][a-zA-Z]+)+/g, /(\d{3,8})/g];
     patterns.forEach((pattern, patternIndex) => {
       const matches = [...cleanName.matchAll(pattern)];
       matches.forEach(match => {

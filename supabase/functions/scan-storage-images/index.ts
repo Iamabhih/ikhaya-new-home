@@ -65,13 +65,13 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     // Pure numeric with dots (highest priority)
     /^(\d{3,8}(?:\.\d{3,8})+)\.?$/,
     // Numeric with dashes
-    /^(\d{3,8}(?:\-\d{3,8})+)\-?$/,
+    /^(\d{3,8}(?:-\d{3,8})+)-?$/,
     // Numeric with underscores
-    /^(\d{3,8}(?:\_\d{3,8})+)\_?$/,
+    /^(\d{3,8}(?:_\d{3,8})+)_?$/,
     // Mixed separators
-    /^(\d{3,8}(?:[\.\-_]\d{3,8})+)[\.\-_]?.*$/,
+    /^(\d{3,8}(?:[._-]\d{3,8})+)[._-]?.*$/,
     // Any sequence with separators
-    /(\d{3,8}(?:[\.\-_]\d{3,8})+)/
+    /(\d{3,8}(?:[._-]\d{3,8})+)/
   ];
   
   for (const pattern of multiSkuPatterns) {
@@ -99,8 +99,8 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
   if (!skus.length || cleanName.includes('.') || cleanName.includes('-') || cleanName.includes('_')) {
     const enhancedPatterns = [
       // Numeric with any suffix/prefix
-      /^(\d{3,8})[a-zA-Z\-_\.]+.*$/g,
-      /^.*[a-zA-Z\-_\.]+(\d{3,8})$/g,
+      /^(\d{3,8})[a-zA-Z_./-]+.*$/g,
+      /^.*[a-zA-Z_./-]+(\d{3,8})$/g,
       // Multiple numbers in filename
       /(\d{3,8})/g
     ];
@@ -224,7 +224,7 @@ Deno.serve(async (req) => {
         
         console.log(`🔧 Scanning with config: scanPath="${scanPath}", scanAllFolders=${scanAllFolders}`);
         
-        let allImages: any[] = [];
+        const allImages: any[] = [];
         
         // Recursive function to scan directories
         const scanDirectory = async (path: string = '', depth: number = 0): Promise<void> => {
@@ -336,7 +336,7 @@ Deno.serve(async (req) => {
         if (images && images.length > 0) {
           // Get ALL products to match against (no limits)
           console.log('📦 Fetching ALL products...');
-          let allProducts = [];
+          const allProducts = [];
           let productsOffset = 0;
           const productsBatchSize = 1000;
           
