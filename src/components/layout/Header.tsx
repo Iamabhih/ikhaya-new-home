@@ -38,7 +38,7 @@ export const Header = () => {
   
   // Mark interaction on homepage only to auto-play audio
   useEffect(() => {
-    if (location.pathname !== '/') return;
+    if (location.pathname !== '/') return undefined;
     
     const handleInteraction = () => {
       markInteraction();

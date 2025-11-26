@@ -14,10 +14,10 @@ export const useCartMigration = () => {
 
   const migrateCart = useMutation({
     mutationFn: async () => {
-      if (!user) return;
+      if (!user) return undefined;
 
       const sessionId = localStorage.getItem('cart_session_id');
-      if (!sessionId) return;
+      if (!sessionId) return undefined;
 
       console.log('Starting cart migration for user:', user.id);
 
@@ -32,7 +32,7 @@ export const useCartMigration = () => {
 
       if (!sessionItems || sessionItems.length === 0) {
         console.log('No session cart items to migrate');
-        return;
+        return undefined;
       }
 
       console.log(`Found ${sessionItems.length} session cart items to migrate`);
@@ -143,6 +143,7 @@ export const useCartMigration = () => {
         }, 500);
       }
     }
+    return undefined;
   }, [user, migrateCart]);
 
   return {
