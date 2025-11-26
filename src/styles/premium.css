@@ -1,6 +1,5 @@
 /* Premium utility classes for enhanced theming */
-@tailwind utilities;
-@tailwind components;
+/* Note: @tailwind directives are imported from index.css */
 
 @layer utilities {
   /* Glass morphism effects */

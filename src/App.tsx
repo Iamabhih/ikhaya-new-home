@@ -10,6 +10,7 @@ import { BackgroundRemovalProvider } from "@/contexts/BackgroundRemovalContext";
 import { AudioProvider } from "@/contexts/AudioContext";
 import { SecurityMonitor } from "@/components/security/SecurityMonitor";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
+import { WhatsAppChatWidget } from "@/components/common/WhatsAppChatWidget";
 import "./App.css";
 
 // Public pages - loaded immediately
@@ -89,6 +90,7 @@ function App() {
                 <TooltipProvider>
                 <Toaster />
                 <SecurityMonitor />
+                <WhatsAppChatWidget />
                 <BrowserRouter>
               <Routes>
                 {/* Public routes */}

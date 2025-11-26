@@ -335,31 +335,7 @@ const ProductsPage = () => {
             {/* Results Header */}
             <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mb-8">
               <div className="p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Search className="h-5 w-5 text-primary" />
-                      <span className="text-2xl font-bold">
-                        {totalCount.toLocaleString()} 
-                        <span className="text-lg font-medium text-muted-foreground ml-2">
-                          product{totalCount !== 1 ? 's' : ''} found
-                        </span>
-                      </span>
-                    </div>
-                    {hasActiveFilters && products.length !== totalCount && !useVirtualization && (
-                      <p className="text-sm text-muted-foreground">
-                        Showing {products.length} results
-                      </p>
-                    )}
-                    {useVirtualization && (
-                      <div className="inline-flex items-center gap-2 mt-2">
-                        <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">
-                          Optimized View
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
+                <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
                   <div className="flex items-center gap-3">
                     {/* Mobile Filter Button */}
                     <Sheet>
