@@ -59,7 +59,7 @@ export function useCheckout() {
     ) => {
         if (cartItems.length === 0) {
             toast.error('Your cart is empty. Please add items before checkout.');
-            return;
+            return undefined;
         }
 
         try {
@@ -117,14 +117,17 @@ export function useCheckout() {
                 } else {
                     completeOrder();
                 }
+                return undefined;
             } else {
                 // Handle other payment methods (e.g., COD)
                 completeOrder();
+                return undefined;
             }
 
         } catch (error) {
             console.error('Payment error:', error);
             toast.error('There was an error processing your payment. Please try again.');
+            return undefined;
         } finally {
             setProcessing(false);
         }
@@ -136,12 +139,12 @@ export function useCheckout() {
 
         if (!validateForm()) {
             toast.error('Please complete all required fields');
-            return;
+            return undefined;
         }
 
         if (!selectedDeliveryOption || !selectedPaymentMethod) {
             toast.error('Please select delivery and payment options');
-            return;
+            return undefined;
         }
 
         // Get the selected payment method object
@@ -149,7 +152,7 @@ export function useCheckout() {
         
         if (!paymentMethodObj) {
             toast.error('Invalid payment method selected');
-            return;
+            return undefined;
         }
 
         const paymentResult = await handlePayment(formData, paymentMethodObj, selectedDeliveryOption);
@@ -159,6 +162,7 @@ export function useCheckout() {
             toast.info('Preparing PayFast payment...');
             return paymentResult;
         }
+        return undefined;
     };
 
     return {

@@ -21,6 +21,7 @@ export const PromotionalBanners = () => {
 
       return () => clearInterval(timer);
     }
+    return undefined;
   }, [banners.length]);
   const fetchBanners = async () => {
     try {

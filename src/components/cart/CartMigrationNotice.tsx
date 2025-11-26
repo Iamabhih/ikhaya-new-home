@@ -48,6 +48,7 @@ export const CartMigrationNotice = () => {
       
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isMigrating, showNotice]);
 
   if (!showNotice || !user) {
