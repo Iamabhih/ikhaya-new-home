@@ -186,56 +186,35 @@ const AdminProducts = () => {
 
           <ErrorBoundary>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-8 bg-muted p-1 rounded-xl">
-                <TabsTrigger 
-                  value="products" 
-                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
-                >
-                  Products
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="analytics" 
-                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
-                >
-                  Analytics
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="import" 
-                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
-                >
-                  CSV Import
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="excel" 
-                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
-                >
-                  Excel Import
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="scheduler" 
-                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
-                >
-                  Scheduler
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="images" 
-                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
-                >
-                  Drive Migration
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="drive-linking" 
-                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
-                >
-                  Drive Linking
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="image-tools" 
-                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium"
-                >
-                  Image Tools
-                </TabsTrigger>
-              </TabsList>
+              {/* Scrollable tabs container for mobile */}
+              <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+                <TabsList className="inline-flex w-max sm:w-full sm:grid sm:grid-cols-4 lg:grid-cols-8 bg-muted p-1 rounded-xl min-w-max gap-1">
+                  <TabsTrigger value="products" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap px-3 text-sm">
+                    Products
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap px-3 text-sm">
+                    Analytics
+                  </TabsTrigger>
+                  <TabsTrigger value="import" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap px-3 text-sm">
+                    CSV Import
+                  </TabsTrigger>
+                  <TabsTrigger value="excel" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap px-3 text-sm">
+                    Excel
+                  </TabsTrigger>
+                  <TabsTrigger value="scheduler" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap px-3 text-sm">
+                    Scheduler
+                  </TabsTrigger>
+                  <TabsTrigger value="images" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap px-3 text-sm">
+                    Migration
+                  </TabsTrigger>
+                  <TabsTrigger value="drive-linking" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap px-3 text-sm">
+                    Linking
+                  </TabsTrigger>
+                  <TabsTrigger value="image-tools" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap px-3 text-sm">
+                    Images
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="products" className="space-y-6">
                 <ErrorBoundary>
