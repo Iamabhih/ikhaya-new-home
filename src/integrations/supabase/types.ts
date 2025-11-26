@@ -2901,88 +2901,79 @@ export type Database = {
       }
       trader_applications: {
         Row: {
-          account_holder: string
-          account_number: string
-          bank_name: string
-          branch_code: string
+          additional_info: string | null
+          address: string
           business_type: string
-          cipc_registration: string | null
+          city: string
           company_name: string
-          contact_email: string
           contact_person: string
-          contact_phone: string
           created_at: string
+          email: string
+          estimated_monthly_orders: string | null
           id: string
-          physical_address: string
-          postal_address: string | null
-          proof_of_address: string | null
-          registration_number: string
+          phone: string
+          postal_code: string
+          province: string
+          registration_number: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
-          tax_clearance_certificate: string | null
           trading_name: string | null
           updated_at: string
           user_id: string | null
           vat_number: string | null
-          years_in_business: number | null
+          years_in_business: string | null
         }
         Insert: {
-          account_holder: string
-          account_number: string
-          bank_name: string
-          branch_code: string
+          additional_info?: string | null
+          address: string
           business_type: string
-          cipc_registration?: string | null
+          city: string
           company_name: string
-          contact_email: string
           contact_person: string
-          contact_phone: string
           created_at?: string
+          email: string
+          estimated_monthly_orders?: string | null
           id?: string
-          physical_address: string
-          postal_address?: string | null
-          proof_of_address?: string | null
-          registration_number: string
+          phone: string
+          postal_code: string
+          province: string
+          registration_number?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
-          tax_clearance_certificate?: string | null
           trading_name?: string | null
           updated_at?: string
           user_id?: string | null
           vat_number?: string | null
-          years_in_business?: number | null
+          years_in_business?: string | null
         }
         Update: {
-          account_holder?: string
-          account_number?: string
-          bank_name?: string
-          branch_code?: string
+          additional_info?: string | null
+          address?: string
           business_type?: string
-          cipc_registration?: string | null
+          city?: string
           company_name?: string
-          contact_email?: string
           contact_person?: string
-          contact_phone?: string
           created_at?: string
+          email?: string
+          estimated_monthly_orders?: string | null
           id?: string
-          physical_address?: string
-          postal_address?: string | null
-          proof_of_address?: string | null
-          registration_number?: string
+          phone?: string
+          postal_code?: string
+          province?: string
+          registration_number?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
-          tax_clearance_certificate?: string | null
           trading_name?: string | null
           updated_at?: string
           user_id?: string | null
           vat_number?: string | null
-          years_in_business?: number | null
+          years_in_business?: string | null
         }
         Relationships: []
       }
