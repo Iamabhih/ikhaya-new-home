@@ -97,15 +97,11 @@ export function HistoricalOrderCreator() {
     // Check admin permissions first
     if (!isAdmin() && !isSuperAdmin()) {
       toast.error('Admin access required to create historical orders');
-      console.error('❌ Insufficient permissions:', { user: user?.email, isAdmin: isAdmin(), isSuperAdmin: isSuperAdmin() });
       return;
     }
 
     setIsCreating(true);
     setDebugInfo('Starting historical order creation...');
-    console.log('🔄 Starting historical order creation process...');
-    console.log('📋 Order data:', HISTORICAL_ORDER_DATA);
-    console.log('👤 User info:', { email: user?.email, isAdmin: isAdmin(), isSuperAdmin: isSuperAdmin() });
     
     try {
       // Check if order already exists
