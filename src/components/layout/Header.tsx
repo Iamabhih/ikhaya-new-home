@@ -69,10 +69,10 @@ export const Header = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-8">
-              <Link to="/products" className="premium-nav-item">
-                Products
+              <Link to="/" className="premium-nav-item">
+                Home
               </Link>
-              <Link to="/categories" className="premium-nav-item">Catalog</Link>
+              <Link to="/products" className="premium-nav-item">Products</Link>
               <Link to="/about" className="premium-nav-item">
                 About
               </Link>

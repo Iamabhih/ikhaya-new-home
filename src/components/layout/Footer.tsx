@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Instagram, Mail, Phone, MapPin, MessageCircle } from "lucide-react";
 export const Footer = () => {
   return (
     <footer className="bg-gradient-to-b from-background to-muted/40 border-t border-primary/20 relative overflow-hidden">
@@ -146,6 +146,15 @@ export const Footer = () => {
               >
                 <Phone className="h-4 w-4" />
                 <span>+27 31 332 7192</span>
+              </a>
+              <a
+                href="https://wa.me/27726633544"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-[#25D366] transition-colors"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span>+27 72 663 3544 (WhatsApp)</span>
               </a>
               <a
                 href="mailto:queries@ozzsa.com"

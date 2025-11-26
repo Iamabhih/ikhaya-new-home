@@ -284,18 +284,18 @@
   /* Skip link for screen readers */
   .skip-link {
     position: absolute;
-    top: -40px;
-    left: 6px;
+    top: -2.5rem;
+    left: 0.375rem;
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    padding: 8px;
+    padding: 0.5rem;
     text-decoration: none;
-    border-radius: 4px;
+    border-radius: var(--radius);
     z-index: 1000;
     transition: top 0.3s;
   }
 
   .skip-link:focus {
-    top: 6px;
+    top: 0.375rem;
   }
 }
