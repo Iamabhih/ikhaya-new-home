@@ -58,22 +58,32 @@ export const TraderApplicationForm = ({ trigger }: TraderApplicationFormProps) =
     setIsSubmitting(true);
 
     try {
-      // If user is logged in, update their profile
-      if (user) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({
-            company_name: data.companyName,
-            vat_number: data.vatNumber || null,
-            phone: data.phone,
-            billing_address: `${data.address}, ${data.city}, ${data.province}, ${data.postalCode}`,
-            wholesale_approved: false, // Set to pending (admin needs to approve)
-          })
-          .eq("id", user.id);
+      // Insert into trader_applications table
+      const { error: insertError } = await supabase
+        .from("trader_applications")
+        .insert({
+          user_id: user?.id || null,
+          company_name: data.companyName,
+          trading_name: data.tradingName || null,
+          vat_number: data.vatNumber || null,
+          registration_number: data.registrationNumber || null,
+          business_type: data.businessType,
+          contact_person: data.contactPerson,
+          email: data.email,
+          phone: data.phone,
+          address: data.address,
+          city: data.city,
+          province: data.province,
+          postal_code: data.postalCode,
+          years_in_business: data.yearsInBusiness || null,
+          estimated_monthly_orders: data.estimatedMonthlyOrders || null,
+          additional_info: data.additionalInfo || null,
+          status: 'pending',
+        });
 
-        if (profileError) {
-          console.error("Profile update error:", profileError);
-        }
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        throw insertError;
       }
 
       // Send notification email to admin
@@ -101,8 +111,8 @@ export const TraderApplicationForm = ({ trigger }: TraderApplicationFormProps) =
               userId: user?.id || "Guest Application",
               submittedAt: new Date().toISOString(),
             },
-            actionUrl: user ? `/admin/users` : undefined,
-            actionText: user ? "View User in Admin" : undefined,
+            actionUrl: "/admin/users",
+            actionText: "Review Application",
           },
         },
       });
