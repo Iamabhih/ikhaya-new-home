@@ -6,8 +6,6 @@ import { ProductImportScheduler } from "@/components/admin/ProductImportSchedule
 import { ProductAnalyticsDashboard } from "@/components/admin/ProductAnalyticsDashboard";
 import { ProductManagementLayout } from "@/components/admin/ProductManagementLayout";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { DeleteAllProducts } from "@/components/admin/DeleteAllProducts";
 import { ImageMigrationTool } from "@/components/admin/ImageMigrationTool";
 import { ManualImageLinker } from "@/components/admin/ManualImageLinker";
@@ -173,16 +171,14 @@ const AdminProducts = () => {
   }, []);
 
   return (
-    <AdminProtectedRoute>
-      <AdminLayout>
-        <div className="space-y-8">
-          {/* Header Section */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="space-y-1">
-              <h1 className="text-3xl font-bold text-foreground tracking-tight">Product Management</h1>
-              <p className="text-muted-foreground text-base">Manage your inventory, analytics, and product imports</p>
-            </div>
-          </div>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Product Management</h1>
+          <p className="text-muted-foreground text-base">Manage your inventory, analytics, and product imports</p>
+        </div>
+      </div>
 
           <ErrorBoundary>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -280,8 +276,6 @@ const AdminProducts = () => {
             </Tabs>
           </ErrorBoundary>
         </div>
-      </AdminLayout>
-    </AdminProtectedRoute>
   );
 };
 
