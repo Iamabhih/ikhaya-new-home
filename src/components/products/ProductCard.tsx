@@ -1,14 +1,14 @@
-
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Link } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Heart, ShoppingCart } from "lucide-react";
 import { useEnhancedCart } from "@/hooks/useEnhancedCart";
 import { useWishlistContext } from "@/contexts/WishlistContext";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { ProductImage } from "./ProductImage";
-import { ProductDetails } from "./ProductDetails";
-import { ProductPrice } from "./ProductPrice";
-import { ProductActions } from "./ProductActions";
-import { useState, useEffect } from "react";
-import { UniversalLoading } from "@/components/ui/universal-loading";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { OptimizedImage } from "@/components/common/OptimizedImage";
+import { getSupabaseImageUrl } from "@/utils/imageUtils";
+import { useEffect } from "react";
 
 interface ProductCardProps {
   product: {
@@ -42,156 +42,192 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   const { addToCart } = useEnhancedCart();
   const { isInWishlist, toggleWishlist, loading } = useWishlistContext();
   const { trackProductView, trackCartAdd } = useAnalytics();
-  
+  const { settings } = useSiteSettings();
+
   const inWishlist = isInWishlist(product.id);
   const isInStock = (product.stock_quantity || 0) > 0;
-  
-  // Track product view when component mounts
+  const hidePricing = settings?.hide_pricing === true;
+  const hasDiscount = product.compare_at_price && product.compare_at_price > product.price;
+
+  const sortedImages = product.product_images?.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)) || [];
+  const primaryImage = sortedImages.find(img => img.is_primary) || sortedImages[0];
+  const productUrl = `/products/${product.slug}`;
+
   useEffect(() => {
     trackProductView(product.id, product.categories?.id);
   }, [product.id, product.categories?.id, trackProductView]);
-  
-  const handleAddToCart = () => {
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     addToCart(product.id, 1, product);
-    // Track cart addition
     trackCartAdd(product.id, 1);
   };
-  
-  const handleToggleWishlist = () => toggleWishlist(product.id);
-  
+
+  const handleToggleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWishlist(product.id);
+  };
+
+  // List View
   if (viewMode === "list") {
     return (
-      <Card className="group relative overflow-hidden border-0 bg-white/60 backdrop-blur-sm shadow-soft hover:shadow-premium transition-all duration-500 hover:scale-[1.02] rounded-xl">
-        <CardContent className="p-0">
-          <div className="flex flex-col xs:flex-row gap-4 p-4 sm:p-6 min-h-[140px] bg-gradient-to-r from-card/80 via-card/60 to-card/80">
-            <div className="flex-shrink-0">
-              <ProductImage
-                product={product}
-                inWishlist={inWishlist}
-                onToggleWishlist={handleToggleWishlist}
-                loading={loading}
-                viewMode={viewMode}
+      <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-2xl">
+        <Link to={productUrl} className="flex flex-row gap-4 p-4">
+          {/* Image */}
+          <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0 bg-[#F5F5F0] rounded-xl overflow-hidden">
+            {primaryImage ? (
+              <OptimizedImage
+                src={getSupabaseImageUrl(primaryImage.image_url)}
+                alt={primaryImage.alt_text || product.name}
+                className="w-full h-full object-contain p-2"
+                lazy={true}
+                quality={85}
+                fallbackSrc="/placeholder.svg"
               />
-            </div>
-            
-            <div className="flex-1 flex flex-col justify-between space-y-3 min-w-0">
-              <div className="space-y-2">
-                <ProductDetails product={product} viewMode={viewMode} />
-                <ProductPrice 
-                  price={product.price} 
-                  compareAtPrice={product.compare_at_price}
-                  viewMode={viewMode}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/20">
-                <div className="flex items-center gap-2">
-                  {isInStock ? (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
-                      In Stock
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
-                      Out of Stock
-                    </span>
-                  )}
-                </div>
-                
-                <div className="flex-shrink-0">
-                  <ProductActions
-                    productId={product.id}
-                    inWishlist={inWishlist}
-                    onToggleWishlist={handleToggleWishlist}
-                    onAddToCart={handleAddToCart}
-                    isInStock={isInStock}
-                    wishlistLoading={loading}
-                    viewMode={viewMode}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-        
-        {/* Subtle hover gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      </Card>
-    );
-  }
-  
-  return (
-    <Card className="group relative h-full flex flex-col overflow-hidden w-full max-w-[320px] mx-auto border-0 bg-white/70 backdrop-blur-sm shadow-soft hover:shadow-premium transition-all duration-500 hover:scale-[1.05] hover:-translate-y-1 rounded-xl">
-      <CardContent className="p-0 flex-1 flex flex-col h-full">
-        {/* Enhanced Image Section */}
-        <div className="relative flex-shrink-0 overflow-hidden aspect-[4/3] bg-gradient-to-br from-primary/5 via-background/50 to-secondary/5 group-hover:from-primary/10 group-hover:to-secondary/10 transition-all duration-500">
-          <ProductImage
-            product={product}
-            inWishlist={inWishlist}
-            onToggleWishlist={handleToggleWishlist}
-            loading={loading}
-            viewMode={viewMode}
-          />
-          
-          {/* Stock Status Badge */}
-          <div className="absolute top-3 left-3">
-            {isInStock ? (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/90 text-white backdrop-blur-sm border border-green-400/50 shadow-lg">
-                In Stock
-              </span>
             ) : (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/90 text-white backdrop-blur-sm border border-red-400/50 shadow-lg">
-                Out of Stock
-              </span>
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                <span className="text-xs">No image</span>
+              </div>
             )}
           </div>
-          
-          
-          {/* Hover overlay with gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        </div>
-        
-        {/* Enhanced Content Section */}
-        <div className="p-4 flex-1 flex flex-col justify-between min-h-0 bg-gradient-to-b from-card/95 to-white/95 backdrop-blur-sm group-hover:from-card group-hover:to-white transition-all duration-300">
-          <div className="flex-1 space-y-3">
-            <ProductDetails product={product} viewMode={viewMode} />
-            
-            {/* Price Section with Enhanced Styling */}
-            <div className="space-y-1">
-              <ProductPrice 
-                price={product.price} 
-                compareAtPrice={product.compare_at_price}
-                viewMode={viewMode}
-              />
-              
-              {/* SKU Display */}
+
+          {/* Content */}
+          <div className="flex-1 flex flex-col justify-between min-w-0">
+            <div>
+              <h3 className="font-semibold text-sm sm:text-base text-foreground line-clamp-2 mb-1">
+                {product.name}
+              </h3>
               {product.sku && (
-                <p className="text-xs text-muted-foreground font-mono opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-                  SKU: {product.sku}
-                </p>
+                <p className="text-xs text-muted-foreground mb-2">SKU: {product.sku}</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              {!hidePricing ? (
+                <span className="text-base sm:text-lg font-bold text-[#DC3545]">
+                  R{product.price.toFixed(2)}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">Request Quote</span>
               )}
             </div>
           </div>
-          
-          {/* Enhanced Actions Section */}
-          <div className="mt-4 pt-4 border-t border-gradient-to-r from-transparent via-border/30 to-transparent">
-            <ProductActions
-              productId={product.id}
-              inWishlist={inWishlist}
-              onToggleWishlist={handleToggleWishlist}
-              onAddToCart={handleAddToCart}
-              isInStock={isInStock}
-              wishlistLoading={loading}
-              viewMode={viewMode}
-            />
+        </Link>
+      </Card>
+    );
+  }
+
+  // Grid View - New Design matching the catalog image
+  return (
+    <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl w-full max-w-[280px] mx-auto">
+      <Link to={productUrl} className="block">
+        {/* Image Section with Corner Badges */}
+        <div className="relative bg-[#F5F5F0] aspect-square overflow-hidden">
+          {/* Top Left Badge - WHOLESALE or SALE */}
+          <div className="absolute top-3 left-3 z-10">
+            <span className={`inline-block text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md ${
+              hasDiscount ? 'bg-[#DC3545]' : 'bg-[#DC3545]'
+            }`}>
+              {hasDiscount ? 'SALE' : 'WHOLESALE'}
+            </span>
           </div>
+
+          {/* Top Right Badge - Category */}
+          {product.categories && (
+            <div className="absolute top-3 right-3 z-10">
+              <span className="inline-block bg-[#0D6EFD] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md uppercase truncate max-w-[100px]">
+                {product.categories.name}
+              </span>
+            </div>
+          )}
+
+          {/* Product Image */}
+          <div className="w-full h-full flex items-center justify-center p-6">
+            {primaryImage ? (
+              <OptimizedImage
+                src={getSupabaseImageUrl(primaryImage.image_url)}
+                alt={primaryImage.alt_text || product.name}
+                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                lazy={true}
+                quality={85}
+                fallbackSrc="/placeholder.svg"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-muted-foreground">
+                <div className="w-16 h-16 bg-muted rounded mb-2" />
+                <span className="text-sm">No image</span>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Left Badge - SKU */}
+          {product.sku && (
+            <div className="absolute bottom-3 left-3 z-10">
+              <span className="inline-block bg-[#6C757D] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
+                {product.sku}
+              </span>
+            </div>
+          )}
+
+          {/* Bottom Right Badge - Price */}
+          <div className="absolute bottom-3 right-3 z-10">
+            {!hidePricing ? (
+              <span className="inline-block bg-[#DC3545] text-white text-sm font-bold px-4 py-2 rounded-full shadow-md">
+                R{product.price.toFixed(2)}
+              </span>
+            ) : (
+              <span className="inline-block bg-[#6C757D] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
+                Quote
+              </span>
+            )}
+          </div>
+
+          {/* Wishlist Button - Shows on hover */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`absolute top-12 right-3 h-8 w-8 bg-white/90 hover:bg-white shadow-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 ${
+              inWishlist ? 'text-red-500 hover:text-red-600 opacity-100' : 'text-muted-foreground hover:text-foreground'
+            }`}
+            onClick={handleToggleWishlist}
+            disabled={loading}
+          >
+            <Heart className={`h-4 w-4 ${inWishlist ? 'fill-current' : ''}`} />
+          </Button>
+
+          {/* Out of Stock Overlay */}
+          {!isInStock && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+              <span className="bg-white text-gray-800 text-xs font-bold px-4 py-2 rounded-full shadow-lg">
+                Out of Stock
+              </span>
+            </div>
+          )}
         </div>
-      </CardContent>
-      
-      {/* Premium glow effect on hover */}
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      
-      {/* Subtle shimmer effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
+
+        {/* Product Name Section */}
+        <div className="p-4 bg-white border-t border-gray-100">
+          <h3 className="font-semibold text-sm text-center text-foreground line-clamp-2 min-h-[2.5rem] uppercase tracking-wide">
+            {product.name}
+          </h3>
+
+          {/* Quick Add to Cart - Shows on hover */}
+          {isInStock && (
+            <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Button
+                size="sm"
+                className="w-full bg-[#DC3545] hover:bg-[#BB2D3B] text-white font-semibold rounded-full"
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Add to Cart
+              </Button>
+            </div>
+          )}
+        </div>
+      </Link>
     </Card>
   );
 };
