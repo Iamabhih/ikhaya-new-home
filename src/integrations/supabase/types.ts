@@ -2339,99 +2339,6 @@ export type Database = {
         }
         Relationships: []
       }
-      trader_applications: {
-        Row: {
-          id: string
-          user_id: string | null
-          company_name: string
-          trading_name: string | null
-          vat_number: string | null
-          registration_number: string | null
-          business_type: string
-          contact_person: string
-          email: string
-          phone: string
-          address: string
-          city: string
-          province: string
-          postal_code: string
-          years_in_business: string | null
-          estimated_monthly_orders: string | null
-          additional_info: string | null
-          status: string
-          reviewed_by: string | null
-          reviewed_at: string | null
-          review_notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          company_name: string
-          trading_name?: string | null
-          vat_number?: string | null
-          registration_number?: string | null
-          business_type: string
-          contact_person: string
-          email: string
-          phone: string
-          address: string
-          city: string
-          province: string
-          postal_code: string
-          years_in_business?: string | null
-          estimated_monthly_orders?: string | null
-          additional_info?: string | null
-          status?: string
-          reviewed_by?: string | null
-          reviewed_at?: string | null
-          review_notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          company_name?: string
-          trading_name?: string | null
-          vat_number?: string | null
-          registration_number?: string | null
-          business_type?: string
-          contact_person?: string
-          email?: string
-          phone?: string
-          address?: string
-          city?: string
-          province?: string
-          postal_code?: string
-          years_in_business?: string | null
-          estimated_monthly_orders?: string | null
-          additional_info?: string | null
-          status?: string
-          reviewed_by?: string | null
-          reviewed_at?: string | null
-          review_notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "trader_applications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trader_applications_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       promotional_banners: {
         Row: {
           background_color: string | null
@@ -3250,13 +3157,6 @@ export type Database = {
     }
     Functions: {
       aggregate_daily_metrics: { Args: never; Returns: undefined }
-      approve_trader_application: {
-        Args: {
-          application_id: string
-          admin_notes?: string | null
-        }
-        Returns: boolean
-      }
       assign_user_role: {
         Args: {
           target_role: Database["public"]["Enums"]["app_role"]
@@ -3350,13 +3250,6 @@ export type Database = {
       refresh_category_counts: { Args: never; Returns: undefined }
       reject_image_candidate: {
         Args: { candidate_id: string; reason?: string }
-        Returns: boolean
-      }
-      reject_trader_application: {
-        Args: {
-          application_id: string
-          admin_notes?: string | null
-        }
         Returns: boolean
       }
       remove_user_role: {
