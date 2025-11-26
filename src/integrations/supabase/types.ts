@@ -2899,6 +2899,93 @@ export type Database = {
           },
         ]
       }
+      trader_applications: {
+        Row: {
+          account_holder: string
+          account_number: string
+          bank_name: string
+          branch_code: string
+          business_type: string
+          cipc_registration: string | null
+          company_name: string
+          contact_email: string
+          contact_person: string
+          contact_phone: string
+          created_at: string
+          id: string
+          physical_address: string
+          postal_address: string | null
+          proof_of_address: string | null
+          registration_number: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          tax_clearance_certificate: string | null
+          trading_name: string | null
+          updated_at: string
+          user_id: string | null
+          vat_number: string | null
+          years_in_business: number | null
+        }
+        Insert: {
+          account_holder: string
+          account_number: string
+          bank_name: string
+          branch_code: string
+          business_type: string
+          cipc_registration?: string | null
+          company_name: string
+          contact_email: string
+          contact_person: string
+          contact_phone: string
+          created_at?: string
+          id?: string
+          physical_address: string
+          postal_address?: string | null
+          proof_of_address?: string | null
+          registration_number: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tax_clearance_certificate?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          user_id?: string | null
+          vat_number?: string | null
+          years_in_business?: number | null
+        }
+        Update: {
+          account_holder?: string
+          account_number?: string
+          bank_name?: string
+          branch_code?: string
+          business_type?: string
+          cipc_registration?: string | null
+          company_name?: string
+          contact_email?: string
+          contact_person?: string
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          physical_address?: string
+          postal_address?: string | null
+          proof_of_address?: string | null
+          registration_number?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tax_clearance_certificate?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          user_id?: string | null
+          vat_number?: string | null
+          years_in_business?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -3157,6 +3244,10 @@ export type Database = {
     }
     Functions: {
       aggregate_daily_metrics: { Args: never; Returns: undefined }
+      approve_trader_application: {
+        Args: { admin_notes?: string; application_id: string }
+        Returns: undefined
+      }
       assign_user_role: {
         Args: {
           target_role: Database["public"]["Enums"]["app_role"]
@@ -3251,6 +3342,10 @@ export type Database = {
       reject_image_candidate: {
         Args: { candidate_id: string; reason?: string }
         Returns: boolean
+      }
+      reject_trader_application: {
+        Args: { admin_notes?: string; application_id: string }
+        Returns: undefined
       }
       remove_user_role: {
         Args: {
