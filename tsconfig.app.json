@@ -14,12 +14,22 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
+    /* Type Safety - Incremental Migration
+     * Current: Basic type checking enabled
+     * TODO: Enable these for full type safety:
+     * - "strict": true (enables all strict checks)
+     * - "strictNullChecks": true (null/undefined handling)
+     * - "noImplicitAny": true (explicit any types required)
+     */
     "strict": false,
+    "noImplicitAny": false,
+
+    /* Safe Linting Options - Enabled */
+    "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noImplicitAny": false,
-    "noFallthroughCasesInSwitch": false,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
 
     "baseUrl": ".",
     "paths": {
