@@ -49,12 +49,7 @@ export const SuperAdminOrderActions = ({ order, onOrderUpdated, onOrderDeleted }
   const { user } = useAuth();
   const { isSuperAdmin } = useRoles(user);
 
-  // Only show for superadmins
-  if (!isSuperAdmin) {
-    return null;
-  }
-
-  // Update order mutation
+  // Update order mutation - moved before conditional return to satisfy Rules of Hooks
   const updateOrderMutation = useMutation({
     mutationFn: async (updatedData: any) => {
       // Parse JSON fields
@@ -161,6 +156,11 @@ export const SuperAdminOrderActions = ({ order, onOrderUpdated, onOrderDeleted }
       });
     },
   });
+
+  // Only show for superadmins - placed after all hooks to satisfy Rules of Hooks
+  if (!isSuperAdmin) {
+    return null;
+  }
 
   const handleEditSubmit = () => {
     updateOrderMutation.mutate(editForm);

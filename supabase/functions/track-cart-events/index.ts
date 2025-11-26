@@ -41,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Processing cart event:', cartEvent.eventType, 'for session:', cartEvent.sessionId);
 
     // Get or create cart session
-    let { data: cartSession, error: sessionError } = await supabaseClient
+    const { data: cartSession, error: sessionError } = await supabaseClient
       .from('cart_sessions')
       .select('*')
       .eq('session_id', cartEvent.sessionId)

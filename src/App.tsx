@@ -1,18 +1,18 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SecurityProvider } from "@/contexts/SecurityContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { EnhancedCartProvider } from "@/components/cart/EnhancedCartProvider";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { BackgroundRemovalProvider } from "@/contexts/BackgroundRemovalContext";
 import { AudioProvider } from "@/contexts/AudioContext";
-import { BrowserCompatibilityChecker } from "@/components/common/BrowserCompatibilityChecker";
-import { ConditionalScriptLoader } from "@/components/common/ConditionalScriptLoader";
-import { EmergencyLoader } from "@/components/common/EmergencyLoader";
-import { MobileSafeComponent } from "@/components/common/MobileSafeComponent";
 import { SecurityMonitor } from "@/components/security/SecurityMonitor";
+import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
+import "./App.css";
+
+// Public pages - loaded immediately
 import Index from "./pages/Index";
 import ProductsPage from "./pages/ProductsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
@@ -37,24 +37,31 @@ import OzzSAPage from "./pages/OzzSAPage";
 import PromotionsPage from "./pages/PromotionsPage";
 import GuestOrderTrackingPage from "./pages/GuestOrderTrackingPage";
 import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminProducts from "./pages/admin/AdminProducts";
-import AdminOrders from "./pages/admin/AdminOrders";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import AdminReturns from "./pages/admin/AdminReturns";
-import AdminSetupPage from "./pages/admin/AdminSetupPage";
-import AdminHomepage from "./pages/admin/AdminHomepage";
-import AdminPayments from "./pages/admin/AdminPayments";
-import AdminPaymentSettings from "./pages/admin/AdminPaymentSettings";
-import { AdminSubscriptions } from "./pages/admin/AdminSubscriptions";
-import AdminOrderRecovery from "./pages/admin/AdminOrderRecovery";
-import SuperAdminSettings from "./pages/admin/SuperAdminSettings";
-import AdminProduction from "./pages/admin/AdminProduction";
-import AdminCartAbandonment from "./pages/admin/AdminCartAbandonment";
-import AdminQuotes from "./pages/admin/AdminQuotes";
-import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
-import "./App.css";
+
+// Admin pages - lazy loaded (only downloaded when accessed)
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminReturns = lazy(() => import("./pages/admin/AdminReturns"));
+const AdminSetupPage = lazy(() => import("./pages/admin/AdminSetupPage"));
+const AdminHomepage = lazy(() => import("./pages/admin/AdminHomepage"));
+const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
+const AdminPaymentSettings = lazy(() => import("./pages/admin/AdminPaymentSettings"));
+const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions").then(m => ({ default: m.AdminSubscriptions })));
+const AdminOrderRecovery = lazy(() => import("./pages/admin/AdminOrderRecovery"));
+const SuperAdminSettings = lazy(() => import("./pages/admin/SuperAdminSettings"));
+const AdminProduction = lazy(() => import("./pages/admin/AdminProduction"));
+const AdminCartAbandonment = lazy(() => import("./pages/admin/AdminCartAbandonment"));
+const AdminQuotes = lazy(() => import("./pages/admin/AdminQuotes"));
+
+// Loading fallback for lazy-loaded components
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -112,28 +119,28 @@ function App() {
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
                 
-                 {/* Admin routes */}
-                 <Route path="/admin" element={<AdminProtectedRoute allowManager><AdminDashboard /></AdminProtectedRoute>} />
-                 <Route path="/admin/products" element={<AdminProtectedRoute><AdminProducts /></AdminProtectedRoute>} />
-                 <Route path="/admin/orders" element={<AdminProtectedRoute allowManager><AdminOrders /></AdminProtectedRoute>} />
-                 <Route path="/admin/analytics" element={<AdminProtectedRoute allowManager><AdminAnalytics /></AdminProtectedRoute>} />
-                 <Route path="/admin/returns" element={<AdminProtectedRoute allowManager><AdminReturns /></AdminProtectedRoute>} />
-                 <Route path="/admin/payments" element={<AdminProtectedRoute><AdminPayments /></AdminProtectedRoute>} />
-                 <Route path="/admin/subscriptions" element={<AdminProtectedRoute><AdminSubscriptions /></AdminProtectedRoute>} />
-                 <Route path="/admin/cart-abandonment" element={<AdminProtectedRoute><AdminCartAbandonment /></AdminProtectedRoute>} />
-                 <Route path="/admin/quotes" element={<AdminProtectedRoute><AdminQuotes /></AdminProtectedRoute>} />
-                 <Route path="/admin/order-recovery" element={<AdminProtectedRoute><AdminOrderRecovery /></AdminProtectedRoute>} />
-                 <Route path="/admin/homepage" element={<AdminProtectedRoute><AdminHomepage /></AdminProtectedRoute>} />
-                 <Route path="/admin/production" element={<AdminProtectedRoute><AdminProduction /></AdminProtectedRoute>} />
-                 
-                  {/* SuperAdmin only routes */}
-                  <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminUsers /></AdminProtectedRoute>} />
-                  <Route path="/admin/payment-settings" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminPaymentSettings /></AdminProtectedRoute>} />
-                  <Route path="/admin/setup" element={<AdminSetupPage />} />
-                  <Route path="/superadmin" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminDashboard /></AdminProtectedRoute>} />
-                  <Route path="/superadmin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><AdminUsers /></AdminProtectedRoute>} />
-                  <Route path="/superadmin/settings" element={<AdminProtectedRoute requireSuperAdmin={true}><SuperAdminSettings /></AdminProtectedRoute>} />
-                  <Route path="/superadmin/setup" element={<AdminSetupPage />} />
+                 {/* Admin routes - lazy loaded */}
+                 <Route path="/admin" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/products" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminProducts /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/orders" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminOrders /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/analytics" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/returns" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminReturns /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/payments" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminPayments /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/subscriptions" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminSubscriptions /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/cart-abandonment" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminCartAbandonment /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/quotes" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminQuotes /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/order-recovery" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminOrderRecovery /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/homepage" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminHomepage /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/production" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminProduction /></Suspense></AdminProtectedRoute>} />
+
+                  {/* SuperAdmin only routes - lazy loaded */}
+                  <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminProtectedRoute>} />
+                  <Route path="/admin/payment-settings" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminPaymentSettings /></Suspense></AdminProtectedRoute>} />
+                  <Route path="/admin/setup" element={<Suspense fallback={<PageLoader />}><AdminSetupPage /></Suspense>} />
+                  <Route path="/superadmin" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></AdminProtectedRoute>} />
+                  <Route path="/superadmin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminProtectedRoute>} />
+                  <Route path="/superadmin/settings" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><SuperAdminSettings /></Suspense></AdminProtectedRoute>} />
+                  <Route path="/superadmin/setup" element={<Suspense fallback={<PageLoader />}><AdminSetupPage /></Suspense>} />
                 
                 {/* 404 route */}
                 <Route path="*" element={<NotFound />} />

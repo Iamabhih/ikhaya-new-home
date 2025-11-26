@@ -56,13 +56,14 @@ export const ProductBulkActions = ({ selectedProducts, onClearSelection }: Produ
         case 'unfeature':
           updateData = { is_featured: false };
           break;
-        case 'delete':
+        case 'delete': {
           const { error: deleteError } = await supabase
             .from('products')
             .delete()
             .in('id', products);
           if (deleteError) throw deleteError;
           return;
+        }
         default:
           throw new Error('Invalid bulk action');
       }

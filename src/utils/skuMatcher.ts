@@ -151,13 +151,13 @@ export class SKUMatcher {
     
     // 5. PATTERN EXTRACTION (SKU-123456, ITEM_123456, etc.)
     const patterns = [
-      /(?:SKU|sku|ITEM|item|PRODUCT|product|PROD|prod)[_\-\s]?(\d{3,8})/g,
-      /[A-Z]{2,}[_\-]?(\d{3,8})/g, // XX-123456 patterns
-      /(\d{3,8})[_\-][A-Za-z]+/g,   // 123456-variant patterns
+      /(?:SKU|sku|ITEM|item|PRODUCT|product|PROD|prod)[_\s-]?(\d{3,8})/g,
+      /[A-Z]{2,}[_-]?(\d{3,8})/g, // XX-123456 patterns
+      /(\d{3,8})[_-][A-Za-z]+/g,   // 123456-variant patterns
       /\[(\d{3,8})\]/g,             // [123456] patterns
       /\((\d{3,8})\)/g,             // (123456) patterns
-      /^(\d{3,8})[_\-]/g,           // Starting with number
-      /[_\-](\d{3,8})$/g,           // Ending with number
+      /^(\d{3,8})[_-]/g,           // Starting with number
+      /[_-](\d{3,8})$/g,           // Ending with number
     ];
     
     patterns.forEach(pattern => {

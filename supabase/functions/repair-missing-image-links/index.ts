@@ -108,9 +108,9 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
     // Pure numeric with dots (highest priority)
     /^(\d{3,8}(?:\.\d{3,8})+)\.?$/,
     // Numeric with mixed content
-    /^(\d{3,8}(?:[\.\-_]\d{3,8})+)[\.\-_]?[a-zA-Z]*\.?$/,
+    /^(\d{3,8}(?:[._-]\d{3,8})+)[._-]?[a-zA-Z]*\.?$/,
     // Any sequence of numbers separated by dots/dashes/underscores
-    /(\d{3,8}(?:[\.\-_]\d{3,8})+)/
+    /(\d{3,8}(?:[._-]\d{3,8})+)/
   ];
   
   for (const pattern of multiSkuPatterns) {
@@ -139,10 +139,10 @@ function extractSKUsFromFilename(filename: string, fullPath?: string): Extracted
   if (!skus.length || cleanName.includes('.')) {
     const enhancedPatterns = [
       // Numeric with suffix (447799.453343.blue.png → 447799, 453343)
-      /(\d{3,8})(?:[\.\-_][a-zA-Z]+)+/g,
+      /(\d{3,8})(?:[._-][a-zA-Z]+)+/g,
       // Standard patterns
-      /^(\d{3,8})[a-zA-Z_\-]+$/g,     // numeric with suffix
-      /^[a-zA-Z_\-]+(\d{3,8})$/g,     // prefix with numeric
+      /^(\d{3,8})[a-zA-Z_-]+$/g,     // numeric with suffix
+      /^[a-zA-Z_-]+(\d{3,8})$/g,     // prefix with numeric
       /(\d{3,8})/g                    // any 3+ digit sequence
     ];
 
@@ -256,7 +256,7 @@ async function processBatchProgressive(supabase: any, sessionId: string, confide
   // Phase 3: Progressive storage scanning and matching
   console.log(`\n📁 Phase 3: Progressive storage scan`);
   
-  let allStorageFiles: any[] = [];
+  const allStorageFiles: any[] = [];
   let offset = 0;
   const STORAGE_BATCH_SIZE = 200;
   
@@ -638,7 +638,7 @@ serve(async (req) => {
     const PROCESSING_BATCH_SIZE = 50;
     
     console.log("🔍 Starting optimized storage scan...");
-    let allStorageFiles: any[] = [];
+    const allStorageFiles: any[] = [];
     let offset = 0;
     
     // Fetch storage files in batches

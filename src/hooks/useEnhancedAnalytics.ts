@@ -1,3 +1,13 @@
+/**
+ * @deprecated Use useImprovedAnalytics instead.
+ * This hook uses WebSocket connections which add unnecessary complexity.
+ * useImprovedAnalytics provides the same functionality with polling-based updates.
+ *
+ * Migration guide:
+ * - Replace: import { useEnhancedAnalytics } from '@/hooks/useEnhancedAnalytics'
+ * - With:    import { useImprovedAnalytics } from '@/hooks/useImprovedAnalytics'
+ * - The return values are compatible (realTimeMetrics, customerAnalytics, productPerformance, refreshViews)
+ */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useRef } from 'react';

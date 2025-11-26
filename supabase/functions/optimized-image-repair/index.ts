@@ -40,9 +40,9 @@ function extractAllSKUs(filename: string, fullPath?: string): Array<{sku: string
   
   // Strategy 2: Multi-SKU patterns (dot separated, dash separated, underscore separated)
   const multiSkuPatterns = [
-    /^(\d{3,8}(?:[\.\-_]\d{3,8})+)[\.\-_]?.*$/,  // Multiple SKUs with separators
+    /^(\d{3,8}(?:[._-]\d{3,8})+)[._-]?.*$/,  // Multiple SKUs with separators
     /(\d{3,8})\.(\d{3,8})\.?.*$/,                  // Dot separated SKUs
-    /(\d{3,8})\-(\d{3,8})\-?.*$/,                  // Dash separated SKUs
+    /(\d{3,8})-(\d{3,8})-?.*$/,                  // Dash separated SKUs
     /(\d{3,8})_(\d{3,8})_?.*$/                     // Underscore separated SKUs
   ];
   
@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
 
     // Step 1: Get ALL active products (no limits)
     console.log('📦 Fetching ALL products...');
-    let allProducts = [];
+    const allProducts = [];
     let offset = 0;
     const batchSize = 1000;
     

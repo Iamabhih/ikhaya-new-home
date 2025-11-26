@@ -94,7 +94,7 @@ function extractSKUs(filename: string, fullPath?: string): ExtractedSKU[] {
 
   enhancedPatterns.forEach((pattern, index) => {
     try {
-      let matches = [...cleanFilename.matchAll(pattern)];
+      const matches = [...cleanFilename.matchAll(pattern)];
       console.log(`Pattern ${index} (${pattern}) found ${matches.length} matches in "${cleanFilename}"`);
       
       matches.forEach(match => {

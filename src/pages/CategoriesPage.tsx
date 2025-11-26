@@ -43,7 +43,7 @@ const CategoriesPage = () => {
             <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               Shop by Category
             </h1>
-            <p className="text-muted-foreground text-xl leading-relaxed">Discover our carefully curated collection of homeware organized by function. 
+            <p className="text-muted-foreground text-xl leading-relaxed">Discover our carefully curated collection of homeware organized by function. 
 Find everything you need to transform your space.</p>
           </div>
         </div>

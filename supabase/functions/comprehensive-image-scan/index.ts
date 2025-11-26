@@ -51,9 +51,9 @@ function extractAllSKUs(filename: string): Array<{sku: string, confidence: numbe
   
   // Strategy 2: Multi-SKU patterns (dot separated, dash separated, underscore separated)
   const multiSkuPatterns = [
-    /^(\d{3,8}(?:[\.\-_]\d{3,8})+)[\.\-_]?.*$/,
+    /^(\d{3,8}(?:[._-]\d{3,8})+)[._-]?.*$/,
     /(\d{3,8})\.(\d{3,8})\.?.*$/,
-    /(\d{3,8})\-(\d{3,8})\-?.*$/,
+    /(\d{3,8})-(\d{3,8})-?.*$/,
     /(\d{3,8})_(\d{3,8})_?.*$/
   ];
   
