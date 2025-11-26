@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { ShoppingCart, User, Search, Menu, X, Package, Settings, BarChart3, Users, CreditCard, RotateCcw } from "lucide-react";
+import { ShoppingCart, User, Search, Menu, X, Package, Settings, BarChart3, Users, CreditCard, RotateCcw, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/hooks/useRoles";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { TraderApplicationForm } from "@/components/auth/TraderApplicationForm";
 import { MobileNav } from "./MobileNav";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundRemovalStatus from "@/components/admin/BackgroundRemovalStatus";
@@ -82,8 +83,17 @@ export const Header = () => {
               <Link to="/promotions" className="premium-nav-item">
                 Promotions
               </Link>
-              
-              
+
+              {/* Become a Trader Button */}
+              <TraderApplicationForm
+                trigger={
+                  <Button size="sm" className="bg-[#DC3545] hover:bg-[#BB2D3B] text-white font-semibold text-xs px-3">
+                    <Building2 className="h-3.5 w-3.5 mr-1.5" />
+                    Become a Trader
+                  </Button>
+                }
+              />
+
               {/* Admin/Manager Dropdown */}
               {(isAdmin() || isManager()) && <DropdownMenu>
                   <DropdownMenuTrigger asChild>
