@@ -1,27 +1,44 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-    <title>Your Trusted Partner| Wholesaler, Distributor, Manufacturer</title>
-    <meta name="description" content="Black Orchid Generated Project">
-    <meta name="author" content="Black Orchid" />
-    <link rel="icon" type="image/png" href="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png">
-<link rel="apple-touch-icon" href="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png">
+    <title>OZZ Cash & Carry | Wholesale Homeware Products</title>
+    <meta name="description" content="Your trusted partner for wholesale homeware, kitchenware, and household products. Quality products at competitive prices.">
+    <meta name="author" content="OZZ Cash & Carry" />
+
+    <!-- Favicon and Icons -->
+    <link rel="icon" type="image/png" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#9333ea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="OZZ">
+    <meta name="application-name" content="OZZ Cash & Carry">
+    <meta name="msapplication-TileColor" content="#9333ea">
+    <meta name="msapplication-tap-highlight" content="no">
 
     <!-- Google Fonts for promotional banners -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700;900&family=Open+Sans:wght@300;400;500;600;700;800&family=Lato:wght@300;400;700;900&family=Oswald:wght@300;400;500;600;700&family=Source+Sans+Pro:wght@300;400;600;700;900&family=Raleway:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-
-    
-    
+    <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
+    <meta property="og:title" content="OZZ Cash & Carry | Wholesale Homeware Products">
+    <meta property="og:description" content="Your trusted partner for wholesale homeware, kitchenware, and household products.">
+    <meta property="og:image" content="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png">
+    <meta property="og:url" content="https://ozzsa.com">
+    <meta property="og:site_name" content="OZZ Cash & Carry">
 
+    <!-- Twitter Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@BlackOrchid" />
+    <meta name="twitter:title" content="OZZ Cash & Carry | Wholesale Homeware Products">
+    <meta name="twitter:description" content="Your trusted partner for wholesale homeware, kitchenware, and household products.">
+    <meta name="twitter:image" content="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png">
 
     <!-- Critical CSS inline for instant loading -->
     <style>
@@ -38,10 +55,10 @@
         text-align: center;
       }
       .loading-spinner {
-        width: 24px;
-        height: 24px;
-        border: 2px solid #e5e7eb;
-        border-top: 2px solid #3b82f6;
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e5e7eb;
+        border-top: 3px solid #9333ea;
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -50,41 +67,40 @@
         100% { transform: rotate(360deg); }
       }
     </style>
-    <meta property="og:title" content="Your Trusted Partner| Wholesaler, Distributor, Manufacturer">
-  <meta name="twitter:title" content="Your Trusted Partner| Wholesaler, Distributor, Manufacturer">
-  <meta property="og:description" content="Black Orchid Generated Project">
-  <meta name="twitter:description" content="Black Orchid Generated Project">
-</head>
+  </head>
 
   <body>
     <div id="root">
-      <!-- Emergency fallback for critical loading failures -->
+      <!-- Loading fallback -->
       <div class="emergency-fallback" id="emergency-fallback">
         <div>
           <div class="loading-spinner"></div>
-          <p style="margin-top: 1rem; color: #6b7280;">Loading...</p>
+          <p style="margin-top: 1rem; color: #6b7280; font-weight: 500;">Loading OZZ...</p>
         </div>
       </div>
     </div>
-    
+
     <!-- Main app script - with error handling -->
     <script type="module">
       // Emergency error handler
       window.addEventListener('error', function(e) {
         console.error('Critical loading error:', e);
-        document.getElementById('emergency-fallback').innerHTML = `
-          <div style="max-width: 400px;">
-            <h2 style="color: #dc2626; margin-bottom: 1rem;">Loading Error</h2>
-            <p style="margin-bottom: 1rem; color: #6b7280;">
-              Unable to load the application. This might be due to browser compatibility.
-            </p>
-            <button onclick="window.location.reload()" 
-                    style="background: #3b82f6; color: white; padding: 0.75rem 1.5rem; 
-                           border: none; border-radius: 0.5rem; cursor: pointer;">
-              Refresh Page
-            </button>
-          </div>
-        `;
+        const fallback = document.getElementById('emergency-fallback');
+        if (fallback) {
+          fallback.innerHTML = `
+            <div style="max-width: 400px;">
+              <h2 style="color: #dc2626; margin-bottom: 1rem;">Loading Error</h2>
+              <p style="margin-bottom: 1rem; color: #6b7280;">
+                Unable to load the application. Please check your internet connection.
+              </p>
+              <button onclick="window.location.reload()"
+                      style="background: #9333ea; color: white; padding: 0.75rem 1.5rem;
+                             border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">
+                Refresh Page
+              </button>
+            </div>
+          `;
+        }
       });
     </script>
     <script type="module" src="/src/main.tsx"></script>
