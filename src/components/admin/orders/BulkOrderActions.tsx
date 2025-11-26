@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Package, 
-  Send, 
-  Download, 
+import { toast } from "sonner";
+import {
+  Package,
+  Send,
+  Download,
   X,
   CheckCircle,
   Clock,
@@ -131,11 +132,19 @@ export const BulkOrderActions = ({
           )}
 
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toast.info("Bulk email feature coming soon")}
+            >
               <Send className="h-4 w-4 mr-2" />
               Send Bulk Email
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toast.info("Export feature coming soon")}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export Selected
             </Button>

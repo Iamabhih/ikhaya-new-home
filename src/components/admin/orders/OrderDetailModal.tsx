@@ -199,11 +199,13 @@ export const OrderDetailModal = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-muted-foreground">Name</label>
-                    <p>{order.profiles?.first_name} {order.profiles?.last_name}</p>
+                    <p>{order.profiles?.first_name || order.profiles?.last_name
+                      ? `${order.profiles?.first_name || ''} ${order.profiles?.last_name || ''}`.trim()
+                      : 'Guest Customer'}</p>
                   </div>
                   <div>
                     <label className="text-sm text-muted-foreground">Email</label>
-                    <p>{order.profiles?.email}</p>
+                    <p>{order.profiles?.email || order.email || 'No email provided'}</p>
                   </div>
                 </div>
               </div>
@@ -212,17 +214,21 @@ export const OrderDetailModal = ({
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-2">Order Items</h4>
                 <div className="space-y-2">
-                  {order.order_items?.map((item: any) => (
-                    <div key={item.id} className="flex justify-between items-center p-2 bg-muted rounded">
-                      <div>
-                        <span className="font-medium">{item.product_name}</span>
-                        <span className="text-sm text-muted-foreground ml-2">
-                          Qty: {item.quantity}
-                        </span>
+                  {order.order_items && order.order_items.length > 0 ? (
+                    order.order_items.map((item: any) => (
+                      <div key={item.id} className="flex justify-between items-center p-2 bg-muted rounded">
+                        <div>
+                          <span className="font-medium">{item.product_name || 'Unknown Product'}</span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            Qty: {item.quantity}
+                          </span>
+                        </div>
+                        <span className="font-medium">R{((item.unit_price || 0) * (item.quantity || 0)).toFixed(2)}</span>
                       </div>
-                      <span className="font-medium">R{(item.unit_price * item.quantity).toFixed(2)}</span>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No items in this order</p>
+                  )}
                 </div>
               </div>
             </CardContent>

@@ -18,7 +18,7 @@ const AdminDashboard = () => {
   const { roles } = useRoles(user);
 
   // Fetch dashboard statistics
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
       const [productsRes, ordersRes, customersRes, revenueRes, subscriptionsRes] = await Promise.all([
@@ -28,6 +28,13 @@ const AdminDashboard = () => {
         supabase.from('orders').select('total_amount').eq('status', 'delivered'),
         supabase.from('newsletter_subscriptions').select('id, is_active, subscribed_at')
       ]);
+
+      // Check for errors in any of the queries
+      if (productsRes.error) throw new Error(`Products: ${productsRes.error.message}`);
+      if (ordersRes.error) throw new Error(`Orders: ${ordersRes.error.message}`);
+      if (customersRes.error) throw new Error(`Customers: ${customersRes.error.message}`);
+      if (revenueRes.error) throw new Error(`Revenue: ${revenueRes.error.message}`);
+      if (subscriptionsRes.error) throw new Error(`Subscriptions: ${subscriptionsRes.error.message}`);
 
       const totalProducts = productsRes.data?.length || 0;
       const totalOrders = ordersRes.data?.length || 0;
@@ -68,8 +75,8 @@ const AdminDashboard = () => {
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
         
-        const dayOrders = ordersRes.data?.filter(order => 
-          order.created_at.startsWith(dateStr) && order.status === 'delivered'
+        const dayOrders = ordersRes.data?.filter(order =>
+          order.created_at?.startsWith(dateStr) && order.status === 'delivered'
         ) || [];
         
         const dayRevenue = dayOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
@@ -100,6 +107,28 @@ const AdminDashboard = () => {
   });
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+  if (statsLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (statsError) {
+    return (
+      <AdminLayout>
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Failed to load dashboard</h2>
+          <p className="text-gray-600">{statsError.message}</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
