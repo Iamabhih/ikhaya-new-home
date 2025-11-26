@@ -18,7 +18,7 @@ export const SecurityMonitor: React.FC = () => {
   const [isMonitoring, setIsMonitoring] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) return undefined;
     
     // Lightweight monitoring only - remove performance-heavy operations
     setIsMonitoring(true);

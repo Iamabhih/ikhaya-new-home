@@ -109,7 +109,7 @@ serve(async (req) => {
             socket.send(JSON.stringify({
               type: 'error',
               message: 'Failed to fetch metrics',
-              error: error.message,
+              error: (error as Error).message,
               timestamp: new Date().toISOString()
             }));
           }
@@ -121,7 +121,7 @@ serve(async (req) => {
         socket.send(JSON.stringify({
           type: 'error',
           message: 'Failed to process message',
-          error: error.message,
+          error: (error as Error).message,
           timestamp: new Date().toISOString()
         }));
       } catch (sendError) {

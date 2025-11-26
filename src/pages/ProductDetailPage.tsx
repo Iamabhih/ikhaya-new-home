@@ -94,6 +94,7 @@ const ProductDetailPage = () => {
         });
       };
     }
+    return undefined;
   }, [product, trackProductView, trackEvent]);
 
   if (isLoading) {
