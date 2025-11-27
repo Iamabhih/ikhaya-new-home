@@ -3,10 +3,11 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X, Home, Package, Grid3X3, Info, MessageCircle, ShoppingCart, Heart, User, Settings, BarChart3, Users, CreditCard, RotateCcw, FileText } from "lucide-react";
+import { Menu, X, Home, Package, Grid3X3, Info, MessageCircle, ShoppingCart, Heart, User, Settings, BarChart3, Users, CreditCard, RotateCcw, FileText, Building2 } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { TraderApplicationForm } from "@/components/auth/TraderApplicationForm";
 
 interface MobileNavProps {
   user: SupabaseUser | null;
@@ -87,6 +88,18 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
               </Link>
             );
           })}
+        </div>
+
+        {/* Become a Trader */}
+        <div className="pt-4 mt-4 border-t">
+          <TraderApplicationForm
+            trigger={
+              <Button className="w-full bg-[#DC3545] hover:bg-[#BB2D3B] text-white font-semibold">
+                <Building2 className="h-5 w-5 mr-2" />
+                Become a Trader
+              </Button>
+            }
+          />
         </div>
 
         {/* Admin Section */}
