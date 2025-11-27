@@ -3,6 +3,12 @@ project_id = "kauostzhxqoxggwqgtym"
 [functions.analytics-stream]
 verify_jwt = false
 
+[functions.link-product-images]
+verify_jwt = false
+
+[functions.master-image-linker]
+verify_jwt = false
+
 [functions.send-email]
 verify_jwt = false
 
