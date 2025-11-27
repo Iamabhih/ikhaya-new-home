@@ -6,7 +6,7 @@ import {
   RefreshCw, Wifi, WifiOff, AlertCircle
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useEnhancedAnalytics } from "@/hooks/useEnhancedAnalytics";
+import { useImprovedAnalytics } from "@/hooks/useImprovedAnalytics";
 
 interface RealTimeMetric {
   label: string;
@@ -20,7 +20,9 @@ interface RealTimeMetric {
 
 export const EnhancedRealTimeMetrics = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const { realTimeMetrics, refreshViews, isConnected } = useEnhancedAnalytics();
+  const { realTimeMetrics, refreshViews, isLoading } = useImprovedAnalytics();
+  // Polling-based analytics is considered "connected" when data is available
+  const isConnected = !isLoading && realTimeMetrics !== undefined;
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
