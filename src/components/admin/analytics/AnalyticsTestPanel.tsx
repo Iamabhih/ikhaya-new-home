@@ -13,7 +13,7 @@ import { useImprovedAnalytics } from "@/hooks/useImprovedAnalytics";
 export const AnalyticsTestPanel = () => {
   const [testResults, setTestResults] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const { realTimeMetrics, customerAnalytics, productPerformance } = useImprovedAnalytics();
+  const { realTimeMetrics, customerAnalytics, productPerformance, overviewStats } = useImprovedAnalytics();
 
   const runDiagnostics = async () => {
     setIsRunning(true);
@@ -132,7 +132,7 @@ export const AnalyticsTestPanel = () => {
             <div>
               <div className="text-sm font-medium">Customers</div>
               <div className="text-xs text-muted-foreground">
-                {customerAnalytics?.totalCustomers || 0} authentic
+                {overviewStats?.totalCustomers || 0} authentic
               </div>
             </div>
           </div>
