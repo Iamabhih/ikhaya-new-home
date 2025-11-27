@@ -8,12 +8,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useEnhancedAnalytics } from "@/hooks/useEnhancedAnalytics";
+import { useImprovedAnalytics } from "@/hooks/useImprovedAnalytics";
 
 export const AnalyticsTestPanel = () => {
   const [testResults, setTestResults] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const { realTimeMetrics, customerAnalytics, productPerformance } = useEnhancedAnalytics();
+  const { realTimeMetrics, customerAnalytics, productPerformance } = useImprovedAnalytics();
 
   const runDiagnostics = async () => {
     setIsRunning(true);
