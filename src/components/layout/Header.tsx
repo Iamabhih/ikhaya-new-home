@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import BackgroundRemovalStatus from "@/components/admin/BackgroundRemovalStatus";
 import { BackgroundAudioPlayer } from "@/components/audio/BackgroundAudioPlayer";
 import { useAudio } from "@/contexts/AudioContext";
-import ozzLogo from "@/assets/ozz-logo-main.png";
+import ozzLogo from "@/assets/ozz-logo-new.jpg";
 export const Header = () => {
   const {
     items
