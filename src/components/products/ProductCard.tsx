@@ -125,14 +125,14 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
       <Link to={productUrl} className="block">
         {/* Image Section with Corner Badges */}
         <div className="relative bg-[#F5F5F0] aspect-square overflow-hidden">
-          {/* Top Left Badge - WHOLESALE or SALE */}
-          <div className="absolute top-3 left-3 z-10">
-            <span className={`inline-block text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md ${
-              hasDiscount ? 'bg-[#DC3545]' : 'bg-[#DC3545]'
-            }`}>
-              {hasDiscount ? 'SALE' : 'WHOLESALE'}
-            </span>
-          </div>
+          {/* Top Left Badge - SALE only */}
+          {hasDiscount && (
+            <div className="absolute top-3 left-3 z-10">
+              <span className="inline-block bg-[#DC3545] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
+                SALE
+              </span>
+            </div>
+          )}
 
           {/* Top Right Badge - Category */}
           {product.categories && (
