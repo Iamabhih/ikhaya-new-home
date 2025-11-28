@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Phone, MapPin, Clock, MessageCircle } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
+
 const ContactPage = () => {
-  return <div className="min-h-screen bg-background" style={{
-    backgroundImage: 'var(--gradient-card)',
-    backgroundAttachment: 'fixed'
-  }}>
+  return (
+    <div className="min-h-screen bg-background" style={{
+      backgroundImage: 'var(--gradient-card)',
+      backgroundAttachment: 'fixed'
+    }}>
       <Header />
       {/* Hero Section */}
       <section className="bg-brand-gradient py-16 relative overflow-hidden">
@@ -101,7 +103,7 @@ const ContactPage = () => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <MessageCircle className="h-5 w-5 text-green-500" />
-                  <a href="https://wa.me/27662498802" target="_blank" rel="noopener noreferrer" className="hover:text-green-500 transition-colors">+27 72 663 3544 (WhatsApp)</a>
+                  <a href="https://wa.me/27726633544" target="_blank" rel="noopener noreferrer" className="hover:text-green-500 transition-colors">+27 72 663 3544 (WhatsApp)</a>
                 </div>
                 <div className="flex items-center space-x-3">
                   <MapPin className="h-5 w-5 text-primary" />
@@ -143,6 +145,8 @@ const ContactPage = () => {
         </div>
       </main>
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default ContactPage;
