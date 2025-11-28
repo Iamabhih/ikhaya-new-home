@@ -101,9 +101,7 @@ const ContactPage = () => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <MessageCircle className="h-5 w-5 text-green-500" />
-                  <a href="https://wa.me/27662498802" target="_blank" rel="noopener noreferrer" className="hover:text-green-500 transition-colors">
-                    +27 66 249 8802 (WhatsApp)
-                  </a>
+                  <a href="https://wa.me/27662498802" target="_blank" rel="noopener noreferrer" className="hover:text-green-500 transition-colors">+27 72 663 3544 (WhatsApp)</a>
                 </div>
                 <div className="flex items-center space-x-3">
                   <MapPin className="h-5 w-5 text-primary" />
