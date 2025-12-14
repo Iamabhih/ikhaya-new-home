@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, FileText, Calendar, Eye, Store, Users } from "lucide-react";
+import { Download, FileText, Calendar, Eye, Store, Users, Share2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { PDFPreview } from "@/components/common/PDFPreview";
 import { format } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 type PromotionType = "all" | "trader" | "retail";
 
@@ -62,26 +63,43 @@ const PromotionsPage = () => {
     }
   };
 
-  // Filter promotions based on type
-  // Uses promotion_type field if available, otherwise filters by title keywords
+  const handleShare = async (promotion: any) => {
+    const shareData = {
+      title: promotion.title,
+      text: promotion.description || `Check out this promotion: ${promotion.title}`,
+      url: promotion.file_url,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        toast({ title: "Shared!", description: "Promotion shared successfully" });
+      } else {
+        // Fallback: copy link to clipboard
+        await navigator.clipboard.writeText(promotion.file_url);
+        toast({ title: "Link Copied!", description: "Promotion link copied to clipboard" });
+      }
+    } catch (error) {
+      // User cancelled or error
+      if ((error as Error).name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(promotion.file_url);
+          toast({ title: "Link Copied!", description: "Promotion link copied to clipboard" });
+        } catch {
+          toast({ title: "Error", description: "Failed to share promotion", variant: "destructive" });
+        }
+      }
+    }
+  };
+
+  // Filter promotions based on type using the promotion_type field
   const filterPromotions = (promos: any[] | undefined, type: PromotionType) => {
     if (!promos) return [];
     if (type === "all") return promos;
 
     return promos.filter(promo => {
-      // Check if promotion has a type field
-      if (promo.promotion_type) {
-        return promo.promotion_type.toLowerCase() === type;
-      }
-      // Fallback: filter by title keywords
-      const title = (promo.title || '').toLowerCase();
-      if (type === "trader") {
-        return title.includes('trader') || title.includes('wholesale') || title.includes('trade');
-      }
-      if (type === "retail") {
-        return title.includes('retail') || title.includes('customer') || !title.includes('trader');
-      }
-      return true;
+      const promoType = promo.promotion_type || 'retail';
+      return promoType.toLowerCase() === type;
     });
   };
 
@@ -189,6 +207,14 @@ const PromotionsPage = () => {
             >
               <Eye className="h-4 w-4 mr-2" />
               View
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleShare(promotion)}
+              title="Share"
+            >
+              <Share2 className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
