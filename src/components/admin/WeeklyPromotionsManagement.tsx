@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, Download, FileText, Plus, Settings, Trash2, Upload } from "lucide-react";
+import { Calendar, Download, FileText, Plus, Settings, Trash2, Upload, Share2, Eye, Store, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { PDFPreview } from "@/components/common/PDFPreview";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface PromotionFormData {
   title: string;
@@ -23,6 +25,7 @@ interface PromotionFormData {
   week_start_date: string;
   week_end_date: string;
   file: File | null;
+  promotion_type: 'trader' | 'retail';
 }
 
 export const WeeklyPromotionsManagement = () => {
@@ -30,13 +33,15 @@ export const WeeklyPromotionsManagement = () => {
   const { settings, updateSetting } = useSiteSettings();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewPromotion, setPreviewPromotion] = useState<any | null>(null);
   
   const [formData, setFormData] = useState<PromotionFormData>({
     title: "",
     description: "",
     week_start_date: "",
     week_end_date: "",
-    file: null
+    file: null,
+    promotion_type: 'retail'
   });
 
   const { data: promotions, isLoading } = useQuery({
@@ -83,7 +88,7 @@ export const WeeklyPromotionsManagement = () => {
       const fileName = `${Date.now()}-${data.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.${fileExt}`;
       const filePath = `promotions/${fileName}`;
       
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('site-images')
         .upload(filePath, data.file);
       
@@ -94,7 +99,7 @@ export const WeeklyPromotionsManagement = () => {
         .from('site-images')
         .getPublicUrl(filePath);
       
-      // Create promotion record
+      // Create promotion record with promotion_type
       const { error: insertError } = await supabase
         .from('weekly_promotions')
         .insert({
@@ -105,6 +110,7 @@ export const WeeklyPromotionsManagement = () => {
           file_size: data.file.size,
           week_start_date: data.week_start_date,
           week_end_date: data.week_end_date,
+          promotion_type: data.promotion_type,
         });
       
       if (insertError) throw insertError;
@@ -117,7 +123,8 @@ export const WeeklyPromotionsManagement = () => {
         description: "",
         week_start_date: "",
         week_end_date: "",
-        file: null
+        file: null,
+        promotion_type: 'retail'
       });
       toast({
         title: "Success",
@@ -185,6 +192,36 @@ export const WeeklyPromotionsManagement = () => {
     }
   };
 
+  const handleShare = async (promotion: any) => {
+    const shareUrl = `${window.location.origin}/promotions`;
+    const shareData = {
+      title: promotion.title,
+      text: promotion.description || `Check out this promotion: ${promotion.title}`,
+      url: promotion.file_url,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        toast({ title: "Shared!", description: "Promotion shared successfully" });
+      } else {
+        // Fallback: copy link to clipboard
+        await navigator.clipboard.writeText(promotion.file_url);
+        toast({ title: "Link Copied!", description: "Promotion link copied to clipboard" });
+      }
+    } catch (error) {
+      // User cancelled or error
+      if ((error as Error).name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(promotion.file_url);
+          toast({ title: "Link Copied!", description: "Promotion link copied to clipboard" });
+        } catch {
+          toast({ title: "Error", description: "Failed to share promotion", variant: "destructive" });
+        }
+      }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.file) {
@@ -196,6 +233,10 @@ export const WeeklyPromotionsManagement = () => {
       return;
     }
     createPromotionMutation.mutate(formData);
+  };
+
+  const getTypeColor = (type: string) => {
+    return type === 'trader' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : 'bg-blue-500/10 text-blue-600 border-blue-500/30';
   };
 
   return (
@@ -284,6 +325,33 @@ export const WeeklyPromotionsManagement = () => {
                         placeholder="Weekly Special Offer"
                         required
                       />
+                    </div>
+
+                    {/* Promotion Type Toggle */}
+                    <div className="space-y-2">
+                      <Label>Promotion Type</Label>
+                      <ToggleGroup 
+                        type="single" 
+                        value={formData.promotion_type}
+                        onValueChange={(value) => {
+                          if (value) setFormData(prev => ({ ...prev, promotion_type: value as 'trader' | 'retail' }));
+                        }}
+                        className="justify-start"
+                      >
+                        <ToggleGroupItem value="retail" aria-label="Retail" className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Retail
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="trader" aria-label="Trader" className="flex items-center gap-2">
+                          <Store className="h-4 w-4" />
+                          Trader
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                      <p className="text-xs text-muted-foreground">
+                        {formData.promotion_type === 'trader' 
+                          ? 'This promotion will appear in the Trader tab' 
+                          : 'This promotion will appear in the Retail tab'}
+                      </p>
                     </div>
                     
                     <div className="space-y-2">
@@ -375,10 +443,13 @@ export const WeeklyPromotionsManagement = () => {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-medium">{promotion.title}</h4>
                           <Badge variant={promotion.is_active ? "default" : "secondary"}>
                             {promotion.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                          <Badge className={getTypeColor(promotion.promotion_type || 'retail')}>
+                            {(promotion.promotion_type || 'retail').toUpperCase()}
                           </Badge>
                           <Badge variant="outline">
                             {promotion.file_type.toUpperCase()}
@@ -404,9 +475,18 @@ export const WeeklyPromotionsManagement = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(promotion.file_url, '_blank')}
+                          onClick={() => setPreviewPromotion(promotion)}
+                          title="Preview"
                         >
-                          View
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShare(promotion)}
+                          title="Share"
+                        >
+                          <Share2 className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
@@ -448,6 +528,58 @@ export const WeeklyPromotionsManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewPromotion} onOpenChange={(open) => !open && setPreviewPromotion(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{previewPromotion?.title}</DialogTitle>
+            {previewPromotion?.description && (
+              <DialogDescription>{previewPromotion.description}</DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="py-4">
+            {previewPromotion?.file_type?.toLowerCase() === 'pdf' ? (
+              <div className="flex justify-center">
+                <PDFPreview
+                  fileUrl={previewPromotion.file_url}
+                  fileName={previewPromotion.title}
+                  width={600}
+                  height={800}
+                  className="border border-border rounded-lg"
+                />
+              </div>
+            ) : ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(previewPromotion?.file_type?.toLowerCase() || '') ? (
+              <div className="flex justify-center">
+                <img
+                  src={previewPromotion?.file_url}
+                  alt={previewPromotion?.title}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg border border-border"
+                />
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">Preview not available for this file type</p>
+                <Button onClick={() => window.open(previewPromotion?.file_url, '_blank')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download to View
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleShare(previewPromotion)}>
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+            <Button onClick={() => window.open(previewPromotion?.file_url, '_blank')}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -3055,6 +3055,7 @@ export type Database = {
           file_url: string
           id: string
           is_active: boolean
+          promotion_type: string
           sort_order: number | null
           title: string
           updated_at: string
@@ -3071,6 +3072,7 @@ export type Database = {
           file_url: string
           id?: string
           is_active?: boolean
+          promotion_type?: string
           sort_order?: number | null
           title: string
           updated_at?: string
@@ -3087,6 +3089,7 @@ export type Database = {
           file_url?: string
           id?: string
           is_active?: boolean
+          promotion_type?: string
           sort_order?: number | null
           title?: string
           updated_at?: string
