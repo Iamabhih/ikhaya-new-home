@@ -3248,15 +3248,15 @@ export type Database = {
       }
       bulk_insert_products:
         | {
+            Args: { import_id_param: string; products_data: Json }
+            Returns: Json
+          }
+        | {
             Args: {
               import_id_param: string
               products_data: Json
               update_duplicates?: boolean
             }
-            Returns: Json
-          }
-        | {
-            Args: { import_id_param: string; products_data: Json }
             Returns: Json
           }
       bulk_update_order_status: {
@@ -3373,10 +3373,6 @@ export type Database = {
       }
       update_product_stock:
         | {
-            Args: { product_id: string; quantity_sold: number }
-            Returns: undefined
-          }
-        | {
             Args: {
               p_movement_type: string
               p_notes?: string
@@ -3385,6 +3381,10 @@ export type Database = {
               p_quantity_change: number
             }
             Returns: boolean
+          }
+        | {
+            Args: { product_id: string; quantity_sold: number }
+            Returns: undefined
           }
       validate_order_creation: {
         Args: {
