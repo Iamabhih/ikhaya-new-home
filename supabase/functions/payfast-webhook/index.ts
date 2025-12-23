@@ -42,13 +42,18 @@ const generateSignature = async (data: Record<string, string>, passPhrase: strin
 };
 
 // Enhanced logging function
-const logWebhookEvent = async (supabase: any, eventType: string, data: any, error?: string) => {
+const logWebhookEvent = async (supabase: any, eventType: string, data: any, errorMessage?: string, errorDetails?: any) => {
   try {
     await supabase.from('payment_logs').insert({
+      payment_id: data.pf_payment_id || data.payment_id || 'unknown',
+      m_payment_id: data.m_payment_id || data.orderNumber,
+      pf_payment_id: data.pf_payment_id,
+      payment_status: data.payment_status || 'unknown',
       event_type: eventType,
-      message: error || `PayFast webhook ${eventType}`,
-      metadata: data,
-      created_at: new Date().toISOString()
+      event_data: data,
+      error_message: errorMessage,
+      error_details: errorDetails,
+      ip_address: data.ip_address
     });
   } catch (logError) {
     console.error('Failed to log webhook event:', logError);
@@ -94,9 +99,11 @@ serve(async (req) => {
       if (receivedSignature !== expectedSignature) {
         const errorMsg = 'Signature verification failed';
         console.error(errorMsg);
-        await logWebhookEvent(supabase, 'signature_verification_failed', { receivedSignature, expectedSignature }, errorMsg);
+        await logWebhookEvent(supabase, 'signature_failed', data, errorMsg, { receivedSignature, expectedSignature });
         return new Response('Invalid signature', { status: 400, headers: corsHeaders });
       }
+
+      await logWebhookEvent(supabase, 'signature_verified', data);
     }
 
     // Process completed payments with retry logic
@@ -138,6 +145,10 @@ serve(async (req) => {
         retries--;
         if (retries > 0) {
           console.log(`Retrying order processing, ${retries} attempts remaining...`);
+          await logWebhookEvent(supabase, 'retry_attempted', data, undefined, {
+            retriesRemaining: retries,
+            error: processError?.message
+          });
           await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
         }
       }
@@ -145,18 +156,18 @@ serve(async (req) => {
       if (processError) {
         const errorMsg = `Error processing order after retries: ${processError.message || processError}`;
         console.error(errorMsg);
-        await logWebhookEvent(supabase, 'order_processing_failed', data, errorMsg);
+        await logWebhookEvent(supabase, 'processing_failed', data, errorMsg, {
+          result: processResult,
+          retriesExhausted: true
+        });
         return new Response('Error processing order', { status: 500, headers: corsHeaders });
       }
 
       console.log('Order processed successfully:', processResult);
-      await logWebhookEvent(supabase, 'order_processed', { orderNumber: data.m_payment_id, result: processResult });
+      await logWebhookEvent(supabase, 'processing_completed', data, undefined, { result: processResult });
     } else {
       // Log other payment statuses
-      await logWebhookEvent(supabase, 'payment_status_received', { 
-        payment_status: data.payment_status, 
-        orderNumber: data.m_payment_id 
-      });
+      await logWebhookEvent(supabase, 'webhook_received', data, `Payment status: ${data.payment_status}`);
     }
 
     return new Response('OK', { status: 200, headers: corsHeaders });
@@ -164,13 +175,16 @@ serve(async (req) => {
   } catch (error) {
     const errorMsg = `PayFast webhook error: ${(error as Error).message || error}`;
     console.error(errorMsg);
-    
+
     try {
-      await logWebhookEvent(supabase, 'webhook_error', { error: errorMsg }, errorMsg);
+      await logWebhookEvent(supabase, 'invalid_payload', {}, errorMsg, {
+        error: (error as Error).message,
+        stack: (error as Error).stack
+      });
     } catch (logError) {
       console.error('Failed to log webhook error:', logError);
     }
-    
+
     return new Response('Internal server error', { status: 500, headers: corsHeaders });
   }
 });
