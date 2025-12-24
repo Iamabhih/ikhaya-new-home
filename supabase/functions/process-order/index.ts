@@ -50,7 +50,7 @@ serve(async (req) => {
       );
     }
 
-    // Check if order already exists
+    // Check if order already exists (idempotency)
     const { data: existingOrder } = await supabase
       .from('orders')
       .select('id, status')
@@ -105,163 +105,119 @@ serve(async (req) => {
 
     console.log('Found pending order:', pendingOrder.id);
 
-    // Create the main order
-    const { data: newOrder, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        order_number: orderNumber,
-        user_id: pendingOrder.user_id,
-        status: 'confirmed',
-        payment_status: 'paid',
-        total_amount: pendingOrder.total_amount,
-        shipping_address: {
-          firstName: pendingOrder.form_data.firstName,
-          lastName: pendingOrder.form_data.lastName,
+    // Use transaction wrapper for atomic order creation
+    // Addresses AUDIT_REPORT.md CRITICAL Issue #4
+    const { data: transactionResult, error: transactionError } = await supabase.rpc(
+      'create_order_transaction',
+      {
+        p_order_number: orderNumber,
+        p_user_id: pendingOrder.user_id,
+        p_order_data: {
           email: pendingOrder.form_data.email,
-          phone: pendingOrder.form_data.phone,
-          address: pendingOrder.form_data.address,
-          city: pendingOrder.form_data.city,
-          postalCode: pendingOrder.form_data.postalCode,
-          province: pendingOrder.form_data.province,
+          total_amount: pendingOrder.total_amount,
+          shipping_address: {
+            firstName: pendingOrder.form_data.firstName,
+            lastName: pendingOrder.form_data.lastName,
+            email: pendingOrder.form_data.email,
+            phone: pendingOrder.form_data.phone,
+            address: pendingOrder.form_data.address,
+            city: pendingOrder.form_data.city,
+            postalCode: pendingOrder.form_data.postalCode,
+            province: pendingOrder.form_data.province,
+          },
+          delivery_info: {
+            fee: pendingOrder.delivery_data.fee,
+            method: pendingOrder.delivery_data.method
+          },
+          payment_method: 'payfast',
+          payment_data: paymentData || {},
+          notes: `Order processed via ${source}`
         },
-        delivery_info: {
-          fee: pendingOrder.delivery_data.fee,
-          method: pendingOrder.delivery_data.method
-        },
-        payment_method: 'payfast',
-        payment_data: paymentData || {},
-        notes: `Order processed via ${source}`
-      })
-      .select()
-      .single();
+        p_order_items: pendingOrder.cart_data.items.map((item: any) => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: item.product.price,
+          total_price: item.product.price * item.quantity,
+          product_snapshot: {
+            name: item.product.name,
+            description: item.product.description,
+            images: item.product.images
+          }
+        })),
+        p_pending_order_id: pendingOrder.id
+      }
+    );
 
-    if (orderError) {
-      console.error('Error creating order:', orderError);
-      await logPaymentEvent('order_failed', { orderNumber }, 'Failed to create order in database', orderError);
+    if (transactionError) {
+      console.error('Transaction failed:', transactionError);
+      await logPaymentEvent(
+        'order_failed',
+        { orderNumber },
+        'Order creation transaction failed',
+        transactionError
+      );
+
       return new Response(
-        JSON.stringify({ error: 'Failed to create order' }),
+        JSON.stringify({
+          error: 'Failed to create order',
+          details: transactionError.message
+        }),
         { status: 500, headers: corsHeaders }
       );
     }
 
-    console.log('Created order:', newOrder.id);
-    await logPaymentEvent('order_created', { orderId: newOrder.id, orderNumber });
+    // Parse result (may be string or object)
+    const orderResult = typeof transactionResult === 'string'
+      ? JSON.parse(transactionResult)
+      : transactionResult;
 
-    // Create order items
-    const orderItems = pendingOrder.cart_data.items.map((item: any) => ({
-      order_id: newOrder.id,
-      product_id: item.product.id,
-      quantity: item.quantity,
-      unit_price: item.product.price,
-      total_price: item.product.price * item.quantity,
-      product_snapshot: {
-        name: item.product.name,
-        description: item.product.description,
-        images: item.product.images
-      }
-    }));
+    if (!orderResult.success) {
+      console.error('Order creation failed:', orderResult.error);
+      await logPaymentEvent(
+        'order_failed',
+        { orderNumber },
+        orderResult.error,
+        orderResult.error_detail
+      );
 
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-
-    if (itemsError) {
-      console.error('Error creating order items:', itemsError);
-      // Don't fail the entire process, just log the error
-    } else {
-      console.log('Created order items:', orderItems.length);
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to create order',
+          details: orderResult.error
+        }),
+        { status: 500, headers: corsHeaders }
+      );
     }
 
-    // Update product stock (if stock tracking is enabled)
-    for (const item of pendingOrder.cart_data.items) {
-      try {
-        const { error: stockError } = await supabase.rpc(
-          'update_product_stock',
-          {
-            product_id: item.product.id,
-            quantity_sold: item.quantity
-          }
-        );
+    console.log('Order created successfully:', orderResult.order_id);
+    await logPaymentEvent('order_created', {
+      orderId: orderResult.order_id,
+      orderNumber: orderResult.order_number
+    });
 
-        if (stockError) {
-          console.error('Error updating stock for product:', item.product.id, stockError);
-        }
-      } catch (stockError) {
-        console.error('Stock update error:', stockError);
-      }
-    }
-
-    // Send confirmation email (optional - implement if needed)
+    // Send confirmation email (non-critical - don't fail if it errors)
     try {
       const { error: emailError } = await supabase.functions.invoke('send-order-confirmation', {
         body: {
-          orderNumber: orderNumber,
+          orderNumber: orderResult.order_number,
           customerEmail: pendingOrder.form_data.email,
-          orderData: newOrder
+          orderId: orderResult.order_id
         }
       });
 
       if (emailError) {
-        console.error('Error sending confirmation email:', emailError);
-        // Don't fail the order process if email fails
+        console.error('Email send failed (non-critical):', emailError);
+        // Don't fail the order if email fails
       }
     } catch (emailError) {
-      console.error('Email service error:', emailError);
+      console.error('Email service error (non-critical):', emailError);
     }
-
-    // Clean up pending order
-    const { error: deleteError } = await supabase
-      .from('pending_orders')
-      .delete()
-      .eq('id', pendingOrder.id);
-
-    if (deleteError) {
-      console.error('Error deleting pending order:', deleteError);
-    }
-
-    // Track purchase analytics
-    try {
-      const { error: analyticsError } = await supabase
-        .from('analytics_events')
-        .insert({
-          user_id: pendingOrder.user_id,
-          event_type: 'purchase',
-          event_name: 'order_completed',
-          order_id: newOrder.id,
-          metadata: {
-            total_amount: pendingOrder.total_amount,
-            item_count: pendingOrder.cart_data.items.length,
-            payment_method: 'payfast',
-            source: source,
-            products: pendingOrder.cart_data.items.map((item: any) => ({
-              product_id: item.product.id,
-              quantity: item.quantity,
-              price: item.product.price
-            }))
-          }
-        });
-
-      if (analyticsError) {
-        console.error('Error tracking purchase analytics:', analyticsError);
-        // Don't fail the order process if analytics fails
-      }
-    } catch (analyticsError) {
-      console.error('Analytics tracking error:', analyticsError);
-    }
-
-    console.log('Order processing completed successfully');
-    await logPaymentEvent('processing_completed', {
-      orderId: newOrder.id,
-      orderNumber: newOrder.order_number,
-      itemCount: orderItems.length,
-      totalAmount: pendingOrder.total_amount
-    });
 
     return new Response(
       JSON.stringify({
         success: true,
-        orderId: newOrder.id,
-        orderNumber: newOrder.order_number,
+        orderId: orderResult.order_id,
+        orderNumber: orderResult.order_number,
         message: 'Order processed successfully'
       }),
       { status: 200, headers: corsHeaders }
@@ -270,10 +226,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Process order error:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Internal server error',
-        details: (error as Error).message 
-      }), 
+        details: (error as Error).message
+      }),
       { status: 500, headers: corsHeaders }
     );
   }

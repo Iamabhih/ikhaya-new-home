@@ -1,6 +1,6 @@
 import { FormData, DeliveryOption } from '@/types/checkout';
 import { CartItem } from '@/contexts/CartContext';
-import { getPayFastConfig } from '@/utils/payment/PayFastConfig';
+import { getPayFastConfig, generateOrderId } from '@/utils/payment/PayFastConfig';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
@@ -110,17 +110,8 @@ export const processEftPayment = async (orderId: string): Promise<PaymentResult>
 
 /**
  * Main payment processor
+ * Uses standardized order ID generation from PayFastConfig
  */
-/**
- * Generates a cryptographically secure order ID
- * Format: IKH-{timestamp}-{random}
- */
-function generateSecureOrderId(): string {
-  const timestamp = Date.now();
-  const randomPart = crypto.randomUUID().split('-')[0];
-  return `IKH-${timestamp}-${randomPart}`;
-}
-
 export const processPayment = async ({
   paymentMethod,
   formData,
@@ -128,7 +119,7 @@ export const processPayment = async ({
   deliveryOption,
   totalAmount
 }: ProcessPaymentParams): Promise<PaymentResult> => {
-  const orderId = generateSecureOrderId();
+  const orderId = generateOrderId();
 
   logger.info(`Processing ${paymentMethod} payment for amount: R${totalAmount.toFixed(2)}`);
   
