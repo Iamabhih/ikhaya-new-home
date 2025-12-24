@@ -3288,6 +3288,16 @@ export type Database = {
       cleanup_old_processing_sessions: { Args: never; Returns: undefined }
       create_admin_user: { Args: { user_email: string }; Returns: boolean }
       create_manager_user: { Args: { user_email: string }; Returns: boolean }
+      create_order_transaction: {
+        Args: {
+          p_order_data: Json
+          p_order_items: Json
+          p_order_number: string
+          p_pending_order_id?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_superadmin_user: { Args: { user_email: string }; Returns: boolean }
       create_user_from_order: {
         Args: {
