@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import PayFastForm from "./PayFastForm";
 import { getPayFastConfig, generatePaymentReference } from "@/utils/payment/PayFastConfig";
 import { usePayFastSettings } from "@/hooks/usePayFastSettings";
+import { usePaymentLogger } from "@/hooks/usePaymentLogger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, AlertCircle, Loader2 } from "lucide-react";
@@ -38,6 +39,15 @@ export const PayfastPayment = ({
 
   // Fetch PayFast settings from database
   const payFastSettings = usePayFastSettings();
+  
+  // Payment logger for tracking all payment events
+  const { 
+    logPaymentInitiated, 
+    logPendingOrderCreated, 
+    logPendingOrderFailed, 
+    logFormPrepared,
+    logClientError 
+  } = usePaymentLogger();
   
   // Get config using database settings
   const config = getPayFastConfig({
@@ -86,6 +96,16 @@ export const PayfastPayment = ({
       const returnUrls = config.getReturnUrls();
       const totalAmount = cartTotal + deliveryFee;
       
+      // Log payment initiation
+      await logPaymentInitiated({
+        orderNumber: paymentReference,
+        amount: totalAmount,
+        userId: user?.id,
+        email: formData.email,
+        cartItems: cartItems.length,
+        testMode: config.IS_TEST_MODE
+      });
+      
       console.log('[PayfastPayment] Payment config prepared:', {
         merchant_id: config.MERCHANT_ID,
         amount: totalAmount,
@@ -117,10 +137,28 @@ export const PayfastPayment = ({
 
       if (pendingOrderError) {
         console.error('Pending order creation error:', pendingOrderError);
+        
+        // Log pending order failure
+        await logPendingOrderFailed({
+          orderNumber: paymentReference,
+          amount: totalAmount,
+          userId: user?.id,
+          email: formData.email
+        }, pendingOrderError.message);
+        
         toast.error("Failed to initialize payment. Please try again.");
         setIsProcessing(false);
         return;
       }
+
+      // Log pending order created
+      await logPendingOrderCreated({
+        orderNumber: paymentReference,
+        amount: totalAmount,
+        userId: user?.id,
+        email: formData.email,
+        cartItems: cartItems.length
+      });
 
       // Store order reference for success page
       sessionStorage.setItem('currentOrderRef', paymentReference);
@@ -143,8 +181,16 @@ export const PayfastPayment = ({
 
       console.log('[PayfastPayment] PayFast form data prepared:', {
         ...payfastData,
-        merchant_key: '[HIDDEN]', // Don't log sensitive data
+        merchant_key: '[HIDDEN]',
         totalDuration: Date.now() - startTime
+      });
+
+      // Log form prepared
+      await logFormPrepared({
+        orderNumber: paymentReference,
+        amount: totalAmount,
+        returnUrl: returnUrls.return_url,
+        cancelUrl: returnUrls.cancel_url
       });
 
       setPayFastFormData(payfastData);
@@ -157,6 +203,15 @@ export const PayfastPayment = ({
       
     } catch (error) {
       console.error('PayFast error:', error);
+      
+      // Log client error
+      await logClientError({
+        userId: user?.id,
+        email: formData.email,
+        cartItems: cartItems.length,
+        amount: cartTotal + deliveryFee
+      }, error instanceof Error ? error.message : 'Unknown error');
+      
       toast.error("Payment initialization failed. Please try again.");
       setIsProcessing(false);
     }
