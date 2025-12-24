@@ -19,11 +19,13 @@
     --primary: 274 80% 55%;          /* Vibrant Purple/Magenta */
     --primary-foreground: 0 0% 100%;
     --primary-glow: 274 80% 65%;     /* Lighter purple for effects */
+    --primary-rgb: 147, 51, 234;     /* RGB values for rgba() transparency effects */
 
     /* Secondary colors - OZZ Blue */
     --secondary: 217 91% 60%;        /* OZZ Blue */
     --secondary-foreground: 0 0% 100%;
     --secondary-glow: 217 91% 70%;   /* Lighter blue for effects */
+    --secondary-rgb: 59, 130, 246;   /* RGB values for rgba() transparency effects */
 
     /* Muted colors - subtle greys for contrast */
     --muted: 220 6% 96%;
@@ -107,10 +109,12 @@
     --primary: 274 80% 65%;          /* Lighter purple for dark mode */
     --primary-foreground: 220 25% 8%;
     --primary-glow: 274 80% 75%;
+    --primary-rgb: 147, 51, 234;     /* RGB values for rgba() transparency effects */
 
     --secondary: 217 91% 70%;        /* Lighter blue for dark mode */
     --secondary-foreground: 220 25% 8%;
     --secondary-glow: 217 91% 80%;
+    --secondary-rgb: 59, 130, 246;   /* RGB values for rgba() transparency effects */
 
     --muted: 220 15% 15%;
     --muted-foreground: 220 8% 60%;
@@ -223,43 +227,13 @@
     @apply ring-2 ring-primary ring-offset-2;
   }
 
-  /* Animation utilities */
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-
-  @keyframes pulse-soft {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
-  }
-
-  @keyframes slide-up {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes slide-in-left {
-    from {
-      opacity: 0;
-      transform: translateX(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
+  /*
+   * Animation Keyframes
+   * ===================
+   * Note: All keyframe animations are defined in tailwind.config.ts
+   * Use Tailwind's animate-* utility classes (e.g., animate-shimmer, animate-float)
+   * This avoids duplication and allows Tailwind to tree-shake unused animations
+   */
 
   /* High contrast mode support */
   @media (prefers-contrast: high) {

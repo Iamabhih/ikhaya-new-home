@@ -9,13 +9,16 @@
 }
 
 /* Firefox specific optimizations */
-@-moz-document url-prefix() {
-  /* Better scrollbar styling for Firefox */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--primary)) hsl(var(--muted));
-  }
-  
+/* Note: @-moz-document is deprecated. Using standard properties that Firefox supports. */
+
+/* Firefox scrollbar styling (supported in Firefox 64+) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary)) hsl(var(--muted));
+}
+
+/* Firefox-specific styles using @supports for feature detection */
+@supports (-moz-appearance: none) {
   /* Firefox specific shadow fallbacks */
   .shadow-premium {
     box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.2);

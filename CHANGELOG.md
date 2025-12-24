@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Fix `cleanup_expired_pending_orders()` function - update from 2 hours to 48 hours
 - [ ] Prevent negative stock quantities for all movement types
 
+#### CSS & THEMING (SEE CSS_THEME_AUDIT_REPORT.md FOR DETAILS)
+- [ ] **URGENT**: Consolidate duplicate CSS variable definitions (`index.css` vs `base.css`)
+- [ ] **URGENT**: Fix conflicting `@tailwind` directive imports (`base.css` vs `responsive.css`)
+
 ### 🟠 High Priority Fixes (Within 1-2 Weeks)
 
 #### ORDERS & REFUNDS
@@ -44,7 +48,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Add stock availability check in checkout flow (before payment)
 - [ ] Handle concurrent order race conditions with proper locking
 
+#### CSS & THEMING
+- [ ] Standardize mobile breakpoints across all CSS files (align with Tailwind config)
+- [ ] Fix aggressive `user-select: none` blocking text selection on mobile
+- [ ] Delete duplicate keyframe definitions (Tailwind vs `base.css`)
+- [ ] Replace deprecated Firefox `@-moz-document` syntax
+- [ ] Fix overly aggressive tap highlight removal (accessibility issue)
+
 ### 🟡 Medium Priority (1 Month)
+
+#### CSS & THEMING
+- [ ] Consolidate reduced motion implementations (3 locations → 1 in `accessibility.css`)
+- [ ] Remove unused CSS variables from `index.css` (15+ dead variables)
+- [ ] Standardize shadow naming (`shadow-modern-*` → `shadow-*`)
+- [ ] Create centralized z-index scale system
+- [ ] Validate WCAG AA color contrast for all combinations
+- [ ] Consolidate duplicate touch target sizing rules (4 locations → 1)
+- [ ] Resolve conflicting print styles (`accessibility.css` vs `browser-compatibility.css`)
+- [ ] Extract banner-specific classes from global CSS to component file
+- [ ] Expand iOS safe area inset support beyond `.ios-safe-area` class
+- [ ] Add missing dark mode styles for mobile components
+
+#### ORDERS & REFUNDS
 
 - [ ] Centralize delivery fee calculation (remove duplication in `useCheckout.ts`)
 - [ ] Add phone number format validation (South African: `+27 XX XXX XXXX`)
@@ -57,6 +82,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🟢 Low Priority Enhancements
 
+#### CSS & THEMING
+- [ ] Clean up legacy React boilerplate code in `App.css`
+- [ ] Systematize backdrop blur values with CSS variables
+- [ ] Add `:focus-within` styles for form groups
+- [ ] Add `prefers-color-scheme` fallback for users without dark mode toggle
+- [ ] Use CSS variables for transition durations (replace hard-coded values)
+- [ ] Add `:active` states for touch devices instead of `:hover`
+- [ ] Optimize animated elements with `will-change` property
+- [ ] Add `content-visibility: auto` for off-screen optimization
+
+#### ORDERS & PAYMENTS
 - [ ] Extract duplicate PayFast form data preparation to utility
 - [ ] Move `FREE_DELIVERY_THRESHOLD = 400` to config constant
 - [ ] Enable TypeScript strict mode in `tsconfig.json`
@@ -66,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Review and test bulk order actions error handling
 
 ### Added
+- **CSS_THEME_AUDIT_REPORT.md** - Comprehensive CSS/theme audit (26 issues identified, 1,379 lines analyzed)
 - **AUDIT_REPORT.md** - Comprehensive codebase audit (37 issues identified)
 - Prompt tracking system in `.lovable/prompts/`
 - Implementation guides in `docs/implementation/`
