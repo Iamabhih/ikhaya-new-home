@@ -1,9 +1,11 @@
 /**
  * System Logging Utilities
  * For tracking changes and API requests between lovable.dev and Supabase
+ * 
+ * Note: These are utility functions that log to console.
+ * Database logging tables can be added later via migration if needed.
  */
 
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from './logger';
 
 export type ChangeType = 
@@ -32,30 +34,21 @@ export interface SystemChangeLogParams {
 }
 
 /**
- * Log a system change to the database
+ * Log a system change (console-based logging)
  * Used for tracking changes from lovable.dev, migrations, config updates, etc.
  */
 export async function logSystemChange(params: SystemChangeLogParams): Promise<string | null> {
   try {
-    const { data, error } = await supabase.rpc('log_system_change', {
-      p_change_type: params.changeType,
-      p_source_system: params.sourceSystem,
-      p_description: params.description,
-      p_component: params.component || null,
-      p_change_data: params.changeData || null,
-      p_previous_state: params.previousState || null,
-      p_new_state: params.newState || null,
-      p_tags: params.tags || null,
-      p_metadata: params.metadata || null,
+    const logId = generateRequestId();
+    logger.info('System change logged:', {
+      id: logId,
+      changeType: params.changeType,
+      sourceSystem: params.sourceSystem,
+      description: params.description,
+      component: params.component,
+      tags: params.tags,
     });
-
-    if (error) {
-      logger.error('Failed to log system change:', error);
-      return null;
-    }
-
-    logger.info('System change logged:', params.description);
-    return data as string;
+    return logId;
   } catch (error) {
     logger.error('Error logging system change:', error);
     return null;
@@ -80,31 +73,32 @@ export interface ApiRequestLogParams {
 }
 
 /**
- * Log an API request for tracking and debugging
+ * Log an API request for tracking and debugging (console-based)
  * Used to monitor requests between frontend, lovable.dev, and Supabase
  */
 export async function logApiRequest(params: ApiRequestLogParams): Promise<string | null> {
   try {
-    const { data, error } = await supabase.rpc('log_api_request', {
-      p_method: params.method,
-      p_endpoint: params.endpoint,
-      p_source_system: params.sourceSystem,
-      p_target_system: params.targetSystem,
-      p_response_status: params.responseStatus || null,
-      p_response_time_ms: params.responseTimeMs || null,
-      p_status: params.status || 'success',
-      p_request_id: params.requestId || null,
-      p_correlation_id: params.correlationId || null,
-      p_error_message: params.errorMessage || null,
-      p_metadata: params.metadata || null,
-    });
-
-    if (error) {
-      logger.error('Failed to log API request:', error);
-      return null;
+    const logId = params.requestId || generateRequestId();
+    
+    if (params.status === 'error') {
+      logger.error('API request failed:', {
+        id: logId,
+        method: params.method,
+        endpoint: params.endpoint,
+        status: params.responseStatus,
+        error: params.errorMessage,
+      });
+    } else {
+      logger.debug('API request:', {
+        id: logId,
+        method: params.method,
+        endpoint: params.endpoint,
+        status: params.responseStatus,
+        responseTimeMs: params.responseTimeMs,
+      });
     }
-
-    return data as string;
+    
+    return logId;
   } catch (error) {
     logger.error('Error logging API request:', error);
     return null;
@@ -117,7 +111,7 @@ export async function logApiRequest(params: ApiRequestLogParams): Promise<string
 export function generateCorrelationId(): string {
   const timestamp = Date.now();
   const random = crypto.randomUUID().split('-')[0];
-  return 'corr-' + timestamp + '-' + random;
+  return `corr-${timestamp}-${random}`;
 }
 
 /**
@@ -126,7 +120,7 @@ export function generateCorrelationId(): string {
 export function generateRequestId(): string {
   const timestamp = Date.now();
   const random = crypto.randomUUID().split('-')[0];
-  return 'req-' + timestamp + '-' + random;
+  return `req-${timestamp}-${random}`;
 }
 
 /**
@@ -147,7 +141,7 @@ export async function trackSupabaseCall<T>(
     // Log successful request
     await logApiRequest({
       method: 'POST',
-      endpoint: '/functions/v1/' + functionName,
+      endpoint: `/functions/v1/${functionName}`,
       sourceSystem: 'frontend',
       targetSystem: 'supabase',
       responseStatus: 200,
@@ -164,7 +158,7 @@ export async function trackSupabaseCall<T>(
     // Log failed request
     await logApiRequest({
       method: 'POST',
-      endpoint: '/functions/v1/' + functionName,
+      endpoint: `/functions/v1/${functionName}`,
       sourceSystem: 'frontend',
       targetSystem: 'supabase',
       responseStatus: 500,
@@ -180,50 +174,23 @@ export async function trackSupabaseCall<T>(
 }
 
 /**
- * Get recent error logs (admin only)
+ * Get recent error logs (placeholder - returns empty array)
+ * Can be implemented with database tables later
  */
-export async function getRecentErrors(limit: number = 50) {
-  const { data, error } = await supabase
-    .from('recent_request_errors')
-    .select('*')
-    .limit(limit);
-
-  if (error) {
-    logger.error('Failed to fetch recent errors:', error);
-    return [];
-  }
-
-  return data || [];
+export async function getRecentErrors(limit: number = 50): Promise<any[]> {
+  logger.debug(`getRecentErrors called with limit: ${limit}`);
+  return [];
 }
 
 /**
- * Get system change logs (admin only)
+ * Get system change logs (placeholder - returns empty array)
+ * Can be implemented with database tables later
  */
 export async function getSystemChangeLogs(
   limit: number = 50,
   changeType?: ChangeType,
   sourceSystem?: SourceSystem
-) {
-  let query = supabase
-    .from('system_change_logs')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (changeType) {
-    query = query.eq('change_type', changeType);
-  }
-
-  if (sourceSystem) {
-    query = query.eq('source_system', sourceSystem);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    logger.error('Failed to fetch system change logs:', error);
-    return [];
-  }
-
-  return data || [];
+): Promise<any[]> {
+  logger.debug(`getSystemChangeLogs called with limit: ${limit}, changeType: ${changeType}, sourceSystem: ${sourceSystem}`);
+  return [];
 }
