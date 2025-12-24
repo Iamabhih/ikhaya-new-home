@@ -13,6 +13,7 @@ import { Link } from "react-router-dom";
 import { Shield, Lock, CreditCard, Truck, CheckCircle, Clock } from "lucide-react";
 import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 import { useDiscountCode } from "@/hooks/useDiscountCode";
+import { usePaymentLogger } from "@/hooks/usePaymentLogger";
 
 const CheckoutPage = () => {
   const { items, total, trackCheckoutInitiated } = useEnhancedCart();
@@ -20,6 +21,7 @@ const CheckoutPage = () => {
   const navigate = useNavigate();
   const [selectedDeliveryZone, setSelectedDeliveryZone] = useState<string>('');
   const { appliedDiscount, applyDiscount } = useDiscountCode(total);
+  const { logPaymentCancelled } = usePaymentLogger();
   
   // Get delivery zones to auto-select the first one
   const { deliveryZones } = useDeliveryFee(total, selectedDeliveryZone);
@@ -42,15 +44,30 @@ const CheckoutPage = () => {
 
     // Check for payment status in URL params
     const urlParams = new URLSearchParams(window.location.search);
+    const orderRef = sessionStorage.getItem('currentOrderRef');
+    
     if (urlParams.get('cancelled') === 'true') {
+      // Log payment cancellation
+      logPaymentCancelled({
+        orderNumber: orderRef || 'unknown',
+        userId: user?.id,
+        source: 'payfast_cancel_url'
+      });
       toast.error("Payment was cancelled. Please try again.");
       window.history.replaceState({}, '', '/checkout');
     }
     if (urlParams.get('failed') === 'true') {
+      // Log payment failure
+      logPaymentCancelled({
+        orderNumber: orderRef || 'unknown',
+        userId: user?.id,
+        source: 'payfast_failed',
+        status: 'failed'
+      });
       toast.error("Payment failed. Please try again or choose a different payment method.");
       window.history.replaceState({}, '', '/checkout');
     }
-  }, [items.length, navigate, trackCheckoutInitiated]);
+  }, [items.length, navigate, trackCheckoutInitiated, logPaymentCancelled, user?.id]);
 
   if (items.length === 0) {
     return null;

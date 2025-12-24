@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Shield } from "lucide-react";
+import { usePaymentLogger } from "@/hooks/usePaymentLogger";
 
 interface PayFastFormData {
   merchant_id: string;
@@ -32,31 +33,50 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
   const payFastUrl = isTestMode 
     ? 'https://sandbox.payfast.co.za/eng/process'
     : 'https://www.payfast.co.za/eng/process';
+  
+  const { logFormSubmitted, logClientError } = usePaymentLogger();
 
   useEffect(() => {
-    // Auto-submit the form when component mounts - unconditional
-    const form = document.getElementById('payfast-form') as HTMLFormElement;
-    if (form) {
-      console.log('[PayFastForm] Auto-submitting to:', payFastUrl);
-      console.log('[PayFastForm] Form data:', {
-        merchant_id: formData.merchant_id,
-        merchant_key: formData.merchant_key ? '***' : 'MISSING',
-        return_url: formData.return_url,
-        cancel_url: formData.cancel_url,
-        notify_url: formData.notify_url,
-        amount: formData.amount,
-        item_name: formData.item_name,
-        m_payment_id: formData.m_payment_id,
-        name_first: formData.name_first,
-        name_last: formData.name_last,
-        email_address: formData.email_address
-      });
-      
-      if (onSubmit) onSubmit();
-      form.submit();
-    } else {
-      console.error('[PayFastForm] Form element not found!');
-    }
+    // Auto-submit the form when component mounts
+    const submitForm = async () => {
+      const form = document.getElementById('payfast-form') as HTMLFormElement;
+      if (form) {
+        console.log('[PayFastForm] Auto-submitting to:', payFastUrl);
+        console.log('[PayFastForm] Form data:', {
+          merchant_id: formData.merchant_id,
+          merchant_key: formData.merchant_key ? '***' : 'MISSING',
+          return_url: formData.return_url,
+          cancel_url: formData.cancel_url,
+          notify_url: formData.notify_url,
+          amount: formData.amount,
+          item_name: formData.item_name,
+          m_payment_id: formData.m_payment_id,
+          name_first: formData.name_first,
+          name_last: formData.name_last,
+          email_address: formData.email_address
+        });
+        
+        // Log form submission
+        await logFormSubmitted({
+          orderNumber: formData.m_payment_id,
+          amount: parseFloat(formData.amount),
+          email: formData.email_address,
+          isTestMode,
+          targetUrl: payFastUrl
+        });
+        
+        if (onSubmit) onSubmit();
+        form.submit();
+      } else {
+        console.error('[PayFastForm] Form element not found!');
+        await logClientError({
+          orderNumber: formData.m_payment_id,
+          amount: parseFloat(formData.amount)
+        }, 'Form element not found during auto-submit');
+      }
+    };
+    
+    submitForm();
   }, []);
 
   return (

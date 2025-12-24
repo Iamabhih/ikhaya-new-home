@@ -8,6 +8,7 @@ import { CheckCircle, Package, Home, Mail } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { usePaymentLogger } from "@/hooks/usePaymentLogger";
 
 const CheckoutSuccessPage = () => {
   const [searchParams] = useSearchParams();
@@ -15,6 +16,7 @@ const CheckoutSuccessPage = () => {
   const [loading, setLoading] = useState(true);
   const { clearCart } = useCart();
   const navigate = useNavigate();
+  const { logPaymentSuccessPage, logClientError } = usePaymentLogger();
   
   useEffect(() => {
     const processSuccessfulPayment = async () => {
@@ -38,8 +40,17 @@ const CheckoutSuccessPage = () => {
         console.log('Order ref from session:', orderRef);
       }
 
+      // Log arrival at success page
+      await logPaymentSuccessPage({
+        orderNumber: orderRef || 'unknown',
+        pfPaymentId: paymentId || undefined,
+        amount: amount ? parseFloat(amount) : undefined,
+        source: orderNumber ? 'payfast_return' : 'session_storage'
+      });
+
       if (!orderRef) {
         console.error('No order reference found');
+        await logClientError({ orderNumber: 'unknown' }, 'No order reference found on success page');
         toast.error('No order reference found. Please contact support.');
         navigate('/');
         return;
