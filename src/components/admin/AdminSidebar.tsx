@@ -131,6 +131,12 @@ const superAdminRoutes = [
     badge: "Super"
   },
   { 
+    title: "Shipping Settings", 
+    url: "/admin/shipping-settings", 
+    icon: Package,
+    badge: "Super"
+  },
+  { 
     title: "System Settings", 
     url: "/superadmin/settings", 
     icon: Settings,

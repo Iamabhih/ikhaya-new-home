@@ -58,6 +58,7 @@ const AdminCartAbandonment = lazy(() => import("./pages/admin/AdminCartAbandonme
 const AdminQuotes = lazy(() => import("./pages/admin/AdminQuotes"));
 const AdminLogs = lazy(() => import("./pages/admin/AdminLogs"));
 const AdminDiscounts = lazy(() => import("./pages/admin/AdminDiscounts"));
+const AdminShippingSettings = lazy(() => import("./pages/admin/AdminShippingSettings"));
 
 // Loading fallback for lazy-loaded components
 const PageLoader = () => (
@@ -141,6 +142,7 @@ function App() {
                   {/* SuperAdmin only routes - lazy loaded */}
                   <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminProtectedRoute>} />
                   <Route path="/admin/payment-settings" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminPaymentSettings /></Suspense></AdminProtectedRoute>} />
+                  <Route path="/admin/shipping-settings" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminShippingSettings /></Suspense></AdminProtectedRoute>} />
                   <Route path="/admin/setup" element={<Suspense fallback={<PageLoader />}><AdminSetupPage /></Suspense>} />
                   <Route path="/superadmin" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></AdminProtectedRoute>} />
                   <Route path="/superadmin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminProtectedRoute>} />

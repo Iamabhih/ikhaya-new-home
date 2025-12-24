@@ -3019,6 +3019,110 @@ export type Database = {
         }
         Relationships: []
       }
+      shipments: {
+        Row: {
+          collection_address: Json | null
+          created_at: string
+          delivery_address: Json | null
+          id: string
+          label_url: string | null
+          order_id: string | null
+          parcels: Json | null
+          rate_amount: number
+          service_level: string | null
+          service_name: string | null
+          shiplogic_id: string | null
+          status: string
+          tracking_events: Json | null
+          tracking_number: string | null
+          updated_at: string
+          waybill_number: string | null
+        }
+        Insert: {
+          collection_address?: Json | null
+          created_at?: string
+          delivery_address?: Json | null
+          id?: string
+          label_url?: string | null
+          order_id?: string | null
+          parcels?: Json | null
+          rate_amount?: number
+          service_level?: string | null
+          service_name?: string | null
+          shiplogic_id?: string | null
+          status?: string
+          tracking_events?: Json | null
+          tracking_number?: string | null
+          updated_at?: string
+          waybill_number?: string | null
+        }
+        Update: {
+          collection_address?: Json | null
+          created_at?: string
+          delivery_address?: Json | null
+          id?: string
+          label_url?: string | null
+          order_id?: string | null
+          parcels?: Json | null
+          rate_amount?: number
+          service_level?: string | null
+          service_name?: string | null
+          shiplogic_id?: string | null
+          status?: string
+          tracking_events?: Json | null
+          tracking_number?: string | null
+          updated_at?: string
+          waybill_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_settings: {
+        Row: {
+          collection_address: Json
+          created_at: string
+          default_parcel: Json
+          id: string
+          is_enabled: boolean
+          is_test_mode: boolean
+          markup_percentage: number
+          provider: string
+          service_levels: Json
+          updated_at: string
+        }
+        Insert: {
+          collection_address?: Json
+          created_at?: string
+          default_parcel?: Json
+          id?: string
+          is_enabled?: boolean
+          is_test_mode?: boolean
+          markup_percentage?: number
+          provider?: string
+          service_levels?: Json
+          updated_at?: string
+        }
+        Update: {
+          collection_address?: Json
+          created_at?: string
+          default_parcel?: Json
+          id?: string
+          is_enabled?: boolean
+          is_test_mode?: boolean
+          markup_percentage?: number
+          provider?: string
+          service_levels?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           created_at: string
