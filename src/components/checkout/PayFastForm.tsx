@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Shield, Loader2, AlertCircle } from "lucide-react";
 import { usePaymentLogger } from "@/hooks/usePaymentLogger";
-import { generateSignature, getOrderedFormFields, PayFastFieldsForSignature } from "@/utils/payment/PayFastSignature";
 
 interface PayFastFormData {
   merchant_id: string;
@@ -23,14 +22,12 @@ interface PayFastFormData {
 interface PayFastFormProps {
   formData: PayFastFormData;
   isTestMode?: boolean;
-  passphrase?: string;
   onSubmit?: () => void;
 }
 
 const PayFastForm: React.FC<PayFastFormProps> = ({ 
   formData, 
   isTestMode = false,
-  passphrase,
   onSubmit 
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,24 +39,13 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
   
   const { logFormSubmitted, logClientError } = usePaymentLogger();
 
-  // Generate signature if passphrase is provided (required for production)
-  const signature = passphrase 
-    ? generateSignature(formData as PayFastFieldsForSignature, passphrase)
-    : undefined;
-
-  // Get ordered fields for form (and debugging)
-  const orderedFields = getOrderedFormFields(formData as PayFastFieldsForSignature);
-
   useEffect(() => {
     // Auto-submit with a small delay to ensure DOM is ready
     const timer = setTimeout(async () => {
       const form = document.getElementById('payfast-form') as HTMLFormElement;
       if (form) {
         console.log('[PayFastForm] Submitting to:', payFastUrl);
-        console.log('[PayFastForm] Form fields:', orderedFields.map(f => ({ 
-          name: f.name, 
-          value: f.name.includes('key') ? '***' : f.value 
-        })));
+        console.log('[PayFastForm] Mode:', isTestMode ? 'SANDBOX' : 'PRODUCTION');
         
         setIsSubmitting(true);
         
@@ -94,7 +80,7 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
           amount: parseFloat(formData.amount)
         }, 'Form element not found during auto-submit');
       }
-    }, 500); // 500ms delay to ensure DOM is ready
+    }, 500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -137,37 +123,41 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
             </div>
           )}
 
-          {/* PayFast Form - Following official documentation order */}
+          {/* Simple PayFast Form - No signature required */}
           <form
             id="payfast-form"
             action={payFastUrl}
             method="post"
-            style={{ display: isTestMode ? 'block' : 'none' }}
-            className={isTestMode ? "text-left bg-secondary/10 p-4 rounded-lg" : ""}
+            style={{ display: 'none' }}
           >
-            {/* Render fields in PayFast-specified order */}
-            {orderedFields.map(({ name, value }) => (
-              <React.Fragment key={name}>
-                <input type="hidden" name={name} value={value} />
-                {isTestMode && (
-                  <div className="text-xs font-mono mb-1 text-muted-foreground">
-                    <span className="font-semibold">{name}:</span>{' '}
-                    {name.includes('key') ? '***' : value}
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
+            {/* Merchant details */}
+            <input type="hidden" name="merchant_id" value={formData.merchant_id} />
+            <input type="hidden" name="merchant_key" value={formData.merchant_key} />
             
-            {/* Add signature last if available */}
-            {signature && (
-              <>
-                <input type="hidden" name="signature" value={signature} />
-                {isTestMode && (
-                  <div className="text-xs font-mono mb-1 text-muted-foreground">
-                    <span className="font-semibold">signature:</span> {signature.substring(0, 16)}...
-                  </div>
-                )}
-              </>
+            {/* Return URLs */}
+            <input type="hidden" name="return_url" value={formData.return_url} />
+            <input type="hidden" name="cancel_url" value={formData.cancel_url} />
+            {formData.notify_url && (
+              <input type="hidden" name="notify_url" value={formData.notify_url} />
+            )}
+            
+            {/* Buyer details */}
+            {formData.name_first && (
+              <input type="hidden" name="name_first" value={formData.name_first} />
+            )}
+            {formData.name_last && (
+              <input type="hidden" name="name_last" value={formData.name_last} />
+            )}
+            {formData.email_address && (
+              <input type="hidden" name="email_address" value={formData.email_address} />
+            )}
+            
+            {/* Transaction details */}
+            <input type="hidden" name="m_payment_id" value={formData.m_payment_id} />
+            <input type="hidden" name="amount" value={formData.amount} />
+            <input type="hidden" name="item_name" value={formData.item_name} />
+            {formData.item_description && (
+              <input type="hidden" name="item_description" value={formData.item_description} />
             )}
           </form>
 
@@ -194,20 +184,6 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
               )}
             </Button>
           </div>
-
-          {/* Debug info in test mode */}
-          {isTestMode && (
-            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-left">
-              <p className="text-xs font-semibold text-amber-800 mb-2">Test Mode Debug Info:</p>
-              <div className="text-xs text-amber-700 space-y-1">
-                <p>• Target URL: {payFastUrl}</p>
-                <p>• Order ID: {formData.m_payment_id}</p>
-                <p>• Amount: R {formData.amount}</p>
-                <p>• Signature: {signature ? 'Generated' : 'Not required (no passphrase)'}</p>
-                <p>• Fields: {orderedFields.length} total</p>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

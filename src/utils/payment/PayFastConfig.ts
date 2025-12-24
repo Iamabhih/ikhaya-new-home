@@ -15,8 +15,8 @@ export const getPayFastConfig = (dbSettings?: PayFastDBSettings) => {
   const merchantKey = dbSettings?.merchantKey || import.meta.env.VITE_PAYFAST_MERCHANT_KEY || '';
   const passphrase = dbSettings?.passphrase || '';
   
-  // Determine mode: prefer DB setting, then env var, default to sandbox
-  const isTestMode = dbSettings?.isTestMode ?? (import.meta.env.VITE_PAYFAST_MODE === 'sandbox' ? true : true);
+  // Determine mode: prefer DB setting, default to production (false)
+  const isTestMode = dbSettings?.isTestMode !== undefined ? dbSettings.isTestMode : false;
 
   // Validate credentials are configured
   if (!merchantId || !merchantKey) {
