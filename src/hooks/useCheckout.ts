@@ -5,7 +5,7 @@ import { useCheckoutForm } from '@/hooks/useCheckoutForm';
 import { useCheckoutOptions } from '@/hooks/useCheckoutOptions';
 import { FormData, DeliveryOption, PaymentMethod } from '@/types/checkout';
 import { processPayment } from '@/services/paymentService';
-import { getPayFastConfig } from '@/utils/payment/PayFastConfig';
+import { getPayFastConfig, generateOrderId } from '@/utils/payment/PayFastConfig';
 import { toast } from 'sonner';
 
 export function useCheckout() {
@@ -67,18 +67,18 @@ export function useCheckout() {
             console.log('Starting payment process...');
 
             if (paymentMethod.id === 'payfast') {
-                // Generate order ID
-                const tempOrderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                // Generate order ID using standardized function
+                const tempOrderId = generateOrderId();
                 setOrderId(tempOrderId);
-                
+
                 // Create cart summary
-                const cartSummary = cartItems.map(item => 
+                const cartSummary = cartItems.map(item =>
                     `${item.product.name} x${item.quantity}`
                 ).join(", ");
-                
+
                 const config = getPayFastConfig();
                 const returnUrls = config.getReturnUrls();
-                
+
                 // Prepare PayFast form data (simplified approach)
                 const payfastFormData = {
                     merchant_id: config.MERCHANT_ID,
@@ -87,7 +87,7 @@ export function useCheckout() {
                     cancel_url: returnUrls.cancel_url,
                     notify_url: returnUrls.notify_url,
                     amount: totalAmount.toFixed(2),
-                    item_name: `OZZ Order ${tempOrderId}`,
+                    item_name: `Ikhaya Order ${tempOrderId}`,
                     item_description: cartSummary.substring(0, 100),
                     m_payment_id: tempOrderId,
                     name_first: formData.firstName || '',

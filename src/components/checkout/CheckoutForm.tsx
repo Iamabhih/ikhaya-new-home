@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 import { PayfastPayment } from "./PayfastPayment";
 import { DeliveryOptions } from "./DeliveryOptions";
+import { generateOrderId } from "@/utils/payment/PayFastConfig";
 
 interface CheckoutFormProps {
   user: any | null;
@@ -56,8 +57,8 @@ export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliver
         throw new Error(`Minimum order value for ${deliveryZone.name} is R${deliveryZone.min_order_value.toFixed(2)}`);
       }
 
-      // Generate a temporary order ID for payment processing
-      const tempOrderId = `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      // Generate order ID using standardized function
+      const tempOrderId = generateOrderId();
       setOrderId(tempOrderId);
       setCurrentStep('payment');
       toast.success("Details confirmed! Please complete payment.");
