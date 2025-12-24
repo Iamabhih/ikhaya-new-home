@@ -87,11 +87,23 @@ export const useEnhancedCartAnalytics = () => {
         deviceInfo: event.deviceInfo
       });
 
-      // Then track the specific cart event
+      // Get the actual UUID id from cart_sessions (not the text session_id)
+      const { data: cartSession, error: sessionError } = await supabase
+        .from('cart_sessions')
+        .select('id')
+        .eq('session_id', event.sessionId)
+        .single();
+
+      if (sessionError || !cartSession) {
+        console.error('Failed to get cart session UUID:', sessionError);
+        return;
+      }
+
+      // Then track the specific cart event using the UUID cart session id
       const { error } = await supabase
         .from('enhanced_cart_tracking')
         .insert({
-          cart_session_id: event.sessionId,
+          cart_session_id: cartSession.id, // Use UUID id, not text session_id
           product_id: event.productId || null,
           product_name: event.productName || 'Unknown Product',
           product_price: event.productPrice || 0,
@@ -105,7 +117,10 @@ export const useEnhancedCartAnalytics = () => {
           removed_at: event.eventType === 'item_removed' ? new Date().toISOString() : null
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to track cart event:', error);
+        throw error;
+      }
 
       // Also track in general analytics
       await supabase.from('analytics_events').insert({
@@ -201,6 +216,13 @@ export const useEnhancedCartAnalytics = () => {
       stage: string; 
       reason?: string; 
     }) => {
+      // First get the UUID from cart_sessions
+      const { data: cartSession } = await supabase
+        .from('cart_sessions')
+        .select('id')
+        .eq('session_id', sessionId)
+        .single();
+
       const { error } = await supabase
         .from('cart_sessions')
         .update({
@@ -211,12 +233,12 @@ export const useEnhancedCartAnalytics = () => {
 
       if (error) throw error;
 
-      // Update tracking records with abandonment reason
-      if (reason) {
+      // Update tracking records with abandonment reason using UUID
+      if (reason && cartSession) {
         await supabase
           .from('enhanced_cart_tracking')
           .update({ abandonment_reason: reason })
-          .eq('cart_session_id', sessionId)
+          .eq('cart_session_id', cartSession.id) // Use UUID, not text session_id
           .is('removed_at', null);
       }
     }
@@ -225,6 +247,13 @@ export const useEnhancedCartAnalytics = () => {
   // Mark cart as converted
   const markCartConverted = useMutation({
     mutationFn: async ({ sessionId, orderId }: { sessionId: string; orderId?: string }) => {
+      // First get the UUID from cart_sessions
+      const { data: cartSession } = await supabase
+        .from('cart_sessions')
+        .select('id')
+        .eq('session_id', sessionId)
+        .single();
+
       const { error } = await supabase
         .from('cart_sessions')
         .update({
@@ -235,12 +264,14 @@ export const useEnhancedCartAnalytics = () => {
 
       if (error) throw error;
 
-      // Mark all items as purchased
-      await supabase
-        .from('enhanced_cart_tracking')
-        .update({ purchased: true })
-        .eq('cart_session_id', sessionId)
-        .is('removed_at', null);
+      // Mark all items as purchased using UUID
+      if (cartSession) {
+        await supabase
+          .from('enhanced_cart_tracking')
+          .update({ purchased: true })
+          .eq('cart_session_id', cartSession.id) // Use UUID, not text session_id
+          .is('removed_at', null);
+      }
     }
   });
 
