@@ -19,12 +19,33 @@ serve(async (req) => {
 
   try {
     const { orderNumber, source, paymentData } = await req.json();
-    
+
     console.log('Processing order:', { orderNumber, source });
 
+    // Helper function to log to payment_logs
+    const logPaymentEvent = async (eventType: string, eventData?: any, errorMessage?: string, errorDetails?: any) => {
+      try {
+        await supabase.from('payment_logs').insert({
+          payment_id: paymentData?.payment_id || orderNumber,
+          m_payment_id: orderNumber,
+          pf_payment_id: paymentData?.pf_payment_id,
+          payment_status: paymentData?.payment_status || 'unknown',
+          event_type: eventType,
+          event_data: eventData,
+          error_message: errorMessage,
+          error_details: errorDetails
+        });
+      } catch (logError) {
+        console.error('Failed to log payment event:', logError);
+      }
+    };
+
+    await logPaymentEvent('processing_started', { source, paymentData });
+
     if (!orderNumber) {
+      await logPaymentEvent('processing_failed', null, 'Order number is required');
       return new Response(
-        JSON.stringify({ error: 'Order number is required' }), 
+        JSON.stringify({ error: 'Order number is required' }),
         { status: 400, headers: corsHeaders }
       );
     }
@@ -38,12 +59,13 @@ serve(async (req) => {
 
     if (existingOrder) {
       console.log('Order already exists:', existingOrder);
+      await logPaymentEvent('order_created', { orderId: existingOrder.id, note: 'Order already existed' });
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           message: 'Order already processed',
-          orderId: existingOrder.id 
-        }), 
+          orderId: existingOrder.id
+        }),
         { status: 200, headers: corsHeaders }
       );
     }
@@ -57,8 +79,26 @@ serve(async (req) => {
 
     if (pendingError || !pendingOrder) {
       console.error('Pending order not found:', pendingError);
+
+      // Log this critical error
+      await logPaymentEvent(
+        'pending_order_not_found',
+        { orderNumber, source },
+        'Pending order not found - possible expiration or missing data',
+        {
+          error: pendingError?.message,
+          searchedOrderNumber: orderNumber,
+          timestamp: new Date().toISOString(),
+          recommendation: 'Check if pending order expired or was never created. Payment may need manual reconciliation.'
+        }
+      );
+
       return new Response(
-        JSON.stringify({ error: 'Pending order not found' }), 
+        JSON.stringify({
+          error: 'Pending order not found',
+          details: 'The order data may have expired or was not properly created. Please contact support with your payment reference.',
+          orderNumber: orderNumber
+        }),
         { status: 404, headers: corsHeaders }
       );
     }
@@ -97,13 +137,15 @@ serve(async (req) => {
 
     if (orderError) {
       console.error('Error creating order:', orderError);
+      await logPaymentEvent('order_failed', { orderNumber }, 'Failed to create order in database', orderError);
       return new Response(
-        JSON.stringify({ error: 'Failed to create order' }), 
+        JSON.stringify({ error: 'Failed to create order' }),
         { status: 500, headers: corsHeaders }
       );
     }
 
     console.log('Created order:', newOrder.id);
+    await logPaymentEvent('order_created', { orderId: newOrder.id, orderNumber });
 
     // Create order items
     const orderItems = pendingOrder.cart_data.items.map((item: any) => ({
@@ -208,14 +250,20 @@ serve(async (req) => {
     }
 
     console.log('Order processing completed successfully');
+    await logPaymentEvent('processing_completed', {
+      orderId: newOrder.id,
+      orderNumber: newOrder.order_number,
+      itemCount: orderItems.length,
+      totalAmount: pendingOrder.total_amount
+    });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         orderId: newOrder.id,
         orderNumber: newOrder.order_number,
         message: 'Order processed successfully'
-      }), 
+      }),
       { status: 200, headers: corsHeaders }
     );
 
