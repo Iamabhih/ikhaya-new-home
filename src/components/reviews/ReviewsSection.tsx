@@ -33,7 +33,7 @@ export const ReviewsSection = ({ productId }: ReviewsSectionProps) => {
     queryKey: ['rating-distribution', productId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('reviews')
+        .from('product_reviews')
         .select('rating')
         .eq('product_id', productId)
         .eq('is_approved', true);
