@@ -34,14 +34,30 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
     : 'https://www.payfast.co.za/eng/process';
 
   useEffect(() => {
-    // Auto-submit the form when component mounts (immediate submission)
+    // Auto-submit the form when component mounts - unconditional
     const form = document.getElementById('payfast-form') as HTMLFormElement;
-    if (form && onSubmit) {
-      onSubmit();
-      // Remove artificial delay - submit immediately
+    if (form) {
+      console.log('[PayFastForm] Auto-submitting to:', payFastUrl);
+      console.log('[PayFastForm] Form data:', {
+        merchant_id: formData.merchant_id,
+        merchant_key: formData.merchant_key ? '***' : 'MISSING',
+        return_url: formData.return_url,
+        cancel_url: formData.cancel_url,
+        notify_url: formData.notify_url,
+        amount: formData.amount,
+        item_name: formData.item_name,
+        m_payment_id: formData.m_payment_id,
+        name_first: formData.name_first,
+        name_last: formData.name_last,
+        email_address: formData.email_address
+      });
+      
+      if (onSubmit) onSubmit();
       form.submit();
+    } else {
+      console.error('[PayFastForm] Form element not found!');
     }
-  }, [onSubmit]);
+  }, []);
 
   return (
     <div className="min-h-[400px] flex items-center justify-center p-8">
