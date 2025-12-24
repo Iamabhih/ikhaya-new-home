@@ -132,6 +132,66 @@ export type Database = {
         }
         Relationships: []
       }
+      application_logs: {
+        Row: {
+          category: string
+          correlation_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error_stack: string | null
+          function_name: string | null
+          id: string
+          ip_address: string | null
+          level: string
+          message: string
+          metadata: Json | null
+          page_path: string | null
+          session_id: string | null
+          source: string
+          timestamp: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          correlation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_stack?: string | null
+          function_name?: string | null
+          id?: string
+          ip_address?: string | null
+          level: string
+          message: string
+          metadata?: Json | null
+          page_path?: string | null
+          session_id?: string | null
+          source?: string
+          timestamp?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          correlation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_stack?: string | null
+          function_name?: string | null
+          id?: string
+          ip_address?: string | null
+          level?: string
+          message?: string
+          metadata?: Json | null
+          page_path?: string | null
+          session_id?: string | null
+          source?: string
+          timestamp?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       attribute_values: {
         Row: {
           attribute_id: string
@@ -3284,6 +3344,7 @@ export type Database = {
         Returns: number
       }
       cleanup_expired_pending_orders: { Args: never; Returns: undefined }
+      cleanup_old_application_logs: { Args: never; Returns: undefined }
       cleanup_old_batch_progress: { Args: never; Returns: undefined }
       cleanup_old_processing_sessions: { Args: never; Returns: undefined }
       create_admin_user: { Args: { user_email: string }; Returns: boolean }
