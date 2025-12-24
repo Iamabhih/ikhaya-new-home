@@ -3296,7 +3296,7 @@ export type Database = {
           p_pending_order_id?: string
           p_user_id: string
         }
-        Returns: string
+        Returns: Json
       }
       create_superadmin_user: { Args: { user_email: string }; Returns: boolean }
       create_user_from_order: {

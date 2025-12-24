@@ -8,9 +8,9 @@ This directory contains step-by-step implementation guides for fixing critical i
 
 | Priority | Guide | Issue | Time | Status |
 |----------|-------|-------|------|--------|
-| 🔴 CRITICAL | [01-transaction-wrapper.md](./01-transaction-wrapper.md) | No transaction wrapping for orders | 2-3 hours | ⏳ Pending |
-| 🔴 CRITICAL | [03-order-id-standardization.md](./03-order-id-standardization.md) | Inconsistent order ID formats | 1 hour | ⏳ Pending |
-| 🔴 CRITICAL | See [ENVIRONMENT.md](../ENVIRONMENT.md) | Hardcoded credentials | 2 hours | ⏳ Pending |
+| 🔴 CRITICAL | [01-transaction-wrapper.md](./01-transaction-wrapper.md) | No transaction wrapping for orders | 2-3 hours | ✅ Complete |
+| 🔴 CRITICAL | [03-order-id-standardization.md](./03-order-id-standardization.md) | Inconsistent order ID formats | 1 hour | ✅ Complete |
+| 🔴 CRITICAL | See [ENVIRONMENT.md](../ENVIRONMENT.md) | Hardcoded credentials | 2 hours | ✅ Complete |
 
 ---
 
@@ -274,4 +274,31 @@ For questions or issues with these guides:
 **Created:** 2025-12-24
 **Last Updated:** 2025-12-24
 **Total Guides:** 3 (more planned)
-**Completion Status:** 0/37 issues resolved
+**Completion Status:** 3/37 critical issues resolved
+
+---
+
+## Implementation History
+
+### 2025-12-24 - Critical Fixes Applied
+
+| Fix | Description | Migration/File |
+|-----|-------------|----------------|
+| ✅ Hardcoded Credentials | Moved to environment variables | `PayFastConfig.ts` |
+| ✅ Order ID Standardization | Single `generateOrderId()` function | `PayFastConfig.ts` |
+| ✅ Transaction Wrapper | Atomic order creation with JSONB return | `create_order_transaction()` |
+| ✅ Cleanup Function Fix | Uses `expires_at` column properly | `cleanup_expired_pending_orders()` |
+| ✅ Negative Stock Prevention | Trigger prevents stock < 0 | `check_stock_not_negative` trigger |
+| ✅ Expired Orders Cleanup | Ran cleanup, 23 expired orders removed | Manual execution |
+
+### Database Functions Updated
+
+- `create_order_transaction(text, uuid, jsonb, jsonb, uuid)` → Returns JSONB with `{success, order_id, order_number, error}`
+- `cleanup_expired_pending_orders()` → Fixed to use `expires_at` column
+- `prevent_negative_stock()` → Trigger function to prevent negative stock
+- `update_product_stock()` → Enhanced with proper validation
+
+### Edge Functions Updated
+
+- `process-order` → Uses transaction function, handles JSONB response
+- `payfast-webhook` → Improved logging and error handling
