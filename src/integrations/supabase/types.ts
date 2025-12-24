@@ -1439,6 +1439,7 @@ export type Database = {
           currency: string | null
           customer_notes: string | null
           delivered_at: string | null
+          delivery_info: Json | null
           discount_amount: number | null
           email: string
           estimated_delivery_date: string | null
@@ -1451,6 +1452,7 @@ export type Database = {
           internal_notes: string | null
           notes: string | null
           order_number: string
+          payment_data: Json | null
           payment_gateway: string | null
           payment_gateway_response: Json | null
           payment_method: string | null
@@ -1479,6 +1481,7 @@ export type Database = {
           currency?: string | null
           customer_notes?: string | null
           delivered_at?: string | null
+          delivery_info?: Json | null
           discount_amount?: number | null
           email: string
           estimated_delivery_date?: string | null
@@ -1491,6 +1494,7 @@ export type Database = {
           internal_notes?: string | null
           notes?: string | null
           order_number: string
+          payment_data?: Json | null
           payment_gateway?: string | null
           payment_gateway_response?: Json | null
           payment_method?: string | null
@@ -1519,6 +1523,7 @@ export type Database = {
           currency?: string | null
           customer_notes?: string | null
           delivered_at?: string | null
+          delivery_info?: Json | null
           discount_amount?: number | null
           email?: string
           estimated_delivery_date?: string | null
@@ -1531,6 +1536,7 @@ export type Database = {
           internal_notes?: string | null
           notes?: string | null
           order_number?: string
+          payment_data?: Json | null
           payment_gateway?: string | null
           payment_gateway_response?: Json | null
           payment_method?: string | null
@@ -1591,37 +1597,44 @@ export type Database = {
       payment_logs: {
         Row: {
           created_at: string
+          error_details: Json | null
+          error_message: string | null
+          event_data: Json | null
           event_type: string
           id: string
-          message: string
-          metadata: Json | null
-          transaction_id: string | null
+          ip_address: string | null
+          m_payment_id: string | null
+          payment_id: string | null
+          payment_status: string | null
+          pf_payment_id: string | null
         }
         Insert: {
           created_at?: string
+          error_details?: Json | null
+          error_message?: string | null
+          event_data?: Json | null
           event_type: string
           id?: string
-          message: string
-          metadata?: Json | null
-          transaction_id?: string | null
+          ip_address?: string | null
+          m_payment_id?: string | null
+          payment_id?: string | null
+          payment_status?: string | null
+          pf_payment_id?: string | null
         }
         Update: {
           created_at?: string
+          error_details?: Json | null
+          error_message?: string | null
+          event_data?: Json | null
           event_type?: string
           id?: string
-          message?: string
-          metadata?: Json | null
-          transaction_id?: string | null
+          ip_address?: string | null
+          m_payment_id?: string | null
+          payment_id?: string | null
+          payment_status?: string | null
+          pf_payment_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "payment_logs_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "payment_transactions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       payment_methods: {
         Row: {
