@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Mail,
   Zap,
-  FileText
+  FileText,
+  ScrollText
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/hooks/useRoles";
@@ -84,6 +85,11 @@ const adminRoutes = [
     title: "Production", 
     url: "/admin/production", 
     icon: Zap 
+  },
+  { 
+    title: "Logs", 
+    url: "/admin/logs", 
+    icon: ScrollText 
   },
 ];
 

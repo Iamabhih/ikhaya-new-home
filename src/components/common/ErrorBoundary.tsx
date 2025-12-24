@@ -3,6 +3,7 @@ import React, { Component, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
+import { appLogger } from '@/utils/appLogger';
 
 interface Props {
   children: ReactNode;
@@ -26,6 +27,13 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // Log to database for monitoring
+    appLogger.componentError(
+      errorInfo.componentStack?.split('\n')[1]?.trim() || 'Unknown Component',
+      error,
+      errorInfo.componentStack || undefined
+    );
   }
 
   render() {

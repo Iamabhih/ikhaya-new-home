@@ -56,6 +56,7 @@ const SuperAdminSettings = lazy(() => import("./pages/admin/SuperAdminSettings")
 const AdminProduction = lazy(() => import("./pages/admin/AdminProduction"));
 const AdminCartAbandonment = lazy(() => import("./pages/admin/AdminCartAbandonment"));
 const AdminQuotes = lazy(() => import("./pages/admin/AdminQuotes"));
+const AdminLogs = lazy(() => import("./pages/admin/AdminLogs"));
 
 // Loading fallback for lazy-loaded components
 const PageLoader = () => (
@@ -133,6 +134,7 @@ function App() {
                  <Route path="/admin/order-recovery" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminOrderRecovery /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/homepage" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminHomepage /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/production" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminProduction /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/logs" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminLogs /></Suspense></AdminProtectedRoute>} />
 
                   {/* SuperAdmin only routes - lazy loaded */}
                   <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminProtectedRoute>} />
