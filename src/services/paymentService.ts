@@ -2,6 +2,7 @@ import { FormData, DeliveryOption } from '@/types/checkout';
 import { CartItem } from '@/contexts/CartContext';
 import { getPayFastConfig } from '@/utils/payment/PayFastConfig';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export interface BankDetails {
   bankName: string;
@@ -33,7 +34,7 @@ export interface ProcessPaymentParams {
 export const processPayfastPayment = async (
   { formData, cartItems, totalAmount, orderId }: ProcessPaymentParams & { orderId: string }
 ): Promise<PaymentResult> => {
-  console.log('Processing PayFast payment for order:', orderId);
+  logger.info('Processing PayFast payment for order:', orderId);
   
   try {
     const config = getPayFastConfig();
@@ -67,7 +68,7 @@ export const processPayfastPayment = async (
       redirectUrl: config.IS_TEST_MODE ? config.SANDBOX_URL : config.PRODUCTION_URL
     };
   } catch (error) {
-    console.error('PayFast payment error:', error);
+    logger.error('PayFast payment error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Payment failed'
@@ -80,7 +81,7 @@ export const processPayfastPayment = async (
  */
 export const processEftPayment = async (orderId: string): Promise<PaymentResult> => {
   try {
-    console.log('Processing EFT payment for order:', orderId);
+    logger.info('Processing EFT payment for order:', orderId);
     
     // Bank details for Ikhaya Homeware
     const bankDetails: BankDetails = {
@@ -99,7 +100,7 @@ export const processEftPayment = async (orderId: string): Promise<PaymentResult>
       bankDetails
     };
   } catch (error) {
-    console.error('Error in EFT payment processing:', error);
+    logger.error('Error in EFT payment processing:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to process EFT payment'
@@ -110,6 +111,16 @@ export const processEftPayment = async (orderId: string): Promise<PaymentResult>
 /**
  * Main payment processor
  */
+/**
+ * Generates a cryptographically secure order ID
+ * Format: IKH-{timestamp}-{random}
+ */
+function generateSecureOrderId(): string {
+  const timestamp = Date.now();
+  const randomPart = crypto.randomUUID().split('-')[0];
+  return `IKH-${timestamp}-${randomPart}`;
+}
+
 export const processPayment = async ({
   paymentMethod,
   formData,
@@ -117,9 +128,9 @@ export const processPayment = async ({
   deliveryOption,
   totalAmount
 }: ProcessPaymentParams): Promise<PaymentResult> => {
-  const orderId = Math.floor(Math.random() * 1000000).toString();
-  
-  console.log(`Processing ${paymentMethod} payment for amount: R${totalAmount.toFixed(2)}`);
+  const orderId = generateSecureOrderId();
+
+  logger.info(`Processing ${paymentMethod} payment for amount: R${totalAmount.toFixed(2)}`);
   
   switch (paymentMethod) {
     case 'payfast':
