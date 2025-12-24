@@ -1,25 +1,7 @@
-
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { applyMobileOptimizations } from './utils/mobileOptimization'
-import { validateEnvironment } from './utils/validateEnv'
-
-// Validate environment variables before app initialization
-try {
-  validateEnvironment();
-} catch (error) {
-  console.error(error);
-  document.body.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; background: #fef2f2;">
-      <div style="max-width: 600px; background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <h1 style="color: #dc2626; margin-bottom: 1rem;">Configuration Error</h1>
-        <pre style="background: #f3f4f6; padding: 1rem; border-radius: 0.375rem; overflow-x: auto; font-size: 0.875rem;">${error instanceof Error ? error.message : 'Unknown error'}</pre>
-      </div>
-    </div>
-  `;
-  throw error;
-}
 
 // Mobile debugging and error handling (only in development)
 if (import.meta.env.DEV) {
