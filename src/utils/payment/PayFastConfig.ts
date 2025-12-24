@@ -1,24 +1,33 @@
-// PayFast configuration - Environment-based (SECURITY FIX)
+// PayFast configuration - Database settings with environment fallback
 // Addresses AUDIT_REPORT.md CRITICAL Issue #2: Hardcoded credentials
 // Addresses AUDIT_REPORT.md CRITICAL Issue #3: Order ID standardization
-export const getPayFastConfig = () => {
-  // Determine mode from environment variable
-  const isTestMode = import.meta.env.VITE_PAYFAST_MODE === 'sandbox';
 
-  // Get credentials from environment (with fallback warnings)
-  const merchantId = import.meta.env.VITE_PAYFAST_MERCHANT_ID;
-  const merchantKey = import.meta.env.VITE_PAYFAST_MERCHANT_KEY;
+export interface PayFastDBSettings {
+  merchantId?: string;
+  merchantKey?: string;
+  passphrase?: string;
+  isTestMode?: boolean;
+}
+
+export const getPayFastConfig = (dbSettings?: PayFastDBSettings) => {
+  // Prefer database settings, fall back to environment variables
+  const merchantId = dbSettings?.merchantId || import.meta.env.VITE_PAYFAST_MERCHANT_ID || '';
+  const merchantKey = dbSettings?.merchantKey || import.meta.env.VITE_PAYFAST_MERCHANT_KEY || '';
+  const passphrase = dbSettings?.passphrase || '';
+  
+  // Determine mode: prefer DB setting, then env var, default to sandbox
+  const isTestMode = dbSettings?.isTestMode ?? (import.meta.env.VITE_PAYFAST_MODE === 'sandbox' ? true : true);
 
   // Validate credentials are configured
   if (!merchantId || !merchantKey) {
-    console.error('⚠️ PayFast credentials not configured in environment variables');
-    console.error('Please set VITE_PAYFAST_MERCHANT_ID and VITE_PAYFAST_MERCHANT_KEY');
+    console.warn('⚠️ PayFast credentials not configured');
   }
 
   return {
-    // Merchant credentials from environment
-    MERCHANT_ID: merchantId || '',
-    MERCHANT_KEY: merchantKey || '',
+    // Merchant credentials
+    MERCHANT_ID: merchantId,
+    MERCHANT_KEY: merchantKey,
+    PASSPHRASE: passphrase,
 
     // URLs
     SANDBOX_URL: 'https://sandbox.payfast.co.za/eng/process',
@@ -31,7 +40,7 @@ export const getPayFastConfig = () => {
     getReturnUrls: () => {
       const baseUrl = typeof window !== 'undefined'
         ? window.location.origin
-        : (import.meta.env.VITE_SITE_URL || 'https://ikhayahomeware.online');
+        : 'https://ikhayahomeware.online';
 
       return {
         return_url: `${baseUrl}/checkout-success`,
@@ -42,7 +51,7 @@ export const getPayFastConfig = () => {
   };
 };
 
-// Backward compatibility
+// Backward compatibility - uses default config (no DB settings)
 export const PAYFAST_CONFIG = getPayFastConfig();
 
 /**
