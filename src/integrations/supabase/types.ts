@@ -2245,6 +2245,98 @@ export type Database = {
         }
         Relationships: []
       }
+      product_reviews: {
+        Row: {
+          admin_response: string | null
+          admin_response_at: string | null
+          cons: string[] | null
+          content: string | null
+          created_at: string | null
+          helpful_count: number | null
+          id: string
+          images: string[] | null
+          is_approved: boolean | null
+          is_featured: boolean | null
+          is_verified_purchase: boolean | null
+          order_id: string | null
+          product_id: string
+          pros: string[] | null
+          rating: number
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_response?: string | null
+          admin_response_at?: string | null
+          cons?: string[] | null
+          content?: string | null
+          created_at?: string | null
+          helpful_count?: number | null
+          id?: string
+          images?: string[] | null
+          is_approved?: boolean | null
+          is_featured?: boolean | null
+          is_verified_purchase?: boolean | null
+          order_id?: string | null
+          product_id: string
+          pros?: string[] | null
+          rating: number
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_response?: string | null
+          admin_response_at?: string | null
+          cons?: string[] | null
+          content?: string | null
+          created_at?: string | null
+          helpful_count?: number | null
+          id?: string
+          images?: string[] | null
+          is_approved?: boolean | null
+          is_featured?: boolean | null
+          is_verified_purchase?: boolean | null
+          order_id?: string | null
+          product_id?: string
+          pros?: string[] | null
+          rating?: number
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_performance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           compare_at_price: number | null
