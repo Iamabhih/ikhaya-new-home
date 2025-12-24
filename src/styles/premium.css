@@ -1,103 +1,97 @@
 /* Premium utility classes for enhanced theming */
-/* Note: @tailwind directives are imported from index.css */
 
-@layer utilities {
-  /* Glass morphism effects */
-  .glass {
-    @apply bg-glass-bg border border-glass-border;
-    /* Enhanced backdrop filter with fallbacks */
-    backdrop-filter: blur(12px) saturate(180%);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
-  }
-  
-  .glass-card {
-    @apply bg-background/80 border border-border/20 shadow-glass;
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-  }
-  
-  /* Premium hover effects */
-  .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-premium;
-  }
-  
-  .hover-glow {
-    @apply transition-all duration-300 hover:shadow-glow;
-  }
-  
-  .hover-glow-secondary {
-    @apply transition-all duration-300 hover:shadow-glow-secondary;
-  }
-  
-  /* Premium gradients */
-  .gradient-text-primary {
-    @apply bg-gradient-primary bg-clip-text text-transparent;
-  }
-  
-  .gradient-text-secondary {
-    @apply bg-gradient-secondary bg-clip-text text-transparent;
-  }
-  
-  .gradient-text-brand {
-    @apply bg-brand-gradient bg-clip-text text-transparent;
-  }
-  
-  /* Enhanced borders */
-  .border-gradient {
-    position: relative;
-    background: linear-gradient(var(--gradient-card)) padding-box,
-                var(--brand-gradient) border-box;
-    border: 1px solid transparent;
-  }
-  
-  /* Premium spacing and typography */
-  .premium-spacing {
-    @apply space-y-6 lg:space-y-8;
-  }
-  
-  .premium-container {
-    @apply container mx-auto px-4 sm:px-6 lg:px-8;
-  }
-  
-  /* Enhanced focus states */
-  .focus-premium {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
-  }
-  
-  /* Premium text styles */
-  .text-premium {
-    @apply text-foreground/90 leading-relaxed;
-  }
-  
-  .text-premium-muted {
-    @apply text-muted-foreground/80;
-  }
+/* Glass morphism effects */
+.glass {
+  @apply bg-glass-bg border border-glass-border;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+}
+
+.glass-card {
+  @apply bg-background/80 border border-border/20 shadow-glass;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* Premium hover effects */
+.hover-lift {
+  @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-premium;
+}
+
+.hover-glow {
+  @apply transition-all duration-300 hover:shadow-glow;
+}
+
+.hover-glow-secondary {
+  @apply transition-all duration-300 hover:shadow-glow-secondary;
+}
+
+/* Premium gradients */
+.gradient-text-primary {
+  @apply bg-gradient-primary bg-clip-text text-transparent;
+}
+
+.gradient-text-secondary {
+  @apply bg-gradient-secondary bg-clip-text text-transparent;
+}
+
+.gradient-text-brand {
+  @apply bg-brand-gradient bg-clip-text text-transparent;
+}
+
+/* Enhanced borders */
+.border-gradient {
+  position: relative;
+  background: linear-gradient(var(--gradient-card)) padding-box,
+              var(--brand-gradient) border-box;
+  border: 1px solid transparent;
+}
+
+/* Premium spacing and typography */
+.premium-spacing {
+  @apply space-y-6 lg:space-y-8;
+}
+
+.premium-container {
+  @apply container mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Enhanced focus states */
+.focus-premium {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* Premium text styles */
+.text-premium {
+  @apply text-foreground/90 leading-relaxed;
+}
+
+.text-premium-muted {
+  @apply text-muted-foreground/80;
 }
 
 /* Component-specific premium styles */
-@layer components {
-  .premium-nav-item {
-    @apply relative px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:text-primary hover:bg-primary/5;
-  }
-  
-  .premium-nav-item.active {
-    @apply text-primary bg-primary/10;
-  }
-  
-  .premium-nav-item::after {
-    @apply content-[''] absolute bottom-0 left-1/2 w-0 h-0.5 bg-primary transition-all duration-200 -translate-x-1/2;
-  }
-  
-  .premium-nav-item.active::after,
-  .premium-nav-item:hover::after {
-    @apply w-full;
-  }
-  
-  .premium-input {
-    @apply border-input bg-background ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-200;
-  }
-  
-  .premium-input:focus {
-    @apply border-primary shadow-glow;
-  }
+.premium-nav-item {
+  @apply relative px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:text-primary hover:bg-primary/5;
+}
+
+.premium-nav-item.active {
+  @apply text-primary bg-primary/10;
+}
+
+.premium-nav-item::after {
+  @apply content-[''] absolute bottom-0 left-1/2 w-0 h-0.5 bg-primary transition-all duration-200 -translate-x-1/2;
+}
+
+.premium-nav-item.active::after,
+.premium-nav-item:hover::after {
+  @apply w-full;
+}
+
+.premium-input {
+  @apply border-input bg-background ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-200;
+}
+
+.premium-input:focus {
+  @apply border-primary shadow-glow;
 }

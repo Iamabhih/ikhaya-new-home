@@ -1,182 +1,178 @@
 /*
  * Responsive Utilities & Mobile-First Layouts
  * ============================================
- * Note: @tailwind directives are imported in base.css
- * This file contains responsive utilities within @layer base
+ * These styles are imported after base.css and work without @layer directive
  */
 
-@layer base {
-  /* Mobile-optimized container */
-  .mobile-optimized {
-    @apply w-full overflow-x-hidden;
-    /* Ensure proper rendering on mobile */
-    min-height: 100vh;
-    position: relative;
-  }
+/* Mobile-optimized container */
+.mobile-optimized {
+  @apply w-full overflow-x-hidden;
+  min-height: 100vh;
+  position: relative;
+}
 
-  /* Responsive typography using clamp() with mobile-first approach */
-  h1 { 
-    font-size: clamp(1.25rem, 4vw, 2.25rem); 
-    line-height: 1.2;
-  }
-  h2 { 
-    font-size: clamp(1.125rem, 3.5vw, 1.875rem); 
-    line-height: 1.3;
-  }
-  h3 { 
-    font-size: clamp(1rem, 3vw, 1.5rem); 
-    line-height: 1.4;
-  }
-  h4 { 
-    font-size: clamp(0.875rem, 2.5vw, 1.25rem); 
-    line-height: 1.4;
-  }
+/* Responsive typography using clamp() with mobile-first approach */
+h1 { 
+  font-size: clamp(1.25rem, 4vw, 2.25rem); 
+  line-height: 1.2;
+}
+h2 { 
+  font-size: clamp(1.125rem, 3.5vw, 1.875rem); 
+  line-height: 1.3;
+}
+h3 { 
+  font-size: clamp(1rem, 3vw, 1.5rem); 
+  line-height: 1.4;
+}
+h4 { 
+  font-size: clamp(0.875rem, 2.5vw, 1.25rem); 
+  line-height: 1.4;
+}
 
-  /* Improved container with proper mobile handling */
-  .container {
-    @apply mx-auto px-4 sm:px-6 lg:px-8;
-    width: 100%;
-    max-width: min(90rem, calc(100vw - 1rem));
-  }
+/* Improved container with proper mobile handling */
+.container {
+  @apply mx-auto px-4 sm:px-6 lg:px-8;
+  width: 100%;
+  max-width: min(90rem, calc(100vw - 1rem));
+}
 
-  /* Improved responsive grid with better mobile fallbacks */
+/* Improved responsive grid with better mobile fallbacks */
+.responsive-grid {
+  @apply grid gap-3 sm:gap-4 md:gap-6 lg:gap-8;
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, calc(50% - 0.75rem)), 1fr));
+}
+
+.responsive-grid-sm {
+  @apply grid gap-2 sm:gap-3 md:gap-4;
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, calc(50% - 0.5rem)), 1fr));
+}
+
+/* Mobile-specific product grid optimization */
+@media (max-width: 640px) {
   .responsive-grid {
-    @apply grid gap-3 sm:gap-4 md:gap-6 lg:gap-8;
-    grid-template-columns: repeat(auto-fit, minmax(min(160px, calc(50% - 0.75rem)), 1fr));
-  }
-
-  .responsive-grid-sm {
-    @apply grid gap-2 sm:gap-3 md:gap-4;
-    grid-template-columns: repeat(auto-fit, minmax(min(140px, calc(50% - 0.5rem)), 1fr));
-  }
-
-  /* Mobile-specific product grid optimization */
-  @media (max-width: 640px) {
-    .responsive-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.75rem;
-    }
-    
-    .responsive-grid-sm {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.5rem;
-    }
-  }
-
-  /* Better responsive tables */
-  .table-responsive {
-    @apply overflow-x-auto;
-    -webkit-overflow-scrolling: touch;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
   
-  .table-responsive table {
-    @apply min-w-full;
+  .responsive-grid-sm {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
   }
+}
 
-  /* Optimized responsive grids with fluid columns */
-  .responsive-grid-standard {
-    @apply grid gap-4;
-    grid-template-columns: repeat(auto-fill, minmax(min(280px, calc(50% - 0.5rem)), 1fr));
-    align-items: stretch;
-    justify-items: center;
+/* Better responsive tables */
+.table-responsive {
+  @apply overflow-x-auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive table {
+  @apply min-w-full;
+}
+
+/* Optimized responsive grids with fluid columns */
+.responsive-grid-standard {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, calc(50% - 0.5rem)), 1fr));
+  align-items: stretch;
+  justify-items: center;
+}
+
+.responsive-grid-compact {
+  @apply grid gap-2 sm:gap-3;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, calc(50% - 0.25rem)), 1fr));
+  align-items: stretch;
+  justify-items: center;
+}
+
+.responsive-grid-comfortable {
+  @apply grid gap-6 md:gap-8;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, calc(50% - 1rem)), 1fr));
+  align-items: stretch;
+  justify-items: center;
+}
+
+/* Grid optimizations for mobile */
+.grid-mobile-optimized {
+  display: grid;
+  gap: clamp(0.75rem, 2.5vw, 1.5rem);
+  align-items: stretch;
+  justify-items: center;
+}
+
+.grid-list-mobile-optimized {
+  @apply grid grid-cols-1 gap-4;
+  align-items: stretch;
+}
+
+/* Mobile-first container queries support */
+@supports (container-type: inline-size) {
+  .container-query {
+    container-type: inline-size;
   }
+}
 
-  .responsive-grid-compact {
-    @apply grid gap-2 sm:gap-3;
-    grid-template-columns: repeat(auto-fill, minmax(min(200px, calc(50% - 0.25rem)), 1fr));
-    align-items: stretch;
-    justify-items: center;
-  }
+/* Banner optimizations */
+.banner-container {
+  @apply w-full overflow-hidden;
+  will-change: transform;
+}
 
-  .responsive-grid-comfortable {
-    @apply grid gap-6 md:gap-8;
-    grid-template-columns: repeat(auto-fill, minmax(min(320px, calc(50% - 1rem)), 1fr));
-    align-items: stretch;
-    justify-items: center;
-  }
+.banner-main {
+  @apply relative flex items-center justify-center text-white;
+  aspect-ratio: auto;
+  contain: layout style paint;
+}
 
-  /* Grid optimizations for mobile */
-  .grid-mobile-optimized {
-    display: grid;
-    gap: clamp(0.75rem, 2.5vw, 1.5rem);
-    align-items: stretch;
-    justify-items: center;
-  }
+.banner-image-wrapper {
+  @apply absolute inset-0;
+  contain: strict;
+}
 
-  .grid-list-mobile-optimized {
-    @apply grid grid-cols-1 gap-4;
-    align-items: stretch;
-  }
+.banner-content {
+  will-change: opacity;
+}
 
-  /* Mobile-first container queries support */
-  @supports (container-type: inline-size) {
-    .container-query {
-      container-type: inline-size;
-    }
-  }
+.banner-title,
+.banner-subtitle,
+.banner-description {
+  /* Cross-browser gradient text support */
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
-  /* Banner optimizations */
-  .banner-container {
-    @apply w-full overflow-hidden;
-    will-change: transform;
-  }
-
-  .banner-main {
-    @apply relative flex items-center justify-center text-white;
-    aspect-ratio: auto;
-    contain: layout style paint;
-  }
-
-  .banner-image-wrapper {
-    @apply absolute inset-0;
-    contain: strict;
-  }
-
-  .banner-content {
-    will-change: opacity;
-  }
-
+/* Fallback for browsers without gradient text support */
+@supports not (background-clip: text) {
   .banner-title,
   .banner-subtitle,
   .banner-description {
-    /* Cross-browser gradient text support */
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    -webkit-text-fill-color: currentColor;
+    background: none !important;
   }
+}
 
-  /* Fallback for browsers without gradient text support */
-  @supports not (background-clip: text) {
-    .banner-title,
-    .banner-subtitle,
-    .banner-description {
-      -webkit-text-fill-color: currentColor;
-      background: none !important;
-    }
-  }
+.banner-nav {
+  @apply z-20;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  contain: layout style;
+}
 
+/* Fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(8px)) {
   .banner-nav {
-    @apply z-20;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    contain: layout style;
+    background-color: rgba(255, 255, 255, 0.2) !important;
   }
+}
 
-  /* Fallback for browsers without backdrop-filter */
-  @supports not (backdrop-filter: blur(8px)) {
-    .banner-nav {
-      background-color: rgba(255, 255, 255, 0.2) !important;
-    }
-  }
+.banner-strips {
+  contain: layout style;
+}
 
-  .banner-strips {
-    contain: layout style;
-  }
-
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
-  }
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /* Tablet specific optimizations */
