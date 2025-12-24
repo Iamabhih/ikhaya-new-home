@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Shield, Loader2, AlertCircle } from "lucide-react";
@@ -32,6 +32,7 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   
   const payFastUrl = isTestMode 
     ? 'https://sandbox.payfast.co.za/eng/process'
@@ -39,58 +40,61 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
   
   const { logFormSubmitted, logClientError } = usePaymentLogger();
 
-  useEffect(() => {
-    // Auto-submit with a small delay to ensure DOM is ready
-    const timer = setTimeout(async () => {
-      const form = document.getElementById('payfast-form') as HTMLFormElement;
-      if (form) {
-        console.log('[PayFastForm] Submitting to:', payFastUrl);
-        console.log('[PayFastForm] Mode:', isTestMode ? 'SANDBOX' : 'PRODUCTION');
-        
-        setIsSubmitting(true);
-        
-        try {
-          // Log form submission
-          await logFormSubmitted({
-            orderNumber: formData.m_payment_id,
-            amount: parseFloat(formData.amount),
-            email: formData.email_address,
-            isTestMode,
-            targetUrl: payFastUrl
-          });
-          
-          if (onSubmit) onSubmit();
-          form.submit();
-        } catch (err) {
-          console.error('[PayFastForm] Submit error:', err);
-          setError('Failed to submit form. Please click the button below.');
-          setIsSubmitting(false);
-          
-          await logClientError({
-            orderNumber: formData.m_payment_id,
-            amount: parseFloat(formData.amount)
-          }, err instanceof Error ? err.message : 'Form submission error');
-        }
-      } else {
-        console.error('[PayFastForm] Form element not found!');
-        setError('Form not found. Please click the button below.');
-        
-        await logClientError({
-          orderNumber: formData.m_payment_id,
-          amount: parseFloat(formData.amount)
-        }, 'Form element not found during auto-submit');
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleManualSubmit = () => {
-    const form = document.getElementById('payfast-form') as HTMLFormElement;
-    if (form) {
-      setIsSubmitting(true);
-      form.submit();
+  const handleSubmit = () => {
+    if (!formRef.current) {
+      setError('Form not ready. Please try again.');
+      logClientError({
+        orderNumber: formData.m_payment_id,
+        amount: parseFloat(formData.amount)
+      }, 'Form ref not available').catch(() => {});
+      return;
     }
+
+    setIsSubmitting(true);
+    setError(null);
+    
+    console.log('[PayFastForm] Submitting to:', payFastUrl);
+    console.log('[PayFastForm] Mode:', isTestMode ? 'SANDBOX' : 'PRODUCTION');
+    
+    // Fire-and-forget logging - don't block on this
+    logFormSubmitted({
+      orderNumber: formData.m_payment_id,
+      amount: parseFloat(formData.amount),
+      email: formData.email_address,
+      isTestMode,
+      targetUrl: payFastUrl
+    }).catch((err) => {
+      console.warn('[PayFastForm] Logging failed (non-blocking):', err);
+    });
+    
+    // Call onSubmit callback immediately
+    if (onSubmit) {
+      try {
+        onSubmit();
+      } catch (err) {
+        console.warn('[PayFastForm] onSubmit callback error (non-blocking):', err);
+      }
+    }
+    
+    // Submit form immediately - this should redirect the browser
+    try {
+      formRef.current.submit();
+    } catch (err) {
+      console.error('[PayFastForm] Form submit failed:', err);
+      setError('Failed to redirect. Please try again.');
+      setIsSubmitting(false);
+      
+      logClientError({
+        orderNumber: formData.m_payment_id,
+        amount: parseFloat(formData.amount)
+      }, err instanceof Error ? err.message : 'Form submit exception').catch(() => {});
+    }
+
+    // Fallback: if still on page after 3 seconds, show error
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setError('Redirect did not complete. Please click the button again or check your browser settings.');
+    }, 3000);
   };
 
   return (
@@ -99,22 +103,34 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-center justify-center">
             <CreditCard className="w-5 h-5" />
-            Redirecting to PayFast
+            Complete Your Payment
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-6">
-          {error ? (
+          {error && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
-              <p className="text-sm text-destructive">{error}</p>
+              <AlertCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-destructive text-left">{error}</p>
             </div>
-          ) : (
+          )}
+
+          {isSubmitting ? (
             <div className="space-y-2">
               <div className="flex justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
               <p className="text-muted-foreground">
-                Please wait while we redirect you to complete your payment securely.
+                Redirecting you to PayFast...
+              </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Shield className="w-4 h-4" />
+                <span>Secured by PayFast</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                Click below to securely complete your payment of <strong>R{formData.amount}</strong>
               </p>
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Shield className="w-4 h-4" />
@@ -123,12 +139,12 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
             </div>
           )}
 
-          {/* Simple PayFast Form - No signature required */}
+          {/* PayFast Form - visually hidden but accessible */}
           <form
-            id="payfast-form"
+            ref={formRef}
             action={payFastUrl}
             method="post"
-            style={{ display: 'none' }}
+            className="sr-only"
           >
             {/* Merchant details */}
             <input type="hidden" name="merchant_id" value={formData.merchant_id} />
@@ -161,29 +177,28 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
             )}
           </form>
 
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              If you are not redirected automatically, please click the button below:
-            </p>
-            <Button
-              onClick={handleManualSubmit}
-              disabled={isSubmitting}
-              className="w-full"
-              size="lg"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Redirecting...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Continue to PayFast
-                </>
-              )}
-            </Button>
-          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="w-full"
+            size="lg"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Redirecting...
+              </>
+            ) : (
+              <>
+                <CreditCard className="w-4 h-4 mr-2" />
+                Pay with PayFast
+              </>
+            )}
+          </Button>
+          
+          <p className="text-xs text-muted-foreground">
+            You will be redirected to PayFast to complete your payment securely.
+          </p>
         </CardContent>
       </Card>
     </div>
