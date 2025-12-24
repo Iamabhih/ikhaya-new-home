@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +17,7 @@ export const ReviewForm = ({ productId, onReviewSubmitted }: ReviewFormProps) =>
   const { user } = useAuth();
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
-  const [comment, setComment] = useState("");
+  const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,13 +37,14 @@ export const ReviewForm = ({ productId, onReviewSubmitted }: ReviewFormProps) =>
 
     try {
       const { error } = await supabase
-        .from('reviews')
+        .from('product_reviews')
         .insert({
           product_id: productId,
           user_id: user.id,
           rating,
           title: title.trim() || null,
-          comment: comment.trim() || null
+          content: content.trim() || null,
+          is_approved: false // Requires moderation
         });
 
       if (error) {
@@ -54,10 +54,10 @@ export const ReviewForm = ({ productId, onReviewSubmitted }: ReviewFormProps) =>
           throw error;
         }
       } else {
-        toast.success("Review submitted successfully!");
+        toast.success("Review submitted! It will be visible after approval.");
         setRating(0);
         setTitle("");
-        setComment("");
+        setContent("");
         onReviewSubmitted();
       }
     } catch (error) {
@@ -106,13 +106,13 @@ export const ReviewForm = ({ productId, onReviewSubmitted }: ReviewFormProps) =>
           </div>
           
           <div>
-            <label htmlFor="comment" className="block text-sm font-medium mb-2">
+            <label htmlFor="content" className="block text-sm font-medium mb-2">
               Review (Optional)
             </label>
             <Textarea
-              id="comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
               placeholder="Tell others about your experience with this product"
               rows={4}
             />

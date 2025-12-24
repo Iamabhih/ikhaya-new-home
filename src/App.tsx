@@ -57,6 +57,7 @@ const AdminProduction = lazy(() => import("./pages/admin/AdminProduction"));
 const AdminCartAbandonment = lazy(() => import("./pages/admin/AdminCartAbandonment"));
 const AdminQuotes = lazy(() => import("./pages/admin/AdminQuotes"));
 const AdminLogs = lazy(() => import("./pages/admin/AdminLogs"));
+const AdminDiscounts = lazy(() => import("./pages/admin/AdminDiscounts"));
 
 // Loading fallback for lazy-loaded components
 const PageLoader = () => (
@@ -128,6 +129,7 @@ function App() {
                  <Route path="/admin/analytics" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/returns" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminReturns /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/payments" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminPayments /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/discounts" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminDiscounts /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/subscriptions" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminSubscriptions /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/cart-abandonment" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminCartAbandonment /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/quotes" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminQuotes /></Suspense></AdminProtectedRoute>} />

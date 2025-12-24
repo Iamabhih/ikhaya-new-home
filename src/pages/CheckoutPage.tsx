@@ -12,12 +12,14 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { Shield, Lock, CreditCard, Truck, CheckCircle, Clock } from "lucide-react";
 import { useDeliveryFee } from "@/hooks/useDeliveryFee";
+import { useDiscountCode } from "@/hooks/useDiscountCode";
 
 const CheckoutPage = () => {
   const { items, total, trackCheckoutInitiated } = useEnhancedCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedDeliveryZone, setSelectedDeliveryZone] = useState<string>('');
+  const { appliedDiscount, applyDiscount } = useDiscountCode(total);
   
   // Get delivery zones to auto-select the first one
   const { deliveryZones } = useDeliveryFee(total, selectedDeliveryZone);
@@ -172,7 +174,13 @@ const CheckoutPage = () => {
           <div className="space-y-6">
             <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
               <CardContent className="p-6">
-                <OrderSummary items={items} total={total} selectedDeliveryZone={selectedDeliveryZone} />
+                <OrderSummary 
+                  items={items} 
+                  total={total} 
+                  selectedDeliveryZone={selectedDeliveryZone}
+                  appliedDiscount={appliedDiscount}
+                  onDiscountApplied={applyDiscount}
+                />
               </CardContent>
             </Card>
 
