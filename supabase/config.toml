@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.consolidated-image-linker]
 verify_jwt = false
+
+[functions.get-shipping-rates]
+verify_jwt = false
+
+[functions.create-shipment]
+verify_jwt = false
