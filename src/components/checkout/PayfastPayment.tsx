@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import PayFastForm from "./PayFastForm";
 import { getPayFastConfig, generatePaymentReference } from "@/utils/payment/PayFastConfig";
+import { usePayFastSettings } from "@/hooks/usePayFastSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CreditCard, AlertCircle } from "lucide-react";
+import { CreditCard, AlertCircle, Loader2 } from "lucide-react";
 
 interface PayfastPaymentProps {
   formData: {
@@ -35,8 +36,16 @@ export const PayfastPayment = ({
   const [showPayFastForm, setShowPayFastForm] = useState(false);
   const [payFastFormData, setPayFastFormData] = useState<any>(null);
 
-  // Get current config
-  const config = getPayFastConfig();
+  // Fetch PayFast settings from database
+  const payFastSettings = usePayFastSettings();
+  
+  // Get config using database settings
+  const config = getPayFastConfig({
+    merchantId: payFastSettings.merchantId,
+    merchantKey: payFastSettings.merchantKey,
+    passphrase: payFastSettings.passphrase,
+    isTestMode: payFastSettings.isTestMode
+  });
 
   // Format product name for better display
   const formatProductName = (name: string): string => {
@@ -163,6 +172,39 @@ export const PayfastPayment = ({
           setIsProcessing(false);
         }}
       />
+    );
+  }
+
+  // Show loading state while fetching settings
+  if (payFastSettings.isLoading) {
+    return (
+      <Card className="w-full">
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin mr-2" />
+          <span>Loading payment settings...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error if PayFast is not configured or not enabled
+  if (payFastSettings.error || !payFastSettings.isEnabled || !config.MERCHANT_ID || !config.MERCHANT_KEY) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            Payment Unavailable
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+            <p className="text-sm text-destructive">
+              {payFastSettings.error || 'PayFast payment is currently unavailable. Please contact support or try again later.'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
