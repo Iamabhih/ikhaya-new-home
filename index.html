@@ -3,6 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.payfast.co.za;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      img-src 'self' data: https: blob:;
+      font-src 'self' data: https://fonts.gstatic.com;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.payfast.co.za https://sandbox.payfast.co.za https://fonts.googleapis.com https://fonts.gstatic.com;
+      frame-src 'self' https://www.payfast.co.za https://sandbox.payfast.co.za;
+      frame-ancestors 'none';
+      base-uri 'self';
+      form-action 'self' https://www.payfast.co.za https://sandbox.payfast.co.za;
+      upgrade-insecure-requests;
+    ">
+
     <title>OZZ Cash & Carry | Wholesale Homeware Products</title>
     <meta name="description" content="Your trusted partner for wholesale homeware, kitchenware, and household products. Quality products at competitive prices.">
     <meta name="author" content="OZZ Cash & Carry" />

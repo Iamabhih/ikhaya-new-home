@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB limit
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024, // 2 MB limit (reduced for mobile compatibility)
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/kauostzhxqoxggwqgtym\.supabase\.co\/storage\/.*/i,
@@ -77,7 +77,7 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: 'supabase-images',
               expiration: {
-                maxEntries: 200,
+                maxEntries: 100, // Reduced from 200
                 maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
               },
               cacheableResponse: {
