@@ -1,5 +1,9 @@
-
-@tailwind base;
+/*
+ * Responsive Utilities & Mobile-First Layouts
+ * ============================================
+ * Note: @tailwind directives are imported in base.css
+ * This file contains responsive utilities within @layer base
+ */
 
 @layer base {
   /* Mobile-optimized container */

@@ -37,18 +37,33 @@
     box-shadow: none;
   }
 
-  /* Better browser compatibility for user selection */
-  * {
+  /*
+   * Tap Highlight & User Selection Control
+   * ========================================
+   * Provide visual feedback for taps while preserving accessibility
+   */
+
+  /* Styled buttons with custom hover states can remove tap highlight */
+  button.custom-styled, .custom-button {
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Standard buttons and links get primary color tap feedback */
+  button:not(.custom-styled), a {
+    -webkit-tap-highlight-color: rgba(147, 51, 234, 0.2);
+  }
+
+  /* Selective user selection - only disable for interactive elements */
+  button, [role="button"], a.no-select, .no-select {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
   }
-  
-  /* Allow text selection for inputs and text content */
-  input, textarea, [contenteditable], p, span, div {
+
+  /* Ensure text content remains selectable (default behavior) */
+  input, textarea, [contenteditable] {
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
