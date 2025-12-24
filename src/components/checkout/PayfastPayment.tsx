@@ -222,7 +222,6 @@ export const PayfastPayment = ({
       <PayFastForm 
         formData={payFastFormData}
         isTestMode={config.IS_TEST_MODE}
-        passphrase={payFastSettings.passphrase}
         onSubmit={() => {
           toast.success("Redirecting to PayFast...");
           setIsProcessing(false);
