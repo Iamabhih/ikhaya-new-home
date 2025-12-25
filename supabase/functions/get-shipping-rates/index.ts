@@ -176,7 +176,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[get-shipping-rates] Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message, rates: [] }),
+      JSON.stringify({ error: (error as Error).message, rates: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

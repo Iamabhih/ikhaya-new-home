@@ -162,12 +162,12 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
             </div>
           )}
 
-          {/* PayFast Form - visually hidden but accessible */}
+          {/* PayFast Form - positioned off-screen for reliable form submission */}
           <form
             ref={formRef}
             action={payFastUrl}
             method="post"
-            className="sr-only"
+            style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}
           >
             {/* Merchant details */}
             <input type="hidden" name="merchant_id" value={formData.merchant_id} />
