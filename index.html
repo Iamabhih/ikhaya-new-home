@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
 
-    <!-- Content Security Policy -->
+    <!-- Content Security Policy - relaxed form-action for PayFast redirect -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.payfast.co.za;
@@ -15,7 +15,7 @@
       frame-src 'self' https://www.payfast.co.za https://sandbox.payfast.co.za;
       frame-ancestors 'none';
       base-uri 'self';
-      form-action 'self' https://*.payfast.co.za;
+      form-action 'self' https://www.payfast.co.za https://www.payfast.co.za/eng/process https://sandbox.payfast.co.za https://sandbox.payfast.co.za/eng/process https:;
       upgrade-insecure-requests;
     ">
 
