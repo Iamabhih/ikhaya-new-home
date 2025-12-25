@@ -17,6 +17,7 @@ interface PayFastFormData {
   name_first?: string;
   name_last?: string;
   email_address?: string;
+  signature?: string; // MD5 signature for security
 }
 
 interface PayFastFormProps {
@@ -174,6 +175,11 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
             <input type="hidden" name="item_name" value={formData.item_name} />
             {formData.item_description && (
               <input type="hidden" name="item_description" value={formData.item_description} />
+            )}
+
+            {/* Security signature */}
+            {formData.signature && (
+              <input type="hidden" name="signature" value={formData.signature} />
             )}
           </form>
 

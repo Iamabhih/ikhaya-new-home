@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import PayFastForm from "./PayFastForm";
 import { getPayFastConfig, generatePaymentReference } from "@/utils/payment/PayFastConfig";
+import { generatePayFastSignature, validatePayFastData } from "@/utils/payment/payfastSignature";
 import { usePayFastSettings } from "@/hooks/usePayFastSettings";
 import { usePaymentLogger } from "@/hooks/usePaymentLogger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -163,7 +164,7 @@ export const PayfastPayment = ({
       // Store order reference for success page
       sessionStorage.setItem('currentOrderRef', paymentReference);
 
-      // Prepare PayFast form data
+      // Prepare PayFast form data (without signature first)
       const payfastData = {
         merchant_id: config.MERCHANT_ID,
         merchant_key: config.MERCHANT_KEY,
@@ -179,9 +180,24 @@ export const PayfastPayment = ({
         email_address: formData.email || ''
       };
 
-      console.log('[PayfastPayment] PayFast form data prepared:', {
+      // Validate form data
+      if (!validatePayFastData(payfastData)) {
+        throw new Error('Invalid PayFast form data');
+      }
+
+      // Generate signature using passphrase from settings
+      const signature = generatePayFastSignature(payfastData, payFastSettings.passphrase || '');
+
+      // Add signature to form data
+      const payfastDataWithSignature = {
         ...payfastData,
+        signature
+      };
+
+      console.log('[PayfastPayment] PayFast form data prepared:', {
+        ...payfastDataWithSignature,
         merchant_key: '[HIDDEN]',
+        signature: signature.substring(0, 8) + '...',
         totalDuration: Date.now() - startTime
       });
 
@@ -193,7 +209,7 @@ export const PayfastPayment = ({
         cancelUrl: returnUrls.cancel_url
       });
 
-      setPayFastFormData(payfastData);
+      setPayFastFormData(payfastDataWithSignature);
       setShowPayFastForm(true);
       
       console.log('[PayfastPayment] Payment process completed:', { 
