@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Shield, Loader2, AlertCircle } from "lucide-react";
+import { CreditCard, Shield, Loader2, AlertCircle, ExternalLink } from "lucide-react";
 import { usePaymentLogger } from "@/hooks/usePaymentLogger";
 
 interface PayFastFormData {
@@ -32,6 +32,7 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFallback, setShowFallback] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -50,7 +51,47 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
     };
   }, []);
 
+  // Validate required form fields
+  const validateFormData = (): boolean => {
+    const required = ['merchant_id', 'merchant_key', 'amount', 'item_name', 'm_payment_id'];
+    const missing = required.filter(field => !formData[field as keyof PayFastFormData]);
+    
+    if (missing.length > 0) {
+      console.error('[PayFastForm] Missing required fields:', missing);
+      setError(`Missing required payment fields: ${missing.join(', ')}`);
+      return false;
+    }
+    
+    // Validate amount is a valid number
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      console.error('[PayFastForm] Invalid amount:', formData.amount);
+      setError('Invalid payment amount');
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Build URL for redirect-based submission
+  const buildPayFastUrl = (): string => {
+    const params = new URLSearchParams();
+    
+    // Add all form fields to URL params
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, String(value));
+      }
+    });
+    
+    return `${payFastUrl}?${params.toString()}`;
+  };
+
   const handleSubmit = () => {
+    if (!validateFormData()) {
+      return;
+    }
+
     if (!formRef.current) {
       setError('Form not ready. Please try again.');
       logClientError({
@@ -94,7 +135,7 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
       }
     }
 
-    // Submit form immediately - this should redirect the browser
+    // Submit form - this should redirect the browser
     try {
       console.log('[PayFastForm] Calling formRef.current.submit()...');
       formRef.current.submit();
@@ -111,13 +152,30 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
       return;
     }
 
-    // Fallback: if still on page after 5 seconds, show error
-    // This timeout will be cleared if component unmounts (redirect successful)
+    // Fallback: if still on page after 5 seconds, show fallback options
     timeoutRef.current = setTimeout(() => {
       console.warn('[PayFastForm] Redirect timeout - still on page after 5 seconds');
       setIsSubmitting(false);
-      setError('Redirect is taking longer than expected. Please check if a popup blocker is preventing the redirect, or try again.');
+      setShowFallback(true);
+      setError('Redirect is taking longer than expected. Try the options below.');
     }, 5000);
+  };
+
+  // Fallback: redirect using window.location
+  const handleRedirectFallback = () => {
+    console.log('[PayFastForm] Using URL redirect fallback');
+    const url = buildPayFastUrl();
+    console.log('[PayFastForm] Redirecting to:', url);
+    window.location.href = url;
+  };
+
+  // Fallback: open in new tab
+  const handleNewTabFallback = () => {
+    console.log('[PayFastForm] Opening in new tab');
+    if (formRef.current) {
+      formRef.current.target = '_blank';
+      formRef.current.submit();
+    }
   };
 
   return (
@@ -162,12 +220,12 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
             </div>
           )}
 
-          {/* PayFast Form - positioned off-screen for reliable form submission */}
+          {/* PayFast Form - visible but styled to be hidden for reliable submission */}
           <form
             ref={formRef}
             action={payFastUrl}
             method="post"
-            style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}
+            style={{ visibility: 'hidden', height: 0, overflow: 'hidden', position: 'absolute' }}
           >
             {/* Merchant details */}
             <input type="hidden" name="merchant_id" value={formData.merchant_id} />
@@ -218,6 +276,30 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
               </>
             )}
           </Button>
+
+          {/* Fallback options when redirect fails */}
+          {showFallback && (
+            <div className="space-y-3 pt-2 border-t">
+              <p className="text-sm text-muted-foreground">Alternative payment options:</p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleRedirectFallback}
+                  className="w-full"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Redirect to PayFast
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleNewTabFallback}
+                  className="w-full text-sm"
+                >
+                  Open in New Tab
+                </Button>
+              </div>
+            </div>
+          )}
           
           <p className="text-xs text-muted-foreground">
             You will be redirected to PayFast to complete your payment securely.
