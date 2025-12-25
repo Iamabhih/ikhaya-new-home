@@ -46,7 +46,7 @@ export const processPayfastPayment = async (
       .join(', ')
       .substring(0, 100);
     
-    // Prepare PayFast form data
+    // Prepare PayFast form data (simple integration - no signature required)
     const payfastFormData = {
       merchant_id: config.MERCHANT_ID,
       merchant_key: config.MERCHANT_KEY,

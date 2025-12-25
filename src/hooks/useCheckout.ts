@@ -79,7 +79,7 @@ export function useCheckout() {
                 const config = getPayFastConfig();
                 const returnUrls = config.getReturnUrls();
 
-                // Prepare PayFast form data (simplified approach)
+                // Prepare PayFast form data (simple integration - no signature required)
                 const payfastFormData = {
                     merchant_id: config.MERCHANT_ID,
                     merchant_key: config.MERCHANT_KEY,

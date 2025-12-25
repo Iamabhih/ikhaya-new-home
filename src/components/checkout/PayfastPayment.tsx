@@ -163,7 +163,7 @@ export const PayfastPayment = ({
       // Store order reference for success page
       sessionStorage.setItem('currentOrderRef', paymentReference);
 
-      // Prepare PayFast form data
+      // Prepare PayFast form data (simple integration - no signature required)
       const payfastData = {
         merchant_id: config.MERCHANT_ID,
         merchant_key: config.MERCHANT_KEY,
