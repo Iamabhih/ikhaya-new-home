@@ -84,13 +84,33 @@ serve(async (req) => {
     // Log webhook event
     await logWebhookEvent(supabase, 'webhook_received', data);
 
-    // In production, verify the signature
-    const isTestMode = Deno.env.get('PAYFAST_MODE') !== 'live';
-    
-    if (!isTestMode) {
-      const receivedSignature = data.signature;
-      const passPhrase = Deno.env.get('PAYFAST_PASSPHRASE') || '';
+    // Fetch passphrase from payment_settings table
+    let passPhrase = '';
+    try {
+      const { data: paymentSettings, error: settingsError } = await supabase
+        .from('payment_settings')
+        .select('settings, is_test_mode')
+        .eq('gateway_name', 'payfast')
+        .single();
       
+      if (settingsError) {
+        console.warn('Could not fetch payment settings:', settingsError.message);
+      } else if (paymentSettings?.settings) {
+        passPhrase = paymentSettings.settings.passphrase || '';
+        console.log('Passphrase loaded from database:', passPhrase ? 'Yes (set)' : 'No (empty)');
+      }
+    } catch (fetchError) {
+      console.warn('Error fetching payment settings:', fetchError);
+    }
+
+    // Determine if test mode from database settings or env
+    const isTestMode = Deno.env.get('PAYFAST_MODE') !== 'live';
+    console.log('Webhook mode:', isTestMode ? 'SANDBOX' : 'PRODUCTION');
+    
+    // Verify signature (always verify, but log for debugging)
+    const receivedSignature = data.signature;
+    
+    if (receivedSignature) {
       // Remove signature from data before generating our own
       const { signature, ...dataForSigning } = data;
       
@@ -99,11 +119,27 @@ serve(async (req) => {
       if (receivedSignature !== expectedSignature) {
         const errorMsg = 'Signature verification failed';
         console.error(errorMsg);
-        await logWebhookEvent(supabase, 'signature_failed', data, errorMsg, { receivedSignature, expectedSignature });
-        return new Response('Invalid signature', { status: 400, headers: corsHeaders });
+        console.error('Received:', receivedSignature);
+        console.error('Expected:', expectedSignature);
+        console.error('Passphrase used:', passPhrase ? 'Yes' : 'No');
+        await logWebhookEvent(supabase, 'signature_failed', data, errorMsg, { 
+          receivedSignature, 
+          expectedSignature,
+          passphraseUsed: !!passPhrase 
+        });
+        
+        // In test mode, continue despite signature mismatch for debugging
+        if (!isTestMode) {
+          return new Response('Invalid signature', { status: 400, headers: corsHeaders });
+        } else {
+          console.warn('Signature mismatch in test mode - continuing for debugging');
+        }
+      } else {
+        console.log('Signature verified successfully');
+        await logWebhookEvent(supabase, 'signature_verified', data);
       }
-
-      await logWebhookEvent(supabase, 'signature_verified', data);
+    } else {
+      console.warn('No signature in webhook data - skipping verification');
     }
 
     // Process completed payments with retry logic

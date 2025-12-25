@@ -109,7 +109,7 @@ serve(async (req) => {
     };
 
     // Build parcels
-    const parcels = body.parcels?.length > 0 ? body.parcels : [{
+    const parcels = Array.isArray(body.parcels) && body.parcels.length > 0 ? body.parcels : [{
       submitted_length_cm: settings.default_parcel?.length || 20,
       submitted_width_cm: settings.default_parcel?.width || 15,
       submitted_height_cm: settings.default_parcel?.height || 10,
@@ -244,7 +244,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[create-shipment] Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
