@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Shield, Loader2, AlertCircle } from "lucide-react";
@@ -25,20 +25,30 @@ interface PayFastFormProps {
   onSubmit?: () => void;
 }
 
-const PayFastForm: React.FC<PayFastFormProps> = ({ 
-  formData, 
+const PayFastForm: React.FC<PayFastFormProps> = ({
+  formData,
   isTestMode = false,
-  onSubmit 
+  onSubmit
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const payFastUrl = isTestMode 
     ? 'https://sandbox.payfast.co.za/eng/process'
     : 'https://www.payfast.co.za/eng/process';
   
   const { logFormSubmitted, logClientError } = usePaymentLogger();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSubmit = () => {
     if (!formRef.current) {
@@ -52,10 +62,18 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
 
     setIsSubmitting(true);
     setError(null);
-    
+
     console.log('[PayFastForm] Submitting to:', payFastUrl);
     console.log('[PayFastForm] Mode:', isTestMode ? 'SANDBOX' : 'PRODUCTION');
-    
+    console.log('[PayFastForm] Form data:', {
+      merchant_id: formData.merchant_id,
+      amount: formData.amount,
+      m_payment_id: formData.m_payment_id,
+      return_url: formData.return_url,
+      cancel_url: formData.cancel_url,
+      notify_url: formData.notify_url
+    });
+
     // Fire-and-forget logging - don't block on this
     logFormSubmitted({
       orderNumber: formData.m_payment_id,
@@ -66,7 +84,7 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
     }).catch((err) => {
       console.warn('[PayFastForm] Logging failed (non-blocking):', err);
     });
-    
+
     // Call onSubmit callback immediately
     if (onSubmit) {
       try {
@@ -75,26 +93,31 @@ const PayFastForm: React.FC<PayFastFormProps> = ({
         console.warn('[PayFastForm] onSubmit callback error (non-blocking):', err);
       }
     }
-    
+
     // Submit form immediately - this should redirect the browser
     try {
+      console.log('[PayFastForm] Calling formRef.current.submit()...');
       formRef.current.submit();
+      console.log('[PayFastForm] Form submit called successfully');
     } catch (err) {
       console.error('[PayFastForm] Form submit failed:', err);
-      setError('Failed to redirect. Please try again.');
+      setError('Failed to redirect to PayFast. Please try again.');
       setIsSubmitting(false);
-      
+
       logClientError({
         orderNumber: formData.m_payment_id,
         amount: parseFloat(formData.amount)
       }, err instanceof Error ? err.message : 'Form submit exception').catch(() => {});
+      return;
     }
 
-    // Fallback: if still on page after 3 seconds, show error
-    setTimeout(() => {
+    // Fallback: if still on page after 5 seconds, show error
+    // This timeout will be cleared if component unmounts (redirect successful)
+    timeoutRef.current = setTimeout(() => {
+      console.warn('[PayFastForm] Redirect timeout - still on page after 5 seconds');
       setIsSubmitting(false);
-      setError('Redirect did not complete. Please click the button again or check your browser settings.');
-    }, 3000);
+      setError('Redirect is taking longer than expected. Please check if a popup blocker is preventing the redirect, or try again.');
+    }, 5000);
   };
 
   return (
