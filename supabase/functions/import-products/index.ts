@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
     const formData = await req.formData()
     const file = formData.get('file') as File
     const action = formData.get('action') as string
+    const selectedItemsJson = formData.get('selectedItems') as string | null
 
     if (!file) {
       return new Response(
@@ -89,16 +90,17 @@ Deno.serve(async (req) => {
     const csvText = await file.text()
     
     if (action === 'preview') {
-      // Preview mode - parse and return first few rows
+      // Preview mode - parse and return ALL rows for selection
       try {
         const data = parseCSV(csvText)
-        const preview = data.slice(0, 5) // First 5 rows
+        const preview = data.slice(0, 5) // First 5 rows for quick preview
         
-        console.log(`Preview generated: ${preview.length} rows`)
+        console.log(`Preview generated: ${data.length} total rows`)
         return new Response(
           JSON.stringify({ 
             success: true, 
             preview,
+            allData: data, // Return all data for selection
             totalRows: data.length,
             headers: Object.keys(data[0] || {})
           }),
@@ -114,12 +116,28 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'import') {
-      // Import mode - process the entire file
+      // Import mode - process selected items or full file
       try {
         console.log('Starting CSV import for user:', user.id)
         
-        const data = parseCSV(csvText)
-        console.log(`Parsed ${data.length} rows from CSV`)
+        let data: any[]
+        
+        // Check if selected items were provided
+        if (selectedItemsJson) {
+          try {
+            data = JSON.parse(selectedItemsJson)
+            console.log(`Using ${data.length} selected items for import`)
+          } catch (parseError) {
+            console.error('Error parsing selected items:', parseError)
+            // Fall back to parsing the full CSV
+            data = parseCSV(csvText)
+          }
+        } else {
+          // No selected items - parse full CSV
+          data = parseCSV(csvText)
+        }
+        
+        console.log(`Parsed ${data.length} rows for import`)
         
         // Create import record
         const { data: importRecord, error: importError } = await supabase
