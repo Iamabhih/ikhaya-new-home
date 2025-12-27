@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -22,12 +22,16 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Settings
+  Settings,
+  Search,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { ImportProgressTracker } from './ImportProgressTracker';
 
 interface ImportPreview {
   preview: any[];
+  allData: any[];
   totalRows: number;
   headers: string[];
   validationWarnings: Array<{
@@ -50,6 +54,8 @@ export const EnhancedProductImport = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [allData, setAllData] = useState<any[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [activeImportId, setActiveImportId] = useState<string | null>(null);
   const [importSettings, setImportSettings] = useState<ImportSettings>({
     skipDuplicates: true,
@@ -58,6 +64,11 @@ export const EnhancedProductImport = () => {
     createMissingCategories: true,
     requiredFields: ['name', 'price']
   });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch import history
   const { data: imports = [], isLoading: importsLoading, refetch: refetchImports } = useQuery({
@@ -72,6 +83,42 @@ export const EnhancedProductImport = () => {
       return data;
     },
   });
+
+  // Filter data based on search query
+  const filteredData = useMemo(() => {
+    if (!searchQuery.trim()) return allData;
+    const query = searchQuery.toLowerCase();
+    return allData.filter((row) => {
+      return Object.values(row).some(value => 
+        String(value).toLowerCase().includes(query)
+      );
+    });
+  }, [allData, searchQuery]);
+
+  // Get original indices for filtered data
+  const filteredIndices = useMemo(() => {
+    if (!searchQuery.trim()) return allData.map((_, i) => i);
+    const query = searchQuery.toLowerCase();
+    return allData.map((row, index) => {
+      const matches = Object.values(row).some(value => 
+        String(value).toLowerCase().includes(query)
+      );
+      return matches ? index : -1;
+    }).filter(i => i !== -1);
+  }, [allData, searchQuery]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Get original index for a paginated row
+  const getOriginalIndex = (pageIndex: number) => {
+    const globalFilteredIndex = (currentPage - 1) * itemsPerPage + pageIndex;
+    return filteredIndices[globalFilteredIndex];
+  };
 
   const previewMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -89,8 +136,9 @@ export const EnhancedProductImport = () => {
     onSuccess: (data) => {
       // Add validation warnings
       const warnings: Array<{ row: number; field: string; warning: string }> = [];
+      const dataToValidate = data.allData || data.preview;
       
-      data.preview.forEach((row: any, index: number) => {
+      dataToValidate.forEach((row: any, index: number) => {
         importSettings.requiredFields.forEach(field => {
           if (!row[field] || String(row[field]).trim() === '') {
             warnings.push({
@@ -112,6 +160,14 @@ export const EnhancedProductImport = () => {
       });
 
       setPreview({ ...data, validationWarnings: warnings });
+      setAllData(data.allData || data.preview);
+      
+      // Select all rows by default
+      const totalItems = data.allData?.length || data.totalRows;
+      setSelectedRows(new Set(Array.from({ length: totalItems }, (_, i) => i)));
+      setCurrentPage(1);
+      setSearchQuery("");
+      
       toast.success('CSV preview loaded successfully');
     },
     onError: (error: any) => {
@@ -121,11 +177,12 @@ export const EnhancedProductImport = () => {
   });
 
   const importMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, selectedItems }: { file: File; selectedItems: any[] }) => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('action', 'import');
       formData.append('settings', JSON.stringify(importSettings));
+      formData.append('selectedItems', JSON.stringify(selectedItems));
 
       const { data, error } = await supabase.functions.invoke('import-products', {
         body: formData,
@@ -159,7 +216,11 @@ export const EnhancedProductImport = () => {
       }
       setSelectedFile(file);
       setPreview(null);
+      setAllData([]);
+      setSelectedRows(new Set());
       setActiveImportId(null);
+      setSearchQuery("");
+      setCurrentPage(1);
     }
   };
 
@@ -170,20 +231,52 @@ export const EnhancedProductImport = () => {
   };
 
   const handleImport = () => {
-    if (selectedFile && preview) {
-      const criticalErrors = preview.validationWarnings.filter(w => 
-        importSettings.requiredFields.includes(w.field)
-      );
+    if (selectedFile && selectedRows.size > 0) {
+      const criticalErrors = preview?.validationWarnings.filter(w => 
+        importSettings.requiredFields.includes(w.field) && selectedRows.has(w.row - 1)
+      ) || [];
       
       if (criticalErrors.length > 0 && !importSettings.skipDuplicates) {
         const proceed = window.confirm(
-          `There are ${criticalErrors.length} critical validation errors. Do you want to proceed anyway?`
+          `There are ${criticalErrors.length} critical validation errors in selected items. Do you want to proceed anyway?`
         );
         if (!proceed) return;
       }
       
-      importMutation.mutate(selectedFile);
+      const selectedItems = allData.filter((_, index) => selectedRows.has(index));
+      importMutation.mutate({ file: selectedFile, selectedItems });
     }
+  };
+
+  const toggleRow = (index: number) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const toggleAll = () => {
+    if (selectedRows.size === allData.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(Array.from({ length: allData.length }, (_, i) => i)));
+    }
+  };
+
+  const togglePageSelection = () => {
+    const newSelected = new Set(selectedRows);
+    const pageIndices = paginatedData.map((_, pageIndex) => getOriginalIndex(pageIndex));
+    const allPageSelected = pageIndices.every(index => selectedRows.has(index));
+    
+    if (allPageSelected) {
+      pageIndices.forEach(index => newSelected.delete(index));
+    } else {
+      pageIndices.forEach(index => newSelected.add(index));
+    }
+    setSelectedRows(newSelected);
   };
 
   const downloadTemplate = () => {
@@ -205,11 +298,19 @@ export const EnhancedProductImport = () => {
   const resetForm = () => {
     setSelectedFile(null);
     setPreview(null);
+    setAllData([]);
+    setSelectedRows(new Set());
     setActiveImportId(null);
+    setSearchQuery("");
+    setCurrentPage(1);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
+
+  const isAllSelected = allData.length > 0 && selectedRows.size === allData.length;
+  const isPageAllSelected = paginatedData.length > 0 && 
+    paginatedData.every((_, pageIndex) => selectedRows.has(getOriginalIndex(pageIndex)));
 
   return (
     <div className="space-y-6">
@@ -307,46 +408,148 @@ export const EnhancedProductImport = () => {
             </Alert>
           )}
 
-          {/* Preview Section */}
-          {preview && (
+          {/* Preview Section with Selection */}
+          {preview && allData.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Preview ({preview.totalRows} rows total)</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Select Products to Import</CardTitle>
+                  <Badge variant="outline" className="text-sm">
+                    {selectedRows.size} of {allData.length} selected
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="overflow-x-auto">
+                  {/* Search and Controls */}
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="relative flex-1 min-w-[200px]">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search products..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        className="pl-9"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={toggleAll}
+                      >
+                        {isAllSelected ? 'Deselect All' : 'Select All'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={togglePageSelection}
+                      >
+                        {isPageAllSelected ? 'Deselect Page' : 'Select Page'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="overflow-x-auto border rounded-lg">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          {preview.headers.map((header) => (
-                            <TableHead key={header}>{header}</TableHead>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="w-12">
+                            <Checkbox
+                              checked={isPageAllSelected}
+                              onCheckedChange={togglePageSelection}
+                            />
+                          </TableHead>
+                          {preview.headers.slice(0, 6).map((header) => (
+                            <TableHead key={header} className="font-semibold">
+                              {header}
+                            </TableHead>
                           ))}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {preview.preview.map((row, index) => (
-                          <TableRow key={index}>
-                            {preview.headers.map((header) => (
-                              <TableCell key={header} className="max-w-32 truncate">
-                                {row[header] || '-'}
+                        {paginatedData.map((row, pageIndex) => {
+                          const originalIndex = getOriginalIndex(pageIndex);
+                          const isSelected = selectedRows.has(originalIndex);
+                          
+                          return (
+                            <TableRow 
+                              key={originalIndex}
+                              className={isSelected ? "bg-primary/5" : ""}
+                            >
+                              <TableCell>
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleRow(originalIndex)}
+                                />
                               </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
+                              {preview.headers.slice(0, 6).map((header) => (
+                                <TableCell key={header} className="max-w-32 truncate">
+                                  {row[header] || '-'}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground">
-                      Showing first 5 rows of {preview.totalRows} total rows
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Show</span>
+                      <Select
+                        value={String(itemsPerPage)}
+                        onValueChange={(value) => {
+                          setItemsPerPage(Number(value));
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="w-20">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="text-sm text-muted-foreground">per page</span>
                     </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm">
+                        Page {currentPage} of {totalPages || 1}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+
                     <Button 
                       onClick={handleImport}
-                      disabled={importMutation.isPending}
+                      disabled={importMutation.isPending || selectedRows.size === 0}
+                      className="min-w-[200px]"
                     >
-                      {importMutation.isPending ? 'Starting Import...' : `Import ${preview.totalRows} Products`}
+                      {importMutation.isPending ? 'Starting Import...' : `Import ${selectedRows.size} Selected Product${selectedRows.size !== 1 ? 's' : ''}`}
                     </Button>
                   </div>
                 </div>
@@ -488,19 +691,25 @@ export const EnhancedProductImport = () => {
                                 </Badge>
                               </div>
                             </TableCell>
-                            <TableCell>{importRecord.filename}</TableCell>
+                            <TableCell className="max-w-48 truncate">
+                              {importRecord.filename}
+                            </TableCell>
                             <TableCell>{importRecord.total_rows}</TableCell>
-                            <TableCell>{importRecord.successful_rows}</TableCell>
-                            <TableCell>{importRecord.failed_rows}</TableCell>
+                            <TableCell className="text-green-600">
+                              {importRecord.successful_rows || 0}
+                            </TableCell>
+                            <TableCell className="text-red-600">
+                              {importRecord.failed_rows || 0}
+                            </TableCell>
                             <TableCell>
                               {new Date(importRecord.created_at).toLocaleDateString()}
                             </TableCell>
                             <TableCell>
-                              {(importRecord.status === 'processing' || importRecord.status === 'pending') && (
+                              {importRecord.status === 'processing' && (
                                 <Button
-                                  onClick={() => setActiveImportId(importRecord.id)}
                                   variant="outline"
                                   size="sm"
+                                  onClick={() => setActiveImportId(importRecord.id)}
                                 >
                                   View Progress
                                 </Button>
