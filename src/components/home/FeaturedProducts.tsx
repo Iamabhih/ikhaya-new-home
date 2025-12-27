@@ -14,7 +14,7 @@ export const FeaturedProducts = () => {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['featured-products', settings?.hide_products_without_images],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('products')
         .select(`
           *,
@@ -22,19 +22,20 @@ export const FeaturedProducts = () => {
           product_images(image_url, alt_text, is_primary, sort_order)
         `)
         .eq('is_active', true)
-        .eq('is_featured', true);
-
-      // Apply global site setting to hide products without images
-      if (settings?.hide_products_without_images === true) {
-        query = query.not('product_images', 'is', null);
-      }
-
-      const { data, error } = await query
+        .eq('is_featured', true)
         .order('created_at', { ascending: false })
-        .limit(8);
+        .limit(16); // Fetch more to account for filtering
       
       if (error) throw error;
-      return data;
+      
+      let filteredProducts = data || [];
+      
+      // Client-side filter for products with images if setting is enabled
+      if (settings?.hide_products_without_images === true) {
+        filteredProducts = filteredProducts.filter((p: any) => p.product_images && p.product_images.length > 0);
+      }
+      
+      return filteredProducts.slice(0, 8);
     },
   });
 

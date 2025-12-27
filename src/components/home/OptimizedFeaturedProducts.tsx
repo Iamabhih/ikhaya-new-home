@@ -18,7 +18,7 @@ export const OptimizedFeaturedProducts = () => {
       console.log('Fetching featured products for homepage');
       
       // First try to fetch from homepage featured products
-      let featuredQuery = supabase
+      const { data: featuredData, error: featuredError } = await supabase
         .from('homepage_featured_products')
         .select(`
           products:product_id(
@@ -27,14 +27,7 @@ export const OptimizedFeaturedProducts = () => {
             product_images(image_url, alt_text, is_primary, sort_order)
           )
         `)
-        .eq('is_active', true);
-
-      // Apply global site setting to hide products without images
-      if (settings?.hide_products_without_images === true) {
-        featuredQuery = featuredQuery.not('products.product_images', 'is', null);
-      }
-
-      const { data: featuredData, error: featuredError } = await featuredQuery
+        .eq('is_active', true)
         .order('display_order', { ascending: true });
       
       if (featuredError) {
@@ -44,11 +37,18 @@ export const OptimizedFeaturedProducts = () => {
       
       // If we have featured products, use them
       if (featuredData && featuredData.length > 0) {
-        return featuredData.map(item => item.products).filter(Boolean);
+        let products = featuredData.map(item => item.products).filter(Boolean);
+        
+        // Client-side filter for products with images if setting is enabled
+        if (settings?.hide_products_without_images === true) {
+          products = products.filter((p: any) => p.product_images && p.product_images.length > 0);
+        }
+        
+        return products;
       }
       
       // Fallback to products marked as featured if no manual selection
-      let fallbackQuery = supabase
+      const { data, error } = await supabase
         .from('products')
         .select(`
           *,
@@ -56,15 +56,8 @@ export const OptimizedFeaturedProducts = () => {
           product_images(image_url, alt_text, is_primary, sort_order)
         `)
         .eq('is_active', true)
-        .eq('is_featured', true);
-
-      // Apply global site setting to hide products without images
-      if (settings?.hide_products_without_images === true) {
-        fallbackQuery = fallbackQuery.not('product_images', 'is', null);
-      }
-
-      const { data, error } = await fallbackQuery
-        .limit(8)
+        .eq('is_featured', true)
+        .limit(16) // Fetch more to account for filtering
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -72,7 +65,14 @@ export const OptimizedFeaturedProducts = () => {
         throw error;
       }
       
-      return data || [];
+      let fallbackProducts = data || [];
+      
+      // Client-side filter for products with images if setting is enabled
+      if (settings?.hide_products_without_images === true) {
+        fallbackProducts = fallbackProducts.filter((p: any) => p.product_images && p.product_images.length > 0);
+      }
+      
+      return fallbackProducts.slice(0, 8);
     },
     staleTime: 300000, // Cache for 5 minutes
     gcTime: 600000, // Keep in cache for 10 minutes
