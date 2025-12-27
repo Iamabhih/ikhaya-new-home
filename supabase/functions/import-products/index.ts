@@ -139,6 +139,19 @@ Deno.serve(async (req) => {
         
         console.log(`Parsed ${data.length} rows for import`)
         
+        // Parse settings from formData
+        const settingsJson = formData.get('settings') as string | null
+        let updateDuplicates = false
+        if (settingsJson) {
+          try {
+            const settings = JSON.parse(settingsJson)
+            updateDuplicates = settings.updateExisting ?? false
+            console.log('Import settings:', { updateDuplicates })
+          } catch (e) {
+            console.warn('Failed to parse settings, using defaults')
+          }
+        }
+        
         // Create import record
         const { data: importRecord, error: importError } = await supabase
           .from('product_imports')
@@ -167,13 +180,14 @@ Deno.serve(async (req) => {
 
         for (let i = 0; i < data.length; i += batchSize) {
           const batch = data.slice(i, i + batchSize)
-          console.log(`Processing batch ${Math.floor(i/batchSize) + 1}: ${batch.length} items`)
+          console.log(`Processing batch ${Math.floor(i/batchSize) + 1}: ${batch.length} items (updateDuplicates: ${updateDuplicates})`)
           
-          // Use the database function for bulk insert
+          // Use the 3-parameter RPC to avoid overload ambiguity
           const { data: result, error: processError } = await supabase
             .rpc('bulk_insert_products', {
               products_data: batch,
-              import_id_param: importRecord.id
+              import_id_param: importRecord.id,
+              update_duplicates: updateDuplicates
             })
 
           if (processError) {
