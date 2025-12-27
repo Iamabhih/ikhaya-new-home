@@ -48,7 +48,7 @@ export const HomepageSettings = () => {
     }
   });
 
-  // Fetch featured products
+  // Fetch featured products with image count
   const { data: featuredProducts = [], isLoading: loadingProducts } = useQuery({
     queryKey: ['homepage-featured-products'],
     queryFn: async () => {
@@ -58,7 +58,13 @@ export const HomepageSettings = () => {
           id,
           display_order,
           is_active,
-          products:product_id(id, name, slug, price)
+          products:product_id(
+            id, 
+            name, 
+            slug, 
+            price,
+            product_images(id)
+          )
         `)
         .eq('is_active', true)
         .order('display_order');
@@ -450,6 +456,7 @@ export const HomepageSettings = () => {
                       }
 
                       return availableProducts.map((product: any) => {
+                        const imageCount = product.product_images?.length || 0;
                         const hasImages = Array.isArray(product.product_images) && product.product_images.length > 0;
                         const primaryImage = hasImages ? 
                           (product.product_images.find((img: any) => img?.is_primary) || product.product_images[0]) : 
@@ -542,6 +549,17 @@ export const HomepageSettings = () => {
                             </div>
                             <span className="font-medium">{item.products?.name}</span>
                             <Badge variant="secondary">R{item.products?.price}</Badge>
+                            {item.products?.product_images && item.products.product_images.length > 0 ? (
+                              <Badge variant="outline" className="text-green-600 border-green-300">
+                                <Image className="h-3 w-3 mr-1" />
+                                {item.products.product_images.length}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-amber-600 border-amber-300">
+                                <ImageOff className="h-3 w-3 mr-1" />
+                                No images
+                              </Badge>
+                            )}
                             <Badge variant="outline">Order: {item.display_order}</Badge>
                           </div>
                           <Button

@@ -11,6 +11,17 @@ interface SiteSetting {
   updated_at: string;
 }
 
+// Helper to parse setting values with proper type conversion
+const parseSettingValue = (value: any): any => {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  if (value === 'null' || value === null) return null;
+  if (typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '') {
+    return Number(value);
+  }
+  return value;
+};
+
 export const useSiteSettings = () => {
   const queryClient = useQueryClient();
 
@@ -23,10 +34,10 @@ export const useSiteSettings = () => {
 
       if (error) throw error;
 
-      // Convert to a more convenient format
+      // Convert to a more convenient format with proper type conversion
       const settingsMap: Record<string, any> = {};
       data?.forEach((setting: SiteSetting) => {
-        settingsMap[setting.setting_key] = setting.setting_value;
+        settingsMap[setting.setting_key] = parseSettingValue(setting.setting_value);
       });
 
       return settingsMap;
