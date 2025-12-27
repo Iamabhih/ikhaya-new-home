@@ -1,9 +1,12 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Eye } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Edit, Eye, Image } from "lucide-react";
+import { ProductImageManager } from "./ProductImageManager";
 
 interface Product {
   id: string;
@@ -28,6 +31,7 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCardProps) => {
+  const [showImageManager, setShowImageManager] = useState(false);
   const stockQuantity = product.stock_quantity || 0;
   const stockStatus = stockQuantity > 10 ? 'high' : stockQuantity > 0 ? 'low' : 'out';
   
@@ -108,8 +112,24 @@ export const ProductCard = ({ product, isSelected, onSelect, onEdit }: ProductCa
                 className="flex-1 border-gray-200 text-gray-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors"
               >
                 <Edit className="h-4 w-4 mr-2" />
-                Edit Product
+                Edit
               </Button>
+              
+              <Sheet open={showImageManager} onOpenChange={setShowImageManager}>
+                <SheetTrigger asChild>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="border-gray-200 text-gray-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors"
+                  >
+                    <Image className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:w-[500px] overflow-y-auto">
+                  <ProductImageManager productId={product.id} />
+                </SheetContent>
+              </Sheet>
+              
               <Button 
                 size="sm" 
                 variant="ghost" 
