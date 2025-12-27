@@ -15,64 +15,81 @@ export const OptimizedFeaturedProducts = () => {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['featured-products-optimized', settings?.hide_products_without_images],
     queryFn: async () => {
-      console.log('Fetching featured products for homepage');
+      console.log('Fetching featured products for homepage (hybrid approach)');
       
-      // First try to fetch from homepage featured products
-      const { data: featuredData, error: featuredError } = await supabase
-        .from('homepage_featured_products')
-        .select(`
-          products:product_id(
+      // Fetch BOTH sources in parallel for hybrid approach
+      const [manualResult, flaggedResult] = await Promise.all([
+        // 1. Manually selected homepage featured products
+        supabase
+          .from('homepage_featured_products')
+          .select(`
+            display_order,
+            products:product_id(
+              *,
+              categories:category_id(id, name, slug),
+              product_images(image_url, alt_text, is_primary, sort_order)
+            )
+          `)
+          .eq('is_active', true)
+          .order('display_order', { ascending: true }),
+        
+        // 2. Products with is_featured=true flag
+        supabase
+          .from('products')
+          .select(`
             *,
             categories:category_id(id, name, slug),
             product_images(image_url, alt_text, is_primary, sort_order)
-          )
-        `)
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+          `)
+          .eq('is_active', true)
+          .eq('is_featured', true)
+          .order('created_at', { ascending: false })
+          .limit(16)
+      ]);
       
-      if (featuredError) {
-        console.error('Error fetching featured products:', featuredError);
-        throw featuredError;
+      if (manualResult.error) {
+        console.error('Error fetching manual featured products:', manualResult.error);
+      }
+      if (flaggedResult.error) {
+        console.error('Error fetching flagged featured products:', flaggedResult.error);
       }
       
-      // If we have featured products, use them
-      if (featuredData && featuredData.length > 0) {
-        let products = featuredData.map(item => item.products).filter(Boolean);
-        
-        // Client-side filter for products with images if setting is enabled
-        if (settings?.hide_products_without_images === true) {
-          products = products.filter((p: any) => p.product_images && p.product_images.length > 0);
+      // Combine both sources
+      const manualProducts = (manualResult.data || [])
+        .map(item => item.products)
+        .filter(Boolean);
+      
+      const flaggedProducts = flaggedResult.data || [];
+      
+      // De-duplicate by product ID (manual takes priority)
+      const seenIds = new Set<string>();
+      const combinedProducts: any[] = [];
+      
+      // Add manual products first (they have priority)
+      for (const product of manualProducts) {
+        if (product && !seenIds.has(product.id)) {
+          seenIds.add(product.id);
+          combinedProducts.push(product);
         }
-        
-        return products;
       }
       
-      // Fallback to products marked as featured if no manual selection
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          categories:category_id(id, name, slug),
-          product_images(image_url, alt_text, is_primary, sort_order)
-        `)
-        .eq('is_active', true)
-        .eq('is_featured', true)
-        .limit(16) // Fetch more to account for filtering
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching featured products:', error);
-        throw error;
+      // Add flagged products that aren't already included
+      for (const product of flaggedProducts) {
+        if (product && !seenIds.has(product.id)) {
+          seenIds.add(product.id);
+          combinedProducts.push(product);
+        }
       }
       
-      let fallbackProducts = data || [];
+      console.log(`Found ${manualProducts.length} manual + ${flaggedProducts.length} flagged = ${combinedProducts.length} unique featured products`);
       
       // Client-side filter for products with images if setting is enabled
+      let finalProducts = combinedProducts;
       if (settings?.hide_products_without_images === true) {
-        fallbackProducts = fallbackProducts.filter((p: any) => p.product_images && p.product_images.length > 0);
+        finalProducts = combinedProducts.filter((p: any) => p.product_images && p.product_images.length > 0);
       }
       
-      return fallbackProducts.slice(0, 8);
+      return finalProducts.slice(0, 8);
     },
     staleTime: 300000, // Cache for 5 minutes
     gcTime: 600000, // Keep in cache for 10 minutes
