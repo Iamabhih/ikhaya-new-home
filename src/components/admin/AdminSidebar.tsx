@@ -16,7 +16,8 @@ import {
   Mail,
   Zap,
   FileText,
-  ScrollText
+  ScrollText,
+  PackageCheck
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/hooks/useRoles";
@@ -40,6 +41,11 @@ const adminRoutes = [
     title: "Orders", 
     url: "/admin/orders", 
     icon: ShoppingCart 
+  },
+  { 
+    title: "Fulfillment", 
+    url: "/admin/fulfillment", 
+    icon: PackageCheck 
   },
   { 
     title: "Quotes", 

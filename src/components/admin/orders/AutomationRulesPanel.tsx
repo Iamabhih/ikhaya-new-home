@@ -70,8 +70,8 @@ export const AutomationRulesPanel = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      if (data?.setting_value) {
-        const parsed = data.setting_value as AutomationRule[];
+      if (data?.setting_value && Array.isArray(data.setting_value)) {
+        const parsed = data.setting_value as unknown as AutomationRule[];
         setRules(parsed);
         return parsed;
       }

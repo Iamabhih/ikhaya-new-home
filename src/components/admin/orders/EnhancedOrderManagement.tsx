@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useRoles } from "@/hooks/useRoles";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrderRealtime } from "@/hooks/useOrderRealtime";
 import { cn } from "@/lib/utils";
 import { 
   Search, 
@@ -21,24 +22,29 @@ import {
   Clock, 
   AlertCircle,
   Eye,
-  Edit,
   Send,
   Download,
-  MoreHorizontal,
-  Keyboard
+  Keyboard,
+  LayoutGrid,
+  List,
+  BarChart3,
+  Settings
 } from "lucide-react";
 import { OrderDetailModal } from "./OrderDetailModal";
 import { BulkOrderActions } from "./BulkOrderActions";
 import { OrderFilters } from "./OrderFilters";
-import { OrderTimeline } from "./OrderTimeline";
 import { SuperAdminOrderActions } from "./SuperAdminOrderActions";
 import { OrderStatusBadge } from "../../orders/OrderStatusBadge";
 import { OrderErrorBoundary } from "../../orders/OrderErrorBoundary";
 import { useOrderStatusValidation } from "@/hooks/useOrderValidation";
-import { OrderProgressStepper } from "./OrderProgressStepper";
-import { OrderQuickActions } from "./OrderQuickActions";
 import { useOrderKeyboardShortcuts } from "./useOrderKeyboardShortcuts";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
+import { OrderExportDialog } from "./OrderExportDialog";
+import { OrderKanbanBoard } from "./OrderKanbanBoard";
+import { OrderMetricsDashboard } from "./OrderMetricsDashboard";
+import { OrderTagsManager } from "./OrderTagsManager";
+import { OrderRiskBadge } from "./OrderRiskBadge";
+import { AutomationRulesPanel } from "./AutomationRulesPanel";
 
 interface Order {
   id: string;
@@ -80,6 +86,9 @@ export const EnhancedOrderManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState(-1);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'metrics'>('list');
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showAutomation, setShowAutomation] = useState(false);
   const itemsPerPage = 20;
 
   const { toast } = useToast();
@@ -87,6 +96,9 @@ export const EnhancedOrderManagement = () => {
   const { user } = useAuth();
   const { isSuperAdmin } = useRoles(user);
   const { validateStatusTransition } = useOrderStatusValidation();
+
+  // Real-time order updates for admins
+  useOrderRealtime({ isAdmin: true });
 
   // Fetch orders with enhanced filtering
   const { data: ordersData, isLoading } = useQuery({
@@ -426,7 +438,53 @@ export const EnhancedOrderManagement = () => {
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
               </Button>
+
+              <Button 
+                variant="outline" 
+                onClick={() => setShowExportDialog(true)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
             </div>
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2 pt-4 border-t">
+            <span className="text-sm text-muted-foreground">View:</span>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4 mr-1" />
+              List
+            </Button>
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+            >
+              <LayoutGrid className="h-4 w-4 mr-1" />
+              Kanban
+            </Button>
+            <Button
+              variant={viewMode === 'metrics' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('metrics')}
+            >
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Metrics
+            </Button>
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAutomation(!showAutomation)}
+            >
+              <Settings className="h-4 w-4 mr-1" />
+              Automation
+            </Button>
           </div>
 
           {showFilters && (
@@ -451,151 +509,189 @@ export const EnhancedOrderManagement = () => {
         />
       )}
 
-      {/* Orders Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              Orders
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => setShowKeyboardHelp(true)}
-              >
-                <Keyboard className="h-4 w-4" />
-              </Button>
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={selectedOrders.length === ordersData?.orders.length && ordersData?.orders.length > 0}
-                onCheckedChange={handleSelectAll}
-              />
-              <span className="text-sm text-muted-foreground">
-                {selectedOrders.length} of {ordersData?.orders.length || 0} selected
-              </span>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-16 bg-muted animate-pulse rounded" />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {ordersData?.orders.map((order, index) => (
-                <div 
-                  key={order.id} 
-                  className={cn(
-                    "border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-                    keyboardSelectedIndex === index && "ring-2 ring-primary bg-primary/5"
-                  )}
-                  onClick={() => setKeyboardSelectedIndex(index)}
-                  onDoubleClick={() => handleViewOrder(order)}
+      {/* Automation Rules Panel */}
+      {showAutomation && (
+        <AutomationRulesPanel />
+      )}
+
+      {/* Kanban View */}
+      {viewMode === 'kanban' && (
+        <OrderKanbanBoard />
+      )}
+
+      {/* Metrics View */}
+      {viewMode === 'metrics' && (
+        <OrderMetricsDashboard />
+      )}
+
+      {/* List View - Orders Table */}
+      {viewMode === 'list' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                Orders
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setShowKeyboardHelp(true)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Checkbox
-                        checked={selectedOrders.includes(order.id)}
-                        onCheckedChange={(checked) => handleOrderSelect(order.id, checked as boolean)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{order.order_number}</span>
-                          <OrderStatusBadge status={order.status} />
-                          <div className="flex items-center gap-1">
-                            {getFulfillmentIcon(order.fulfillment_status)}
-                            <span className="text-sm text-muted-foreground">
-                              {order.fulfillment_status}
-                            </span>
-                          </div>
-                          {order.priority === 'urgent' && (
-                            <Badge variant="destructive">Urgent</Badge>
-                          )}
-                        </div>
+                  <Keyboard className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedOrders.length === ordersData?.orders.length && ordersData?.orders.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {selectedOrders.length} of {ordersData?.orders.length || 0} selected
+                </span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {ordersData?.orders.map((order, index) => (
+                  <div 
+                    key={order.id} 
+                    className={cn(
+                      "border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer",
+                      keyboardSelectedIndex === index && "ring-2 ring-primary bg-primary/5"
+                    )}
+                    onClick={() => setKeyboardSelectedIndex(index)}
+                    onDoubleClick={() => handleViewOrder(order)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedOrders.includes(order.id)}
+                          onCheckedChange={(checked) => handleOrderSelect(order.id, checked as boolean)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                         
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{order.email || 'Guest'}</span>
-                          <span>R{order.total_amount.toFixed(2)}</span>
-                          <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{order.order_number}</span>
+                            <OrderStatusBadge status={order.status} />
+                            <OrderRiskBadge order={order} />
+                            <div className="flex items-center gap-1">
+                              {getFulfillmentIcon(order.fulfillment_status)}
+                              <span className="text-sm text-muted-foreground">
+                                {order.fulfillment_status}
+                              </span>
+                            </div>
+                            {order.priority === 'urgent' && (
+                              <Badge variant="destructive">Urgent</Badge>
+                            )}
+                            {order.tags && order.tags.length > 0 && (
+                              <div className="flex gap-1">
+                                {order.tags.slice(0, 2).map((tag) => (
+                                  <Badge key={tag} variant="outline" className="text-xs">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                                {order.tags.length > 2 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{order.tags.length - 2}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>{order.email || 'Guest'}</span>
+                            <span>R{order.total_amount.toFixed(2)}</span>
+                            <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedOrder({
-                          ...order,
-                          customer_name: order.email || 'Guest',
-                          customer_email: order.email || 'N/A'
-                        })}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => sendNotificationMutation.mutate({ 
-                          orderId: order.id, 
-                          type: 'status_change' 
-                        })}
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Notify
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedOrder({
+                              ...order,
+                              customer_name: order.email || 'Guest',
+                              customer_email: order.email || 'N/A'
+                            });
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sendNotificationMutation.mutate({ 
+                              orderId: order.id, 
+                              type: 'status_change' 
+                            });
+                          }}
+                        >
+                          <Send className="h-4 w-4 mr-2" />
+                          Notify
+                        </Button>
 
-                      {/* SuperAdmin Actions */}
-                      {isSuperAdmin && (
-                        <SuperAdminOrderActions
-                          order={order}
-                          onOrderUpdated={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
-                          onOrderDeleted={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
-                        />
-                      )}
+                        {/* SuperAdmin Actions */}
+                        {isSuperAdmin && (
+                          <SuperAdminOrderActions
+                            order={order}
+                            onOrderUpdated={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
+                            onOrderDeleted={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {/* Pagination */}
-          {ordersData && ordersData.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, ordersData.totalCount)} of {ordersData.totalCount} orders
+            {/* Pagination */}
+            {ordersData && ordersData.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <div className="text-sm text-muted-foreground">
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, ordersData.totalCount)} of {ordersData.totalCount} orders
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === ordersData.totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === ordersData.totalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Order Detail Modal */}
       {selectedOrder && (
@@ -616,6 +712,12 @@ export const EnhancedOrderManagement = () => {
       <KeyboardShortcutsHelp 
         isOpen={showKeyboardHelp} 
         onClose={() => setShowKeyboardHelp(false)} 
+      />
+
+      {/* Export Dialog */}
+      <OrderExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
       />
       </div>
       </OrderErrorBoundary>
