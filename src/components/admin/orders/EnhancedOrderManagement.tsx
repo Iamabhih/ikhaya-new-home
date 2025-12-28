@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useRoles } from "@/hooks/useRoles";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 import { 
   Search, 
   Filter, 
@@ -23,7 +24,8 @@ import {
   Edit,
   Send,
   Download,
-  MoreHorizontal
+  MoreHorizontal,
+  Keyboard
 } from "lucide-react";
 import { OrderDetailModal } from "./OrderDetailModal";
 import { BulkOrderActions } from "./BulkOrderActions";
@@ -33,6 +35,10 @@ import { SuperAdminOrderActions } from "./SuperAdminOrderActions";
 import { OrderStatusBadge } from "../../orders/OrderStatusBadge";
 import { OrderErrorBoundary } from "../../orders/OrderErrorBoundary";
 import { useOrderStatusValidation } from "@/hooks/useOrderValidation";
+import { OrderProgressStepper } from "./OrderProgressStepper";
+import { OrderQuickActions } from "./OrderQuickActions";
+import { useOrderKeyboardShortcuts } from "./useOrderKeyboardShortcuts";
+import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 
 interface Order {
   id: string;
@@ -72,6 +78,8 @@ export const EnhancedOrderManagement = () => {
   const [sortBy, setSortBy] = useState("created_at_desc");
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState(-1);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const itemsPerPage = 20;
 
   const { toast } = useToast();
@@ -287,6 +295,41 @@ export const EnhancedOrderManagement = () => {
     }
   };
 
+  // Quick status update for single order
+  const handleQuickStatusUpdate = useCallback((orderId: string, status: string) => {
+    updateOrderStatusMutation.mutate({ orderIds: [orderId], status });
+  }, [updateOrderStatusMutation]);
+
+  // Toggle order selection (for keyboard shortcuts)
+  const handleToggleSelect = useCallback((orderId: string) => {
+    setSelectedOrders(prev => 
+      prev.includes(orderId) 
+        ? prev.filter(id => id !== orderId)
+        : [...prev, orderId]
+    );
+  }, []);
+
+  // View order handler
+  const handleViewOrder = useCallback((order: Order) => {
+    setSelectedOrder({
+      ...order,
+      customer_name: order.email || 'Guest',
+      customer_email: order.email || 'N/A'
+    });
+  }, []);
+
+  // Keyboard shortcuts
+  useOrderKeyboardShortcuts({
+    orders: ordersData?.orders || [],
+    selectedOrderIndex: keyboardSelectedIndex,
+    setSelectedOrderIndex: setKeyboardSelectedIndex,
+    onViewOrder: handleViewOrder,
+    onQuickStatusUpdate: handleQuickStatusUpdate,
+    onToggleSelect: handleToggleSelect,
+    isModalOpen: !!selectedOrder,
+    onShowHelp: () => setShowKeyboardHelp(true),
+  });
+
   return (
     <OrderErrorBoundary>
       <div className="space-y-6">
@@ -412,7 +455,17 @@ export const EnhancedOrderManagement = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Orders</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Orders
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setShowKeyboardHelp(true)}
+              >
+                <Keyboard className="h-4 w-4" />
+              </Button>
+            </CardTitle>
             <div className="flex items-center gap-2">
               <Checkbox
                 checked={selectedOrders.length === ordersData?.orders.length && ordersData?.orders.length > 0}
@@ -433,13 +486,22 @@ export const EnhancedOrderManagement = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {ordersData?.orders.map((order) => (
-                <div key={order.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+              {ordersData?.orders.map((order, index) => (
+                <div 
+                  key={order.id} 
+                  className={cn(
+                    "border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer",
+                    keyboardSelectedIndex === index && "ring-2 ring-primary bg-primary/5"
+                  )}
+                  onClick={() => setKeyboardSelectedIndex(index)}
+                  onDoubleClick={() => handleViewOrder(order)}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <Checkbox
                         checked={selectedOrders.includes(order.id)}
                         onCheckedChange={(checked) => handleOrderSelect(order.id, checked as boolean)}
+                        onClick={(e) => e.stopPropagation()}
                       />
                       
                       <div className="space-y-1">
@@ -549,6 +611,12 @@ export const EnhancedOrderManagement = () => {
           }
         />
       )}
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp 
+        isOpen={showKeyboardHelp} 
+        onClose={() => setShowKeyboardHelp(false)} 
+      />
       </div>
       </OrderErrorBoundary>
     );

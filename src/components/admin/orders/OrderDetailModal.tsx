@@ -27,6 +27,8 @@ import {
   X
 } from "lucide-react";
 import { OrderTimeline } from "./OrderTimeline";
+import { OrderProgressStepper } from "./OrderProgressStepper";
+import { OrderQuickActions } from "./OrderQuickActions";
 
 interface OrderDetailModalProps {
   order: any;
@@ -163,32 +165,49 @@ export const OrderDetailModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Order Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Order Summary</span>
-                <div className="flex gap-2">
-                  <Badge variant="outline">{order.status}</Badge>
-                  <Badge variant="secondary">{order.fulfillment_status}</Badge>
-                  {order.priority === 'urgent' && (
-                    <Badge variant="destructive">Urgent</Badge>
-                  )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content - 2/3 width */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Progress Stepper */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Order Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <OrderProgressStepper 
+                  currentStatus={order.status}
+                  onStatusClick={(status) => {
+                    onStatusUpdate(status);
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Order Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Order Summary</span>
+                  <div className="flex gap-2">
+                    <Badge variant="outline">{order.status}</Badge>
+                    <Badge variant="secondary">{order.fulfillment_status}</Badge>
+                    {order.priority === 'urgent' && (
+                      <Badge variant="destructive">Urgent</Badge>
+                    )}
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Total Amount</label>
+                    <p className="text-lg font-bold">R{order.total_amount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Created</label>
+                    <p>{new Date(order.created_at).toLocaleString()}</p>
+                  </div>
                 </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Total Amount</label>
-                  <p className="text-lg font-bold">R{order.total_amount.toFixed(2)}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Created</label>
-                  <p>{new Date(order.created_at).toLocaleString()}</p>
-                </div>
-              </div>
 
               {/* Customer Information */}
               <div className="border-t pt-4">
@@ -449,6 +468,16 @@ export const OrderDetailModal = ({
               </Card>
             </TabsContent>
           </Tabs>
+          </div>
+
+          {/* Quick Actions Sidebar - 1/3 width */}
+          <div className="lg:col-span-1">
+            <OrderQuickActions
+              order={order}
+              onStatusUpdate={onStatusUpdate}
+              onSendNotification={onSendNotification}
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>
