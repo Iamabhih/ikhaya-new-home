@@ -38,6 +38,7 @@ import TermsPage from "./pages/TermsPage";
 import PromotionsPage from "./pages/PromotionsPage";
 import GuestOrderTrackingPage from "./pages/GuestOrderTrackingPage";
 import NotFound from "./pages/NotFound";
+import OrderDetailPage from "./pages/OrderDetailPage";
 
 // Admin pages - lazy loaded (only downloaded when accessed)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -59,6 +60,7 @@ const AdminQuotes = lazy(() => import("./pages/admin/AdminQuotes"));
 const AdminLogs = lazy(() => import("./pages/admin/AdminLogs"));
 const AdminDiscounts = lazy(() => import("./pages/admin/AdminDiscounts"));
 const AdminShippingSettings = lazy(() => import("./pages/admin/AdminShippingSettings"));
+const AdminFulfillment = lazy(() => import("./pages/admin/AdminFulfillment"));
 
 // Loading fallback for lazy-loaded components
 const PageLoader = () => (
@@ -121,6 +123,7 @@ function App() {
                 {/* Protected routes */}
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/orders/:orderId" element={<OrderDetailPage />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
                 
                  {/* Admin routes - lazy loaded */}
@@ -138,6 +141,7 @@ function App() {
                  <Route path="/admin/homepage" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminHomepage /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/production" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminProduction /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/logs" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminLogs /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/fulfillment" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminFulfillment /></Suspense></AdminProtectedRoute>} />
 
                   {/* SuperAdmin only routes - lazy loaded */}
                   <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminProtectedRoute>} />
