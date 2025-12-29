@@ -39,6 +39,8 @@ import PromotionsPage from "./pages/PromotionsPage";
 import GuestOrderTrackingPage from "./pages/GuestOrderTrackingPage";
 import NotFound from "./pages/NotFound";
 import OrderDetailPage from "./pages/OrderDetailPage";
+import BlogPage from "./pages/BlogPage";
+import BlogPostPage from "./pages/BlogPostPage";
 
 // Admin pages - lazy loaded (only downloaded when accessed)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -61,6 +63,9 @@ const AdminLogs = lazy(() => import("./pages/admin/AdminLogs"));
 const AdminDiscounts = lazy(() => import("./pages/admin/AdminDiscounts"));
 const AdminShippingSettings = lazy(() => import("./pages/admin/AdminShippingSettings"));
 const AdminFulfillment = lazy(() => import("./pages/admin/AdminFulfillment"));
+const AdminGiftCards = lazy(() => import("./pages/admin/AdminGiftCards"));
+const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+const AdminAbandonedCart = lazy(() => import("./pages/admin/AdminAbandonedCart"));
 
 // Loading fallback for lazy-loaded components
 const PageLoader = () => (
@@ -119,6 +124,8 @@ function App() {
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/promotions" element={<PromotionsPage />} />
                 <Route path="/track-order" element={<GuestOrderTrackingPage />} />
+                <Route path="/blog" element={<BlogPage />} />
+                <Route path="/blog/:slug" element={<BlogPostPage />} />
                 
                 {/* Protected routes */}
                 <Route path="/account" element={<AccountPage />} />
@@ -142,6 +149,9 @@ function App() {
                  <Route path="/admin/production" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminProduction /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/logs" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminLogs /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/fulfillment" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminFulfillment /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/gift-cards" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminGiftCards /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/blog" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminBlog /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/abandoned-cart" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminAbandonedCart /></Suspense></AdminProtectedRoute>} />
 
                   {/* SuperAdmin only routes - lazy loaded */}
                   <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminProtectedRoute>} />
