@@ -3499,6 +3499,7 @@ export type Database = {
       }
       shipping_settings: {
         Row: {
+          api_key_encrypted: string | null
           collection_address: Json
           created_at: string
           default_parcel: Json
@@ -3511,6 +3512,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          api_key_encrypted?: string | null
           collection_address?: Json
           created_at?: string
           default_parcel?: Json
@@ -3523,6 +3525,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          api_key_encrypted?: string | null
           collection_address?: Json
           created_at?: string
           default_parcel?: Json
