@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      abandoned_cart_settings: {
+        Row: {
+          created_at: string | null
+          discount_percentage: number | null
+          email_subject_first: string | null
+          email_subject_second: string | null
+          email_subject_third: string | null
+          first_email_delay_hours: number | null
+          id: string
+          is_enabled: boolean | null
+          offer_discount_on_second: boolean | null
+          second_email_delay_hours: number | null
+          third_email_delay_hours: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          discount_percentage?: number | null
+          email_subject_first?: string | null
+          email_subject_second?: string | null
+          email_subject_third?: string | null
+          first_email_delay_hours?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          offer_discount_on_second?: boolean | null
+          second_email_delay_hours?: number | null
+          third_email_delay_hours?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          discount_percentage?: number | null
+          email_subject_first?: string | null
+          email_subject_second?: string | null
+          email_subject_third?: string | null
+          first_email_delay_hours?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          offer_discount_on_second?: boolean | null
+          second_email_delay_hours?: number | null
+          third_email_delay_hours?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           category_id: string | null
@@ -254,6 +299,84 @@ export type Database = {
         }
         Relationships: []
       }
+      automatic_discounts: {
+        Row: {
+          applies_to: string | null
+          buy_quantity: number | null
+          category_ids: string[] | null
+          condition_type: string
+          condition_value: Json
+          created_at: string | null
+          created_by: string | null
+          customer_group: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          get_product_ids: string[] | null
+          get_quantity: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          priority: number | null
+          product_ids: string[] | null
+          starts_at: string | null
+          times_used: number | null
+          updated_at: string | null
+          usage_limit: number | null
+        }
+        Insert: {
+          applies_to?: string | null
+          buy_quantity?: number | null
+          category_ids?: string[] | null
+          condition_type: string
+          condition_value?: Json
+          created_at?: string | null
+          created_by?: string | null
+          customer_group?: string | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          get_product_ids?: string[] | null
+          get_quantity?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          priority?: number | null
+          product_ids?: string[] | null
+          starts_at?: string | null
+          times_used?: number | null
+          updated_at?: string | null
+          usage_limit?: number | null
+        }
+        Update: {
+          applies_to?: string | null
+          buy_quantity?: number | null
+          category_ids?: string[] | null
+          condition_type?: string
+          condition_value?: Json
+          created_at?: string | null
+          created_by?: string | null
+          customer_group?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          get_product_ids?: string[] | null
+          get_quantity?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          priority?: number | null
+          product_ids?: string[] | null
+          starts_at?: string | null
+          times_used?: number | null
+          updated_at?: string | null
+          usage_limit?: number | null
+        }
+        Relationships: []
+      }
       batch_progress: {
         Row: {
           candidates_created: number
@@ -298,6 +421,107 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      blog_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          slug: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          slug: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          author_id: string | null
+          category_id: string | null
+          content: string
+          created_at: string | null
+          excerpt: string | null
+          featured_image: string | null
+          id: string
+          meta_description: string | null
+          meta_title: string | null
+          published_at: string | null
+          slug: string
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          author_id?: string | null
+          category_id?: string | null
+          content: string
+          created_at?: string | null
+          excerpt?: string | null
+          featured_image?: string | null
+          id?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          published_at?: string | null
+          slug: string
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          author_id?: string | null
+          category_id?: string | null
+          content?: string
+          created_at?: string | null
+          excerpt?: string | null
+          featured_image?: string | null
+          id?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          published_at?: string | null
+          slug?: string
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "blog_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       brands: {
         Row: {
@@ -703,6 +927,8 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          meta_description: string | null
+          meta_title: string | null
           name: string
           parent_id: string | null
           slug: string
@@ -715,6 +941,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
           name: string
           parent_id?: string | null
           slug: string
@@ -727,6 +955,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
           name?: string
           parent_id?: string | null
           slug?: string
@@ -749,6 +979,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      customer_addresses: {
+        Row: {
+          apartment: string | null
+          city: string
+          company: string | null
+          country: string
+          created_at: string | null
+          first_name: string
+          id: string
+          is_default_billing: boolean | null
+          is_default_shipping: boolean | null
+          label: string
+          last_name: string
+          phone: string | null
+          postal_code: string
+          province: string
+          street_address: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          apartment?: string | null
+          city: string
+          company?: string | null
+          country?: string
+          created_at?: string | null
+          first_name: string
+          id?: string
+          is_default_billing?: boolean | null
+          is_default_shipping?: boolean | null
+          label?: string
+          last_name: string
+          phone?: string | null
+          postal_code: string
+          province: string
+          street_address: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          apartment?: string | null
+          city?: string
+          company?: string | null
+          country?: string
+          created_at?: string | null
+          first_name?: string
+          id?: string
+          is_default_billing?: boolean | null
+          is_default_shipping?: boolean | null
+          label?: string
+          last_name?: string
+          phone?: string | null
+          postal_code?: string
+          province?: string
+          street_address?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       customer_engagement_metrics: {
         Row: {
@@ -1202,6 +1492,117 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gift_card_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string | null
+          created_by: string | null
+          gift_card_id: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string | null
+          created_by?: string | null
+          gift_card_id: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string | null
+          created_by?: string | null
+          gift_card_id?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_card_transactions_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            isOneToOne: false
+            referencedRelation: "gift_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_card_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_cards: {
+        Row: {
+          code: string
+          created_at: string | null
+          currency: string | null
+          current_balance: number
+          expires_at: string | null
+          id: string
+          initial_balance: number
+          last_used_at: string | null
+          message: string | null
+          purchased_at: string | null
+          purchaser_email: string | null
+          purchaser_id: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          currency?: string | null
+          current_balance: number
+          expires_at?: string | null
+          id?: string
+          initial_balance: number
+          last_used_at?: string | null
+          message?: string | null
+          purchased_at?: string | null
+          purchaser_email?: string | null
+          purchaser_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          currency?: string | null
+          current_balance?: number
+          expires_at?: string | null
+          id?: string
+          initial_balance?: number
+          last_used_at?: string | null
+          message?: string | null
+          purchased_at?: string | null
+          purchaser_email?: string | null
+          purchaser_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       homepage_featured_categories: {
         Row: {
@@ -2424,6 +2825,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_featured: boolean | null
+          meta_description: string | null
+          meta_title: string | null
           min_stock_level: number | null
           name: string
           price: number
@@ -2452,6 +2855,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
           min_stock_level?: number | null
           name: string
           price: number
@@ -2480,6 +2885,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
           min_stock_level?: number | null
           name?: string
           price?: number
@@ -2522,6 +2929,8 @@ export type Database = {
       profiles: {
         Row: {
           billing_address: string | null
+          birthday: string | null
+          company: string | null
           company_name: string | null
           created_at: string
           email: string
@@ -2536,6 +2945,8 @@ export type Database = {
         }
         Insert: {
           billing_address?: string | null
+          birthday?: string | null
+          company?: string | null
           company_name?: string | null
           created_at?: string
           email: string
@@ -2550,6 +2961,8 @@ export type Database = {
         }
         Update: {
           billing_address?: string | null
+          birthday?: string | null
+          company?: string | null
           company_name?: string | null
           created_at?: string
           email?: string
