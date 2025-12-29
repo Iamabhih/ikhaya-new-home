@@ -41,15 +41,15 @@ export const VariantManager = ({ productId, basePrice }: VariantManagerProps) =>
 
   const { data: variants = [], isLoading } = useQuery({
     queryKey: ['admin-product-variants', productId],
-    queryFn: async () => {
+    queryFn: async (): Promise<ProductVariant[]> => {
       const { data, error } = await supabase
         .from('product_variants')
-        .select('*')
-        .eq('product_id', productId)
+        .select('id, parent_product_id, sku, price, compare_at_price, stock_quantity, is_active')
+        .eq('parent_product_id', productId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      return data as ProductVariant[];
+      return (data || []) as ProductVariant[];
     },
     enabled: !!productId,
   });
