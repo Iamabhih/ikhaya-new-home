@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,10 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Truck, Settings, MapPin, Package, TestTube, Check, AlertCircle } from 'lucide-react';
+import { Loader2, Truck, Settings, MapPin, Package, TestTube, Check, AlertCircle, Key, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { useShippingSettings, CollectionAddress, DefaultParcel, ServiceLevels } from '@/hooks/useShippingSettings';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const AdminShippingSettings = () => {
   const { settings, isLoading, updateSettings, testConnection } = useShippingSettings();
@@ -46,8 +48,21 @@ const AdminShippingSettings = () => {
   const [isTestMode, setIsTestMode] = useState(true);
   const [isEnabled, setIsEnabled] = useState(false);
 
+  // API key management state
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState<{ configured: boolean; masked_key: string | null }>({ configured: false, masked_key: null });
+  const [isCheckingApiKey, setIsCheckingApiKey] = useState(false);
+  const [isUpdatingApiKey, setIsUpdatingApiKey] = useState(false);
+  const [isTestingApiKey, setIsTestingApiKey] = useState(false);
+
+  // Check API key status on mount
+  useEffect(() => {
+    checkApiKeyStatus();
+  }, []);
+
   // Update local state when settings load
-  useState(() => {
+  useEffect(() => {
     if (settings) {
       setCollectionAddress(settings.collection_address || collectionAddress);
       setDefaultParcel(settings.default_parcel || defaultParcel);
@@ -56,7 +71,84 @@ const AdminShippingSettings = () => {
       setIsTestMode(settings.is_test_mode ?? true);
       setIsEnabled(settings.is_enabled ?? false);
     }
-  });
+  }, [settings]);
+
+  const checkApiKeyStatus = async () => {
+    setIsCheckingApiKey(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase.functions.invoke('manage-api-key', {
+        body: { action: 'check' },
+      });
+
+      if (!error && data) {
+        setApiKeyStatus(data);
+      }
+    } catch (error) {
+      console.error('Failed to check API key status:', error);
+    } finally {
+      setIsCheckingApiKey(false);
+    }
+  };
+
+  const handleUpdateApiKey = async () => {
+    if (!apiKey.trim()) {
+      toast.error('Please enter an API key');
+      return;
+    }
+
+    setIsUpdatingApiKey(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-api-key', {
+        body: { action: 'update', api_key: apiKey },
+      });
+
+      if (error) {
+        toast.error('Failed to update API key');
+        return;
+      }
+
+      if (data.success) {
+        toast.success('API key updated successfully');
+        setApiKeyStatus({ configured: true, masked_key: data.masked_key });
+        setApiKey('');
+      } else {
+        toast.error(data.error || 'Failed to update API key');
+      }
+    } catch (error) {
+      console.error('Failed to update API key:', error);
+      toast.error('Failed to update API key');
+    } finally {
+      setIsUpdatingApiKey(false);
+    }
+  };
+
+  const handleTestApiKey = async () => {
+    setIsTestingApiKey(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-api-key', {
+        body: { action: 'test' },
+      });
+
+      if (error) {
+        toast.error('Connection test failed');
+        return;
+      }
+
+      if (data.success) {
+        toast.success('API key is valid - Connection successful!');
+      } else {
+        toast.error(data.error || 'API key validation failed');
+      }
+    } catch (error) {
+      console.error('Failed to test API key:', error);
+      toast.error('Connection test failed');
+    } finally {
+      setIsTestingApiKey(false);
+    }
+  };
 
   const handleSaveApiSettings = async () => {
     await updateSettings.mutateAsync({
@@ -197,13 +289,89 @@ const AdminShippingSettings = () => {
 
                   <Separator />
 
+                  {/* API Key Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base flex items-center gap-2">
+                          <Key className="h-4 w-4" />
+                          ShipLogic API Key
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Enter your ShipLogic API key to enable shipping integration
+                        </p>
+                      </div>
+                      {isCheckingApiKey ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : apiKeyStatus.configured ? (
+                        <Badge variant="default" className="flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Configured
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Not Configured
+                        </Badge>
+                      )}
+                    </div>
+
+                    {apiKeyStatus.configured && apiKeyStatus.masked_key && (
+                      <div className="p-3 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Current key:</p>
+                        <code className="text-sm font-mono">{apiKeyStatus.masked_key}</code>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          type={showApiKey ? 'text' : 'password'}
+                          placeholder={apiKeyStatus.configured ? 'Enter new API key to replace' : 'Enter your ShipLogic API key'}
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                        >
+                          {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <Button
+                        onClick={handleUpdateApiKey}
+                        disabled={isUpdatingApiKey || !apiKey.trim()}
+                      >
+                        {isUpdatingApiKey ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="p-3 bg-muted/50 border rounded-lg flex items-start gap-3">
+                      <Key className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-muted-foreground">
+                        <p>Your API key is stored securely and never exposed in the browser.</p>
+                        <p className="mt-1">Get your API key from <a href="https://www.shiplogic.com/account/api" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">ShipLogic Dashboard</a></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
                   <div className="flex items-center gap-4">
                     <Button 
-                      onClick={() => testConnection.mutate()}
+                      onClick={handleTestApiKey}
                       variant="outline"
-                      disabled={testConnection.isPending}
+                      disabled={isTestingApiKey || !apiKeyStatus.configured}
                     >
-                      {testConnection.isPending ? (
+                      {isTestingApiKey ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <TestTube className="h-4 w-4 mr-2" />
@@ -221,17 +389,6 @@ const AdminShippingSettings = () => {
                       )}
                       Save Settings
                     </Button>
-                  </div>
-
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-amber-800">
-                      <p className="font-medium">API Key Required</p>
-                      <p className="mt-1">
-                        Make sure to add your ShipLogic API key as a secret in your Supabase Edge Functions settings.
-                        The secret should be named <code className="bg-amber-100 px-1 rounded">SHIPLOGIC_API_KEY</code>
-                      </p>
-                    </div>
                   </div>
                 </CardContent>
               </Card>

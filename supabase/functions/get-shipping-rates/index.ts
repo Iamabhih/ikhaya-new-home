@@ -38,15 +38,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const shiplogicApiKey = Deno.env.get('SHIPLOGIC_API_KEY');
-
-    if (!shiplogicApiKey) {
-      console.error('[get-shipping-rates] SHIPLOGIC_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ error: 'Shipping service not configured' }),
-        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -70,6 +61,17 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Shipping service is disabled', rates: [] }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get API key from DB first, then fall back to environment variable
+    const shiplogicApiKey = settings.api_key_encrypted || Deno.env.get('SHIPLOGIC_API_KEY');
+
+    if (!shiplogicApiKey) {
+      console.error('[get-shipping-rates] SHIPLOGIC_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: 'Shipping service not configured - API key missing' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
