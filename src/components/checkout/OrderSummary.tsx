@@ -3,11 +3,13 @@ import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { DiscountCodeInput, DiscountInfo } from "./DiscountCodeInput";
+import { ShippingRate } from "@/hooks/useShippingRates";
 
 interface OrderSummaryProps {
   items: any[];
   total: number;
   selectedDeliveryZone?: string;
+  selectedShippingRate?: ShippingRate | null;
   appliedDiscount?: DiscountInfo | null;
   onDiscountApplied?: (discount: DiscountInfo | null) => void;
 }
@@ -16,10 +18,17 @@ export const OrderSummary = ({
   items, 
   total, 
   selectedDeliveryZone,
+  selectedShippingRate,
   appliedDiscount,
   onDiscountApplied
 }: OrderSummaryProps) => {
-  const { deliveryFee, isFreeDelivery, deliveryZone, amountForFreeDelivery } = useDeliveryFee(total, selectedDeliveryZone);
+  const { deliveryFee: staticDeliveryFee, isFreeDelivery, deliveryZone, amountForFreeDelivery } = useDeliveryFee(total, selectedDeliveryZone);
+  
+  // Use ShipLogic rate if available, otherwise use static delivery fee
+  const deliveryFee = selectedShippingRate?.rate ?? staticDeliveryFee;
+  const shippingLabel = selectedShippingRate 
+    ? (selectedShippingRate.service_level_name || selectedShippingRate.service_level || 'Shipping')
+    : deliveryZone?.name;
   
   // Calculate discount
   let discountAmount = 0;
@@ -87,14 +96,14 @@ export const OrderSummary = ({
           <div className="flex justify-between items-center text-sm">
             <div className="flex items-center gap-2">
               <span>Delivery</span>
-              {deliveryZone && (
+              {shippingLabel && (
                 <Badge variant="outline" className="text-xs">
-                  {deliveryZone.name}
+                  {shippingLabel}
                 </Badge>
               )}
             </div>
             <div className="text-right">
-              {isFreeDelivery || effectiveDeliveryFee === 0 ? (
+              {(isFreeDelivery && !selectedShippingRate) || effectiveDeliveryFee === 0 ? (
                 <span className="text-primary font-medium">Free</span>
               ) : (
                 <span>R{effectiveDeliveryFee.toFixed(2)}</span>
@@ -102,7 +111,7 @@ export const OrderSummary = ({
             </div>
           </div>
           
-          {amountForFreeDelivery > 0 && effectiveDeliveryFee > 0 && (
+          {amountForFreeDelivery > 0 && effectiveDeliveryFee > 0 && !selectedShippingRate && (
             <div className="text-xs text-muted-foreground">
               Add R{amountForFreeDelivery.toFixed(2)} more for free delivery
             </div>
