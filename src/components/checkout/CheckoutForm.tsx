@@ -1,16 +1,17 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCart } from "@/hooks/useCart";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 import { PayfastPayment } from "./PayfastPayment";
 import { DeliveryOptions } from "./DeliveryOptions";
+import { LiveShippingRates } from "./LiveShippingRates";
 import { generateOrderId } from "@/utils/payment/PayFastConfig";
+import { ShippingRate, DeliveryAddress } from "@/hooks/useShippingRates";
+import { useShippingSettings } from "@/hooks/useShippingSettings";
 
 interface CheckoutFormProps {
   user: any | null;
@@ -22,7 +23,7 @@ interface CheckoutFormProps {
 export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliveryZoneChange }: CheckoutFormProps) => {
   const { items, clearCart, total: cartTotal } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentStep, setCurrentStep] = useState('billing'); // billing, payment, success
+  const [currentStep, setCurrentStep] = useState('billing');
   const [orderId, setOrderId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: user?.email || "",
@@ -35,29 +36,66 @@ export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliver
     province: "",
   });
 
-  const { deliveryFee, deliveryZone } = useDeliveryFee(cartTotal, selectedDeliveryZone);
+  // ShipLogic integration state
+  const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
+  const [useLiveRates, setUseLiveRates] = useState(true);
+  const [liveRatesError, setLiveRatesError] = useState(false);
+  
+  const { settings: shippingSettings, isLoading: settingsLoading } = useShippingSettings();
+
+  // Build delivery address for ShipLogic API
+  const deliveryAddress: DeliveryAddress | null = useMemo(() => {
+    if (!formData.address || !formData.city || !formData.province || !formData.postalCode) {
+      return null;
+    }
+    return {
+      street_address: formData.address,
+      city: formData.city,
+      zone: formData.province,
+      country: 'ZA',
+      code: formData.postalCode,
+    };
+  }, [formData.address, formData.city, formData.province, formData.postalCode]);
+
+  // Check if ShipLogic is enabled
+  const isShipLogicEnabled = shippingSettings?.is_enabled ?? false;
+
+  // Calculate delivery fee based on selected option
+  const deliveryFee = useMemo(() => {
+    if (useLiveRates && selectedShippingRate) {
+      return selectedShippingRate.rate;
+    }
+    return 0; // Will be calculated by DeliveryOptions via useDeliveryFee
+  }, [useLiveRates, selectedShippingRate]);
+
+  const handleShippingRateSelect = (rate: ShippingRate) => {
+    setSelectedShippingRate(rate);
+    setLiveRatesError(false);
+  };
 
   const handleBillingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
 
     try {
-      // Validate form data and delivery zone
+      // Validate form data
       if (!formData.email || !formData.firstName || !formData.lastName || 
           !formData.address || !formData.city || !formData.province || !formData.postalCode) {
         throw new Error("Please fill in all required fields");
       }
 
-      if (!selectedDeliveryZone) {
-        throw new Error("Please select a delivery option");
+      // Validate shipping selection
+      if (useLiveRates && isShipLogicEnabled) {
+        if (!selectedShippingRate) {
+          throw new Error("Please select a shipping option");
+        }
+      } else {
+        if (!selectedDeliveryZone) {
+          throw new Error("Please select a delivery option");
+        }
       }
 
-      // Check minimum order value for selected delivery zone
-      if (deliveryZone && cartTotal < deliveryZone.min_order_value) {
-        throw new Error(`Minimum order value for ${deliveryZone.name} is R${deliveryZone.min_order_value.toFixed(2)}`);
-      }
-
-      // Generate order ID using standardized function
+      // Generate order ID
       const tempOrderId = generateOrderId();
       setOrderId(tempOrderId);
       setCurrentStep('payment');
@@ -71,13 +109,24 @@ export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliver
     }
   };
 
+  // Handle fallback to static delivery options
+  const handleLiveRatesError = () => {
+    setLiveRatesError(true);
+    setUseLiveRates(false);
+  };
+
   if (currentStep === 'payment' && orderId) {
+    // Determine final delivery fee
+    const finalDeliveryFee = useLiveRates && selectedShippingRate 
+      ? selectedShippingRate.rate 
+      : deliveryFee;
+
     return (
       <PayfastPayment
         formData={formData}
         cartItems={items}
         cartTotal={cartTotal}
-        deliveryFee={deliveryFee}
+        deliveryFee={finalDeliveryFee}
         user={user}
       />
     );
@@ -240,12 +289,42 @@ export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliver
             </div>
           </div>
 
-          {/* Delivery Options */}
-          <DeliveryOptions
-            subtotal={cartTotal}
-            selectedZone={selectedDeliveryZone}
-            onZoneChange={onDeliveryZoneChange}
-          />
+          {/* Shipping Options - ShipLogic or Static */}
+          <div className="space-y-4">
+            <h3 className="text-base font-semibold text-foreground border-b pb-2">
+              Shipping Options
+            </h3>
+            
+            {isShipLogicEnabled && useLiveRates && !liveRatesError ? (
+              <LiveShippingRates
+                deliveryAddress={deliveryAddress}
+                selectedRate={selectedShippingRate}
+                onRateSelect={handleShippingRateSelect}
+              />
+            ) : (
+              <DeliveryOptions
+                subtotal={cartTotal}
+                selectedZone={selectedDeliveryZone}
+                onZoneChange={onDeliveryZoneChange}
+              />
+            )}
+            
+            {/* Option to switch between live and static rates */}
+            {isShipLogicEnabled && liveRatesError && (
+              <div className="text-sm text-muted-foreground mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLiveRatesError(false);
+                    setUseLiveRates(true);
+                  }}
+                  className="text-primary hover:underline"
+                >
+                  Try live shipping rates again
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="pt-6">
             <Button
