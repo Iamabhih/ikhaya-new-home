@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client'
+import { HelmetProvider } from 'react-helmet-async'
 import App from './App.tsx'
 import './index.css'
 import { applyMobileOptimizations } from './utils/mobileOptimization'
@@ -61,7 +62,11 @@ console.log('[Main] Root element found, creating React root');
 try {
   const root = createRoot(rootElement);
   console.log('[Main] React root created, rendering app');
-  root.render(<App />);
+  root.render(
+    <HelmetProvider>
+      <App />
+    </HelmetProvider>
+  );
   console.log('[Main] App render initiated');
 } catch (error) {
   console.error('[Main] Failed to create or render app:', error);
