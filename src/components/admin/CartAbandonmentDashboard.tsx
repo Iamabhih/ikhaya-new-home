@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { useCartAnalytics } from '@/hooks/useCartAnalytics';
 import { 
   ShoppingCart, 
@@ -14,17 +15,46 @@ import {
   AlertTriangle,
   RefreshCw,
   Eye,
-  Send
+  Send,
+  Search,
+  Filter,
+  Download
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { RecoveryEmailComposer } from './RecoveryEmailComposer';
+import { CartDetailModal } from './CartDetailModal';
 
 interface CartAbandonmentDashboardProps {
   className?: string;
+}
+
+interface CartSession {
+  id: string;
+  session_id: string;
+  user_id?: string;
+  email?: string;
+  phone?: string;
+  total_value: number;
+  item_count: number;
+  created_at: string;
+  updated_at: string;
+  abandoned_at?: string;
+  converted_at?: string;
+  checkout_initiated_at?: string;
+  payment_attempted_at?: string;
+  abandonment_stage?: string;
+  device_info?: any;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  session_duration?: number;
+  page_views?: number;
+  enhanced_cart_tracking?: any[];
 }
 
 export const CartAbandonmentDashboard: React.FC<CartAbandonmentDashboardProps> = ({ className }) => {
@@ -46,6 +76,14 @@ export const CartAbandonmentDashboard: React.FC<CartAbandonmentDashboardProps> =
   const [includeDiscount, setIncludeDiscount] = useState(false);
   const [discountPercentage, setDiscountPercentage] = useState(10);
   const [selectedCarts, setSelectedCarts] = useState<string[]>([]);
+  
+  // New state for enhanced features
+  const [selectedCart, setSelectedCart] = useState<CartSession | null>(null);
+  const [showEmailComposer, setShowEmailComposer] = useState(false);
+  const [showCartDetail, setShowCartDetail] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStage, setFilterStage] = useState<string>('all');
+  const [filterValue, setFilterValue] = useState<string>('all');
 
   const handleSendRecoveryCampaign = async (campaignType: '1hr' | '24hr' | '72hr' | '1week' | 'manual', cartIds?: string[]) => {
     try {
@@ -60,6 +98,45 @@ export const CartAbandonmentDashboard: React.FC<CartAbandonmentDashboardProps> =
     } catch (error) {
       console.error('Recovery campaign failed:', error);
     }
+  };
+
+  // Filter carts based on search and filters
+  const filteredCarts = abandonedCarts?.filter((cart: CartSession) => {
+    // Search filter
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      if (!cart.email?.toLowerCase().includes(search) && 
+          !cart.phone?.includes(search)) {
+        return false;
+      }
+    }
+    
+    // Stage filter
+    if (filterStage !== 'all') {
+      if (cart.abandonment_stage !== filterStage) return false;
+    }
+    
+    // Value filter
+    if (filterValue !== 'all') {
+      if (filterValue === 'high' && cart.total_value < 500) return false;
+      if (filterValue === 'medium' && (cart.total_value < 100 || cart.total_value >= 500)) return false;
+      if (filterValue === 'low' && cart.total_value >= 100) return false;
+    }
+    
+    return true;
+  }) || [];
+
+  // Get carts with emails for quick recovery
+  const recoverable = abandonedCarts?.filter((cart: CartSession) => cart.email) || [];
+
+  const handleViewCart = (cart: CartSession) => {
+    setSelectedCart(cart);
+    setShowCartDetail(true);
+  };
+
+  const handleSendEmail = (cart: CartSession) => {
+    setSelectedCart(cart);
+    setShowEmailComposer(true);
   };
 
   const formatCurrency = (amount: number) => `R${amount.toFixed(2)}`;
@@ -299,10 +376,35 @@ export const CartAbandonmentDashboard: React.FC<CartAbandonmentDashboardProps> =
 
         <TabsContent value="abandoned-carts" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Recent Abandoned Carts</CardTitle>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 w-48"
+                  />
+                </div>
+                <Select value={filterStage} onValueChange={setFilterStage}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Stages</SelectItem>
+                    <SelectItem value="cart">Cart</SelectItem>
+                    <SelectItem value="checkout">Checkout</SelectItem>
+                    <SelectItem value="payment">Payment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardHeader>
             <CardContent>
+              <div className="mb-3 text-sm text-muted-foreground">
+                Showing {filteredCarts.length} carts ({recoverable.length} with emails)
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -316,8 +418,8 @@ export const CartAbandonmentDashboard: React.FC<CartAbandonmentDashboardProps> =
                     </tr>
                   </thead>
                   <tbody>
-                    {abandonedCarts?.slice(0, 10).map((cart) => (
-                      <tr key={cart.id} className="border-b">
+                    {filteredCarts.slice(0, 20).map((cart: CartSession) => (
+                      <tr key={cart.id} className="border-b hover:bg-muted/50">
                         <td className="p-2">
                           <div>
                             <p className="font-medium">{cart.email || 'Anonymous'}</p>
@@ -336,14 +438,14 @@ export const CartAbandonmentDashboard: React.FC<CartAbandonmentDashboardProps> =
                         </td>
                         <td className="p-2">
                           <div className="flex gap-1">
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" onClick={() => handleViewCart(cart)}>
                               <Eye className="h-3 w-3" />
                             </Button>
                             {cart.email && (
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => handleSendRecoveryCampaign('manual', [cart.id])}
+                                onClick={() => handleSendEmail(cart)}
                               >
                                 <Mail className="h-3 w-3" />
                               </Button>
@@ -483,6 +585,24 @@ export const CartAbandonmentDashboard: React.FC<CartAbandonmentDashboardProps> =
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Modals */}
+      <RecoveryEmailComposer
+        open={showEmailComposer}
+        onOpenChange={setShowEmailComposer}
+        cartSession={selectedCart}
+        onEmailSent={() => refetchAnalytics()}
+      />
+
+      <CartDetailModal
+        open={showCartDetail}
+        onOpenChange={setShowCartDetail}
+        cartSession={selectedCart}
+        onSendEmail={() => {
+          setShowCartDetail(false);
+          setShowEmailComposer(true);
+        }}
+      />
     </div>
   );
 };
