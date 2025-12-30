@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { LiveShippingRates } from "./LiveShippingRates";
 import { generateOrderId } from "@/utils/payment/PayFastConfig";
 import { ShippingRate, DeliveryAddress } from "@/hooks/useShippingRates";
 import { useShippingSettings } from "@/hooks/useShippingSettings";
+import { useEnhancedCart } from "@/hooks/useEnhancedCart";
 
 interface CheckoutFormProps {
   user: any | null;
@@ -22,9 +23,11 @@ interface CheckoutFormProps {
 
 export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliveryZoneChange }: CheckoutFormProps) => {
   const { items, clearCart, total: cartTotal } = useCart();
+  const { captureEmailForRecovery, trackCheckoutInitiated } = useEnhancedCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState('billing');
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [emailCaptured, setEmailCaptured] = useState(false);
   const [formData, setFormData] = useState({
     email: user?.email || "",
     firstName: "",
@@ -59,6 +62,23 @@ export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliver
 
   // Check if ShipLogic is enabled
   const isShipLogicEnabled = shippingSettings?.is_enabled ?? false;
+
+  // Handle email capture for abandoned cart recovery
+  const handleEmailBlur = useCallback(() => {
+    const email = formData.email.trim();
+    if (email && email.includes('@') && !emailCaptured && items.length > 0) {
+      captureEmailForRecovery(email);
+      setEmailCaptured(true);
+      console.log('[Cart Recovery] Email captured for recovery:', email);
+    }
+  }, [formData.email, emailCaptured, items.length, captureEmailForRecovery]);
+
+  // Track checkout initiated when user reaches this form
+  useEffect(() => {
+    if (items.length > 0) {
+      trackCheckoutInitiated();
+    }
+  }, []); // Only on mount
 
   // Calculate delivery fee based on selected option
   const deliveryFee = useMemo(() => {
@@ -167,6 +187,7 @@ export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliver
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onBlur={handleEmailBlur}
                   placeholder="your@email.com"
                   required
                   disabled={!!user?.email}
