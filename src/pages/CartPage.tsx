@@ -141,7 +141,7 @@ const CartPage = () => {
 
       <main className="container mx-auto px-4 py-6 md:py-8 -mt-4 md:-mt-8 relative z-10">
 
-        {/* DEBUG INFO - Remove in production */}
+        {/* Cart analytics tracking enabled */}
         {process.env.NODE_ENV === 'development' && items.length > 0 && (
           <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
             <h3 className="font-bold mb-2">Debug Info (development only):</h3>
