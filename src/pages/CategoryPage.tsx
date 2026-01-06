@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Grid, List, Search, SlidersHorizontal } from "lucide-react";
-import { UniversalLoading } from "@/components/ui/universal-loading";
+import { Loading } from "@/components/ui/loading";
 import { ResponsiveGrid } from "@/components/ui/responsive-layout";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useAnalytics } from "@/hooks/useAnalytics";

@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 
-interface LoadingState {
+interface Loading {
   isLoading: boolean;
   error: string | null;
   success: boolean;
 }
 
-export const useLoadingState = (initialState: Partial<LoadingState> = {}) => {
-  const [state, setState] = useState<LoadingState>({
+export const useLoading = (initialState: Partial<Loading> = {}) => {
+  const [state, setState] = useState<Loading>({
     isLoading: false,
     error: null,
     success: false,

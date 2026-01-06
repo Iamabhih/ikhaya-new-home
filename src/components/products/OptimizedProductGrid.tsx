@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { ProductCard } from './ProductCard';
-import { UniversalLoading } from '@/components/ui/universal-loading';
+import { Loading } from '@/components/ui/loading';
 import { Card } from '@/components/ui/card';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -76,11 +76,11 @@ export const OptimizedProductGrid = ({
     ? 'grid-mobile-optimized' 
     : 'grid-list-mobile-optimized';
 
-  const renderLoadingState = useCallback(() => (
+  const renderLoading = useCallback(() => (
     <div className={`${mobileGridClass}`} style={gridStyles}>
       {Array.from({ length: 12 }).map((_, index) => (
         <div key={index} className="w-full">
-          <UniversalLoading 
+          <Loading 
             variant="card" 
             className="w-full h-full min-h-[350px]"
           />
@@ -112,7 +112,7 @@ export const OptimizedProductGrid = ({
   ), [searchQuery, hasActiveFilters, onClearFilters]);
 
   if (isLoading) {
-    return renderLoadingState();
+    return renderLoading();
   }
 
   if (products.length === 0) {
