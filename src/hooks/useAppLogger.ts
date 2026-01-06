@@ -24,14 +24,14 @@ export function useAppLogger(options: UseAppLoggerOptions = {}) {
   // Set user context when available
   useEffect(() => {
     if (user?.id) {
-      appLogger.setContext({ userId: user.id });
+      logger.setContext({ userId: user.id });
     }
   }, [user?.id]);
 
   // Set correlation ID if provided
   useEffect(() => {
     if (correlationId) {
-      appLogger.setContext({ correlationId });
+      logger.setContext({ correlationId });
     }
   }, [correlationId]);
 
@@ -39,14 +39,14 @@ export function useAppLogger(options: UseAppLoggerOptions = {}) {
   useEffect(() => {
     if (autoLogPageViews && !hasLoggedInitialPageView.current) {
       hasLoggedInitialPageView.current = true;
-      appLogger.navigation.pageView(location.pathname, document.referrer);
+      logger.navigation.pageView(location.pathname, document.referrer);
     }
   }, [autoLogPageViews, location.pathname]);
 
   // Log page changes after initial
   useEffect(() => {
     if (autoLogPageViews && hasLoggedInitialPageView.current) {
-      appLogger.navigation.pageView(location.pathname);
+      logger.navigation.pageView(location.pathname);
     }
   }, [autoLogPageViews, location.pathname]);
 
@@ -56,7 +56,7 @@ export function useAppLogger(options: UseAppLoggerOptions = {}) {
     return {
       end: (metadata?: Record<string, unknown>) => {
         const duration = Math.round(performance.now() - startTime);
-        appLogger.performance.timing(operation, duration, metadata);
+        logger.performance.timing(operation, duration, metadata);
         return duration;
       },
     };
@@ -64,19 +64,19 @@ export function useAppLogger(options: UseAppLoggerOptions = {}) {
 
   // Log with automatic user context
   const logDebug = useCallback((category: LogCategory, message: string, metadata?: Record<string, unknown>) => {
-    appLogger.debug(category, message, { ...metadata, userId: user?.id });
+    logger.debug(category, message, { ...metadata, userId: user?.id });
   }, [user?.id]);
 
   const logInfo = useCallback((category: LogCategory, message: string, metadata?: Record<string, unknown>) => {
-    appLogger.info(category, message, { ...metadata, userId: user?.id });
+    logger.info(category, message, { ...metadata, userId: user?.id });
   }, [user?.id]);
 
   const logWarn = useCallback((category: LogCategory, message: string, metadata?: Record<string, unknown>) => {
-    appLogger.warn(category, message, { ...metadata, userId: user?.id });
+    logger.warn(category, message, { ...metadata, userId: user?.id });
   }, [user?.id]);
 
   const logError = useCallback((category: LogCategory, message: string, error?: Error | unknown, metadata?: Record<string, unknown>) => {
-    appLogger.error(category, message, error, { ...metadata, userId: user?.id });
+    logger.error(category, message, error, { ...metadata, userId: user?.id });
   }, [user?.id]);
 
   return {
@@ -90,38 +90,38 @@ export function useAppLogger(options: UseAppLoggerOptions = {}) {
     logError,
     
     // Auth logging
-    logAuth: appLogger.auth,
+    logAuth: logger.auth,
     
     // Cart logging
-    logCart: appLogger.cart,
+    logCart: logger.cart,
     
     // Checkout logging
-    logCheckout: appLogger.checkout,
+    logCheckout: logger.checkout,
     
     // Payment logging
-    logPayment: appLogger.payment,
+    logPayment: logger.payment,
     
     // Product logging
-    logProduct: appLogger.product,
+    logProduct: logger.product,
     
     // Admin logging
-    logAdmin: appLogger.admin,
+    logAdmin: logger.admin,
     
     // Navigation logging
-    logNavigation: appLogger.navigation,
+    logNavigation: logger.navigation,
     
     // Performance helpers
     startTimer,
-    logTiming: appLogger.performance.timing,
-    logApiCall: appLogger.performance.apiCall,
+    logTiming: logger.performance.timing,
+    logApiCall: logger.performance.apiCall,
     
     // Correlation ID helpers
-    startCorrelation: appLogger.startCorrelation,
+    startCorrelation: logger.startCorrelation,
     generateCorrelationId,
-    getCorrelationId: appLogger.getCorrelationId,
+    getCorrelationId: logger.getCorrelationId,
     
     // Component error logging
-    logComponentError: appLogger.componentError,
+    logComponentError: logger.componentError,
   };
 }
 
