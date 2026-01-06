@@ -4,7 +4,7 @@ import { RequestQuoteButton } from '@/components/quotes/RequestQuoteButton';
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MaintenanceBanner } from "@/components/common/MaintenanceBanner";
-import { useEnhancedCart } from "@/hooks/useEnhancedCart";
+import { useCart } from "@/hooks/useCart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
 const CartPage = () => {
-  const { items, updateQuantity, removeFromCart, total, isLoading } = useEnhancedCart();
+  const { items, updateQuantity, removeFromCart, total, isLoading } = useCart();
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const { trackEvent } = useAnalytics();
 

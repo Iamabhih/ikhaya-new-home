@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { useEnhancedCart } from "@/hooks/useEnhancedCart";
+import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
@@ -16,7 +16,7 @@ import { useDiscountCode } from "@/hooks/useDiscountCode";
 import { usePaymentLogger } from "@/hooks/usePaymentLogger";
 
 const CheckoutPage = () => {
-  const { items, total, trackCheckoutInitiated } = useEnhancedCart();
+  const { items, total, trackCheckoutInitiated } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedDeliveryZone, setSelectedDeliveryZone] = useState<string>('');
