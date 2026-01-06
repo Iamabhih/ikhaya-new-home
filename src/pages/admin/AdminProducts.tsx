@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EnhancedProductImport } from "@/components/admin/EnhancedProductImport";
-import { ExcelProductImport } from "@/components/admin/ExcelProductImport";
+import { ProductImport } from "@/components/admin/ProductImport";
+import { ExcelProductImport } from "@/components/admin/ProductImport";
 import { ProductImportScheduler } from "@/components/admin/ProductImportScheduler";
 import { ProductAnalyticsDashboard } from "@/components/admin/ProductAnalyticsDashboard";
 import { ProductManagementLayout } from "@/components/admin/ProductManagementLayout";
@@ -237,7 +237,7 @@ const AdminProducts = () => {
 
               <TabsContent value="import" className="space-y-6">
                 <ErrorBoundary>
-                  <EnhancedProductImport />
+                  <ProductImport />
                 </ErrorBoundary>
               </TabsContent>
 

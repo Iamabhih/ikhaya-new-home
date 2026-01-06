@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Edit, Trash2, Save, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { UnifiedLoading } from "@/components/ui/unified-loading";
+import { Loading } from "@/components/ui/loading";
 
 interface Brand {
   id: string;
@@ -159,7 +159,7 @@ export const BrandManagement = () => {
   };
 
   if (isLoading) {
-    return <UnifiedLoading type="spinner" text="Loading brands..." className="p-8" />;
+    return <Loading type="spinner" text="Loading brands..." className="p-8" />;
   }
 
   return (

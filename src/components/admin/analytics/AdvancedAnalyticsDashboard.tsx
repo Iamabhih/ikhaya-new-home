@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Filter } from "lucide-react";
-import { EnhancedCustomerInsights } from "./EnhancedCustomerInsights";
+import { CustomerInsights } from "./CustomerInsights";
 import { ConversionFunnel } from "./ConversionFunnel";
 import { ActivityFeed } from "./ActivityFeed";
 import { AnalyticsTestPanel } from "./AnalyticsTestPanel";
@@ -10,8 +10,8 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { useImprovedAnalytics } from "@/hooks/useImprovedAnalytics";
 import { useDailyMetrics } from "@/hooks/useDailyMetrics";
 import { useAnalyticsInsights } from "@/hooks/useAnalyticsInsights";
-import { ImprovedAnalyticsCharts } from "./ImprovedAnalyticsCharts";
-import { ImprovedRealTimeMetrics } from "./ImprovedRealTimeMetrics";
+import { AnalyticsCharts } from "./AnalyticsCharts";
+import { RealTimeMetrics } from "./RealTimeMetrics";
 import { useState } from "react";
 import { TrendingUp, Users, ShoppingCart, DollarSign } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -119,7 +119,7 @@ export const AdvancedAnalyticsDashboard = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <ImprovedRealTimeMetrics onExport={handleExport} />
+          <RealTimeMetrics onExport={handleExport} />
           
           {/* Overview Stats Cards */}
           {overviewStats && (
@@ -171,7 +171,7 @@ export const AdvancedAnalyticsDashboard = () => {
             </div>
           )}
 
-          <ImprovedAnalyticsCharts 
+          <AnalyticsCharts 
             customerSegments={customerSegments}
             productPerformance={productChartData}
             dailyMetrics={dailyMetrics}
@@ -180,7 +180,7 @@ export const AdvancedAnalyticsDashboard = () => {
         </TabsContent>
 
         <TabsContent value="customers" className="space-y-6">
-          <EnhancedCustomerInsights />
+          <CustomerInsights />
         </TabsContent>
 
         <TabsContent value="conversion" className="space-y-6">

@@ -1,277 +1,215 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useAnalytics } from "@/hooks/useAnalytics";
-import { toast } from "sonner";
+import { useCart } from '@/hooks/useCart';
+import { useCartAnalytics } from '@/hooks/useCartAnalytics';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 
-export interface CartItem {
-  id: string;
-  product_id: string;
-  quantity: number;
-  product: {
-    id: string;
-    name: string;
-    price: number;
-    slug: string;
-    short_description?: string;
-    sku?: string;
-    product_images?: Array<{
-      id: string;
-      image_url: string;
-      alt_text?: string;
-      sort_order?: number;
-    }>;
-  };
-}
-
+// Enhanced cart hook that includes analytics tracking
 export const useCart = () => {
+  const cart = useCart();
+  const { trackCartEvent } = useCartAnalytics();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const { trackCartAdd, trackEvent } = useAnalytics();
+  
+  // Memoize user ID to prevent auth loops
+  const userId = useMemo(() => user?.id, [user?.id]);
+  
   const [sessionId] = useState(() => {
-    // Handle SSR/hydration issues
-    if (typeof window === 'undefined') return '';
-    
-    let id = localStorage.getItem('cart_session_id');
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem('cart_session_id', id);
+    // Get or create session ID from localStorage
+    let storedSessionId = localStorage.getItem('cart_session_id');
+    if (!storedSessionId) {
+      storedSessionId = crypto.randomUUID();
+      localStorage.setItem('cart_session_id', storedSessionId);
     }
-    return id;
+    return storedSessionId;
   });
 
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ['cart', user?.id, sessionId],
-    queryFn: async () => {
-      const query = supabase
-        .from('cart_items')
-        .select(`
-          id,
-          product_id,
-          quantity,
-          products!inner (
-            id,
-            name,
-            price,
-            slug,
-            short_description,
-            sku,
-            product_images (
-              id,
-              image_url,
-              alt_text,
-              sort_order
-            )
-          )
-        `);
+  const lastCartState = useRef<any>(null);
+  const addToCartStartTime = useRef<number | null>(null);
 
-      if (user) {
-        query.eq('user_id', user.id).is('session_id', null);
-      } else {
-        query.eq('session_id', sessionId).is('user_id', null);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      return data?.map(item => ({
-        ...item,
-        product: item.products
-      })) as CartItem[] || [];
-    },
-    enabled: typeof window !== 'undefined' && (!!user || !!sessionId),
-  });
-
-  const addToCart = useMutation({
-    mutationFn: async ({ productId, quantity = 1 }: { productId: string; quantity?: number }) => {
-      console.log('Adding to cart:', { productId, quantity, userId: user?.id, sessionId });
-
-      // Validate quantity
-      if (quantity <= 0) {
-        throw new Error('Quantity must be greater than 0');
-      }
-
-      // Check if item already exists in cart
-      const existingQuery = supabase
-        .from('cart_items')
-        .select('id, quantity')
-        .eq('product_id', productId);
-
-      if (user) {
-        existingQuery.eq('user_id', user.id).is('session_id', null);
-      } else {
-        existingQuery.eq('session_id', sessionId).is('user_id', null);
-      }
-
-      const { data: existingItems, error: fetchError } = await existingQuery;
-      if (fetchError) throw fetchError;
-
-      if (existingItems && existingItems.length > 0) {
-        // Update existing item
-        const existingItem = existingItems[0];
-        const newQuantity = existingItem.quantity + quantity;
-        
-        const { error } = await supabase
-          .from('cart_items')
-          .update({ quantity: newQuantity })
-          .eq('id', existingItem.id);
-
-        if (error) throw error;
-        console.log('Updated existing cart item:', existingItem.id, 'new quantity:', newQuantity);
-        
-        // Track cart update
-        trackCartAdd(productId, quantity);
-      } else {
-        // Insert new item
-        const insertData: any = {
-          product_id: productId,
-          quantity,
-        };
-
-        if (user) {
-          insertData.user_id = user.id;
-          insertData.session_id = null;
-        } else {
-          insertData.session_id = sessionId;
-          insertData.user_id = null;
-        }
-
-        const { error } = await supabase
-          .from('cart_items')
-          .insert(insertData);
-
-        if (error) throw error;
-        console.log('Inserted new cart item');
-        
-        // Track new cart addition
-        trackCartAdd(productId, quantity);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-      toast.success("Added to cart");
-    },
-    onError: (error) => {
-      console.error("Error adding to cart:", error);
-      toast.error("Failed to add to cart");
-    },
-  });
-
-  const updateQuantity = useMutation({
-    mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
-      console.log('Updating quantity:', { itemId, quantity });
-      
-      // Validate inputs
-      if (!itemId) {
-        throw new Error('Item ID is required');
-      }
-      
-      if (quantity <= 0) {
-        // Remove item if quantity is 0 or less
-        const { error } = await supabase
-          .from('cart_items')
-          .delete()
-          .eq('id', itemId);
-        if (error) throw error;
-        console.log('Deleted cart item:', itemId);
-      } else {
-        const { error } = await supabase
-          .from('cart_items')
-          .update({ quantity })
-          .eq('id', itemId);
-        if (error) throw error;
-        console.log('Updated cart item quantity:', itemId, quantity);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-    },
-    onError: (error) => {
-      console.error("Error updating cart:", error);
-      toast.error("Failed to update cart");
-    },
-  });
-
-  const removeItem = useMutation({
-    mutationFn: async (itemId: string) => {
-      console.log('Removing cart item:', itemId);
-      
-      if (!itemId) {
-        throw new Error('Item ID is required');
-      }
-      
-      const { error } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('id', itemId);
-      if (error) throw error;
-      console.log('Successfully removed cart item:', itemId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-      toast.success("Removed from cart");
-    },
-    onError: (error) => {
-      console.error("Error removing from cart:", error);
-      toast.error("Failed to remove from cart");
-    },
-  });
-
-  const clearCart = useMutation({
-    mutationFn: async () => {
-      console.log('Clearing cart for user:', user?.id, 'session:', sessionId);
-      const query = supabase.from('cart_items').delete();
-      
-      if (user) {
-        query.eq('user_id', user.id).is('session_id', null);
-      } else {
-        query.eq('session_id', sessionId).is('user_id', null);
-      }
-
-      const { error } = await query;
-      if (error) throw error;
-      console.log('Successfully cleared cart');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-      toast.success("Cart cleared");
-      
-      // Track cart clear event
-      trackEvent({
-        event_type: 'cart',
-        event_name: 'cart_cleared',
-        metadata: { user_id: user?.id, session_id: sessionId }
+  // Track cart creation when first item is added - optimized to prevent loops
+  useEffect(() => {
+    if (cart.items && cart.items.length > 0 && (!lastCartState.current || lastCartState.current.length === 0)) {
+      trackCartEvent.mutate({
+        sessionId,
+        userId,
+        eventType: 'cart_created',
+        cartValue: cart.total,
+        pageUrl: window.location.pathname,
+        deviceInfo: {
+          userAgent: navigator.userAgent,
+          screenResolution: `${screen.width}x${screen.height}`,
+          language: navigator.language,
+          timestamp: Date.now()
+        },
+        utmSource: new URLSearchParams(window.location.search).get('utm_source') || undefined,
+        utmMedium: new URLSearchParams(window.location.search).get('utm_medium') || undefined,
+        utmCampaign: new URLSearchParams(window.location.search).get('utm_campaign') || undefined,
       });
-    },
-    onError: (error) => {
-      console.error("Error clearing cart:", error);
-      toast.error("Failed to clear cart");
-    },
-  });
+    }
+    lastCartState.current = cart.items;
+  }, [cart.items, cart.total, sessionId, userId, trackCartEvent]);
 
-  // Calculate total with proper null checks
-  const total = items?.reduce((sum, item) => {
-    if (!item?.product?.price || !item?.quantity) return sum;
-    return sum + (item.product.price * item.quantity);
-  }, 0) || 0;
+  // Track cart abandonment on page unload - memoized handlers to prevent loops
+  const handleBeforeUnload = useCallback(() => {
+    if (cart.items && cart.items.length > 0) {
+      // Use navigator.sendBeacon for reliable tracking on page unload
+      const eventData = {
+        sessionId,
+        userId,
+        eventType: 'cart_abandoned',
+        cartValue: cart.total,
+        abandonmentReason: 'page_exit',
+        pageUrl: window.location.pathname
+      };
 
-  // Get cart item count
-  const itemCount = items?.reduce((sum, item) => sum + (item?.quantity || 0), 0) || 0;
+      const blob = new Blob([JSON.stringify(eventData)], { type: 'application/json' });
+      navigator.sendBeacon(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-cart-events`,
+        blob
+      );
+    }
+  }, [cart.items, cart.total, sessionId, userId]);
+
+  const handleVisibilityChange = useCallback(() => {
+    if (document.hidden && cart.items && cart.items.length > 0) {
+      trackCartEvent.mutate({
+        sessionId,
+        userId,
+        eventType: 'cart_abandoned',
+        cartValue: cart.total,
+        abandonmentReason: 'tab_hidden',
+        pageUrl: window.location.pathname
+      });
+    }
+  }, [cart.items, cart.total, sessionId, userId, trackCartEvent]);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [handleBeforeUnload, handleVisibilityChange]);
+
+  // Enhanced add to cart with analytics - memoized to prevent loops
+  const enhancedAddToCart = useCallback(async (productId: string, quantity: number = 1, productData?: any) => {
+    try {
+      cart.addToCart({ productId, quantity });
+      
+      // Track successful add to cart
+      trackCartEvent.mutate({
+        sessionId,
+        userId,
+        eventType: 'item_added',
+        productId,
+        productName: productData?.name,
+        productPrice: productData?.price,
+        quantity,
+        cartValue: cart.total + (productData?.price * quantity),
+        pageUrl: window.location.pathname
+      });
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      throw error;
+    }
+  }, [cart, sessionId, userId, trackCartEvent]);
+
+  // Enhanced remove from cart with analytics - memoized to prevent loops
+  const enhancedRemoveFromCart = useCallback(async (itemId: string, productData?: any) => {
+    try {
+      cart.removeItem(itemId);
+      
+      trackCartEvent.mutate({
+        sessionId,
+        userId,
+        eventType: 'item_removed',
+        productId: productData?.product_id,
+        productName: productData?.name,
+        productPrice: productData?.price,
+        cartValue: cart.total,
+        pageUrl: window.location.pathname
+      });
+
+    } catch (error) {
+      console.error('Failed to remove from cart:', error);
+      throw error;
+    }
+  }, [cart, sessionId, userId, trackCartEvent]);
+
+  // Track checkout initiation - memoized to prevent loops with debounce
+  const trackCheckoutInitiated = useCallback(() => {
+    // Prevent duplicate tracking within 5 seconds
+    const lastTracked = localStorage.getItem('last_checkout_track');
+    const now = Date.now();
+    if (lastTracked && (now - parseInt(lastTracked)) < 5000) {
+      return;
+    }
+    localStorage.setItem('last_checkout_track', now.toString());
+    
+    trackCartEvent.mutate({
+      sessionId,
+      userId,
+      eventType: 'checkout_initiated',
+      cartValue: cart.total,
+      pageUrl: window.location.pathname
+    });
+  }, [sessionId, userId, trackCartEvent, cart.total]);
+
+  // Track payment attempt - memoized to prevent loops
+  const trackPaymentAttempted = useCallback(() => {
+    trackCartEvent.mutate({
+      sessionId,
+      userId,
+      eventType: 'payment_attempted',
+      cartValue: cart.total,
+      pageUrl: window.location.pathname
+    });
+  }, [sessionId, userId, trackCartEvent, cart.total]);
+
+  // Track cart conversion - memoized to prevent loops
+  const trackCartConverted = useCallback((orderId?: string) => {
+    trackCartEvent.mutate({
+      sessionId,
+      userId,
+      eventType: 'cart_converted',
+      cartValue: cart.total,
+      pageUrl: window.location.pathname
+    });
+
+    // Clear session after successful conversion
+    localStorage.removeItem('cart_session_id');
+  }, [sessionId, userId, trackCartEvent, cart.total]);
+
+  // Get email for abandoned cart recovery - memoized to prevent loops
+  const captureEmailForRecovery = useCallback((email: string) => {
+    if (cart.items && cart.items.length > 0) {
+      trackCartEvent.mutate({
+        sessionId,
+        userId,
+        email,
+        eventType: 'cart_created', // Update existing session with email
+        cartValue: cart.total,
+        pageUrl: window.location.pathname
+      });
+    }
+  }, [cart.items, cart.total, sessionId, userId, trackCartEvent]);
 
   return {
-    items: items || [],
-    cartItems: items || [], // Add alias for compatibility
-    isLoading,
-    addToCart: addToCart.mutate,
-    updateQuantity: updateQuantity.mutate,
-    removeItem: removeItem.mutate,
-    clearCart: clearCart.mutate,
-    total,
-    itemCount,
-    isAddingToCart: addToCart.isPending,
-    isUpdating: updateQuantity.isPending,
-    isRemoving: removeItem.isPending,
-    isClearing: clearCart.isPending,
+    ...cart,
+    sessionId,
+    
+    // Enhanced actions with analytics
+    addToCart: enhancedAddToCart,
+    removeFromCart: enhancedRemoveFromCart,
+    
+    // Analytics tracking methods
+    trackCheckoutInitiated,
+    trackPaymentAttempted,
+    trackCartConverted,
+    captureEmailForRecovery,
+    
+    // Metrics
+    sessionStartTime: addToCartStartTime.current,
   };
 };

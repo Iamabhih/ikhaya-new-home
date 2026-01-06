@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/hooks/useCart';
 import { useCartMigration } from '@/hooks/useCartMigration';
-import { useEnhancedCartAnalytics } from '@/hooks/useEnhancedCartAnalytics';
+import { useCartAnalytics } from '@/hooks/useCartAnalytics';
 
 interface EnhancedCartContextType {
   // Cart functionality
@@ -12,7 +12,7 @@ interface EnhancedCartContextType {
   migration: ReturnType<typeof useCartMigration>;
   
   // Enhanced analytics
-  analytics: ReturnType<typeof useEnhancedCartAnalytics>;
+  analytics: ReturnType<typeof useCartAnalytics>;
   
   // Enhanced methods
   addToCartWithAnalytics: (productId: string, quantity: number, productData?: any) => Promise<void>;
@@ -25,10 +25,10 @@ interface EnhancedCartContextType {
 
 const EnhancedCartContext = createContext<EnhancedCartContextType | undefined>(undefined);
 
-export const useEnhancedCart = () => {
+export const useCart = () => {
   const context = useContext(EnhancedCartContext);
   if (!context) {
-    throw new Error('useEnhancedCart must be used within an EnhancedCartProvider');
+    throw new Error('useCart must be used within an EnhancedCartProvider');
   }
   return context;
 };
@@ -41,7 +41,7 @@ export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ chil
   const { user } = useAuth();
   const cart = useCart();
   const migration = useCartMigration();
-  const analytics = useEnhancedCartAnalytics();
+  const analytics = useCartAnalytics();
   
   const sessionId = React.useMemo(() => {
     if (typeof window === 'undefined') return '';

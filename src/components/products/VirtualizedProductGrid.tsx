@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { ProductCard } from './ProductCard';
 import { useVirtualizer } from '@/hooks/useVirtualizer';
-import { UniversalLoading } from '@/components/ui/universal-loading';
+import { Loading } from '@/components/ui/loading';
 
 interface Product {
   id: string;
@@ -82,7 +82,7 @@ export const VirtualizedProductGrid = ({
 
   if (isLoading) {
     return (
-      <UniversalLoading 
+      <Loading 
         variant="grid" 
         count={12} 
         className="grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"

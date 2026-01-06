@@ -31,7 +31,7 @@ import { AdvancedProductSearch } from "./AdvancedProductSearch";
 import { ProductQuickForm } from "./ProductQuickForm";
 import { ProductDetailView } from "./ProductDetailView";
 import { ProductBulkActions } from "./ProductBulkActions";
-import { UnifiedLoadingSkeleton } from "@/components/ui/unified-loading-skeleton";
+import { LoadingSkeleton } from "@/components/ui/loading";
 
 interface Product {
   id: string;
@@ -429,7 +429,7 @@ export const ProductManagementLayout = ({
 
       {/* Product List */}
       {isLoading ? (
-        <UnifiedLoadingSkeleton
+        <LoadingSkeleton
           type={viewMode === 'grid' ? "products-grid" : "products-list"}
           count={viewMode === 'grid' ? 12 : 6}
         />

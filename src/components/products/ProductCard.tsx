@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, ShoppingCart } from "lucide-react";
-import { useEnhancedCart } from "@/hooks/useEnhancedCart";
+import { useCart } from "@/hooks/useCart";
 import { useWishlistContext } from "@/contexts/WishlistContext";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -39,7 +39,7 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
-  const { addToCart } = useEnhancedCart();
+  const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist, loading } = useWishlistContext();
   const { trackProductView, trackCartAdd } = useAnalytics();
   const { settings } = useSiteSettings();
