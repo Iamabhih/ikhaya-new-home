@@ -1,19 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, Image, Calendar, Eye, EyeOff, ArrowUp, ArrowDown, Type } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
-import { BannerImageUpload } from "./BannerImageUpload";
+import { BannerForm, BannerFormData } from "./banners/BannerForm";
+import { BannerList } from "./banners/BannerList";
 
 type PromotionalBanner = Tables<"promotional_banners">;
 
@@ -23,31 +16,6 @@ export const PromotionalBannersManagement = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<PromotionalBanner | null>(null);
   const { toast } = useToast();
-
-  const [formData, setFormData] = useState({
-    title: "",
-    subtitle: "",
-    description: "",
-    image_url: "",
-    background_color: "#ff4444",
-    text_color: "#ffffff",
-    overlay_opacity: 0.2,
-    button_text: "",
-    button_url: "",
-    position: 0,
-    is_active: true,
-    start_date: "",
-    end_date: "",
-    title_font_family: "Inter",
-    title_font_weight: "700",
-    subtitle_font_family: "Inter", 
-    subtitle_font_weight: "500",
-    description_font_family: "Inter",
-    description_font_weight: "400",
-    text_shadow: "none",
-    title_shadow: "none",
-    content_shadow: "none"
-  });
 
   useEffect(() => {
     fetchBanners();
@@ -74,66 +42,17 @@ export const PromotionalBannersManagement = () => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      subtitle: "",
-      description: "",
-      image_url: "",
-      background_color: "#ff4444",
-      text_color: "#ffffff",
-      overlay_opacity: 0.2,
-      button_text: "",
-      button_url: "",
-      position: 0,
-      is_active: true,
-      start_date: "",
-      end_date: "",
-      title_font_family: "Inter",
-      title_font_weight: "700",
-      subtitle_font_family: "Inter",
-      subtitle_font_weight: "500",
-      description_font_family: "Inter",
-      description_font_weight: "400",
-      text_shadow: "none",
-      title_shadow: "none",
-      content_shadow: "none"
-    });
+  const handleCreateNew = () => {
     setEditingBanner(null);
-  };
-
-  const openEditDialog = (banner: PromotionalBanner) => {
-    setEditingBanner(banner);
-    setFormData({
-      title: banner.title,
-      subtitle: banner.subtitle || "",
-      description: banner.description || "",
-      image_url: banner.image_url || "",
-      background_color: banner.background_color || "#ff4444",
-      text_color: banner.text_color || "#ffffff",
-      overlay_opacity: (banner as any).overlay_opacity ?? 0.2,
-      button_text: banner.button_text || "",
-      button_url: banner.button_url || "",
-      position: banner.position,
-      is_active: banner.is_active,
-      start_date: banner.start_date ? banner.start_date.split('T')[0] : "",
-      end_date: banner.end_date ? banner.end_date.split('T')[0] : "",
-      title_font_family: (banner as any).title_font_family || "Inter",
-      title_font_weight: (banner as any).title_font_weight || "700",
-      subtitle_font_family: (banner as any).subtitle_font_family || "Inter",
-      subtitle_font_weight: (banner as any).subtitle_font_weight || "500", 
-      description_font_family: (banner as any).description_font_family || "Inter",
-      description_font_weight: (banner as any).description_font_weight || "400",
-      text_shadow: (banner as any).text_shadow || "none",
-      title_shadow: (banner as any).title_shadow || "none",
-      content_shadow: (banner as any).content_shadow || "none"
-    });
     setDialogOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleEdit = (banner: PromotionalBanner) => {
+    setEditingBanner(banner);
+    setDialogOpen(true);
+  };
+
+  const handleSave = async (formData: BannerFormData) => {
     try {
       const bannerData = {
         ...formData,
@@ -165,7 +84,7 @@ export const PromotionalBannersManagement = () => {
       }
 
       setDialogOpen(false);
-      resetForm();
+      setEditingBanner(null);
       fetchBanners();
     } catch (error) {
       console.error("Error saving banner:", error);
@@ -174,6 +93,7 @@ export const PromotionalBannersManagement = () => {
         description: "Failed to save banner",
         variant: "destructive"
       });
+      throw error;
     }
   };
 
@@ -202,7 +122,7 @@ export const PromotionalBannersManagement = () => {
     }
   };
 
-  const toggleActive = async (banner: PromotionalBanner) => {
+  const handleToggleActive = async (banner: PromotionalBanner) => {
     try {
       const { error } = await supabase
         .from("promotional_banners")
@@ -221,9 +141,9 @@ export const PromotionalBannersManagement = () => {
     }
   };
 
-  const movePosition = async (banner: PromotionalBanner, direction: "up" | "down") => {
+  const handleMovePosition = async (banner: PromotionalBanner, direction: "up" | "down") => {
     const newPosition = direction === "up" ? banner.position - 1 : banner.position + 1;
-    
+
     try {
       const { error } = await supabase
         .from("promotional_banners")
@@ -242,17 +162,6 @@ export const PromotionalBannersManagement = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <div className="flex items-center gap-2">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-          <span>Loading promotional banners...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -264,7 +173,7 @@ export const PromotionalBannersManagement = () => {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button onClick={handleCreateNew}>
               <Plus className="mr-2 h-4 w-4" />
               Add Banner
             </Button>
@@ -275,661 +184,24 @@ export const PromotionalBannersManagement = () => {
                 {editingBanner ? "Edit Banner" : "Create New Banner"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Tabs defaultValue="content" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="content">Content</TabsTrigger>
-                  <TabsTrigger value="design">Design</TabsTrigger>
-                  <TabsTrigger value="typography">Typography</TabsTrigger>
-                  <TabsTrigger value="settings">Settings</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="content" className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="title">Title</Label>
-                      <Input
-                        id="title"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="Optional banner title"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="subtitle">Subtitle</Label>
-                      <Input
-                        id="subtitle"
-                        value={formData.subtitle}
-                        onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="button_text">Button Text</Label>
-                      <Input
-                        id="button_text"
-                        value={formData.button_text}
-                        onChange={(e) => setFormData({ ...formData, button_text: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="button_url">Button URL</Label>
-                      <Input
-                        id="button_url"
-                        value={formData.button_url}
-                        onChange={(e) => setFormData({ ...formData, button_url: e.target.value })}
-                        placeholder="/products"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="design" className="space-y-4">
-                  <BannerImageUpload
-                    currentImageUrl={formData.image_url}
-                    onImageUpload={(imageUrl) => setFormData({ ...formData, image_url: imageUrl })}
-                    onImageRemove={() => setFormData({ ...formData, image_url: "" })}
-                  />
-                  
-                  <div>
-                    <Label htmlFor="image_url">Or enter Image URL</Label>
-                    <Input
-                      id="image_url"
-                      value={formData.image_url}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                      placeholder="https://example.com/image.jpg"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="background_color">Background Color</Label>
-                      <Input
-                        id="background_color"
-                        type="color"
-                        value={formData.background_color}
-                        onChange={(e) => setFormData({ ...formData, background_color: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="text_color">Text Color</Label>
-                      <Input
-                        id="text_color"
-                        type="color"
-                        value={formData.text_color}
-                        onChange={(e) => setFormData({ ...formData, text_color: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="overlay_opacity">Image Overlay Opacity ({Math.round(formData.overlay_opacity * 100)}%)</Label>
-                    <Input
-                      id="overlay_opacity"
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      value={formData.overlay_opacity}
-                      onChange={(e) => setFormData({ ...formData, overlay_opacity: parseFloat(e.target.value) })}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>No overlay</span>
-                      <span>Full overlay</span>
-                    </div>
-                  </div>
-                  
-                  {formData.background_color && (
-                    <div className="p-4 rounded-lg relative overflow-hidden" style={{ backgroundColor: formData.background_color }}>
-                      {formData.image_url && (
-                        <>
-                          <img 
-                            src={formData.image_url} 
-                            alt="Preview" 
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                          {formData.overlay_opacity > 0 && (
-                            <div 
-                              className="absolute inset-0"
-                              style={{ backgroundColor: 'black', opacity: formData.overlay_opacity }}
-                            />
-                          )}
-                        </>
-                      )}
-                      <div className="relative z-10" style={{ color: formData.text_color }}>
-                        <h3 
-                          className="font-bold text-lg"
-                          style={{ 
-                            fontFamily: formData.title_font_family,
-                            fontWeight: formData.title_font_weight,
-                            textShadow: formData.title_shadow !== 'none' ? formData.title_shadow : undefined
-                          }}
-                        >
-                          {formData.title || "Preview Title"}
-                        </h3>
-                        {formData.subtitle && (
-                          <p 
-                            className="text-sm opacity-90"
-                            style={{ 
-                              fontFamily: formData.subtitle_font_family,
-                              fontWeight: formData.subtitle_font_weight
-                            }}
-                          >
-                            {formData.subtitle}
-                          </p>
-                        )}
-                        {formData.description && (
-                          <p 
-                            className="text-xs mt-1"
-                            style={{ 
-                              fontFamily: formData.description_font_family,
-                              fontWeight: formData.description_font_weight
-                            }}
-                          >
-                            {formData.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="typography" className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Type className="h-5 w-5" />
-                      Typography & Effects
-                    </h3>
-                    
-                    {/* Title Typography */}
-                    <div className="space-y-4 p-4 border rounded-lg">
-                      <h4 className="font-medium text-primary">Title Typography</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="title_font_family">Font Family</Label>
-                          <Select 
-                            value={formData.title_font_family} 
-                            onValueChange={(value) => setFormData({ ...formData, title_font_family: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Inter">Inter</SelectItem>
-                              <SelectItem value="Playfair Display">Playfair Display</SelectItem>
-                              <SelectItem value="Poppins">Poppins</SelectItem>
-                              <SelectItem value="Montserrat">Montserrat</SelectItem>
-                              <SelectItem value="Roboto">Roboto</SelectItem>
-                              <SelectItem value="Open Sans">Open Sans</SelectItem>
-                              <SelectItem value="Lato">Lato</SelectItem>
-                              <SelectItem value="Oswald">Oswald</SelectItem>
-                              <SelectItem value="Source Sans Pro">Source Sans Pro</SelectItem>
-                              <SelectItem value="Raleway">Raleway</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="title_font_weight">Font Weight</Label>
-                          <Select 
-                            value={formData.title_font_weight} 
-                            onValueChange={(value) => setFormData({ ...formData, title_font_weight: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="300">Light (300)</SelectItem>
-                              <SelectItem value="400">Regular (400)</SelectItem>
-                              <SelectItem value="500">Medium (500)</SelectItem>
-                              <SelectItem value="600">Semi Bold (600)</SelectItem>
-                              <SelectItem value="700">Bold (700)</SelectItem>
-                              <SelectItem value="800">Extra Bold (800)</SelectItem>
-                              <SelectItem value="900">Black (900)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="title_shadow">Title Shadow</Label>
-                        <Select 
-                          value={formData.title_shadow} 
-                          onValueChange={(value) => setFormData({ ...formData, title_shadow: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            <SelectItem value="2px 2px 4px rgba(0,0,0,0.3)">Soft Shadow</SelectItem>
-                            <SelectItem value="4px 4px 8px rgba(0,0,0,0.5)">Medium Shadow</SelectItem>
-                            <SelectItem value="6px 6px 12px rgba(0,0,0,0.7)">Strong Shadow</SelectItem>
-                            <SelectItem value="0 0 10px rgba(255,255,255,0.5)">White Glow</SelectItem>
-                            <SelectItem value="0 0 15px rgba(255,255,255,0.8)">Bright White Glow</SelectItem>
-                            <SelectItem value="2px 2px 0px #000000">Retro Outline</SelectItem>
-                            <SelectItem value="1px 1px 2px rgba(0,0,0,0.8)">Sharp Shadow</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Subtitle Typography */}
-                    <div className="space-y-4 p-4 border rounded-lg">
-                      <h4 className="font-medium text-primary">Subtitle Typography</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="subtitle_font_family">Font Family</Label>
-                          <Select 
-                            value={formData.subtitle_font_family} 
-                            onValueChange={(value) => setFormData({ ...formData, subtitle_font_family: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Inter">Inter</SelectItem>
-                              <SelectItem value="Playfair Display">Playfair Display</SelectItem>
-                              <SelectItem value="Poppins">Poppins</SelectItem>
-                              <SelectItem value="Montserrat">Montserrat</SelectItem>
-                              <SelectItem value="Roboto">Roboto</SelectItem>
-                              <SelectItem value="Open Sans">Open Sans</SelectItem>
-                              <SelectItem value="Lato">Lato</SelectItem>
-                              <SelectItem value="Oswald">Oswald</SelectItem>
-                              <SelectItem value="Source Sans Pro">Source Sans Pro</SelectItem>
-                              <SelectItem value="Raleway">Raleway</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="subtitle_font_weight">Font Weight</Label>
-                          <Select 
-                            value={formData.subtitle_font_weight} 
-                            onValueChange={(value) => setFormData({ ...formData, subtitle_font_weight: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="300">Light (300)</SelectItem>
-                              <SelectItem value="400">Regular (400)</SelectItem>
-                              <SelectItem value="500">Medium (500)</SelectItem>
-                              <SelectItem value="600">Semi Bold (600)</SelectItem>
-                              <SelectItem value="700">Bold (700)</SelectItem>
-                              <SelectItem value="800">Extra Bold (800)</SelectItem>
-                              <SelectItem value="900">Black (900)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Description Typography */}
-                    <div className="space-y-4 p-4 border rounded-lg">
-                      <h4 className="font-medium text-primary">Description Typography</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="description_font_family">Font Family</Label>
-                          <Select 
-                            value={formData.description_font_family} 
-                            onValueChange={(value) => setFormData({ ...formData, description_font_family: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Inter">Inter</SelectItem>
-                              <SelectItem value="Playfair Display">Playfair Display</SelectItem>
-                              <SelectItem value="Poppins">Poppins</SelectItem>
-                              <SelectItem value="Montserrat">Montserrat</SelectItem>
-                              <SelectItem value="Roboto">Roboto</SelectItem>
-                              <SelectItem value="Open Sans">Open Sans</SelectItem>
-                              <SelectItem value="Lato">Lato</SelectItem>
-                              <SelectItem value="Oswald">Oswald</SelectItem>
-                              <SelectItem value="Source Sans Pro">Source Sans Pro</SelectItem>
-                              <SelectItem value="Raleway">Raleway</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="description_font_weight">Font Weight</Label>
-                          <Select 
-                            value={formData.description_font_weight} 
-                            onValueChange={(value) => setFormData({ ...formData, description_font_weight: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="300">Light (300)</SelectItem>
-                              <SelectItem value="400">Regular (400)</SelectItem>
-                              <SelectItem value="500">Medium (500)</SelectItem>
-                              <SelectItem value="600">Semi Bold (600)</SelectItem>
-                              <SelectItem value="700">Bold (700)</SelectItem>
-                              <SelectItem value="800">Extra Bold (800)</SelectItem>
-                              <SelectItem value="900">Black (900)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Overall Text Effects */}
-                    <div className="space-y-4 p-4 border rounded-lg">
-                      <h4 className="font-medium text-primary">Text Effects</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="text_shadow">General Text Shadow</Label>
-                          <Select 
-                            value={formData.text_shadow} 
-                            onValueChange={(value) => setFormData({ ...formData, text_shadow: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              <SelectItem value="1px 1px 2px rgba(0,0,0,0.3)">Subtle Shadow</SelectItem>
-                              <SelectItem value="2px 2px 4px rgba(0,0,0,0.5)">Medium Shadow</SelectItem>
-                              <SelectItem value="3px 3px 6px rgba(0,0,0,0.7)">Strong Shadow</SelectItem>
-                              <SelectItem value="0 0 8px rgba(255,255,255,0.6)">White Glow</SelectItem>
-                              <SelectItem value="0 0 12px rgba(255,255,255,0.9)">Strong White Glow</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="content_shadow">Content Container Shadow</Label>
-                          <Select 
-                            value={formData.content_shadow} 
-                            onValueChange={(value) => setFormData({ ...formData, content_shadow: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              <SelectItem value="0 4px 6px rgba(0,0,0,0.1)">Light Drop Shadow</SelectItem>
-                              <SelectItem value="0 8px 15px rgba(0,0,0,0.2)">Medium Drop Shadow</SelectItem>
-                              <SelectItem value="0 12px 25px rgba(0,0,0,0.3)">Strong Drop Shadow</SelectItem>
-                              <SelectItem value="0 0 20px rgba(0,0,0,0.4)">Glow Shadow</SelectItem>
-                              <SelectItem value="inset 0 0 20px rgba(0,0,0,0.2)">Inner Shadow</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Typography Preview */}
-                    <div className="p-4 rounded-lg border bg-muted/20">
-                      <h4 className="font-medium mb-3">Typography Preview</h4>
-                      <div className="p-4 rounded-lg relative overflow-hidden" style={{ backgroundColor: formData.background_color }}>
-                        {formData.image_url && (
-                          <>
-                            <img 
-                              src={formData.image_url} 
-                              alt="Preview" 
-                              className="absolute inset-0 w-full h-full object-cover"
-                            />
-                            {formData.overlay_opacity > 0 && (
-                              <div 
-                                className="absolute inset-0"
-                                style={{ backgroundColor: 'black', opacity: formData.overlay_opacity }}
-                              />
-                            )}
-                          </>
-                        )}
-                        <div 
-                          className="relative z-10 space-y-2" 
-                          style={{ 
-                            color: formData.text_color,
-                            textShadow: formData.text_shadow !== 'none' ? formData.text_shadow : undefined,
-                            boxShadow: formData.content_shadow !== 'none' ? formData.content_shadow : undefined,
-                            padding: formData.content_shadow !== 'none' ? '1rem' : undefined,
-                            borderRadius: formData.content_shadow !== 'none' ? '0.5rem' : undefined
-                          }}
-                        >
-                          <h1 
-                            className="text-2xl"
-                            style={{ 
-                              fontFamily: formData.title_font_family,
-                              fontWeight: formData.title_font_weight,
-                              textShadow: formData.title_shadow !== 'none' ? formData.title_shadow : undefined
-                            }}
-                          >
-                            {formData.title || "Preview Title"}
-                          </h1>
-                          {formData.subtitle && (
-                            <h2 
-                              className="text-lg opacity-90"
-                              style={{ 
-                                fontFamily: formData.subtitle_font_family,
-                                fontWeight: formData.subtitle_font_weight
-                              }}
-                            >
-                              {formData.subtitle}
-                            </h2>
-                          )}
-                          {formData.description && (
-                            <p 
-                              className="text-sm opacity-80"
-                              style={{ 
-                                fontFamily: formData.description_font_family,
-                                fontWeight: formData.description_font_weight
-                              }}
-                            >
-                              {formData.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="settings" className="space-y-4">
-                  <div>
-                    <Label htmlFor="position">Position</Label>
-                    <Input
-                      id="position"
-                      type="number"
-                      value={formData.position}
-                      onChange={(e) => setFormData({ ...formData, position: parseInt(e.target.value) })}
-                      min="0"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="start_date">Start Date</Label>
-                      <Input
-                        id="start_date"
-                        type="date"
-                        value={formData.start_date}
-                        onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="end_date">End Date</Label>
-                      <Input
-                        id="end_date"
-                        type="date"
-                        value={formData.end_date}
-                        onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="is_active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                    />
-                    <Label htmlFor="is_active">Active</Label>
-                  </div>
-                </TabsContent>
-              </Tabs>
-              
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingBanner ? "Update" : "Create"} Banner
-                </Button>
-              </div>
-            </form>
+            <BannerForm
+              banner={editingBanner}
+              onSave={handleSave}
+              onCancel={() => setDialogOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid gap-4">
-        {banners.map((banner) => (
-          <Card key={banner.id} className="overflow-hidden">
-            <CardContent className="p-0">
-              <div 
-                className="p-6 text-white relative"
-                style={{ backgroundColor: banner.background_color, color: banner.text_color }}
-              >
-                {banner.image_url && (
-                  <>
-                    <div className="absolute inset-0">
-                      <img 
-                        src={banner.image_url} 
-                        alt="" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    {((banner as any).overlay_opacity ?? 0.2) > 0 && (
-                      <div 
-                        className="absolute inset-0"
-                        style={{ 
-                          backgroundColor: 'black', 
-                          opacity: (banner as any).overlay_opacity ?? 0.2 
-                        }}
-                      />
-                    )}
-                  </>
-                )}
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold">{banner.title || "Untitled Banner"}</h3>
-                      {banner.subtitle && (
-                        <p className="text-sm opacity-90">{banner.subtitle}</p>
-                      )}
-                      {banner.description && (
-                        <p className="text-xs mt-2 opacity-80">{banner.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={banner.is_active ? "default" : "secondary"}>
-                        {banner.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                      <Badge variant="outline" className="text-white border-white/20">
-                        Position {banner.position}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  {banner.button_text && (
-                    <Button 
-                      variant="secondary" 
-                      size="sm"
-                      className="pointer-events-none"
-                    >
-                      {banner.button_text}
-                    </Button>
-                  )}
-                </div>
-              </div>
-              
-              <div className="p-4 bg-muted/50">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {banner.start_date && (
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(banner.start_date).toLocaleDateString()}
-                      </span>
-                    )}
-                    {banner.end_date && (
-                      <span>→ {new Date(banner.end_date).toLocaleDateString()}</span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => movePosition(banner, "up")}
-                      disabled={banner.position === 0}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => movePosition(banner, "down")}
-                    >
-                      <ArrowDown className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleActive(banner)}
-                    >
-                      {banner.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditDialog(banner)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(banner.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        
-        {banners.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Image className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No promotional banners</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Create your first promotional banner to start advertising sales and deals
-              </p>
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Banner
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      <BannerList
+        banners={banners}
+        loading={loading}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onToggleActive={handleToggleActive}
+        onMovePosition={handleMovePosition}
+        onCreateNew={handleCreateNew}
+      />
     </div>
   );
 };
