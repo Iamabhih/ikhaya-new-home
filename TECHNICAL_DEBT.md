@@ -15,17 +15,18 @@ This document tracks ongoing technical debt, improvements needed, and future enh
 
 1. **Large Component Files Need Refactoring** (See LARGE_COMPONENT_REFACTORING_STATUS.md)
    - ✅ `PromotionalBannersManagement.tsx` (935 → 208 lines) - COMPLETED
-   - 🟡 `ManualImageLinker.tsx` (986 lines) - 70% complete (UI components extracted)
+   - ✅ `ManualImageLinker.tsx` (986 → 565 lines) - COMPLETED
+   - 🟡 `EnhancedOrderManagement.tsx` (724 lines) - 60% complete (UI components extracted)
    - ⏳ `MasterImageLinker.tsx` (824 lines) - Not started
    - ⏳ `sidebar.tsx` (761 lines) - Not started
-   - ⏳ `EnhancedOrderManagement.tsx` (724 lines) - Not started
    - ⏳ `EnhancedProductGallery.tsx` (717 lines) - Not started
 
 2. **Large Component Refactoring Progress**
-   - ✅ 2 of 6 components complete (33%)
-   - ✅ 10 new modular components created
-   - ✅ 1,330 lines refactored (727 removed + 603 reorganized)
-   - ⏳ 4 components remaining (~2,838 lines)
+   - ✅ 2 of 6 components 100% complete (33%)
+   - ✅ 1 component 60% complete
+   - ✅ 15 new modular components created
+   - ✅ 2,631 lines refactored (1,148 removed + 1,040 reorganized)
+   - ⏳ 3 components remaining (~2,114 lines)
    - See LARGE_COMPONENT_REFACTORING_STATUS.md for details
 
 3. **TypeScript Strict Mode**
