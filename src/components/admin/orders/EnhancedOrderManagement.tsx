@@ -1,15 +1,40 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useRoles } from "@/hooks/useRoles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrderRealtime } from "@/hooks/useOrderRealtime";
-import { Clock, AlertCircle, Package, Truck, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { 
+  Search, 
+  Filter, 
+  Package, 
+  Truck, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle,
+  Eye,
+  Send,
+  Download,
+  Keyboard,
+  LayoutGrid,
+  List,
+  BarChart3,
+  Settings
+} from "lucide-react";
 import { OrderDetailModal } from "./OrderDetailModal";
 import { BulkOrderActions } from "./BulkOrderActions";
 import { OrderFilters } from "./OrderFilters";
+import { SuperAdminOrderActions } from "./SuperAdminOrderActions";
+import { OrderStatusBadge } from "../../orders/OrderStatusBadge";
 import { OrderErrorBoundary } from "../../orders/OrderErrorBoundary";
 import { useOrderStatusValidation } from "@/hooks/useOrderValidation";
 import { useOrderKeyboardShortcuts } from "./useOrderKeyboardShortcuts";
@@ -17,20 +42,36 @@ import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { OrderExportDialog } from "./OrderExportDialog";
 import { OrderKanbanBoard } from "./OrderKanbanBoard";
 import { OrderMetricsDashboard } from "./OrderMetricsDashboard";
+import { OrderTagsManager } from "./OrderTagsManager";
+import { OrderRiskBadge } from "./OrderRiskBadge";
 import { AutomationRulesPanel } from "./AutomationRulesPanel";
-import { OrderSearchBar } from "./order-list/OrderSearchBar";
-import { OrderStatistics } from "./order-list/OrderStatistics";
-import { ViewModeToggle } from "./order-list/ViewModeToggle";
-import { OrderListTable } from "./order-list/OrderListTable";
-import { OrderPagination } from "./order-list/OrderPagination";
-import { Order } from "./order-list/OrderListItem";
 
-interface OrderStats {
-  total_orders: number;
-  pending_orders: number;
-  processing_orders: number;
-  completed_orders: number;
-  total_revenue: number;
+interface Order {
+  id: string;
+  order_number: string;
+  status: string;
+  fulfillment_status: string;
+  priority: string;
+  total_amount: number;
+  created_at: string;
+  updated_at: string;
+  tags: string[];
+  tracking_number?: string;
+  internal_notes?: string;
+  customer_notes?: string;
+  shipped_at?: string;
+  delivered_at?: string;
+  email: string;
+  user_id: string | null;
+  customer_name?: string;
+  customer_email?: string;
+  profiles?: any;
+  order_items: Array<{
+    id: string;
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+  }>;
 }
 
 export const EnhancedOrderManagement = () => {
@@ -56,86 +97,123 @@ export const EnhancedOrderManagement = () => {
   const { isSuperAdmin } = useRoles(user);
   const { validateStatusTransition } = useOrderStatusValidation();
 
+  // Real-time order updates for admins
   useOrderRealtime({ isAdmin: true });
 
-  // Fetch orders
+  // Fetch orders with enhanced filtering
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ['orders', searchQuery, statusFilter, fulfillmentFilter, priorityFilter, sortBy, currentPage],
     queryFn: async () => {
       let query = supabase
         .from('orders')
         .select(`
-          id, order_number, status, fulfillment_status, priority, total_amount,
-          created_at, updated_at, tracking_number, tags, internal_notes,
-          customer_notes, shipped_at, delivered_at, email, user_id,
-          order_items(id, product_name, quantity, unit_price, total_price)
+          id,
+          order_number,
+          status,
+          fulfillment_status,
+          priority,
+          total_amount,
+          created_at,
+          updated_at,
+          tracking_number,
+          tags,
+          internal_notes,
+          customer_notes,
+          shipped_at,
+          delivered_at,
+          email,
+          user_id,
+          order_items(
+            id,
+            product_name,
+            quantity,
+            unit_price,
+            total_price
+          )
         `)
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
+      // Apply search filter
       if (searchQuery) {
         query = query.or(`order_number.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`);
       }
-      if (statusFilter !== "all") query = query.eq('status', statusFilter as any);
-      if (fulfillmentFilter !== "all") query = query.eq('fulfillment_status', fulfillmentFilter as any);
-      if (priorityFilter !== "all") query = query.eq('priority', priorityFilter as any);
 
-      const [field, direction] = sortBy.split('_');
-      const ascending = direction === 'asc';
-      query = query.order(field, { ascending });
+      // Apply status filter
+      if (statusFilter !== "all") {
+        query = query.eq('status', statusFilter as any);
+      }
+
+      // Apply fulfillment filter
+      if (fulfillmentFilter !== "all") {
+        query = query.eq('fulfillment_status', fulfillmentFilter as any);
+      }
+
+      // Apply priority filter
+      if (priorityFilter !== "all") {
+        query = query.eq('priority', priorityFilter as any);
+      }
+
+      // Apply sorting
+      const sortParts = sortBy.split('_');
+      const direction = sortParts.pop(); // Get the last part (asc/desc)
+      const field = sortParts.join('_'); // Join the remaining parts (handles created_at)
+      query = query.order(field, { ascending: direction === 'asc' });
 
       const { data, error, count } = await query;
       if (error) throw error;
 
-      const totalCount = count || data?.length || 0;
-      return {
-        orders: data as Order[],
-        totalCount,
-        totalPages: Math.ceil(totalCount / itemsPerPage)
+      return { 
+        orders: data || [], 
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / itemsPerPage)
       };
     },
   });
 
-  // Fetch stats using direct query instead of RPC
-  const { data: stats } = useQuery<OrderStats>({
+  // Fetch order statistics
+  const { data: stats } = useQuery({
     queryKey: ['order-stats'],
     queryFn: async () => {
-      // Get order counts by status
-      const { data: orders, error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
-        .select('status, total_amount');
-
+        .select('status, fulfillment_status, priority');
+      
       if (error) throw error;
 
-      const ordersList = orders || [];
-      
-      return {
-        total_orders: ordersList.length,
-        pending_orders: ordersList.filter(o => o.status === 'pending').length,
-        processing_orders: ordersList.filter(o => o.status === 'processing').length,
-        completed_orders: ordersList.filter(o => o.status === 'completed' || o.status === 'delivered').length,
-        total_revenue: ordersList.reduce((sum, o) => sum + (o.total_amount || 0), 0)
+      const stats = {
+        total: data.length,
+        pending: data.filter(o => o.status === 'pending').length,
+        processing: data.filter(o => o.status === 'processing').length,
+        fulfilled: data.filter(o => o.fulfillment_status === 'fulfilled').length,
+        shipped: data.filter(o => o.status === 'shipped').length,
+        delivered: data.filter(o => o.status === 'delivered').length,
+        urgent: data.filter(o => o.priority === 'urgent').length,
       };
+
+      return stats;
     },
-    refetchInterval: 30000,
   });
 
-  // Update order status mutation
+  // Bulk status update mutation with validation
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderIds, status, notes }: { orderIds: string[], status: string, notes?: string }) => {
+      // Pre-validate status transitions if we have the current orders data
       if (ordersData?.orders) {
         const ordersToUpdate = ordersData.orders.filter(order => orderIds.includes(order.id));
         for (const order of ordersToUpdate) {
           try {
-            await new Promise<void>((resolve) => {
+            await new Promise<void>((resolve, reject) => {
               validateStatusTransition({
                 orderId: order.id,
                 currentStatus: order.status,
                 newStatus: status,
               });
+              // Since validateStatusTransition returns void, we'll assume success
               setTimeout(() => resolve(), 100);
             });
           } catch (error) {
             console.warn(`Status validation failed for order ${order.order_number}:`, error);
+            // Continue with the update - the database trigger will handle validation
           }
         }
       }
@@ -149,7 +227,10 @@ export const EnhancedOrderManagement = () => {
       return data;
     },
     onSuccess: (data) => {
-      toast({ title: "Orders Updated", description: `${data} orders updated successfully` });
+      toast({
+        title: "Orders Updated",
+        description: `${data} orders updated successfully`,
+      });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['order-stats'] });
       setSelectedOrders([]);
@@ -173,10 +254,17 @@ export const EnhancedOrderManagement = () => {
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Notification Sent", description: "Customer has been notified" });
+      toast({
+        title: "Notification Sent",
+        description: "Customer has been notified",
+      });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to send notification", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to send notification",
+        variant: "destructive",
+      });
     },
   });
 
@@ -196,6 +284,18 @@ export const EnhancedOrderManagement = () => {
     }
   };
 
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'pending': return 'secondary';
+      case 'processing': return 'default';
+      case 'shipped': return 'default';
+      case 'delivered': return 'default';
+      case 'completed': return 'default';
+      case 'cancelled': return 'destructive';
+      default: return 'outline';
+    }
+  };
+
   const getFulfillmentIcon = (status: string) => {
     switch (status) {
       case 'unfulfilled': return <Clock className="h-4 w-4" />;
@@ -207,22 +307,30 @@ export const EnhancedOrderManagement = () => {
     }
   };
 
+  // Quick status update for single order
   const handleQuickStatusUpdate = useCallback((orderId: string, status: string) => {
     updateOrderStatusMutation.mutate({ orderIds: [orderId], status });
   }, [updateOrderStatusMutation]);
 
+  // Toggle order selection (for keyboard shortcuts)
   const handleToggleSelect = useCallback((orderId: string) => {
-    setSelectedOrders(prev =>
-      prev.includes(orderId)
+    setSelectedOrders(prev => 
+      prev.includes(orderId) 
         ? prev.filter(id => id !== orderId)
         : [...prev, orderId]
     );
   }, []);
 
+  // View order handler
   const handleViewOrder = useCallback((order: Order) => {
-    setSelectedOrder(order);
+    setSelectedOrder({
+      ...order,
+      customer_name: order.email || 'Guest',
+      customer_email: order.email || 'N/A'
+    });
   }, []);
 
+  // Keyboard shortcuts
   useOrderKeyboardShortcuts({
     orders: ordersData?.orders || [],
     selectedOrderIndex: keyboardSelectedIndex,
@@ -237,110 +345,381 @@ export const EnhancedOrderManagement = () => {
   return (
     <OrderErrorBoundary>
       <div className="space-y-6">
-        <OrderStatistics stats={stats} />
-
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="pt-6 space-y-4">
-            <OrderSearchBar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              statusFilter={statusFilter}
-              onStatusFilterChange={setStatusFilter}
-              fulfillmentFilter={fulfillmentFilter}
-              onFulfillmentFilterChange={setFulfillmentFilter}
-              onToggleFilters={() => setShowFilters(!showFilters)}
-              onExport={() => setShowExportDialog(true)}
-            />
-
-            <ViewModeToggle
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              showAutomation={showAutomation}
-              onToggleAutomation={() => setShowAutomation(!showAutomation)}
-            />
-
-            {showFilters && (
-              <OrderFilters
-                priorityFilter={priorityFilter}
-                setPriorityFilter={setPriorityFilter}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-              />
-            )}
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.total || 0}</div>
           </CardContent>
         </Card>
 
-        {selectedOrders.length > 0 && (
-          <BulkOrderActions
-            selectedOrders={selectedOrders}
-            onUpdateStatus={(status, notes) =>
-              updateOrderStatusMutation.mutate({ orderIds: selectedOrders, status, notes })
-            }
-            onClearSelection={() => setSelectedOrders([])}
-          />
-        )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Processing</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.processing || 0}</div>
+          </CardContent>
+        </Card>
 
-        {showAutomation && <AutomationRulesPanel />}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Shipped</CardTitle>
+            <Truck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.shipped || 0}</div>
+          </CardContent>
+        </Card>
 
-        {viewMode === 'kanban' && <OrderKanbanBoard />}
-        {viewMode === 'metrics' && <OrderMetricsDashboard />}
-
-        {viewMode === 'list' && (
-          <>
-            <OrderListTable
-              orders={ordersData?.orders || []}
-              isLoading={isLoading}
-              selectedOrders={selectedOrders}
-              keyboardSelectedIndex={keyboardSelectedIndex}
-              isSuperAdmin={isSuperAdmin || false}
-              onSelectAll={handleSelectAll}
-              onOrderSelect={handleOrderSelect}
-              onViewOrder={handleViewOrder}
-              onNotifyOrder={(orderId) => sendNotificationMutation.mutate({ orderId, type: 'status_change' })}
-              onKeyboardSelect={setKeyboardSelectedIndex}
-              onShowKeyboardHelp={() => setShowKeyboardHelp(true)}
-              getFulfillmentIcon={getFulfillmentIcon}
-              onOrderUpdated={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
-              onOrderDeleted={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
-            />
-
-            {ordersData && (
-              <OrderPagination
-                currentPage={currentPage}
-                totalPages={ordersData.totalPages}
-                totalCount={ordersData.totalCount}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-              />
-            )}
-          </>
-        )}
-
-        {selectedOrder && (
-          <OrderDetailModal
-            order={selectedOrder}
-            isOpen={!!selectedOrder}
-            onClose={() => setSelectedOrder(null)}
-            onStatusUpdate={(status, notes) =>
-              updateOrderStatusMutation.mutate({ orderIds: [selectedOrder.id], status, notes })
-            }
-            onSendNotification={(type, metadata) =>
-              sendNotificationMutation.mutate({ orderId: selectedOrder.id, type, metadata })
-            }
-          />
-        )}
-
-        <KeyboardShortcutsHelp
-          isOpen={showKeyboardHelp}
-          onClose={() => setShowKeyboardHelp(false)}
-        />
-
-        <OrderExportDialog
-          isOpen={showExportDialog}
-          onClose={() => setShowExportDialog(false)}
-          orders={ordersData?.orders}
-        />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Urgent</CardTitle>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.urgent || 0}</div>
+          </CardContent>
+        </Card>
       </div>
-    </OrderErrorBoundary>
-  );
-};
+
+      {/* Search and Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search orders by number, customer name, or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={fulfillmentFilter} onValueChange={setFulfillmentFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Fulfillment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Fulfillment</SelectItem>
+                  <SelectItem value="unfulfilled">Unfulfilled</SelectItem>
+                  <SelectItem value="partially_fulfilled">Partial</SelectItem>
+                  <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button 
+                variant="outline" 
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+
+              <Button 
+                variant="outline" 
+                onClick={() => setShowExportDialog(true)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2 pt-4 border-t">
+            <span className="text-sm text-muted-foreground">View:</span>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4 mr-1" />
+              List
+            </Button>
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+            >
+              <LayoutGrid className="h-4 w-4 mr-1" />
+              Kanban
+            </Button>
+            <Button
+              variant={viewMode === 'metrics' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('metrics')}
+            >
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Metrics
+            </Button>
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAutomation(!showAutomation)}
+            >
+              <Settings className="h-4 w-4 mr-1" />
+              Automation
+            </Button>
+          </div>
+
+          {showFilters && (
+            <OrderFilters 
+              priorityFilter={priorityFilter}
+              setPriorityFilter={setPriorityFilter}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Bulk Actions */}
+      {selectedOrders.length > 0 && (
+        <BulkOrderActions
+          selectedOrders={selectedOrders}
+          onUpdateStatus={(status, notes) => 
+            updateOrderStatusMutation.mutate({ orderIds: selectedOrders, status, notes })
+          }
+          onClearSelection={() => setSelectedOrders([])}
+        />
+      )}
+
+      {/* Automation Rules Panel */}
+      {showAutomation && (
+        <AutomationRulesPanel />
+      )}
+
+      {/* Kanban View */}
+      {viewMode === 'kanban' && (
+        <OrderKanbanBoard />
+      )}
+
+      {/* Metrics View */}
+      {viewMode === 'metrics' && (
+        <OrderMetricsDashboard />
+      )}
+
+      {/* List View - Orders Table */}
+      {viewMode === 'list' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                Orders
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setShowKeyboardHelp(true)}
+                >
+                  <Keyboard className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedOrders.length === ordersData?.orders.length && ordersData?.orders.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {selectedOrders.length} of {ordersData?.orders.length || 0} selected
+                </span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {ordersData?.orders.map((order, index) => (
+                  <div 
+                    key={order.id} 
+                    className={cn(
+                      "border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer",
+                      keyboardSelectedIndex === index && "ring-2 ring-primary bg-primary/5"
+                    )}
+                    onClick={() => setKeyboardSelectedIndex(index)}
+                    onDoubleClick={() => handleViewOrder(order)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedOrders.includes(order.id)}
+                          onCheckedChange={(checked) => handleOrderSelect(order.id, checked as boolean)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{order.order_number}</span>
+                            <OrderStatusBadge status={order.status} />
+                            <OrderRiskBadge order={order} />
+                            <div className="flex items-center gap-1">
+                              {getFulfillmentIcon(order.fulfillment_status)}
+                              <span className="text-sm text-muted-foreground">
+                                {order.fulfillment_status}
+                              </span>
+                            </div>
+                            {order.priority === 'urgent' && (
+                              <Badge variant="destructive">Urgent</Badge>
+                            )}
+                            {order.tags && order.tags.length > 0 && (
+                              <div className="flex gap-1">
+                                {order.tags.slice(0, 2).map((tag) => (
+                                  <Badge key={tag} variant="outline" className="text-xs">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                                {order.tags.length > 2 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{order.tags.length - 2}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>{order.email || 'Guest'}</span>
+                            <span>R{order.total_amount.toFixed(2)}</span>
+                            <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedOrder({
+                              ...order,
+                              customer_name: order.email || 'Guest',
+                              customer_email: order.email || 'N/A'
+                            });
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sendNotificationMutation.mutate({ 
+                              orderId: order.id, 
+                              type: 'status_change' 
+                            });
+                          }}
+                        >
+                          <Send className="h-4 w-4 mr-2" />
+                          Notify
+                        </Button>
+
+                        {/* SuperAdmin Actions */}
+                        {isSuperAdmin && (
+                          <SuperAdminOrderActions
+                            order={order}
+                            onOrderUpdated={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
+                            onOrderDeleted={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {ordersData && ordersData.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <div className="text-sm text-muted-foreground">
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, ordersData.totalCount)} of {ordersData.totalCount} orders
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === ordersData.totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <OrderDetailModal
+          order={selectedOrder}
+          isOpen={!!selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+          onStatusUpdate={(status, notes) => 
+            updateOrderStatusMutation.mutate({ orderIds: [selectedOrder.id], status, notes })
+          }
+          onSendNotification={(type, metadata) => 
+            sendNotificationMutation.mutate({ orderId: selectedOrder.id, type, metadata })
+          }
+        />
+      )}
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp 
+        isOpen={showKeyboardHelp} 
+        onClose={() => setShowKeyboardHelp(false)} 
+      />
+
+      {/* Export Dialog */}
+      <OrderExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+      />
+      </div>
+      </OrderErrorBoundary>
+    );
+  };

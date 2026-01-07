@@ -4,7 +4,7 @@ import { RequestQuoteButton } from '@/components/quotes/RequestQuoteButton';
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MaintenanceBanner } from "@/components/common/MaintenanceBanner";
-import { useCart } from "@/hooks/useCart";
+import { useEnhancedCart } from "@/hooks/useEnhancedCart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
 const CartPage = () => {
-  const { items, updateQuantity, removeFromCart, total, isLoading } = useCart();
+  const { items, updateQuantity, removeFromCart, total, isLoading } = useEnhancedCart();
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const { trackEvent } = useAnalytics();
 
@@ -141,7 +141,7 @@ const CartPage = () => {
 
       <main className="container mx-auto px-4 py-6 md:py-8 -mt-4 md:-mt-8 relative z-10">
 
-        {/* Cart analytics tracking enabled */}
+        {/* DEBUG INFO - Remove in production */}
         {process.env.NODE_ENV === 'development' && items.length > 0 && (
           <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
             <h3 className="font-bold mb-2">Debug Info (development only):</h3>

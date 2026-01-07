@@ -156,10 +156,10 @@ export const logSecurityEvent = async (
   try {
     // Log to console for development/debugging
     console.warn(`Security Event [${riskLevel.toUpperCase()}]: ${eventType} - ${description}`, metadata);
-
-    // Note: Security events are logged to console in development.
-    // In production, these are captured by the unified logger system.
-    // See src/utils/logger.ts for database persistence of security events.
+    
+    // Only attempt to send to backend if we're in production and have proper endpoint
+    // Removing the API call that was causing recursive loops
+    // TODO: Implement proper security logging endpoint when needed
     
   } catch (error) {
     console.error('Failed to log security event:', error);

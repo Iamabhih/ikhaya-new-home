@@ -1,5 +1,5 @@
 
-import { RealTimeMetrics } from "@/components/admin/analytics/RealTimeMetrics";
+import { PremiumRealTimeMetrics } from "@/components/admin/analytics/PremiumRealTimeMetrics";
 import { OrdersMetrics } from "@/components/admin/orders/OrdersMetrics";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -33,7 +33,7 @@ const AdminAnalytics = () => {
                 <OrdersMetrics />
               </div>
               <div className="space-y-6">
-                <RealTimeMetrics />
+                <PremiumRealTimeMetrics />
               </div>
             </div>
 

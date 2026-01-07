@@ -12,7 +12,7 @@ import { LiveShippingRates } from "./LiveShippingRates";
 import { generateOrderId } from "@/utils/payment/PayFastConfig";
 import { ShippingRate, DeliveryAddress } from "@/hooks/useShippingRates";
 import { useShippingSettings } from "@/hooks/useShippingSettings";
-import { useCart } from "@/hooks/useCart";
+import { useEnhancedCart } from "@/hooks/useEnhancedCart";
 
 interface CheckoutFormProps {
   user: any | null;
@@ -23,7 +23,7 @@ interface CheckoutFormProps {
 
 export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliveryZoneChange }: CheckoutFormProps) => {
   const { items, clearCart, total: cartTotal } = useCart();
-  const { captureEmailForRecovery, trackCheckoutInitiated } = useCart();
+  const { captureEmailForRecovery, trackCheckoutInitiated } = useEnhancedCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState('billing');
   const [orderId, setOrderId] = useState<string | null>(null);

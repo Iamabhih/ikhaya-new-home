@@ -9,7 +9,7 @@ import { PromotionalBanners } from "@/components/home/PromotionalBanners";
 import { MobileSafeComponent } from "@/components/common/MobileSafeComponent";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { Suspense, useEffect } from "react";
-import { Loading } from "@/components/ui/loading";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 
 const Index = () => {
   const { trackEvent } = useAnalytics();
@@ -29,7 +29,7 @@ const Index = () => {
       <Header />
       <main className="pt-12 xs:pt-14 sm:pt-16"> {/* Mobile responsive padding for header */}
         <MobileSafeComponent name="Promotional Banners">
-          <Suspense fallback={<Loading size="lg" />}>
+          <Suspense fallback={<UniversalLoading size="lg" />}>
             <PromotionalBanners />
           </Suspense>
         </MobileSafeComponent>
@@ -37,13 +37,13 @@ const Index = () => {
         <HeroSection />
         
         <MobileSafeComponent name="Featured Products">
-          <Suspense fallback={<Loading size="lg" />}>
+          <Suspense fallback={<UniversalLoading size="lg" />}>
             <OptimizedFeaturedProducts />
           </Suspense>
         </MobileSafeComponent>
         
         <MobileSafeComponent name="Category Grid">
-          <Suspense fallback={<Loading size="lg" />}>
+          <Suspense fallback={<UniversalLoading size="lg" />}>
             <OptimizedCategoryGrid />
           </Suspense>
         </MobileSafeComponent>

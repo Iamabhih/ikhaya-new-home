@@ -10,7 +10,7 @@ import { Download, FileText, Calendar, Eye, Store, Users, Share2 } from "lucide-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { LoadingSpinner } from "@/components/ui/loading";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { PDFPreview } from "@/components/common/PDFPreview";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -14,34 +15,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
 
-interface Order {
-  id: string;
-  order_number: string;
-  status: string;
-  fulfillment_status?: string;
-  payment_status?: string;
-  total_amount: number;
-  subtotal: number;
-  shipping_amount?: number;
-  discount_amount?: number;
-  tax_amount?: number;
-  email: string;
-  created_at: string;
-  shipped_at?: string;
-  delivered_at?: string;
-  tracking_number?: string;
-  payment_method?: string;
-  billing_address?: any;
-  shipping_address?: any;
-}
-
-export interface OrderExportDialogProps {
+interface OrderExportDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  orders?: Order[];
 }
 
-export const OrderExportDialog = ({ isOpen, onClose, orders }: OrderExportDialogProps) => {
+export const OrderExportDialog = ({ isOpen, onClose }: OrderExportDialogProps) => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("all");
@@ -53,34 +32,27 @@ export const OrderExportDialog = ({ isOpen, onClose, orders }: OrderExportDialog
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      let data: Order[] = [];
+      let query = supabase
+        .from('orders')
+        .select('*');
 
-      // Use provided orders if available, otherwise fetch
-      if (orders && orders.length > 0) {
-        data = orders;
-      } else {
-        let query = supabase
-          .from('orders')
-          .select('*');
-
-        if (startDate) {
-          query = query.gte('created_at', startDate);
-        }
-        if (endDate) {
-          query = query.lte('created_at', `${endDate}T23:59:59`);
-        }
-        if (status !== 'all') {
-          query = query.eq('status', status as any);
-        }
-
-        const { data: fetchedData, error } = await query.order('created_at', { ascending: false });
-        if (error) throw error;
-        data = fetchedData || [];
+      if (startDate) {
+        query = query.gte('created_at', startDate);
       }
+      if (endDate) {
+        query = query.lte('created_at', `${endDate}T23:59:59`);
+      }
+      if (status !== 'all') {
+        query = query.eq('status', status as any);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
 
       // Fetch order items if needed
       let orderItems: Record<string, any[]> = {};
-      if (includeItems && data.length > 0) {
+      if (includeItems && data) {
         const orderIds = data.map(o => o.id);
         const { data: items } = await supabase
           .from('order_items')
@@ -125,12 +97,12 @@ export const OrderExportDialog = ({ isOpen, onClose, orders }: OrderExportDialog
       csvRows.push(headers.join(','));
 
       // Data rows
-      data.forEach((order) => {
+      data?.forEach((order) => {
         const row = [
           order.order_number,
           order.status,
-          order.fulfillment_status || '',
-          order.payment_status || '',
+          order.fulfillment_status,
+          order.payment_status,
           order.total_amount,
           order.subtotal,
           order.shipping_amount || 0,
@@ -181,7 +153,7 @@ export const OrderExportDialog = ({ isOpen, onClose, orders }: OrderExportDialog
 
       toast({
         title: "Export Complete",
-        description: `Exported ${data.length} orders to CSV`,
+        description: `Exported ${data?.length || 0} orders to CSV`,
       });
       onClose();
     } catch (error: any) {
@@ -206,52 +178,42 @@ export const OrderExportDialog = ({ isOpen, onClose, orders }: OrderExportDialog
         </DialogHeader>
 
         <div className="space-y-4">
-          {!orders && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Start Date</label>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">End Date</label>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">End Date</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
 
-              <div>
-                <label className="text-sm font-medium">Status Filter</label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
-
-          {orders && orders.length > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Exporting {orders.length} selected orders
-            </p>
-          )}
+          <div>
+            <label className="text-sm font-medium">Status Filter</label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="shipped">Shipped</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Include</label>

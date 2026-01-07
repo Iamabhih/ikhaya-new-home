@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tables } from "@/integrations/supabase/types";
-import { Loading } from "@/components/ui/loading";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 type PromotionalBanner = Tables<"promotional_banners">;
 export const PromotionalBanners = () => {
   const [banners, setBanners] = useState<PromotionalBanner[]>([]);
@@ -47,7 +47,7 @@ export const PromotionalBanners = () => {
     return (
       <div className="relative w-full bg-primary/5 overflow-hidden banner-loading">
         <div className="relative min-h-[300px] sm:min-h-[400px] md:min-h-[500px] flex items-center justify-center">
-          <Loading 
+          <UniversalLoading 
             variant="spinner" 
             size="lg" 
             text="Loading promotional content..." 

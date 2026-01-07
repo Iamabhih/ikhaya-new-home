@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Star, ArrowRight, Sparkles } from "lucide-react";
-import { Loading } from "@/components/ui/loading";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const OptimizedFeaturedProducts = () => {
@@ -99,7 +99,7 @@ export const OptimizedFeaturedProducts = () => {
     return (
       <section className="py-8 sm:py-12 md:py-16 lg:py-20 bg-gradient-to-b from-background to-secondary/10">
         <div className="container mx-auto px-4">
-          <Loading 
+          <UniversalLoading 
             variant="grid" 
             count={8} 
             className="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"

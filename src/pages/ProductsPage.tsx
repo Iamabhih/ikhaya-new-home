@@ -19,7 +19,7 @@ import { StandardPagination } from "@/components/common/StandardPagination";
 import { ResponsiveGrid } from "@/components/ui/responsive-layout";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Card } from "@/components/ui/card";
-import { Loading } from "@/components/ui/loading";
+import { UniversalLoading } from "@/components/ui/universal-loading";
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();

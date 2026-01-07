@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { logger } from '@/utils/appLogger';
+import { appLogger } from '@/utils/appLogger';
 
 interface AuthContextType {
   user: User | null;
@@ -45,13 +45,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setLoading(false);
         
         if (event === 'SIGNED_IN') {
-          logger.auth.login(session?.user?.email || 'unknown', true, { userId: session?.user?.id });
+          appLogger.auth.login(session?.user?.email || 'unknown', true, { userId: session?.user?.id });
           toast.success("Welcome back!");
         } else if (event === 'SIGNED_OUT') {
-          logger.auth.logout(session?.user?.email);
+          appLogger.auth.logout(session?.user?.email);
           toast.success("Signed out successfully");
         } else if (event === 'TOKEN_REFRESHED') {
-          logger.info('auth', 'Session token refreshed', { userId: session?.user?.id });
+          appLogger.info('auth', 'Session token refreshed', { userId: session?.user?.id });
         }
       }
     );
