@@ -14,8 +14,6 @@ import {
   YAxis, 
   CartesianGrid, 
   ResponsiveContainer, 
-  LineChart, 
-  Line, 
   PieChart, 
   Pie, 
   Cell,
@@ -38,9 +36,30 @@ interface SalesTrend {
   revenue: number;
 }
 
-interface AnalyticsChartsProps {
+interface CustomerSegment {
+  name: string;
+  value: number;
+}
+
+interface ProductPerformanceItem {
+  name: string;
+  value: number;
+  revenue: number;
+}
+
+interface DailyMetric {
+  date: string;
+  orders: number;
+  revenue: number;
+  sales?: number;
+}
+
+export interface AnalyticsChartsProps {
   categoryPerformance?: CategoryPerformance[];
   salesTrend?: SalesTrend[];
+  customerSegments?: CustomerSegment[];
+  productPerformance?: ProductPerformanceItem[];
+  dailyMetrics?: DailyMetric[];
   isLoading?: boolean;
 }
 
@@ -80,18 +99,38 @@ const CHART_COLORS = [
 export const AnalyticsCharts = ({ 
   categoryPerformance = [], 
   salesTrend = [],
+  customerSegments = [],
+  productPerformance = [],
+  dailyMetrics = [],
   isLoading = false
 }: AnalyticsChartsProps) => {
   
-  // Use real data only - no fallback to demo data
-  const trendData = salesTrend;
+  // Use daily metrics for trend data if salesTrend is empty
+  const trendData = salesTrend.length > 0 ? salesTrend : dailyMetrics.map(m => ({
+    date: m.date,
+    sales: m.sales || m.orders,
+    orders: m.orders,
+    revenue: m.revenue
+  }));
+  
   const categoryData = categoryPerformance.map((item, index) => ({
     ...item,
     fill: item.fill || CHART_COLORS[index % CHART_COLORS.length]
   }));
 
+  // Use customer segments for pie chart if category data is empty
+  const pieData = categoryData.length > 0 
+    ? categoryData 
+    : customerSegments.map((seg, index) => ({
+        name: seg.name,
+        products: seg.value,
+        totalValue: 0,
+        avgPrice: 0,
+        fill: CHART_COLORS[index % CHART_COLORS.length]
+      }));
+
   // Show empty state when no data
-  const hasData = trendData.length > 0 || categoryData.length > 0;
+  const hasData = trendData.length > 0 || pieData.length > 0 || productPerformance.length > 0;
 
   // Loading state
   if (isLoading) {
@@ -180,17 +219,19 @@ export const AnalyticsCharts = ({
         </CardContent>
       </Card>
 
-      {/* Enhanced Category Performance */}
+      {/* Category/Segment Distribution */}
       <Card className="bg-card border-border/50 shadow-modern-sm">
         <CardHeader>
-          <CardTitle className="text-foreground">Category Distribution</CardTitle>
+          <CardTitle className="text-foreground">
+            {customerSegments.length > 0 ? 'Customer Segments' : 'Category Distribution'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={categoryData}
+                  data={pieData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -199,11 +240,11 @@ export const AnalyticsCharts = ({
                   }
                   outerRadius={100}
                   fill="hsl(var(--chart-1))"
-                  dataKey="products"
+                  dataKey={customerSegments.length > 0 ? "products" : "products"}
                   stroke="hsl(var(--background))"
                   strokeWidth={2}
                 >
-                  {categoryData.map((entry, index) => (
+                  {pieData.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
                       fill={entry.fill}
@@ -213,7 +254,7 @@ export const AnalyticsCharts = ({
                 <ChartTooltip 
                   content={<ChartTooltipContent 
                     formatter={(value, name, props) => [
-                      `${value} products`,
+                      customerSegments.length > 0 ? `${value} customers` : `${value} products`,
                       props.payload?.name
                     ]}
                   />} 
@@ -269,16 +310,18 @@ export const AnalyticsCharts = ({
         </CardContent>
       </Card>
 
-      {/* Category Value Analysis */}
+      {/* Product Performance or Category Value Analysis */}
       <Card className="bg-card border-border/50 shadow-modern-sm">
         <CardHeader>
-          <CardTitle className="text-foreground">Category Value Analysis</CardTitle>
+          <CardTitle className="text-foreground">
+            {productPerformance.length > 0 ? 'Top Products' : 'Category Value Analysis'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart 
-                data={categoryData}
+                data={productPerformance.length > 0 ? productPerformance : categoryData}
                 layout="horizontal"
               >
                 <CartesianGrid 
@@ -290,7 +333,9 @@ export const AnalyticsCharts = ({
                   type="number"
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
-                  tickFormatter={(value) => `R${(value / 1000).toFixed(0)}k`}
+                  tickFormatter={(value) => productPerformance.length > 0 
+                    ? `R${(value / 1000).toFixed(0)}k` 
+                    : `R${(value / 1000).toFixed(0)}k`}
                 />
                 <YAxis 
                   type="category"
@@ -302,13 +347,13 @@ export const AnalyticsCharts = ({
                 <ChartTooltip 
                   content={<ChartTooltipContent 
                     formatter={(value, name) => [
-                      name === 'totalValue' ? `R${Number(value).toLocaleString()}` : value,
-                      name === 'totalValue' ? 'Total Value' : name
+                      `R${Number(value).toLocaleString()}`,
+                      name === 'revenue' ? 'Revenue' : name === 'totalValue' ? 'Total Value' : name
                     ]}
                   />} 
                 />
                 <Bar 
-                  dataKey="totalValue" 
+                  dataKey={productPerformance.length > 0 ? "revenue" : "totalValue"} 
                   fill="hsl(var(--chart-3))"
                   radius={[0, 2, 2, 0]}
                 />

@@ -1,8 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMemo } from 'react';
 
-interface CartAnalyticsEvent {
+export interface CartAnalyticsEvent {
   sessionId: string;
   userId?: string;
   email?: string;
@@ -20,14 +21,14 @@ interface CartAnalyticsEvent {
     userAgent: string;
     screenResolution: string;
     language: string;
-    timestamp: number;
+    timestamp?: number;
   };
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
 }
 
-interface CartSessionData {
+export interface CartSessionData {
   sessionId: string;
   userId?: string;
   email?: string;
@@ -40,11 +41,160 @@ interface CartSessionData {
   deviceInfo?: object;
 }
 
+interface CartSession {
+  id: string;
+  session_id: string;
+  user_id?: string;
+  email?: string;
+  phone?: string;
+  total_value: number;
+  item_count: number;
+  created_at: string;
+  updated_at: string;
+  abandoned_at?: string;
+  converted_at?: string;
+  checkout_initiated_at?: string;
+  payment_attempted_at?: string;
+  abandonment_stage?: string;
+  device_info?: any;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+}
+
+interface RecoveryCampaign {
+  id: string;
+  cart_session_id: string;
+  campaign_type: string;
+  sent_at: string;
+  status: string;
+  discount_code?: string;
+  discount_percentage?: number;
+}
+
 /**
  * Enhanced cart analytics hook with comprehensive tracking
  */
 export const useCartAnalytics = () => {
   const { user } = useAuth();
+
+  // Fetch abandoned carts
+  const { data: abandonedCarts, isLoading: isLoadingCarts, refetch: refetchCarts } = useQuery({
+    queryKey: ['abandoned-carts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cart_sessions')
+        .select(`
+          *,
+          enhanced_cart_tracking (
+            product_name,
+            product_price,
+            quantity,
+            added_at,
+            removed_at,
+            purchased
+          )
+        `)
+        .not('abandoned_at', 'is', null)
+        .is('converted_at', null)
+        .order('abandoned_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      return data as CartSession[];
+    },
+  });
+
+  // Fetch recovery campaigns
+  const { data: recoveryCampaigns, isLoading: isLoadingCampaigns, refetch: refetchCampaigns } = useQuery({
+    queryKey: ['recovery-campaigns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cart_abandonment_campaigns')
+        .select('*')
+        .order('sent_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data as RecoveryCampaign[];
+    },
+  });
+
+  // Fetch customer engagement metrics
+  const { data: customerMetrics } = useQuery({
+    queryKey: ['customer-engagement-metrics'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customer_engagement_metrics')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch analytics snapshots
+  const { data: snapshots } = useQuery({
+    queryKey: ['cart-analytics-snapshots'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cart_analytics_snapshots')
+        .select('*')
+        .order('snapshot_date', { ascending: false })
+        .limit(30);
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Calculate metrics from abandoned carts
+  const metrics = useMemo(() => {
+    const carts = abandonedCarts || [];
+    const totalAbandonedCarts = carts.length;
+    const totalAbandonedValue = carts.reduce((sum, cart) => sum + (cart.total_value || 0), 0);
+    const avgCartValue = totalAbandonedCarts > 0 ? totalAbandonedValue / totalAbandonedCarts : 0;
+    const highValueCarts = carts.filter(cart => (cart.total_value || 0) >= 500).length;
+
+    return {
+      totalAbandonedCarts,
+      totalAbandonedValue,
+      avgCartValue,
+      highValueCarts
+    };
+  }, [abandonedCarts]);
+
+  // Calculate recovery opportunities by time window
+  const recoveryOpportunities = useMemo(() => {
+    const carts = abandonedCarts || [];
+    const now = Date.now();
+
+    const oneHourAgo = now - 60 * 60 * 1000;
+    const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+    const seventyTwoHoursAgo = now - 72 * 60 * 60 * 1000;
+    const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+    return {
+      oneHour: carts.filter(cart => {
+        const abandonedAt = new Date(cart.abandoned_at!).getTime();
+        return abandonedAt >= oneHourAgo && cart.email;
+      }),
+      twentyFourHour: carts.filter(cart => {
+        const abandonedAt = new Date(cart.abandoned_at!).getTime();
+        return abandonedAt < oneHourAgo && abandonedAt >= twentyFourHoursAgo && cart.email;
+      }),
+      seventyTwoHour: carts.filter(cart => {
+        const abandonedAt = new Date(cart.abandoned_at!).getTime();
+        return abandonedAt < twentyFourHoursAgo && abandonedAt >= seventyTwoHoursAgo && cart.email;
+      }),
+      oneWeek: carts.filter(cart => {
+        const abandonedAt = new Date(cart.abandoned_at!).getTime();
+        return abandonedAt < seventyTwoHoursAgo && abandonedAt >= oneWeekAgo && cart.email;
+      })
+    };
+  }, [abandonedCarts]);
 
   // Create or update cart session
   const createOrUpdateCartSession = useMutation({
@@ -80,14 +230,14 @@ export const useCartAnalytics = () => {
         userId: event.userId,
         email: event.email,
         totalValue: event.cartValue,
-        itemCount: 1, // This will be updated by triggers
+        itemCount: 1,
         utmSource: event.utmSource,
         utmMedium: event.utmMedium,
         utmCampaign: event.utmCampaign,
         deviceInfo: event.deviceInfo
       });
 
-      // Get the actual UUID id from cart_sessions (not the text session_id)
+      // Get the actual UUID id from cart_sessions
       const { data: cartSession, error: sessionError } = await supabase
         .from('cart_sessions')
         .select('id')
@@ -99,11 +249,11 @@ export const useCartAnalytics = () => {
         return;
       }
 
-      // Then track the specific cart event using the UUID cart session id
+      // Track the specific cart event
       const { error } = await supabase
         .from('enhanced_cart_tracking')
         .insert({
-          cart_session_id: cartSession.id, // Use UUID id, not text session_id
+          cart_session_id: cartSession.id,
           product_id: event.productId || null,
           product_name: event.productName || 'Unknown Product',
           product_price: event.productPrice || 0,
@@ -196,7 +346,7 @@ export const useCartAnalytics = () => {
           )
         `)
         .not('abandoned_at', 'is', null)
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()) // Last 30 days
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
         .order('abandoned_at', { ascending: false })
         .limit(100);
 
@@ -216,7 +366,6 @@ export const useCartAnalytics = () => {
       stage: string; 
       reason?: string; 
     }) => {
-      // First get the UUID from cart_sessions
       const { data: cartSession } = await supabase
         .from('cart_sessions')
         .select('id')
@@ -233,12 +382,11 @@ export const useCartAnalytics = () => {
 
       if (error) throw error;
 
-      // Update tracking records with abandonment reason using UUID
       if (reason && cartSession) {
         await supabase
           .from('enhanced_cart_tracking')
           .update({ abandonment_reason: reason })
-          .eq('cart_session_id', cartSession.id) // Use UUID, not text session_id
+          .eq('cart_session_id', cartSession.id)
           .is('removed_at', null);
       }
     }
@@ -247,7 +395,6 @@ export const useCartAnalytics = () => {
   // Mark cart as converted
   const markCartConverted = useMutation({
     mutationFn: async ({ sessionId, orderId }: { sessionId: string; orderId?: string }) => {
-      // First get the UUID from cart_sessions
       const { data: cartSession } = await supabase
         .from('cart_sessions')
         .select('id')
@@ -258,35 +405,84 @@ export const useCartAnalytics = () => {
         .from('cart_sessions')
         .update({
           converted_at: new Date().toISOString(),
-          is_recovered: false // Reset recovery flag on conversion
+          is_recovered: false
         })
         .eq('session_id', sessionId);
 
       if (error) throw error;
 
-      // Mark all items as purchased using UUID
       if (cartSession) {
         await supabase
           .from('enhanced_cart_tracking')
           .update({ purchased: true })
-          .eq('cart_session_id', cartSession.id) // Use UUID, not text session_id
+          .eq('cart_session_id', cartSession.id)
           .is('removed_at', null);
       }
     }
   });
 
+  // Trigger recovery campaign
+  const triggerRecoveryCampaign = useMutation({
+    mutationFn: async ({ 
+      campaignType, 
+      cartSessionIds,
+      includeDiscount,
+      discountPercentage
+    }: { 
+      campaignType: '1hr' | '24hr' | '72hr' | '1week' | 'manual';
+      cartSessionIds?: string[];
+      includeDiscount?: boolean;
+      discountPercentage?: number;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('trigger-recovery-campaigns', {
+        body: {
+          campaignType,
+          cartSessionIds,
+          includeDiscount,
+          discountPercentage
+        }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      refetchCarts();
+      refetchCampaigns();
+    }
+  });
+
+  // Refetch all analytics
+  const refetchAnalytics = () => {
+    refetchCarts();
+    refetchCampaigns();
+  };
+
   return {
+    // Mutations
     trackEnhancedCartEvent: trackEnhancedCartEvent.mutate,
     createOrUpdateCartSession: createOrUpdateCartSession.mutate,
     markCartAbandoned: markCartAbandoned.mutate,
     markCartConverted: markCartConverted.mutate,
+    triggerRecoveryCampaign,
     
     // Analytics data
+    abandonedCarts,
+    recoveryCampaigns,
+    customerMetrics,
+    snapshots,
     cartSessionAnalytics,
     abandonmentInsights,
+    metrics,
+    recoveryOpportunities,
     
     // Loading states
+    isLoadingCarts,
+    isLoadingCampaigns,
     isTracking: trackEnhancedCartEvent.isPending,
     isUpdatingSession: createOrUpdateCartSession.isPending,
+    
+    // Refetch
+    refetchAnalytics
   };
 };

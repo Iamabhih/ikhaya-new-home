@@ -2,13 +2,14 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "./skeleton";
 
-interface LoadingProps {
+export interface LoadingProps {
   variant?: "spinner" | "skeleton" | "page" | "card" | "list" | "grid" | "table" | "form";
   size?: "sm" | "md" | "lg";
   count?: number;
   className?: string;
   text?: string;
   fullPage?: boolean;
+  type?: "spinner" | "skeleton" | "dots" | "pulse" | "bar" | "wave" | "bounce" | "text";
 }
 
 /**
@@ -22,11 +23,15 @@ export const Loading = ({
   count = 1,
   className,
   text,
-  fullPage = false
+  fullPage = false,
+  type
 }: LoadingProps) => {
   const baseClasses = fullPage ? "min-h-screen flex items-center justify-center" : "";
+  
+  // Handle type prop for backward compatibility
+  const effectiveVariant = type === "skeleton" ? "skeleton" : (type === "spinner" || !type ? variant : variant);
 
-  if (variant === "spinner") {
+  if (effectiveVariant === "spinner" || type === "spinner" || type === "dots" || type === "pulse" || type === "bar" || type === "wave" || type === "bounce" || type === "text") {
     const sizeClasses = {
       sm: "h-4 w-4",
       md: "h-6 w-6",
@@ -41,7 +46,7 @@ export const Loading = ({
     );
   }
 
-  if (variant === "skeleton") {
+  if (effectiveVariant === "skeleton") {
     return (
       <div className={cn("animate-pulse", className)}>
         <Skeleton className="h-4 w-full" />
@@ -49,7 +54,7 @@ export const Loading = ({
     );
   }
 
-  if (variant === "card") {
+  if (effectiveVariant === "card") {
     return (
       <div className={cn("space-y-4", className)}>
         {Array.from({ length: count }).map((_, i) => (
@@ -66,7 +71,7 @@ export const Loading = ({
     );
   }
 
-  if (variant === "grid") {
+  if (effectiveVariant === "grid") {
     return (
       <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4", className)}>
         {Array.from({ length: count }).map((_, i) => (
@@ -83,7 +88,7 @@ export const Loading = ({
     );
   }
 
-  if (variant === "list") {
+  if (effectiveVariant === "list") {
     return (
       <div className={cn("space-y-3", className)}>
         {Array.from({ length: count }).map((_, i) => (
@@ -102,7 +107,7 @@ export const Loading = ({
     );
   }
 
-  if (variant === "table") {
+  if (effectiveVariant === "table") {
     return (
       <div className={cn("space-y-3", className)}>
         {Array.from({ length: count }).map((_, i) => (
@@ -116,7 +121,7 @@ export const Loading = ({
     );
   }
 
-  if (variant === "form") {
+  if (effectiveVariant === "form") {
     return (
       <div className={cn("space-y-4", className)}>
         {Array.from({ length: count }).map((_, i) => (
@@ -129,7 +134,7 @@ export const Loading = ({
     );
   }
 
-  if (variant === "page") {
+  if (effectiveVariant === "page") {
     return (
       <div className={cn("space-y-6 p-6", baseClasses, className)}>
         <div className="animate-pulse space-y-4">
@@ -154,7 +159,12 @@ export const Loading = ({
   return null;
 };
 
-// Legacy aliases for backward compatibility (will be removed in Phase 4)
+// LoadingSkeleton export for backward compatibility
+export const LoadingSkeleton = (props: Omit<LoadingProps, 'variant'>) => (
+  <Loading variant="skeleton" {...props} />
+);
+
+// Legacy aliases for backward compatibility
 export const UniversalLoading = Loading;
 export const LoadingState = Loading;
 export const LoadingSpinner = (props: Omit<LoadingProps, 'variant'>) => <Loading variant="spinner" {...props} />;

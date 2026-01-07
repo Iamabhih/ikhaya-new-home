@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCart } from '@/hooks/useCart';
+import { useCart as useBaseCart } from '@/hooks/useCart';
 import { useCartMigration } from '@/hooks/useCartMigration';
 import { useCartAnalytics } from '@/hooks/useCartAnalytics';
 
 interface EnhancedCartContextType {
   // Cart functionality
-  cart: ReturnType<typeof useCart>;
+  cart: ReturnType<typeof useBaseCart>;
   
   // Migration
   migration: ReturnType<typeof useCartMigration>;
@@ -25,13 +25,16 @@ interface EnhancedCartContextType {
 
 const EnhancedCartContext = createContext<EnhancedCartContextType | undefined>(undefined);
 
-export const useCart = () => {
+export const useEnhancedCart = () => {
   const context = useContext(EnhancedCartContext);
   if (!context) {
-    throw new Error('useCart must be used within an EnhancedCartProvider');
+    throw new Error('useEnhancedCart must be used within an EnhancedCartProvider');
   }
   return context;
 };
+
+// Re-export for backward compatibility
+export { useEnhancedCart as useCart };
 
 interface EnhancedCartProviderProps {
   children: React.ReactNode;
@@ -39,11 +42,11 @@ interface EnhancedCartProviderProps {
 
 export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ children }) => {
   const { user } = useAuth();
-  const cart = useCart();
+  const cart = useBaseCart();
   const migration = useCartMigration();
   const analytics = useCartAnalytics();
   
-  const sessionId = React.useMemo(() => {
+  const sessionId = useMemo(() => {
     if (typeof window === 'undefined') return '';
     
     let id = localStorage.getItem('cart_session_id');
@@ -55,10 +58,10 @@ export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ chil
   }, []);
 
   // Enhanced add to cart with comprehensive analytics
-  const addToCartWithAnalytics = async (productId: string, quantity: number = 1, productData?: any) => {
+  const addToCartWithAnalytics = useCallback(async (productId: string, quantity: number = 1, productData?: any) => {
     try {
       // Add to cart first
-      cart.addToCart({ productId, quantity });
+      await cart.addToCart({ productId, quantity });
       
       // Track analytics
       analytics.trackEnhancedCartEvent({
@@ -88,13 +91,13 @@ export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ chil
       console.error('Failed to add to cart with analytics:', error);
       throw error;
     }
-  };
+  }, [cart, sessionId, user?.id, analytics]);
 
   // Enhanced remove from cart with analytics
-  const removeFromCartWithAnalytics = async (itemId: string, productData?: any) => {
+  const removeFromCartWithAnalytics = useCallback(async (itemId: string, productData?: any) => {
     try {
       // Remove from cart first
-      cart.removeItem(itemId);
+      await cart.removeItem(itemId);
       
       // Track analytics
       analytics.trackEnhancedCartEvent({
@@ -112,10 +115,10 @@ export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ chil
       console.error('Failed to remove from cart with analytics:', error);
       throw error;
     }
-  };
+  }, [cart, sessionId, user?.id, analytics]);
 
   // Track checkout initiation
-  const trackCheckoutInitiated = () => {
+  const trackCheckoutInitiated = useCallback(() => {
     analytics.trackEnhancedCartEvent({
       sessionId,
       userId: user?.id,
@@ -123,10 +126,10 @@ export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ chil
       cartValue: cart.total,
       pageUrl: window.location.pathname
     });
-  };
+  }, [sessionId, user?.id, analytics, cart.total]);
 
   // Track payment attempt
-  const trackPaymentAttempted = () => {
+  const trackPaymentAttempted = useCallback(() => {
     analytics.trackEnhancedCartEvent({
       sessionId,
       userId: user?.id,
@@ -134,10 +137,10 @@ export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ chil
       cartValue: cart.total,
       pageUrl: window.location.pathname
     });
-  };
+  }, [sessionId, user?.id, analytics, cart.total]);
 
   // Track successful conversion
-  const trackCartConverted = (orderId?: string) => {
+  const trackCartConverted = useCallback((orderId?: string) => {
     analytics.trackEnhancedCartEvent({
       sessionId,
       userId: user?.id,
@@ -150,10 +153,10 @@ export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ chil
 
     // Clear session after successful conversion
     localStorage.removeItem('cart_session_id');
-  };
+  }, [sessionId, user?.id, analytics, cart.total]);
 
   // Capture email for abandoned cart recovery
-  const captureEmailForRecovery = (email: string) => {
+  const captureEmailForRecovery = useCallback((email: string) => {
     if (cart.items && cart.items.length > 0) {
       analytics.createOrUpdateCartSession({
         sessionId,
@@ -163,7 +166,7 @@ export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ chil
         itemCount: cart.itemCount
       });
     }
-  };
+  }, [cart.items, cart.total, cart.itemCount, sessionId, user?.id, analytics]);
 
   // Track cart abandonment on page visibility change
   useEffect(() => {
@@ -215,7 +218,7 @@ export const EnhancedCartProvider: React.FC<EnhancedCartProviderProps> = ({ chil
         }
       });
     }
-  }, [cart.items.length, cart.total, sessionId, user?.id, analytics]);
+  }, [cart.items?.length, cart.total, cart.itemCount, sessionId, user?.id, analytics]);
 
   const contextValue: EnhancedCartContextType = {
     cart,
