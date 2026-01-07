@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,14 @@ import { ViewModeToggle } from "./order-list/ViewModeToggle";
 import { OrderListTable } from "./order-list/OrderListTable";
 import { OrderPagination } from "./order-list/OrderPagination";
 import { Order } from "./order-list/OrderListItem";
+
+interface OrderStats {
+  total_orders: number;
+  pending_orders: number;
+  processing_orders: number;
+  completed_orders: number;
+  total_revenue: number;
+}
 
 export const EnhancedOrderManagement = () => {
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
@@ -87,13 +95,26 @@ export const EnhancedOrderManagement = () => {
     },
   });
 
-  // Fetch stats
-  const { data: stats } = useQuery({
+  // Fetch stats using direct query instead of RPC
+  const { data: stats } = useQuery<OrderStats>({
     queryKey: ['order-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_order_stats');
+      // Get order counts by status
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('status, total_amount');
+
       if (error) throw error;
-      return data;
+
+      const ordersList = orders || [];
+      
+      return {
+        total_orders: ordersList.length,
+        pending_orders: ordersList.filter(o => o.status === 'pending').length,
+        processing_orders: ordersList.filter(o => o.status === 'processing').length,
+        completed_orders: ordersList.filter(o => o.status === 'completed' || o.status === 'delivered').length,
+        total_revenue: ordersList.reduce((sum, o) => sum + (o.total_amount || 0), 0)
+      };
     },
     refetchInterval: 30000,
   });
@@ -199,11 +220,7 @@ export const EnhancedOrderManagement = () => {
   }, []);
 
   const handleViewOrder = useCallback((order: Order) => {
-    setSelectedOrder({
-      ...order,
-      customer_name: order.email || 'Guest',
-      customer_email: order.email || 'N/A'
-    });
+    setSelectedOrder(order);
   }, []);
 
   useOrderKeyboardShortcuts({
@@ -275,7 +292,7 @@ export const EnhancedOrderManagement = () => {
               isLoading={isLoading}
               selectedOrders={selectedOrders}
               keyboardSelectedIndex={keyboardSelectedIndex}
-              isSuperAdmin={isSuperAdmin}
+              isSuperAdmin={isSuperAdmin || false}
               onSelectAll={handleSelectAll}
               onOrderSelect={handleOrderSelect}
               onViewOrder={handleViewOrder}
@@ -321,7 +338,7 @@ export const EnhancedOrderManagement = () => {
         <OrderExportDialog
           isOpen={showExportDialog}
           onClose={() => setShowExportDialog(false)}
-          orders={ordersData?.orders || []}
+          orders={ordersData?.orders}
         />
       </div>
     </OrderErrorBoundary>

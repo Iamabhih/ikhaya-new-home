@@ -1,5 +1,6 @@
 // Enhanced cart context with migration and analytics
-export { useCart } from '@/components/cart/EnhancedCartProvider';
+export { useEnhancedCart as useCart } from '@/components/cart/EnhancedCartProvider';
+export { EnhancedCartProvider } from '@/components/cart/EnhancedCartProvider';
 
-// Legacy compatibility exports
-export { useCart, type CartItem } from '@/hooks/useCart';
+// Base cart hook export
+export { useCart as useBaseCart, type CartItem } from '@/hooks/useCart';

@@ -1,215 +1,204 @@
-import { useCart } from '@/hooks/useCart';
-import { useCartAnalytics } from '@/hooks/useCartAnalytics';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 
-// Enhanced cart hook that includes analytics tracking
+export interface CartItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  variant_id?: string;
+  product?: {
+    id: string;
+    name: string;
+    price: number;
+    sale_price?: number;
+    image_url?: string;
+    sku?: string;
+  };
+}
+
+interface AddToCartParams {
+  productId: string;
+  quantity?: number;
+  variantId?: string;
+}
+
+/**
+ * Core cart hook - manages cart state and operations
+ */
 export const useCart = () => {
-  const cart = useCart();
-  const { trackCartEvent } = useCartAnalytics();
   const { user } = useAuth();
-  
-  // Memoize user ID to prevent auth loops
-  const userId = useMemo(() => user?.id, [user?.id]);
-  
-  const [sessionId] = useState(() => {
-    // Get or create session ID from localStorage
-    let storedSessionId = localStorage.getItem('cart_session_id');
-    if (!storedSessionId) {
-      storedSessionId = crypto.randomUUID();
-      localStorage.setItem('cart_session_id', storedSessionId);
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Get session ID for guest carts
+  const sessionId = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    let id = localStorage.getItem('cart_session_id');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('cart_session_id', id);
     }
-    return storedSessionId;
-  });
+    return id;
+  }, []);
 
-  const lastCartState = useRef<any>(null);
-  const addToCartStartTime = useRef<number | null>(null);
-
-  // Track cart creation when first item is added - optimized to prevent loops
-  useEffect(() => {
-    if (cart.items && cart.items.length > 0 && (!lastCartState.current || lastCartState.current.length === 0)) {
-      trackCartEvent.mutate({
-        sessionId,
-        userId,
-        eventType: 'cart_created',
-        cartValue: cart.total,
-        pageUrl: window.location.pathname,
-        deviceInfo: {
-          userAgent: navigator.userAgent,
-          screenResolution: `${screen.width}x${screen.height}`,
-          language: navigator.language,
-          timestamp: Date.now()
-        },
-        utmSource: new URLSearchParams(window.location.search).get('utm_source') || undefined,
-        utmMedium: new URLSearchParams(window.location.search).get('utm_medium') || undefined,
-        utmCampaign: new URLSearchParams(window.location.search).get('utm_campaign') || undefined,
-      });
-    }
-    lastCartState.current = cart.items;
-  }, [cart.items, cart.total, sessionId, userId, trackCartEvent]);
-
-  // Track cart abandonment on page unload - memoized handlers to prevent loops
-  const handleBeforeUnload = useCallback(() => {
-    if (cart.items && cart.items.length > 0) {
-      // Use navigator.sendBeacon for reliable tracking on page unload
-      const eventData = {
-        sessionId,
-        userId,
-        eventType: 'cart_abandoned',
-        cartValue: cart.total,
-        abandonmentReason: 'page_exit',
-        pageUrl: window.location.pathname
-      };
-
-      const blob = new Blob([JSON.stringify(eventData)], { type: 'application/json' });
-      navigator.sendBeacon(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-cart-events`,
-        blob
-      );
-    }
-  }, [cart.items, cart.total, sessionId, userId]);
-
-  const handleVisibilityChange = useCallback(() => {
-    if (document.hidden && cart.items && cart.items.length > 0) {
-      trackCartEvent.mutate({
-        sessionId,
-        userId,
-        eventType: 'cart_abandoned',
-        cartValue: cart.total,
-        abandonmentReason: 'tab_hidden',
-        pageUrl: window.location.pathname
-      });
-    }
-  }, [cart.items, cart.total, sessionId, userId, trackCartEvent]);
-
-  useEffect(() => {
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [handleBeforeUnload, handleVisibilityChange]);
-
-  // Enhanced add to cart with analytics - memoized to prevent loops
-  const enhancedAddToCart = useCallback(async (productId: string, quantity: number = 1, productData?: any) => {
+  // Fetch cart items
+  const fetchCart = useCallback(async () => {
+    setIsLoading(true);
     try {
-      cart.addToCart({ productId, quantity });
-      
-      // Track successful add to cart
-      trackCartEvent.mutate({
-        sessionId,
-        userId,
-        eventType: 'item_added',
-        productId,
-        productName: productData?.name,
-        productPrice: productData?.price,
-        quantity,
-        cartValue: cart.total + (productData?.price * quantity),
-        pageUrl: window.location.pathname
-      });
+      let query = supabase
+        .from('cart_items')
+        .select(`
+          id,
+          product_id,
+          quantity,
+          variant_id,
+          products:product_id (
+            id,
+            name,
+            price,
+            sale_price,
+            image_url,
+            sku
+          )
+        `);
+
+      if (user?.id) {
+        query = query.eq('user_id', user.id);
+      } else {
+        query = query.eq('session_id', sessionId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      setItems(
+        (data || []).map((item: any) => ({
+          id: item.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          variant_id: item.variant_id,
+          product: item.products
+        }))
+      );
+    } catch (error) {
+      console.error('Failed to fetch cart:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, sessionId]);
+
+  // Fetch cart on mount and auth change
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
+
+  // Add item to cart
+  const addToCart = useCallback(async ({ productId, quantity = 1, variantId }: AddToCartParams) => {
+    try {
+      const existingItem = items.find(
+        item => item.product_id === productId && item.variant_id === variantId
+      );
+
+      if (existingItem) {
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ quantity: existingItem.quantity + quantity })
+          .eq('id', existingItem.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('cart_items')
+          .insert({
+            product_id: productId,
+            quantity,
+            variant_id: variantId || null,
+            user_id: user?.id || null,
+            session_id: user?.id ? null : sessionId
+          });
+        if (error) throw error;
+      }
+
+      await fetchCart();
     } catch (error) {
       console.error('Failed to add to cart:', error);
       throw error;
     }
-  }, [cart, sessionId, userId, trackCartEvent]);
+  }, [items, user?.id, sessionId, fetchCart]);
 
-  // Enhanced remove from cart with analytics - memoized to prevent loops
-  const enhancedRemoveFromCart = useCallback(async (itemId: string, productData?: any) => {
+  // Remove item from cart
+  const removeItem = useCallback(async (itemId: string) => {
     try {
-      cart.removeItem(itemId);
-      
-      trackCartEvent.mutate({
-        sessionId,
-        userId,
-        eventType: 'item_removed',
-        productId: productData?.product_id,
-        productName: productData?.name,
-        productPrice: productData?.price,
-        cartValue: cart.total,
-        pageUrl: window.location.pathname
-      });
-
+      const { error } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('id', itemId);
+      if (error) throw error;
+      await fetchCart();
     } catch (error) {
       console.error('Failed to remove from cart:', error);
       throw error;
     }
-  }, [cart, sessionId, userId, trackCartEvent]);
+  }, [fetchCart]);
 
-  // Track checkout initiation - memoized to prevent loops with debounce
-  const trackCheckoutInitiated = useCallback(() => {
-    // Prevent duplicate tracking within 5 seconds
-    const lastTracked = localStorage.getItem('last_checkout_track');
-    const now = Date.now();
-    if (lastTracked && (now - parseInt(lastTracked)) < 5000) {
-      return;
+  // Update item quantity
+  const updateQuantity = useCallback(async (itemId: string, quantity: number) => {
+    try {
+      if (quantity <= 0) {
+        return removeItem(itemId);
+      }
+      const { error } = await supabase
+        .from('cart_items')
+        .update({ quantity })
+        .eq('id', itemId);
+      if (error) throw error;
+      await fetchCart();
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+      throw error;
     }
-    localStorage.setItem('last_checkout_track', now.toString());
-    
-    trackCartEvent.mutate({
-      sessionId,
-      userId,
-      eventType: 'checkout_initiated',
-      cartValue: cart.total,
-      pageUrl: window.location.pathname
-    });
-  }, [sessionId, userId, trackCartEvent, cart.total]);
+  }, [fetchCart, removeItem]);
 
-  // Track payment attempt - memoized to prevent loops
-  const trackPaymentAttempted = useCallback(() => {
-    trackCartEvent.mutate({
-      sessionId,
-      userId,
-      eventType: 'payment_attempted',
-      cartValue: cart.total,
-      pageUrl: window.location.pathname
-    });
-  }, [sessionId, userId, trackCartEvent, cart.total]);
-
-  // Track cart conversion - memoized to prevent loops
-  const trackCartConverted = useCallback((orderId?: string) => {
-    trackCartEvent.mutate({
-      sessionId,
-      userId,
-      eventType: 'cart_converted',
-      cartValue: cart.total,
-      pageUrl: window.location.pathname
-    });
-
-    // Clear session after successful conversion
-    localStorage.removeItem('cart_session_id');
-  }, [sessionId, userId, trackCartEvent, cart.total]);
-
-  // Get email for abandoned cart recovery - memoized to prevent loops
-  const captureEmailForRecovery = useCallback((email: string) => {
-    if (cart.items && cart.items.length > 0) {
-      trackCartEvent.mutate({
-        sessionId,
-        userId,
-        email,
-        eventType: 'cart_created', // Update existing session with email
-        cartValue: cart.total,
-        pageUrl: window.location.pathname
-      });
+  // Clear cart
+  const clearCart = useCallback(async () => {
+    try {
+      let query = supabase.from('cart_items').delete();
+      if (user?.id) {
+        query = query.eq('user_id', user.id);
+      } else {
+        query = query.eq('session_id', sessionId);
+      }
+      const { error } = await query;
+      if (error) throw error;
+      setItems([]);
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
+      throw error;
     }
-  }, [cart.items, cart.total, sessionId, userId, trackCartEvent]);
+  }, [user?.id, sessionId]);
+
+  // Calculate totals
+  const total = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const price = item.product?.sale_price || item.product?.price || 0;
+      return sum + price * item.quantity;
+    }, 0);
+  }, [items]);
+
+  const itemCount = useMemo(() => {
+    return items.reduce((sum, item) => sum + item.quantity, 0);
+  }, [items]);
 
   return {
-    ...cart,
-    sessionId,
-    
-    // Enhanced actions with analytics
-    addToCart: enhancedAddToCart,
-    removeFromCart: enhancedRemoveFromCart,
-    
-    // Analytics tracking methods
-    trackCheckoutInitiated,
-    trackPaymentAttempted,
-    trackCartConverted,
-    captureEmailForRecovery,
-    
-    // Metrics
-    sessionStartTime: addToCartStartTime.current,
+    items,
+    total,
+    itemCount,
+    isLoading,
+    addToCart,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    refreshCart: fetchCart,
+    sessionId
   };
 };
