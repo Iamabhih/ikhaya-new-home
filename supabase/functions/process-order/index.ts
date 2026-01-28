@@ -105,44 +105,57 @@ serve(async (req) => {
 
     console.log('Found pending order:', pendingOrder.id);
 
+    // Extract form data with safe defaults
+    const formData = pendingOrder.form_data || {};
+    const cartData = pendingOrder.cart_data || { items: [], total: 0 };
+    const deliveryData = pendingOrder.delivery_data || { fee: 0, method: 'standard' };
+
+    // Build address object for both billing and shipping
+    const addressData = {
+      firstName: formData.firstName || '',
+      lastName: formData.lastName || '',
+      email: formData.email || '',
+      phone: formData.phone || '',
+      address: formData.address || '',
+      city: formData.city || '',
+      postalCode: formData.postalCode || '',
+      province: formData.province || '',
+    };
+
+    // Calculate subtotal (cart total before delivery fee)
+    const subtotal = cartData.total || 0;
+    const shippingAmount = deliveryData.fee || 0;
+
     // Use transaction wrapper for atomic order creation
-    // Addresses AUDIT_REPORT.md CRITICAL Issue #4
     const { data: transactionResult, error: transactionError } = await supabase.rpc(
       'create_order_transaction',
       {
         p_order_number: orderNumber,
         p_user_id: pendingOrder.user_id,
         p_order_data: {
-          email: pendingOrder.form_data.email,
+          email: formData.email,
+          subtotal: subtotal,
+          shipping_amount: shippingAmount,
           total_amount: pendingOrder.total_amount,
-          shipping_address: {
-            firstName: pendingOrder.form_data.firstName,
-            lastName: pendingOrder.form_data.lastName,
-            email: pendingOrder.form_data.email,
-            phone: pendingOrder.form_data.phone,
-            address: pendingOrder.form_data.address,
-            city: pendingOrder.form_data.city,
-            postalCode: pendingOrder.form_data.postalCode,
-            province: pendingOrder.form_data.province,
-          },
+          billing_address: addressData,
+          shipping_address: addressData,
           delivery_info: {
-            fee: pendingOrder.delivery_data.fee,
-            method: pendingOrder.delivery_data.method
+            fee: shippingAmount,
+            method: deliveryData.method || 'standard'
           },
           payment_method: 'payfast',
+          payment_gateway: 'payfast',
           payment_data: paymentData || {},
-          notes: `Order processed via ${source}`
+          customer_notes: formData.notes || `Order processed via ${source}`,
+          source_channel: 'web'
         },
-        p_order_items: pendingOrder.cart_data.items.map((item: any) => ({
-          product_id: item.product.id,
-          quantity: item.quantity,
-          unit_price: item.product.price,
-          total_price: item.product.price * item.quantity,
-          product_snapshot: {
-            name: item.product.name,
-            description: item.product.description,
-            images: item.product.images
-          }
+        p_order_items: (cartData.items || []).map((item: any) => ({
+          product_id: item.product?.id || item.productId,
+          product_name: item.product?.name || item.name || 'Unknown Product',
+          product_sku: item.product?.sku || item.sku || null,
+          quantity: item.quantity || 1,
+          unit_price: item.product?.price || item.price || 0,
+          total_price: (item.product?.price || item.price || 0) * (item.quantity || 1),
         })),
         p_pending_order_id: pendingOrder.id
       }
@@ -154,7 +167,7 @@ serve(async (req) => {
         'order_failed',
         { orderNumber },
         'Order creation transaction failed',
-        transactionError
+        { error: transactionError.message, details: transactionError }
       );
 
       return new Response(
@@ -177,7 +190,7 @@ serve(async (req) => {
         'order_failed',
         { orderNumber },
         orderResult.error,
-        orderResult.error_detail
+        orderResult
       );
 
       return new Response(
@@ -200,14 +213,13 @@ serve(async (req) => {
       const { error: emailError } = await supabase.functions.invoke('send-order-confirmation', {
         body: {
           orderNumber: orderResult.order_number,
-          customerEmail: pendingOrder.form_data.email,
+          customerEmail: formData.email,
           orderId: orderResult.order_id
         }
       });
 
       if (emailError) {
         console.error('Email send failed (non-critical):', emailError);
-        // Don't fail the order if email fails
       }
     } catch (emailError) {
       console.error('Email service error (non-critical):', emailError);

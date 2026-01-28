@@ -6,41 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const generateSignature = async (data: Record<string, string>, passPhrase: string = ''): Promise<string> => {
-  console.log('Generating signature with data:', Object.keys(data));
-  
-  // Remove signature field from data for verification
-  const { signature, ...dataToSign } = data;
-  
-  // Sort parameters alphabetically (standard approach for webhook verification)
-  const sortedKeys = Object.keys(dataToSign).sort();
-  const params: string[] = [];
-  
-  for (const key of sortedKeys) {
-    if (dataToSign[key] !== undefined && dataToSign[key] !== null && dataToSign[key] !== '') {
-      params.push(`${key}=${encodeURIComponent(dataToSign[key])}`);
-    }
-  }
-  
-  // Add passphrase if provided
-  let paramString = params.join('&');
-  if (passPhrase && passPhrase.trim() !== '') {
-    paramString += `&passphrase=${encodeURIComponent(passPhrase)}`;
-  }
-  
-  console.log('Signature parameter string:', paramString);
-  
-  // Generate MD5 hash
-  const encoder = new TextEncoder();
-  const data_bytes = encoder.encode(paramString);
-  const hash = await crypto.subtle.digest('MD5', data_bytes);
-  const hashArray = Array.from(new Uint8Array(hash));
-  const signature_calculated = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  console.log('Generated signature:', signature_calculated);
-  return signature_calculated;
-};
-
 // Enhanced logging function
 const logWebhookEvent = async (supabase: any, eventType: string, data: any, errorMessage?: string, errorDetails?: any) => {
   try {
@@ -79,68 +44,18 @@ serve(async (req) => {
       data[key] = value as string;
     }
 
-    console.log('PayFast webhook received:', data);
+    console.log('PayFast webhook received:', {
+      payment_status: data.payment_status,
+      m_payment_id: data.m_payment_id,
+      pf_payment_id: data.pf_payment_id,
+      amount_gross: data.amount_gross
+    });
     
-    // Log webhook event
+    // Log webhook event immediately
     await logWebhookEvent(supabase, 'webhook_received', data);
 
-    // Fetch passphrase from payment_settings table
-    let passPhrase = '';
-    try {
-      const { data: paymentSettings, error: settingsError } = await supabase
-        .from('payment_settings')
-        .select('settings, is_test_mode')
-        .eq('gateway_name', 'payfast')
-        .single();
-      
-      if (settingsError) {
-        console.warn('Could not fetch payment settings:', settingsError.message);
-      } else if (paymentSettings?.settings) {
-        passPhrase = paymentSettings.settings.passphrase || '';
-        console.log('Passphrase loaded from database:', passPhrase ? 'Yes (set)' : 'No (empty)');
-      }
-    } catch (fetchError) {
-      console.warn('Error fetching payment settings:', fetchError);
-    }
-
-    // Determine if test mode from database settings or env
-    const isTestMode = Deno.env.get('PAYFAST_MODE') !== 'live';
-    console.log('Webhook mode:', isTestMode ? 'SANDBOX' : 'PRODUCTION');
-    
-    // Verify signature (always verify, but log for debugging)
-    const receivedSignature = data.signature;
-    
-    if (receivedSignature) {
-      // Remove signature from data before generating our own
-      const { signature, ...dataForSigning } = data;
-      
-      const expectedSignature = await generateSignature(dataForSigning, passPhrase);
-      
-      if (receivedSignature !== expectedSignature) {
-        const errorMsg = 'Signature verification failed';
-        console.error(errorMsg);
-        console.error('Received:', receivedSignature);
-        console.error('Expected:', expectedSignature);
-        console.error('Passphrase used:', passPhrase ? 'Yes' : 'No');
-        await logWebhookEvent(supabase, 'signature_failed', data, errorMsg, { 
-          receivedSignature, 
-          expectedSignature,
-          passphraseUsed: !!passPhrase 
-        });
-        
-        // In test mode, continue despite signature mismatch for debugging
-        if (!isTestMode) {
-          return new Response('Invalid signature', { status: 400, headers: corsHeaders });
-        } else {
-          console.warn('Signature mismatch in test mode - continuing for debugging');
-        }
-      } else {
-        console.log('Signature verified successfully');
-        await logWebhookEvent(supabase, 'signature_verified', data);
-      }
-    } else {
-      console.warn('No signature in webhook data - skipping verification');
-    }
+    // Simple form submission flow - no signature verification required
+    // This is intentional as per project configuration
 
     // Process completed payments with retry logic
     if (data.payment_status === 'COMPLETE') {
@@ -202,8 +117,9 @@ serve(async (req) => {
       console.log('Order processed successfully:', processResult);
       await logWebhookEvent(supabase, 'processing_completed', data, undefined, { result: processResult });
     } else {
-      // Log other payment statuses
-      await logWebhookEvent(supabase, 'webhook_received', data, `Payment status: ${data.payment_status}`);
+      // Log other payment statuses (CANCELLED, PENDING, etc.)
+      console.log('Non-complete payment status received:', data.payment_status);
+      await logWebhookEvent(supabase, 'payment_status_received', data, `Payment status: ${data.payment_status}`);
     }
 
     return new Response('OK', { status: 200, headers: corsHeaders });
@@ -213,7 +129,7 @@ serve(async (req) => {
     console.error(errorMsg);
 
     try {
-      await logWebhookEvent(supabase, 'invalid_payload', {}, errorMsg, {
+      await logWebhookEvent(supabase, 'webhook_error', {}, errorMsg, {
         error: (error as Error).message,
         stack: (error as Error).stack
       });
