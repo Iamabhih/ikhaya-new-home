@@ -101,4 +101,42 @@
     overflow-x: hidden;
     width: 100%;
   }
+
+  /* Ensure main content scrolls properly */
+  main {
+    overflow-y: visible;
+    overflow-x: hidden;
+  }
+
+  /* Fix for fixed header content offset on mobile */
+  .page-content {
+    padding-top: 3.5rem; /* Match header height on mobile */
+  }
+
+  /* Ensure cards and containers don't cause horizontal overflow */
+  .card,
+  [class*="container"] {
+    max-width: 100%;
+  }
+}
+
+/* Fix iOS Safari address bar issues */
+@supports (-webkit-touch-callout: none) {
+  /* iOS only */
+  .full-height {
+    min-height: -webkit-fill-available;
+  }
+
+  /* Ensure scrolling works in standalone PWA mode */
+  @media (display-mode: standalone) {
+    body {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #root {
+      overflow-y: auto;
+      height: 100%;
+    }
+  }
 }

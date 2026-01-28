@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import BackgroundRemovalStatus from "@/components/admin/BackgroundRemovalStatus";
 import { BackgroundAudioPlayer } from "@/components/audio/BackgroundAudioPlayer";
 import { useAudio } from "@/contexts/AudioContext";
+import { lockBodyScroll, unlockBodyScroll } from "@/utils/mobileOptimization";
 import ozzLogo from "@/assets/ozz-logo-new.jpg";
 export const Header = () => {
   const {
@@ -39,7 +40,7 @@ export const Header = () => {
   // Mark interaction on homepage only to auto-play audio
   useEffect(() => {
     if (location.pathname !== '/') return undefined;
-    
+
     const handleInteraction = () => {
       markInteraction();
       document.removeEventListener('click', handleInteraction);
@@ -47,6 +48,25 @@ export const Header = () => {
     document.addEventListener('click', handleInteraction);
     return () => document.removeEventListener('click', handleInteraction);
   }, [markInteraction, location.pathname]);
+
+  // Lock/unlock body scroll when mobile menu opens/closes
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      lockBodyScroll();
+    } else {
+      unlockBodyScroll();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      unlockBodyScroll();
+    };
+  }, [mobileMenuOpen]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const handleSearch = e => {
     e.preventDefault();

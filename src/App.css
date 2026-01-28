@@ -10,6 +10,30 @@
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  min-height: -webkit-fill-available; /* iOS Safari fallback */
   margin: 0;
   padding: 0;
+  /* Enable natural scrolling */
+  overflow-x: hidden;
+  overflow-y: visible;
+  /* Prevent content from causing horizontal scroll */
+  max-width: 100vw;
+}
+
+/* PWA standalone mode adjustments */
+@media (display-mode: standalone) {
+  #root {
+    /* Use viewport height variable set by JS */
+    min-height: var(--viewport-height, 100vh);
+    /* Ensure scrolling works in PWA mode */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* iOS Safari specific */
+@supports (-webkit-touch-callout: none) {
+  #root {
+    min-height: -webkit-fill-available;
+  }
 }
