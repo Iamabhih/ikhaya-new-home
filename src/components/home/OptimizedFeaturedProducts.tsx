@@ -1,25 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { OptimizedProductGrid } from "@/components/products/OptimizedProductGrid";
-import { ProductCard } from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Star, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { UniversalLoading } from "@/components/ui/universal-loading";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const OptimizedFeaturedProducts = () => {
   const { settings } = useSiteSettings();
-  
+
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['featured-products-optimized', settings?.hide_products_without_images],
     queryFn: async () => {
       console.log('Fetching featured products for homepage (hybrid approach)');
-      
-      // Fetch BOTH sources in parallel for hybrid approach
+
       const [manualResult, flaggedResult] = await Promise.all([
-        // 1. Manually selected homepage featured products
         supabase
           .from('homepage_featured_products')
           .select(`
@@ -32,8 +28,7 @@ export const OptimizedFeaturedProducts = () => {
           `)
           .eq('is_active', true)
           .order('display_order', { ascending: true }),
-        
-        // 2. Products with is_featured=true flag
+
         supabase
           .from('products')
           .select(`
@@ -46,63 +41,58 @@ export const OptimizedFeaturedProducts = () => {
           .order('created_at', { ascending: false })
           .limit(16)
       ]);
-      
+
       if (manualResult.error) {
         console.error('Error fetching manual featured products:', manualResult.error);
       }
       if (flaggedResult.error) {
         console.error('Error fetching flagged featured products:', flaggedResult.error);
       }
-      
-      // Combine both sources
+
       const manualProducts = (manualResult.data || [])
         .map(item => item.products)
         .filter(Boolean);
-      
+
       const flaggedProducts = flaggedResult.data || [];
-      
-      // De-duplicate by product ID (manual takes priority)
+
       const seenIds = new Set<string>();
       const combinedProducts: any[] = [];
-      
-      // Add manual products first (they have priority)
+
       for (const product of manualProducts) {
         if (product && !seenIds.has(product.id)) {
           seenIds.add(product.id);
           combinedProducts.push(product);
         }
       }
-      
-      // Add flagged products that aren't already included
+
       for (const product of flaggedProducts) {
         if (product && !seenIds.has(product.id)) {
           seenIds.add(product.id);
           combinedProducts.push(product);
         }
       }
-      
+
       console.log(`Found ${manualProducts.length} manual + ${flaggedProducts.length} flagged = ${combinedProducts.length} unique featured products`);
-      
-      // Client-side filter for products with images if setting is enabled
+
       let finalProducts = combinedProducts;
       if (settings?.hide_products_without_images === true) {
         finalProducts = combinedProducts.filter((p: any) => p.product_images && p.product_images.length > 0);
       }
-      
+
       return finalProducts.slice(0, 8);
     },
-    staleTime: 300000, // Cache for 5 minutes
-    gcTime: 600000, // Keep in cache for 10 minutes
+    staleTime: 300000,
+    gcTime: 600000,
   });
 
   if (isLoading) {
     return (
-      <section className="py-8 sm:py-12 md:py-16 lg:py-20 bg-gradient-to-b from-background to-secondary/10">
-        <div className="container mx-auto px-4">
-          <UniversalLoading 
-            variant="grid" 
-            count={8} 
-            className="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+      <section className="py-16 sm:py-20 lg:py-24">
+        <div className="container mx-auto px-6 sm:px-8">
+          <UniversalLoading
+            variant="grid"
+            count={8}
+            className="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
           />
         </div>
       </section>
@@ -110,61 +100,41 @@ export const OptimizedFeaturedProducts = () => {
   }
 
   return (
-    <section className="py-8 sm:py-12 md:py-16 lg:py-20 bg-gradient-to-b from-background to-secondary/10 relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 sm:top-40 right-5 sm:right-10 w-32 sm:w-48 md:w-64 h-32 sm:h-48 md:h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-10 sm:bottom-20 left-5 sm:left-10 w-24 sm:w-36 md:w-48 h-24 sm:h-36 md:h-48 bg-secondary/15 rounded-full blur-2xl animate-pulse" />
-      </div>
-
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Section Header */}
-        <div className="text-center mb-8 sm:mb-12 md:mb-16">
-          <div className="glass-card rounded-full px-4 sm:px-6 py-2 sm:py-3 mb-4 sm:mb-6 shadow-glass hover-glow inline-flex items-center gap-2">
-            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-secondary animate-pulse" />
-            <span className="text-xs sm:text-sm font-medium gradient-text-brand">
-              Handpicked Selection
-            </span>
+    <section className="py-16 sm:py-20 lg:py-24 bg-background">
+      <div className="container mx-auto px-6 sm:px-8">
+        {/* Section Header - Clean and minimal */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10 sm:mb-12">
+          <div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">
+              Featured Products
+            </h2>
+            <p className="text-muted-foreground text-sm sm:text-base max-w-md">
+              Handpicked selection of premium homeware for your home
+            </p>
           </div>
-          
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 gradient-text-brand">
-            Featured Products
-          </h2>
-          <p className="text-premium text-sm sm:text-base md:text-lg lg:text-xl max-w-2xl mx-auto leading-relaxed px-2 sm:px-0">
-            Discover our carefully curated selection of premium homeware that combines style, quality, and functionality
-          </p>
+          <Link to="/products" className="hidden sm:block">
+            <Button variant="ghost" className="group text-sm font-medium">
+              View All Products
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </Link>
         </div>
-        
+
+        {/* Product Grid */}
         <OptimizedProductGrid
           products={products as any[]}
           isLoading={false}
           viewMode="grid"
         />
 
-        {/* Call to Action */}
-        <div className="text-center px-4 sm:px-0">
-          <Card className="glass-card inline-block border-0 shadow-premium hover-lift">
-            <div className="p-4 sm:p-6 md:p-8">
-              <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-secondary animate-pulse" />
-                <h3 className="text-lg sm:text-xl md:text-2xl font-bold gradient-text-primary text-center">Explore Our Full Collection</h3>
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-secondary animate-pulse" />
-              </div>
-              <p className="text-premium-muted mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
-                Browse through hundreds of carefully selected products to find exactly what you need for your home
-              </p>
-              <Link to="/products">
-                <Button 
-                  variant="premium"
-                  size="lg" 
-                  className="hover-glow group px-6 sm:px-8 py-3 sm:py-4 w-full sm:w-auto text-sm sm:text-base"
-                >
-                  View All Products
-                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                </Button>
-              </Link>
-            </div>
-          </Card>
+        {/* Mobile CTA */}
+        <div className="mt-10 text-center sm:hidden">
+          <Link to="/products">
+            <Button variant="outline" size="lg" className="w-full max-w-xs">
+              View All Products
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
