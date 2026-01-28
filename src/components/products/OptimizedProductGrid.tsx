@@ -54,20 +54,18 @@ export const OptimizedProductGrid = ({
   const gridStyles = useMemo(() => {
     if (viewMode === 'list') {
       return {
-        display: 'grid',
-        gridTemplateColumns: '1fr',
+        display: 'flex',
+        flexDirection: 'column' as const,
         gap: '1rem',
-        alignItems: 'stretch'
       };
     }
-    
-    // Fluid grid with optimal card sizes - more compact
+
+    // Fluid grid with optimal card sizes
     return {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(min(250px, calc(50% - 0.5rem)), 1fr))',
-      gap: 'clamp(0.5rem, 2vw, 1rem)',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, calc(50% - 0.75rem)), 1fr))',
+      gap: 'clamp(0.75rem, 2vw, 1.5rem)',
       alignItems: 'stretch',
-      justifyItems: 'center'
     };
   }, [viewMode]);
 
@@ -79,12 +77,11 @@ export const OptimizedProductGrid = ({
   const renderLoadingState = useCallback(() => (
     <div className={`${mobileGridClass}`} style={gridStyles}>
       {Array.from({ length: 12 }).map((_, index) => (
-        <div key={index} className="w-full">
-          <UniversalLoading 
-            variant="card" 
-            className="w-full h-full min-h-[350px]"
-          />
-        </div>
+        <UniversalLoading
+          key={index}
+          variant="card"
+          className="w-full h-full min-h-[350px]"
+        />
       ))}
     </div>
   ), [gridStyles, mobileGridClass]);
@@ -120,17 +117,16 @@ export const OptimizedProductGrid = ({
   }
 
   return (
-    <div 
+    <div
       className={`w-full ${mobileGridClass} ${className}`}
       style={gridStyles}
     >
       {products.map((product) => (
-        <div key={product.id} className="w-full flex justify-center">
-          <ProductCard 
-            product={product} 
-            viewMode={viewMode}
-          />
-        </div>
+        <ProductCard
+          key={product.id}
+          product={product}
+          viewMode={viewMode}
+        />
       ))}
     </div>
   );

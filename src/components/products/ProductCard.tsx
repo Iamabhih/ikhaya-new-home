@@ -73,10 +73,10 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   // List View
   if (viewMode === "list") {
     return (
-      <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-2xl">
+      <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-2xl w-full">
         <Link to={productUrl} className="flex flex-row gap-4 p-4">
           {/* Image */}
-          <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0 bg-[#F5F5F0] rounded-xl overflow-hidden">
+          <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0 bg-[#F5F5F0] rounded-xl overflow-hidden">
             {primaryImage ? (
               <OptimizedImage
                 src={getSupabaseImageUrl(primaryImage.image_url)}
@@ -91,27 +91,79 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 <span className="text-xs">No image</span>
               </div>
             )}
+            {/* Sale badge */}
+            {hasDiscount && (
+              <div className="absolute top-2 left-2 z-10">
+                <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
+                  SALE
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Content */}
-          <div className="flex-1 flex flex-col justify-between min-w-0">
+          <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
             <div>
+              {product.categories && (
+                <span className="inline-block text-xs text-primary font-medium mb-1">
+                  {product.categories.name}
+                </span>
+              )}
               <h3 className="font-semibold text-sm sm:text-base text-foreground line-clamp-2 mb-1">
                 {product.name}
               </h3>
               {product.sku && (
                 <p className="text-xs text-muted-foreground mb-2">SKU: {product.sku}</p>
               )}
+              {product.short_description && (
+                <p className="text-xs text-muted-foreground line-clamp-2 hidden sm:block">
+                  {product.short_description}
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between">
-              {!hidePricing ? (
-                <span className="text-base sm:text-lg font-bold text-sale">
-                  R{product.price.toFixed(2)}
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground">Request Quote</span>
-              )}
+            <div className="flex items-center justify-between gap-4 mt-2">
+              <div className="flex items-center gap-2">
+                {!hidePricing ? (
+                  <>
+                    <span className="text-base sm:text-lg font-bold text-sale">
+                      R{product.price.toFixed(2)}
+                    </span>
+                    {hasDiscount && product.compare_at_price && (
+                      <span className="text-xs sm:text-sm text-muted-foreground line-through">
+                        R{product.compare_at_price.toFixed(2)}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Request Quote</span>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 rounded-full ${
+                    inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={handleToggleWishlist}
+                  disabled={loading}
+                >
+                  <Heart className={`h-4 w-4 ${inWishlist ? 'fill-current' : ''}`} />
+                </Button>
+                {isInStock && (
+                  <Button
+                    size="sm"
+                    className="bg-sale hover:bg-sale-hover text-sale-foreground font-semibold rounded-full h-8 px-4"
+                    onClick={handleAddToCart}
+                  >
+                    <ShoppingCart className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Add</span>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </Link>
@@ -121,7 +173,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
 
   // Grid View - New Design matching the catalog image
   return (
-    <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl w-full max-w-[280px] mx-auto">
+    <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl w-full">
       <Link to={productUrl} className="block">
         {/* Image Section with Corner Badges */}
         <div className="relative bg-[#F5F5F0] aspect-square overflow-hidden">
