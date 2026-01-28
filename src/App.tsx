@@ -12,6 +12,7 @@ import { SecurityMonitor } from "@/components/security/SecurityMonitor";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { WhatsAppChatWidget } from "@/components/common/WhatsAppChatWidget";
+import { ScrollToTop } from "@/components/common/ScrollToTop";
 import "./App.css";
 
 // Public pages - loaded immediately
@@ -102,6 +103,7 @@ function App() {
                 <SecurityMonitor />
                 <WhatsAppChatWidget />
                 <BrowserRouter>
+              <ScrollToTop />
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />
