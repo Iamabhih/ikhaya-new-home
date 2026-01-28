@@ -106,7 +106,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
 
             <div className="flex items-center justify-between">
               {!hidePricing ? (
-                <span className="text-base sm:text-lg font-bold text-[#DC3545]">
+                <span className="text-base sm:text-lg font-bold text-sale">
                   R{product.price.toFixed(2)}
                 </span>
               ) : (
@@ -128,7 +128,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           {/* Top Left Badge - SALE only */}
           {hasDiscount && (
             <div className="absolute top-3 left-3 z-10">
-              <span className="inline-block bg-[#DC3545] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
+              <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
                 SALE
               </span>
             </div>
@@ -137,7 +137,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           {/* Top Right Badge - Category */}
           {product.categories && (
             <div className="absolute top-3 right-3 z-10">
-              <span className="inline-block bg-[#0D6EFD] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md uppercase truncate max-w-[100px]">
+              <span className="inline-block bg-info text-info-foreground text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md uppercase truncate max-w-[100px]">
                 {product.categories.name}
               </span>
             </div>
@@ -165,7 +165,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           {/* Bottom Left Badge - SKU */}
           {product.sku && (
             <div className="absolute bottom-3 left-3 z-10">
-              <span className="inline-block bg-[#6C757D] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
+              <span className="inline-block bg-muted-foreground text-background text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
                 {product.sku}
               </span>
             </div>
@@ -174,11 +174,11 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           {/* Bottom Right Badge - Price */}
           <div className="absolute bottom-3 right-3 z-10">
             {!hidePricing ? (
-              <span className="inline-block bg-[#DC3545] text-white text-sm font-bold px-4 py-2 rounded-full shadow-md">
+              <span className="inline-block bg-sale text-sale-foreground text-sm font-bold px-4 py-2 rounded-full shadow-md">
                 R{product.price.toFixed(2)}
               </span>
             ) : (
-              <span className="inline-block bg-[#6C757D] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
+              <span className="inline-block bg-muted-foreground text-background text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
                 Quote
               </span>
             )}
@@ -218,7 +218,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <Button
                 size="sm"
-                className="w-full bg-[#DC3545] hover:bg-[#BB2D3B] text-white font-semibold rounded-full"
+                className="w-full bg-sale hover:bg-sale-hover text-sale-foreground font-semibold rounded-full"
                 onClick={handleAddToCart}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />

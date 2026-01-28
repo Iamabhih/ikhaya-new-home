@@ -41,6 +41,22 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
+    /* Semantic status colors */
+    --success: 142 76% 36%;              /* Green for success states */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;               /* Orange for warnings */
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 52%;                 /* Blue for info states */
+    --info-foreground: 0 0% 100%;
+
+    /* Sale/promotion color - prominent red */
+    --sale: 354 84% 53%;                 /* Red for sale badges and CTAs */
+    --sale-hover: 354 84% 43%;           /* Darker red for hover */
+    --sale-foreground: 0 0% 100%;
+
+    /* Third-party brand colors (for social links etc.) */
+    --whatsapp: 142 70% 49%;             /* WhatsApp green */
+
     /* Borders and inputs - modern subtle greys */
     --border: 220 8% 90%;
     --input: 220 8% 90%;
@@ -127,6 +143,22 @@
 
     --destructive: 0 75% 55%;
     --destructive-foreground: 220 8% 94%;
+
+    /* Semantic status colors for dark mode */
+    --success: 142 76% 46%;
+    --success-foreground: 220 25% 8%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 220 25% 8%;
+    --info: 217 91% 62%;
+    --info-foreground: 220 25% 8%;
+
+    /* Sale/promotion color for dark mode */
+    --sale: 354 84% 58%;
+    --sale-hover: 354 84% 48%;
+    --sale-foreground: 0 0% 100%;
+
+    /* Third-party brand colors */
+    --whatsapp: 142 70% 49%;
 
     --border: 220 15% 18%;
     --input: 220 15% 18%;

@@ -141,7 +141,7 @@ export const TraderApplicationForm = ({ trigger }: TraderApplicationFormProps) =
   };
 
   const defaultTrigger = (
-    <Button className="bg-[#DC3545] hover:bg-[#BB2D3B] text-white font-semibold">
+    <Button className="bg-sale hover:bg-sale-hover text-sale-foreground font-semibold">
       <Building2 className="h-4 w-4 mr-2" />
       Become a Trader
     </Button>
@@ -377,7 +377,7 @@ export const TraderApplicationForm = ({ trigger }: TraderApplicationFormProps) =
               </Button>
               <Button
                 type="submit"
-                className="bg-[#DC3545] hover:bg-[#BB2D3B]"
+                className="bg-sale hover:bg-sale-hover text-sale-foreground"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

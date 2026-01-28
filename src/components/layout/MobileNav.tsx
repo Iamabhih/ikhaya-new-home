@@ -94,7 +94,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
         <div className="pt-4 mt-4 border-t">
           <TraderApplicationForm
             trigger={
-              <Button className="w-full bg-[#DC3545] hover:bg-[#BB2D3B] text-white font-semibold">
+              <Button className="w-full bg-sale hover:bg-sale-hover text-sale-foreground font-semibold">
                 <Building2 className="h-5 w-5 mr-2" />
                 Become a Trader
               </Button>

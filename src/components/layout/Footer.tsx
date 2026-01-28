@@ -151,7 +151,7 @@ export const Footer = () => {
                 href="https://wa.me/27726633544"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-[#25D366] transition-colors"
+                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-whatsapp transition-colors"
               >
                 <MessageCircle className="h-4 w-4" />
                 <span>+27 72 663 3544 (WhatsApp)</span>

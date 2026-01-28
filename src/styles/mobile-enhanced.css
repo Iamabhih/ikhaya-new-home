@@ -1,14 +1,9 @@
-/* Enhanced Mobile Responsiveness for iOS and Android */
-
-/* Banner accessibility improvements */
-@media (prefers-reduced-motion: reduce) {
-  .banner-main,
-  .banner-nav,
-  .banner-strips > * {
-    animation: none !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/*
+ * Enhanced Mobile Responsiveness for iOS and Android
+ * ===================================================
+ * Note: Global reduced-motion styles are in base.css
+ * This file contains mobile-specific enhancements only
+ */
 
 /* Extra small screens (320px and up) */
 @media (max-width: 374px) {
@@ -239,30 +234,27 @@
   }
 }
 
-/* Dark mode mobile adjustments */
+/* Dark mode mobile adjustments - uses CSS variables for consistency */
 @media (prefers-color-scheme: dark) {
   .mobile-dark {
-    background-color: rgb(0 0 0 / 0.95);
+    background-color: hsl(var(--background) / 0.95);
   }
-  
+
   .mobile-dark .card {
-    background-color: rgb(255 255 255 / 0.05);
-    border-color: rgb(255 255 255 / 0.1);
+    background-color: hsl(var(--card) / 0.95);
+    border-color: hsl(var(--border));
   }
 }
 
-/* Reduced motion preferences */
-@media (prefers-reduced-motion: reduce) {
-  .mobile-animations {
-    animation: none !important;
-    transition: none !important;
-  }
-  
-  .mobile-animations * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+/* Mobile-specific animation controls (supplements base.css reduced-motion) */
+.mobile-animations-disabled {
+  animation: none !important;
+  transition: none !important;
+}
+
+.mobile-animations-disabled * {
+  animation: none !important;
+  transition: none !important;
 }
 
 /* Focus management for mobile */

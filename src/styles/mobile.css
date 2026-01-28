@@ -1,24 +1,23 @@
+/*
+ * Mobile-specific optimizations with browser compatibility
+ * ========================================================
+ * Note: Touch target, body, and box-sizing base styles are in base.css
+ * This file contains mobile breakpoint-specific refinements
+ */
 
-/* Mobile-specific optimizations with better browser compatibility */
 @media (max-width: 768px) {
-  /* Larger touch targets for better mobile UX */
-  button, a, [role="button"], [data-clickable] {
+  /*
+   * Touch Target Enhancement (opt-in class)
+   * Use .touch-target class for elements needing 44px minimum
+   * Don't apply globally to avoid breaking UI layouts
+   */
+  .touch-target,
+  [data-clickable] {
     min-height: 44px;
     min-width: 44px;
     touch-action: manipulation;
   }
-  
-  /* Optimize button sizing for small screens */
-  button {
-    padding: 0.75rem 1rem;
-  }
-  
-  /* Better link spacing */
-  a {
-    padding: 0.5rem;
-    margin: 0.125rem;
-  }
-  
+
   /* CRITICAL: Prevent zoom on input focus - use exactly 16px for iOS */
   input[type="text"],
   input[type="email"],
@@ -31,66 +30,50 @@
   select {
     font-size: 16px !important;
     -webkit-appearance: none;
-    border-radius: 0;
     background-color: transparent;
-    -webkit-box-shadow: none;
-    box-shadow: none;
   }
 
   /*
    * Tap Highlight & User Selection Control
-   * ========================================
-   * Provide visual feedback for taps while preserving accessibility
+   * Uses CSS variables for brand consistency
    */
 
   /* Styled buttons with custom hover states can remove tap highlight */
-  button.custom-styled, .custom-button {
+  button.custom-styled,
+  .custom-button {
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Standard buttons and links get primary color tap feedback */
-  button:not(.custom-styled), a {
-    -webkit-tap-highlight-color: rgba(147, 51, 234, 0.2);
+  /* Standard interactive elements get brand color tap feedback */
+  button:not(.custom-styled):not([class*="ghost"]),
+  a:not([class*="ghost"]) {
+    -webkit-tap-highlight-color: hsl(var(--primary) / 0.2);
   }
 
   /* Selective user selection - only disable for interactive elements */
-  button, [role="button"], a.no-select, .no-select {
+  button,
+  [role="button"],
+  .no-select {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
     user-select: none;
   }
 
-  /* Ensure text content remains selectable (default behavior) */
-  input, textarea, [contenteditable] {
+  /* Ensure text content remains selectable */
+  input,
+  textarea,
+  [contenteditable] {
     -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
     user-select: text;
-  }
-
-  /* Prevent mobile rendering issues */
-  body {
-    -webkit-overflow-scrolling: touch;
-    position: relative;
-    min-height: 100vh;
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
   }
 
   /* Ensure proper mobile viewport handling */
   #root {
     min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
     position: relative;
     width: 100%;
     overflow-x: hidden;
-  }
-
-  /* Fix for Chrome mobile and Android browser */
-  html {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
   }
 
   /* Android browser specific optimizations */
@@ -105,25 +88,16 @@
   select {
     background-image: none;
   }
-  
+
   input[type="search"] {
     -webkit-appearance: textfield;
   }
 }
 
-/* Android browser specific fixes */
+/* Small screen specific (supplements responsive.css) */
 @media screen and (max-width: 768px) {
+  html,
   body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-  
-  * {
-    box-sizing: border-box;
-  }
-  
-  html, body {
     overflow-x: hidden;
     width: 100%;
   }
