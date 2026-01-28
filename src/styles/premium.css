@@ -56,6 +56,15 @@
   @apply container mx-auto px-4 sm:px-6 lg:px-8;
 }
 
+/* Consistent section spacing across pages */
+.section-padding {
+  @apply py-16 sm:py-20 lg:py-24;
+}
+
+.section-padding-sm {
+  @apply py-10 sm:py-12 lg:py-16;
+}
+
 /* Enhanced focus states */
 .focus-premium {
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;

@@ -1,18 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { UniversalLoading } from "@/components/ui/universal-loading";
+import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const OptimizedCategoryGrid = () => {
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories-optimized-home'],
     queryFn: async () => {
       console.log('Fetching featured categories for homepage');
-      
-      // First try to fetch from homepage featured categories
+
       const { data: featuredData, error: featuredError } = await supabase
         .from('homepage_featured_categories')
         .select(`
@@ -26,36 +25,34 @@ export const OptimizedCategoryGrid = () => {
         `)
         .eq('is_active', true)
         .order('display_order', { ascending: true });
-      
+
       if (featuredError) {
         console.error('Error fetching featured categories:', featuredError);
         throw featuredError;
       }
-      
-      // If we have featured categories, use them
+
       if (featuredData && featuredData.length > 0) {
         const categoriesWithCounts = await Promise.all(
           featuredData.map(async (item) => {
             const category = item.categories;
             if (!category) return null;
-            
+
             const { count } = await supabase
               .from('products')
               .select('*', { count: 'exact', head: true })
               .eq('category_id', category.id)
               .eq('is_active', true);
-            
+
             return {
               ...category,
               product_count: count || 0
             };
           })
         );
-        
+
         return categoriesWithCounts.filter(Boolean);
       }
-      
-      // Fallback to regular categories if no featured categories are set
+
       const { data, error } = await supabase
         .from('categories')
         .select(`
@@ -69,13 +66,12 @@ export const OptimizedCategoryGrid = () => {
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
         .limit(8);
-      
+
       if (error) {
         console.error('Error fetching categories:', error);
         throw error;
       }
-      
-      // Get product counts for each category
+
       const categoriesWithCounts = await Promise.all(
         (data || []).map(async (category) => {
           const { count } = await supabase
@@ -83,43 +79,33 @@ export const OptimizedCategoryGrid = () => {
             .select('*', { count: 'exact', head: true })
             .eq('category_id', category.id)
             .eq('is_active', true);
-          
+
           return {
             ...category,
             product_count: count || 0
           };
         })
       );
-      
+
       return categoriesWithCounts;
     },
-    staleTime: 600000, // Cache for 10 minutes
-    gcTime: 1200000, // Keep in cache for 20 minutes
+    staleTime: 600000,
+    gcTime: 1200000,
   });
 
   if (error) {
     console.error('Category grid error:', error);
-    return (
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Unable to load categories. Please try again later.</p>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   if (isLoading) {
     return (
-      <section className="py-8 sm:py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">Shop by Category</h2>
-          <UniversalLoading 
-            variant="grid" 
-            count={8} 
-            className="grid-cols-2 md:grid-cols-4" 
+      <section className="py-16 sm:py-20 lg:py-24 bg-muted/30">
+        <div className="container mx-auto px-6 sm:px-8">
+          <UniversalLoading
+            variant="grid"
+            count={8}
+            className="grid-cols-2 md:grid-cols-4"
           />
         </div>
       </section>
@@ -127,53 +113,80 @@ export const OptimizedCategoryGrid = () => {
   }
 
   if (!categories || categories.length === 0) {
-    return (
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No categories available at the moment.</p>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   return (
     <ErrorBoundary>
-      <section className="py-8 sm:py-12 md:py-16 premium-spacing">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 gradient-text-brand">Shop by Category</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+      <section className="py-16 sm:py-20 lg:py-24 bg-muted/30">
+        <div className="container mx-auto px-6 sm:px-8">
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10 sm:mb-12">
+            <div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">
+                Shop by Category
+              </h2>
+              <p className="text-muted-foreground text-sm sm:text-base max-w-md">
+                Explore our curated collections for every room in your home
+              </p>
+            </div>
+            <Link to="/categories" className="hidden sm:block">
+              <Button variant="ghost" className="group text-sm font-medium">
+                All Categories
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Category Grid - Modern Card Layout */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {categories.map((category) => (
-              <Link key={category.id} to={`/categories/${category.slug}`}>
-                <Card className="glass-card hover-lift group border-0 shadow-soft">
-                  <CardContent className="p-3 sm:p-4 md:p-6 text-center">
-                    <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 rounded-full mx-auto mb-3 sm:mb-4 overflow-hidden group-hover:scale-105 transition-transform">
-                      {category.image_url ? (
-                        <img 
-                          src={category.image_url} 
-                          alt={category.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="bg-primary/10 h-full w-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                          <span className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
-                            {category.name.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-premium group-hover:text-primary transition-colors duration-300 text-sm sm:text-base">
-                      {category.name}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-premium-muted mt-1 sm:mt-2">
-                      {category.product_count} products
-                    </p>
-                  </CardContent>
-                </Card>
+              <Link
+                key={category.id}
+                to={`/categories/${category.slug}`}
+                className="group relative block overflow-hidden rounded-xl bg-background aspect-[4/3] shadow-sm hover:shadow-lg transition-all duration-300"
+              >
+                {/* Category Image */}
+                {category.image_url ? (
+                  <img
+                    src={category.image_url}
+                    alt={category.name}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/5" />
+                )}
+
+                {/* Overlay Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                {/* Content */}
+                <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-5">
+                  <h3 className="font-semibold text-white text-base sm:text-lg mb-1 group-hover:translate-y-0 transition-transform">
+                    {category.name}
+                  </h3>
+                  <p className="text-white/80 text-xs sm:text-sm">
+                    {category.product_count} {category.product_count === 1 ? 'product' : 'products'}
+                  </p>
+                </div>
+
+                {/* Hover Arrow */}
+                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                  <ArrowRight className="w-4 h-4 text-white" />
+                </div>
               </Link>
             ))}
+          </div>
+
+          {/* Mobile CTA */}
+          <div className="mt-10 text-center sm:hidden">
+            <Link to="/categories">
+              <Button variant="outline" size="lg" className="w-full max-w-xs">
+                View All Categories
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
