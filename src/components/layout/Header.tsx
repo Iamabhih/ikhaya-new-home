@@ -88,7 +88,7 @@ export const Header = () => {
               {/* Become a Trader Button */}
               <TraderApplicationForm
                 trigger={
-                  <Button size="sm" className="bg-[#DC3545] hover:bg-[#BB2D3B] text-white font-semibold text-xs px-3">
+                  <Button size="sm" className="bg-sale hover:bg-sale-hover text-sale-foreground font-semibold text-xs px-3">
                     <Building2 className="h-3.5 w-3.5 mr-1.5" />
                     Become a Trader
                   </Button>
