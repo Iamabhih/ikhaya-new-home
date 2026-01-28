@@ -335,3 +335,118 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* ===================================================
+ * PWA Standalone Mode Optimizations
+ * ===================================================
+ * Applied when running as installed PWA app
+ */
+
+/* PWA mode - ensure proper scrolling in standalone mode */
+body.pwa-mode {
+  /* Use dynamic viewport height for PWA */
+  min-height: var(--viewport-height, 100vh);
+  /* Ensure smooth scrolling works in standalone */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* PWA safe area handling */
+body.pwa-mode .main-content {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* PWA header adjustments */
+body.pwa-mode header {
+  top: env(safe-area-inset-top);
+}
+
+/* PWA fixed bottom elements */
+body.pwa-mode .fixed-bottom {
+  bottom: env(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ===================================================
+ * Touch Device Optimizations
+ * ===================================================
+ */
+
+/* Touch device class for JS-detected touch devices */
+body.touch-device {
+  /* Ensure touch scrolling is smooth */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent text selection on touch interactions */
+  -webkit-touch-callout: none;
+}
+
+/* Better scrollable areas for touch */
+body.touch-device .scrollable,
+body.touch-device [data-scrollable] {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Prevent pull-to-refresh in scrollable containers */
+body.touch-device .no-pull-refresh {
+  overscroll-behavior-y: contain;
+}
+
+/* ===================================================
+ * Virtual Keyboard Handling
+ * ===================================================
+ */
+
+/* Adjust layout when virtual keyboard is visible */
+@supports (height: 100dvh) {
+  .keyboard-aware {
+    height: var(--visual-viewport-height, 100dvh);
+    transition: height 0.1s ease-out;
+  }
+}
+
+/* Input focus states for mobile */
+@media (max-width: 768px) {
+  input:focus,
+  textarea:focus,
+  select:focus {
+    /* Ensure input is visible above keyboard */
+    scroll-margin-bottom: 120px;
+  }
+}
+
+/* ===================================================
+ * Scroll Container Utilities
+ * ===================================================
+ */
+
+/* Smooth scrolling container */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Momentum scrolling for lists */
+.momentum-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Horizontal scroll snap for carousels */
+.scroll-snap-x {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.scroll-snap-x::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-snap-x > * {
+  scroll-snap-align: start;
+}

@@ -67,7 +67,10 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
   };
 
   return (
-    <div className="md:hidden border-t bg-background">
+    <div
+      className="md:hidden border-t bg-background max-h-[calc(100vh-3.5rem)] overflow-y-auto overscroll-contain scrollable"
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
       <nav className="container mx-auto px-4 py-4">
         <div className="space-y-2">
           {navigationItems.map((item) => {
