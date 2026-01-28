@@ -13,6 +13,7 @@ import { generateOrderId } from "@/utils/payment/PayFastConfig";
 import { ShippingRate, DeliveryAddress } from "@/hooks/useShippingRates";
 import { useShippingSettings } from "@/hooks/useShippingSettings";
 import { useEnhancedCart } from "@/hooks/useEnhancedCart";
+import { useDeliveryFee } from "@/hooks/useDeliveryFee";
 
 interface CheckoutFormProps {
   user: any | null;
@@ -45,6 +46,9 @@ export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliver
   const [liveRatesError, setLiveRatesError] = useState(false);
   
   const { settings: shippingSettings, isLoading: settingsLoading } = useShippingSettings();
+
+  // Get static delivery fee from selected zone (used when ShipLogic is disabled)
+  const { deliveryFee: staticDeliveryFee } = useDeliveryFee(cartTotal, selectedDeliveryZone);
 
   // Build delivery address for ShipLogic API
   const deliveryAddress: DeliveryAddress | null = useMemo(() => {
@@ -81,12 +85,14 @@ export const CheckoutForm = ({ user, onComplete, selectedDeliveryZone, onDeliver
   }, []); // Only on mount
 
   // Calculate delivery fee based on selected option
+  // Uses ShipLogic live rate if available, otherwise falls back to static zone fee
   const deliveryFee = useMemo(() => {
     if (useLiveRates && selectedShippingRate) {
       return selectedShippingRate.rate;
     }
-    return 0; // Will be calculated by DeliveryOptions via useDeliveryFee
-  }, [useLiveRates, selectedShippingRate]);
+    // Use static delivery fee from selected zone
+    return staticDeliveryFee;
+  }, [useLiveRates, selectedShippingRate, staticDeliveryFee]);
 
   const handleShippingRateSelect = (rate: ShippingRate) => {
     setSelectedShippingRate(rate);

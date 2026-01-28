@@ -40,6 +40,46 @@ serve(async (req) => {
       }
     };
 
+    // Helper function to send admin notification for critical errors
+    const notifyAdminOfCriticalError = async (errorType: string, details: any) => {
+      try {
+        // Get admin email from settings or use default
+        const { data: settings } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'admin_notification_email')
+          .single();
+
+        const adminEmail = settings?.value || 'admin@ozzcashandcarry.com';
+
+        // Send via send-email function
+        await supabase.functions.invoke('send-email', {
+          body: {
+            type: 'admin-notification',
+            to: adminEmail,
+            data: {
+              type: 'payment-error',
+              subject: `URGENT: ${errorType}`,
+              message: `A critical payment error occurred that requires immediate attention.`,
+              data: {
+                orderNumber,
+                errorType,
+                paymentId: paymentData?.pf_payment_id,
+                amount: paymentData?.amount_gross,
+                timestamp: new Date().toISOString(),
+                ...details
+              },
+              actionUrl: `https://ozzcashandcarry.com/admin/orders?search=${orderNumber}`,
+              actionText: 'View in Admin Panel'
+            }
+          }
+        });
+        console.log('Admin notification sent for:', errorType);
+      } catch (notifyError) {
+        console.error('Failed to send admin notification:', notifyError);
+      }
+    };
+
     await logPaymentEvent('processing_started', { source, paymentData });
 
     if (!orderNumber) {
@@ -92,6 +132,14 @@ serve(async (req) => {
           recommendation: 'Check if pending order expired or was never created. Payment may need manual reconciliation.'
         }
       );
+
+      // CRITICAL: Send admin notification for orphaned payment
+      await notifyAdminOfCriticalError('Payment Received But Order Not Captured', {
+        reason: 'Pending order not found in database',
+        source: source,
+        dbError: pendingError?.message,
+        action: 'Customer may have paid but order was not created. Contact customer and manually process or refund.'
+      });
 
       return new Response(
         JSON.stringify({
@@ -170,6 +218,17 @@ serve(async (req) => {
         { error: transactionError.message, details: transactionError }
       );
 
+      // CRITICAL: Send admin notification for failed order
+      await notifyAdminOfCriticalError('Order Creation Failed After Payment', {
+        reason: 'Database transaction failed',
+        source: source,
+        dbError: transactionError.message,
+        pendingOrderId: pendingOrder.id,
+        customerEmail: formData.email,
+        cartTotal: cartData.total,
+        action: 'Payment was received but order creation failed. Check stock levels and manually process.'
+      });
+
       return new Response(
         JSON.stringify({
           error: 'Failed to create order',
@@ -192,6 +251,20 @@ serve(async (req) => {
         orderResult.error,
         orderResult
       );
+
+      // CRITICAL: Send admin notification for failed order (e.g., stock issues)
+      await notifyAdminOfCriticalError('Order Creation Failed - Stock or Validation Error', {
+        reason: orderResult.error,
+        source: source,
+        pendingOrderId: pendingOrder.id,
+        customerEmail: formData.email,
+        cartTotal: cartData.total,
+        items: cartData.items?.map((item: any) => ({
+          name: item.product?.name || item.name,
+          quantity: item.quantity
+        })),
+        action: 'Payment was received but order failed validation (likely stock issue). Check inventory and manually process or refund.'
+      });
 
       return new Response(
         JSON.stringify({
