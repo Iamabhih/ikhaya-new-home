@@ -100,24 +100,17 @@ export const OptimizedFeaturedProducts = () => {
   }
 
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-background">
+    <section className="py-16 sm:py-20 lg:py-24 bg-muted/30">
       <div className="container mx-auto px-6 sm:px-8">
-        {/* Section Header - Clean and minimal */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10 sm:mb-12">
-          <div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">
-              Featured Products
-            </h2>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-md">
-              Handpicked selection of premium homeware for your home
-            </p>
-          </div>
-          <Link to="/products" className="hidden sm:block">
-            <Button variant="ghost" className="group text-sm font-medium">
-              View All Products
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Link>
+        {/* Section Header - Decofurn style centered */}
+        <div className="text-center mb-10 sm:mb-14">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3">
+            Featured Products
+          </h2>
+          <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto mb-6">
+            Handpicked selection of quality homeware for every room in your home
+          </p>
+          <div className="w-12 h-0.5 bg-secondary mx-auto" />
         </div>
 
         {/* Product Grid */}
@@ -127,10 +120,14 @@ export const OptimizedFeaturedProducts = () => {
           viewMode="grid"
         />
 
-        {/* Mobile CTA */}
-        <div className="mt-10 text-center sm:hidden">
+        {/* CTA - Centered */}
+        <div className="mt-10 sm:mt-14 text-center">
           <Link to="/products">
-            <Button variant="outline" size="lg" className="w-full max-w-xs">
+            <Button
+              variant="outline"
+              size="lg"
+              className="px-10 py-6 text-sm font-semibold uppercase tracking-wider border-foreground text-foreground hover:bg-foreground hover:text-background transition-all"
+            >
               View All Products
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

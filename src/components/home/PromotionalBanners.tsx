@@ -83,15 +83,15 @@ export const PromotionalBanners = () => {
           />
         )}
 
-        {/* Gradient Overlay - Premium dark gradient for text readability */}
+        {/* Gradient Overlay - Clean dark overlay for furniture imagery */}
         <div
           className="absolute inset-0"
           style={{
             background: currentBanner.image_url
-              ? 'linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%)'
+              ? 'linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%)'
               : currentBanner.background_color
                 ? `linear-gradient(135deg, ${currentBanner.background_color} 0%, ${currentBanner.background_color}dd 100%)`
-                : 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%)'
+                : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'
           }}
         />
       </div>
@@ -133,12 +133,12 @@ export const PromotionalBanners = () => {
               </p>
             )}
 
-            {/* CTA Button */}
+            {/* CTA Button - Clean furniture store style */}
             {currentBanner.button_text && currentBanner.button_url && (
               <Link to={currentBanner.button_url}>
                 <Button
                   size="lg"
-                  className="px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg font-semibold bg-white text-slate-900 hover:bg-white/95 shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 rounded-full"
+                  className="px-8 sm:px-12 py-6 sm:py-7 text-sm sm:text-base font-semibold uppercase tracking-wider bg-white text-slate-900 hover:bg-slate-100 shadow-lg transition-all duration-300 hover:shadow-xl"
                 >
                   {currentBanner.button_text}
                 </Button>

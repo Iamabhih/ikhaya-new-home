@@ -15,28 +15,28 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 9% 12%;
 
-    /* Premium Brand Colors - OZZ Logo */
-    --primary: 274 80% 55%;          /* Vibrant Purple/Magenta */
+    /* Primary Brand Color - Warm Charcoal (Furniture Store Aesthetic) */
+    --primary: 220 10% 16%;             /* Dark charcoal - clean, professional */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 274 80% 65%;     /* Lighter purple for effects */
-    --primary-rgb: 147, 51, 234;     /* RGB values for rgba() transparency effects */
+    --primary-glow: 220 10% 26%;        /* Lighter charcoal for effects */
+    --primary-rgb: 38, 40, 46;          /* RGB values for rgba() transparency effects */
 
-    /* Secondary colors - OZZ Blue */
-    --secondary: 217 91% 60%;        /* OZZ Blue */
+    /* Secondary colors - Warm Amber Accent */
+    --secondary: 32 80% 50%;            /* Warm amber/gold - furniture warmth */
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 217 91% 70%;   /* Lighter blue for effects */
-    --secondary-rgb: 59, 130, 246;   /* RGB values for rgba() transparency effects */
+    --secondary-glow: 32 80% 60%;       /* Lighter amber for effects */
+    --secondary-rgb: 230, 160, 25;      /* RGB values for rgba() transparency effects */
 
-    /* Muted colors - subtle greys for contrast */
-    --muted: 220 6% 96%;
-    --muted-foreground: 220 8% 46%;
-    
+    /* Muted colors - warm greys */
+    --muted: 30 6% 96%;
+    --muted-foreground: 25 5% 45%;
+
     /* Product image background */
     --product-image-bg: 0 0% 100%;
 
-    /* Accent colors - refined charcoal with slight warmth */
-    --accent: 220 12% 88%;
-    --accent-foreground: 220 20% 15%;
+    /* Accent colors - warm light tone */
+    --accent: 30 15% 92%;
+    --accent-foreground: 25 15% 15%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
@@ -57,46 +57,46 @@
     /* Third-party brand colors (for social links etc.) */
     --whatsapp: 142 70% 49%;             /* WhatsApp green */
 
-    /* Borders and inputs - modern subtle greys */
-    --border: 220 8% 90%;
-    --input: 220 8% 90%;
-    --ring: 274 80% 55%;             /* Primary purple for focus rings */
+    /* Borders and inputs - warm subtle greys */
+    --border: 30 8% 90%;
+    --input: 30 8% 90%;
+    --ring: 32 80% 50%;              /* Warm amber for focus rings */
 
     --radius: 0.5rem;
 
-    /* Sidebar - modern sleek styling */
-    --sidebar-background: 220 6% 98%;
-    --sidebar-foreground: 220 12% 25%;
-    --sidebar-primary: 274 80% 55%;
+    /* Sidebar - warm neutral styling */
+    --sidebar-background: 30 6% 98%;
+    --sidebar-foreground: 25 12% 25%;
+    --sidebar-primary: 220 10% 16%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 8% 94%;
-    --sidebar-accent-foreground: 274 80% 55%;
-    --sidebar-border: 220 8% 88%;
-    --sidebar-ring: 274 80% 55%;
+    --sidebar-accent: 30 8% 94%;
+    --sidebar-accent-foreground: 32 80% 50%;
+    --sidebar-border: 30 8% 88%;
+    --sidebar-ring: 32 80% 50%;
 
-    /* Chart colors - OZZ brand palette */
-    --chart-1: 274 80% 55%;          /* Primary purple */
-    --chart-2: 217 91% 60%;          /* OZZ Blue */
-    --chart-3: 328 98% 47%;          /* Hot pink */
-    --chart-4: 187 95% 43%;          /* Cyan */
-    --chart-5: 0 84% 60%;            /* Red */
+    /* Chart colors - warm furniture palette */
+    --chart-1: 220 10% 16%;          /* Charcoal */
+    --chart-2: 32 80% 50%;           /* Amber */
+    --chart-3: 15 70% 50%;           /* Terracotta */
+    --chart-4: 160 40% 45%;          /* Sage green */
+    --chart-5: 0 60% 50%;            /* Warm red */
 
-    /* Premium brand gradients - OZZ */
-    --gradient-primary: linear-gradient(135deg, hsl(274 80% 55%), hsl(274 80% 65%));
-    --gradient-secondary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 70%));
-    --gradient-hero: linear-gradient(135deg, hsl(274 80% 55%) 0%, hsl(328 98% 47%) 50%, hsl(217 91% 60%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(274 80% 98%) 100%);
-    --brand-gradient: linear-gradient(135deg, hsl(274 80% 55%) 0%, hsl(217 91% 60%) 100%);
-    --glass-gradient: linear-gradient(145deg, hsl(274 80% 98% / 0.8) 0%, hsl(220 6% 96% / 0.4) 100%);
+    /* Brand gradients - warm furniture tones */
+    --gradient-primary: linear-gradient(135deg, hsl(220 10% 16%), hsl(220 10% 26%));
+    --gradient-secondary: linear-gradient(135deg, hsl(32 80% 50%), hsl(32 80% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 10% 16%) 0%, hsl(25 15% 30%) 50%, hsl(32 80% 50%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(30 20% 98%) 100%);
+    --brand-gradient: linear-gradient(135deg, hsl(220 10% 16%) 0%, hsl(32 80% 50%) 100%);
+    --glass-gradient: linear-gradient(145deg, hsl(30 20% 98% / 0.8) 0%, hsl(30 6% 96% / 0.4) 100%);
 
-    /* Premium shadows with OZZ brand colors */
-    --shadow-sm: 0 1px 2px 0 hsl(274 80% 55% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(274 80% 55% / 0.1), 0 2px 4px -1px hsl(274 80% 55% / 0.06);
-    --shadow-lg: 0 10px 15px -3px hsl(274 80% 55% / 0.1), 0 4px 6px -2px hsl(274 80% 55% / 0.05);
-    --shadow-xl: 0 20px 25px -5px hsl(274 80% 55% / 0.1), 0 10px 10px -5px hsl(274 80% 55% / 0.04);
-    --shadow-glow: 0 0 20px hsl(274 80% 55% / 0.15);
-    --shadow-glow-secondary: 0 0 20px hsl(217 91% 60% / 0.15);
-    --shadow-premium: 0 10px 30px -10px hsl(274 80% 55% / 0.2), 0 0 40px -10px hsl(274 80% 55% / 0.1);
+    /* Shadows - neutral, clean */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.07), 0 2px 4px -1px hsl(0 0% 0% / 0.04);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.08), 0 4px 6px -2px hsl(0 0% 0% / 0.04);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.08), 0 10px 10px -5px hsl(0 0% 0% / 0.03);
+    --shadow-glow: 0 0 20px hsl(32 80% 50% / 0.12);
+    --shadow-glow-secondary: 0 0 20px hsl(32 80% 50% / 0.12);
+    --shadow-premium: 0 10px 30px -10px hsl(0 0% 0% / 0.12), 0 0 40px -10px hsl(0 0% 0% / 0.06);
     
     /* Glass morphism effects */
     --glass-bg: hsl(0 0% 100% / 0.8);
@@ -112,45 +112,45 @@
   }
 
   .dark {
-    /* Dark mode - sophisticated and modern */
-    --background: 220 25% 8%;
-    --foreground: 220 8% 94%;
+    /* Dark mode - warm furniture aesthetic */
+    --background: 25 15% 8%;
+    --foreground: 30 8% 94%;
 
-    --card: 220 20% 10%;
-    --card-foreground: 220 8% 94%;
+    --card: 25 12% 10%;
+    --card-foreground: 30 8% 94%;
 
-    --popover: 220 20% 10%;
-    --popover-foreground: 220 8% 94%;
+    --popover: 25 12% 10%;
+    --popover-foreground: 30 8% 94%;
 
-    --primary: 274 80% 65%;          /* Lighter purple for dark mode */
-    --primary-foreground: 220 25% 8%;
-    --primary-glow: 274 80% 75%;
-    --primary-rgb: 147, 51, 234;     /* RGB values for rgba() transparency effects */
+    --primary: 30 10% 80%;              /* Light warm tone for dark mode */
+    --primary-foreground: 25 15% 8%;
+    --primary-glow: 30 10% 85%;
+    --primary-rgb: 204, 200, 194;       /* RGB values for rgba() transparency effects */
 
-    --secondary: 217 91% 70%;        /* Lighter blue for dark mode */
-    --secondary-foreground: 220 25% 8%;
-    --secondary-glow: 217 91% 80%;
-    --secondary-rgb: 59, 130, 246;   /* RGB values for rgba() transparency effects */
+    --secondary: 32 80% 60%;            /* Brighter amber for dark mode */
+    --secondary-foreground: 25 15% 8%;
+    --secondary-glow: 32 80% 70%;
+    --secondary-rgb: 230, 170, 50;      /* RGB values for rgba() transparency effects */
 
-    --muted: 220 15% 15%;
-    --muted-foreground: 220 8% 60%;
-    
+    --muted: 25 10% 15%;
+    --muted-foreground: 30 8% 60%;
+
     /* Product image background for dark mode */
     --product-image-bg: 0 0% 100%;
 
-    --accent: 220 15% 18%;
-    --accent-foreground: 220 8% 94%;
+    --accent: 25 10% 18%;
+    --accent-foreground: 30 8% 94%;
 
     --destructive: 0 75% 55%;
-    --destructive-foreground: 220 8% 94%;
+    --destructive-foreground: 30 8% 94%;
 
     /* Semantic status colors for dark mode */
     --success: 142 76% 46%;
-    --success-foreground: 220 25% 8%;
+    --success-foreground: 25 15% 8%;
     --warning: 38 92% 60%;
-    --warning-foreground: 220 25% 8%;
-    --info: 217 91% 62%;
-    --info-foreground: 220 25% 8%;
+    --warning-foreground: 25 15% 8%;
+    --info: 210 70% 62%;
+    --info-foreground: 25 15% 8%;
 
     /* Sale/promotion color for dark mode */
     --sale: 354 84% 58%;
@@ -160,48 +160,48 @@
     /* Third-party brand colors */
     --whatsapp: 142 70% 49%;
 
-    --border: 220 15% 18%;
-    --input: 220 15% 18%;
-    --ring: 274 80% 65%;
-    
-    --sidebar-background: 220 25% 6%;
-    --sidebar-foreground: 220 8% 88%;
-    --sidebar-primary: 274 80% 65%;
-    --sidebar-primary-foreground: 220 25% 8%;
-    --sidebar-accent: 220 15% 12%;
-    --sidebar-accent-foreground: 274 80% 65%;
-    --sidebar-border: 220 15% 15%;
-    --sidebar-ring: 274 80% 65%;
+    --border: 25 10% 18%;
+    --input: 25 10% 18%;
+    --ring: 32 80% 60%;
 
-    /* Chart colors for dark mode - OZZ palette */
-    --chart-1: 274 80% 65%;
-    --chart-2: 217 91% 70%;
-    --chart-3: 328 98% 57%;
-    --chart-4: 187 95% 53%;
-    --chart-5: 0 84% 70%;
+    --sidebar-background: 25 15% 6%;
+    --sidebar-foreground: 30 8% 88%;
+    --sidebar-primary: 32 80% 60%;
+    --sidebar-primary-foreground: 25 15% 8%;
+    --sidebar-accent: 25 10% 12%;
+    --sidebar-accent-foreground: 32 80% 60%;
+    --sidebar-border: 25 10% 15%;
+    --sidebar-ring: 32 80% 60%;
 
-    /* Dark mode gradients - OZZ */
-    --gradient-primary: linear-gradient(135deg, hsl(274 80% 65%), hsl(274 80% 75%));
-    --gradient-secondary: linear-gradient(135deg, hsl(217 91% 70%), hsl(217 91% 80%));
-    --gradient-hero: linear-gradient(135deg, hsl(274 80% 65%) 0%, hsl(328 98% 57%) 50%, hsl(217 91% 70%) 100%);
-    --brand-gradient: linear-gradient(135deg, hsl(274 80% 65%) 0%, hsl(217 91% 70%) 100%);
-    --glass-gradient: linear-gradient(145deg, hsl(220 25% 8% / 0.8) 0%, hsl(220 20% 10% / 0.4) 100%);
+    /* Chart colors for dark mode - warm palette */
+    --chart-1: 30 10% 80%;
+    --chart-2: 32 80% 60%;
+    --chart-3: 15 70% 60%;
+    --chart-4: 160 40% 55%;
+    --chart-5: 0 60% 60%;
+
+    /* Dark mode gradients - warm tones */
+    --gradient-primary: linear-gradient(135deg, hsl(25 15% 12%), hsl(25 12% 18%));
+    --gradient-secondary: linear-gradient(135deg, hsl(32 80% 60%), hsl(32 80% 70%));
+    --gradient-hero: linear-gradient(135deg, hsl(25 15% 8%) 0%, hsl(25 12% 15%) 50%, hsl(32 80% 50%) 100%);
+    --brand-gradient: linear-gradient(135deg, hsl(25 15% 12%) 0%, hsl(32 80% 60%) 100%);
+    --glass-gradient: linear-gradient(145deg, hsl(25 15% 8% / 0.8) 0%, hsl(25 12% 10% / 0.4) 100%);
 
     /* Dark shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(220 25% 0% / 0.3);
-    --shadow-md: 0 4px 6px -1px hsl(220 25% 0% / 0.4), 0 2px 4px -1px hsl(220 25% 0% / 0.2);
-    --shadow-lg: 0 10px 15px -3px hsl(220 25% 0% / 0.4), 0 4px 6px -2px hsl(220 25% 0% / 0.2);
-    --shadow-xl: 0 20px 25px -5px hsl(220 25% 0% / 0.4), 0 10px 10px -5px hsl(220 25% 0% / 0.15);
-    --shadow-glow: 0 0 20px hsl(274 80% 65% / 0.25);
-    --shadow-glow-secondary: 0 0 20px hsl(217 91% 70% / 0.25);
-    --shadow-premium: 0 10px 30px -10px hsl(274 80% 65% / 0.3), 0 0 40px -10px hsl(274 80% 65% / 0.15);
-    
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.4), 0 4px 6px -2px hsl(0 0% 0% / 0.2);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.4), 0 10px 10px -5px hsl(0 0% 0% / 0.15);
+    --shadow-glow: 0 0 20px hsl(32 80% 60% / 0.2);
+    --shadow-glow-secondary: 0 0 20px hsl(32 80% 60% / 0.2);
+    --shadow-premium: 0 10px 30px -10px hsl(0 0% 0% / 0.3), 0 0 40px -10px hsl(0 0% 0% / 0.15);
+
     /* Glass morphism effects for dark mode */
-    --glass-bg: hsl(220 25% 8% / 0.8);
-    --glass-border: hsl(220 15% 18% / 0.2);
-    
+    --glass-bg: hsl(25 15% 8% / 0.8);
+    --glass-border: hsl(25 10% 18% / 0.2);
+
     /* Dark mode card gradient */
-    --gradient-card: linear-gradient(145deg, hsl(220 20% 10%) 0%, hsl(220 15% 15%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(25 12% 10%) 0%, hsl(25 10% 15%) 100%);
   }
 }
 

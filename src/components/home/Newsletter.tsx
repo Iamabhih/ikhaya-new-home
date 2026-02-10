@@ -104,15 +104,15 @@ export const Newsletter = () => {
   };
 
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-foreground text-background">
+    <section className="py-16 sm:py-20 lg:py-24 bg-[#1a1a1a] text-white">
       <div className="container mx-auto px-6 sm:px-8">
         <div className="max-w-xl mx-auto text-center">
           {/* Header */}
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">
-            Stay Updated
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3">
+            Stay In The Loop
           </h2>
-          <p className="text-background/70 mb-8 text-sm sm:text-base max-w-md mx-auto">
-            Subscribe to receive updates on new arrivals, special offers, and home inspiration.
+          <p className="text-white/60 mb-8 text-sm sm:text-base max-w-md mx-auto">
+            Be the first to know about new arrivals, exclusive deals, and home decor inspiration.
           </p>
 
           {/* Form */}
@@ -124,7 +124,7 @@ export const Newsletter = () => {
                 placeholder="First Name"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                className="h-12 bg-background/10 border-background/20 text-background placeholder:text-background/50 focus:bg-background/15 focus:border-background/40"
+                className="h-12 bg-white/5 border-white/15 text-white placeholder:text-white/40 focus:bg-white/10 focus:border-white/30 rounded-none"
                 disabled={loading}
               />
               <Input
@@ -132,7 +132,7 @@ export const Newsletter = () => {
                 placeholder="Last Name"
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                className="h-12 bg-background/10 border-background/20 text-background placeholder:text-background/50 focus:bg-background/15 focus:border-background/40"
+                className="h-12 bg-white/5 border-white/15 text-white placeholder:text-white/40 focus:bg-white/10 focus:border-white/30 rounded-none"
                 disabled={loading}
               />
             </div>
@@ -145,7 +145,7 @@ export const Newsletter = () => {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
-                className="h-12 bg-background/10 border-background/20 text-background placeholder:text-background/50 focus:bg-background/15 focus:border-background/40"
+                className="h-12 bg-white/5 border-white/15 text-white placeholder:text-white/40 focus:bg-white/10 focus:border-white/30 rounded-none"
                 disabled={loading}
               />
               <Input
@@ -153,24 +153,24 @@ export const Newsletter = () => {
                 placeholder="Mobile Number"
                 value={formData.mobile}
                 onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                className="h-12 bg-background/10 border-background/20 text-background placeholder:text-background/50 focus:bg-background/15 focus:border-background/40"
+                className="h-12 bg-white/5 border-white/15 text-white placeholder:text-white/40 focus:bg-white/10 focus:border-white/30 rounded-none"
                 disabled={loading}
               />
             </div>
 
             {/* Subscription Type */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-center gap-4 sm:gap-8 py-2">
-              <span className="text-sm text-background/70">Subscribe to:</span>
+              <span className="text-sm text-white/60">Subscribe to:</span>
               <div className="flex items-center gap-6">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="retail"
                     checked={formData.subscribeRetail}
                     onCheckedChange={(checked) => setFormData({ ...formData, subscribeRetail: checked as boolean })}
-                    className="border-background/40 data-[state=checked]:bg-background data-[state=checked]:text-foreground"
+                    className="border-white/30 data-[state=checked]:bg-white data-[state=checked]:text-[#1a1a1a]"
                     disabled={loading}
                   />
-                  <Label htmlFor="retail" className="text-sm text-background cursor-pointer">
+                  <Label htmlFor="retail" className="text-sm text-white cursor-pointer">
                     Retail
                   </Label>
                 </div>
@@ -179,10 +179,10 @@ export const Newsletter = () => {
                     id="trader"
                     checked={formData.subscribeTrader}
                     onCheckedChange={(checked) => setFormData({ ...formData, subscribeTrader: checked as boolean })}
-                    className="border-background/40 data-[state=checked]:bg-background data-[state=checked]:text-foreground"
+                    className="border-white/30 data-[state=checked]:bg-white data-[state=checked]:text-[#1a1a1a]"
                     disabled={loading}
                   />
-                  <Label htmlFor="trader" className="text-sm text-background cursor-pointer">
+                  <Label htmlFor="trader" className="text-sm text-white cursor-pointer">
                     Trader / Wholesale
                   </Label>
                 </div>
@@ -193,13 +193,13 @@ export const Newsletter = () => {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full sm:w-auto h-12 px-8 bg-background text-foreground hover:bg-background/90 font-medium"
+              className="w-full sm:w-auto h-12 px-10 bg-white text-[#1a1a1a] hover:bg-white/90 font-semibold uppercase tracking-wider text-sm rounded-none"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  Subscribe
+                  Subscribe Now
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </>
               )}
@@ -207,8 +207,8 @@ export const Newsletter = () => {
           </form>
 
           {/* Privacy Note */}
-          <p className="text-background/50 text-xs mt-4">
-            No spam, unsubscribe anytime.
+          <p className="text-white/40 text-xs mt-4">
+            No spam, ever. Unsubscribe anytime.
           </p>
         </div>
       </div>
