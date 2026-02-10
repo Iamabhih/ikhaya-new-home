@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { ProductCard } from './ProductCard';
 import { UniversalLoading } from '@/components/ui/universal-loading';
 import { Card } from '@/components/ui/card';
@@ -49,33 +49,9 @@ export const OptimizedProductGrid = ({
   hasActiveFilters,
   className = ''
 }: OptimizedProductGridProps) => {
-  
-  // Optimized grid styles based on view mode
-  const gridStyles = useMemo(() => {
-    if (viewMode === 'list') {
-      return {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        gap: '1rem',
-      };
-    }
-
-    // Fluid grid with optimal card sizes
-    return {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, calc(50% - 0.75rem)), 1fr))',
-      gap: 'clamp(0.75rem, 2vw, 1.5rem)',
-      alignItems: 'stretch',
-    };
-  }, [viewMode]);
-
-  // Mobile-specific grid adjustments
-  const mobileGridClass = viewMode === 'grid' 
-    ? 'grid-mobile-optimized' 
-    : 'grid-list-mobile-optimized';
 
   const renderLoadingState = useCallback(() => (
-    <div className={`${mobileGridClass}`} style={gridStyles}>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
       {Array.from({ length: 12 }).map((_, index) => (
         <UniversalLoading
           key={index}
@@ -84,23 +60,23 @@ export const OptimizedProductGrid = ({
         />
       ))}
     </div>
-  ), [gridStyles, mobileGridClass]);
+  ), []);
 
   const renderEmptyState = useCallback(() => (
-    <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
+    <Card className="border border-border/40 bg-white">
       <div className="text-center py-16">
-        <div className="w-16 h-16 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <Search className="h-8 w-8 text-primary/60" />
+        <div className="w-16 h-16 bg-muted rounded-full mx-auto mb-4 flex items-center justify-center">
+          <Search className="h-8 w-8 text-muted-foreground" />
         </div>
         <h3 className="text-xl font-semibold mb-2">No Products Found</h3>
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-          {searchQuery 
+          {searchQuery
             ? `No products found matching "${searchQuery}". Try different keywords or browse our categories.`
             : "No products found matching your criteria. Try adjusting your filters."
           }
         </p>
         {(searchQuery || hasActiveFilters) && onClearFilters && (
-          <Button onClick={onClearFilters} className="bg-primary hover:bg-primary/90">
+          <Button onClick={onClearFilters} className="bg-foreground hover:bg-foreground/90 text-background">
             View All Products
           </Button>
         )}
@@ -116,11 +92,22 @@ export const OptimizedProductGrid = ({
     return renderEmptyState();
   }
 
+  if (viewMode === 'list') {
+    return (
+      <div className={`flex flex-col gap-4 w-full ${className}`}>
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            viewMode={viewMode}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`w-full ${mobileGridClass} ${className}`}
-      style={gridStyles}
-    >
+    <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 w-full ${className}`}>
       {products.map((product) => (
         <ProductCard
           key={product.id}

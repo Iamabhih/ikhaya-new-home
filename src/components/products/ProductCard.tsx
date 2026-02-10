@@ -73,10 +73,10 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   // List View
   if (viewMode === "list") {
     return (
-      <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-2xl w-full">
+      <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-lg w-full">
         <Link to={productUrl} className="flex flex-row gap-4 p-4">
           {/* Image */}
-          <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0 bg-[#F5F5F0] rounded-xl overflow-hidden">
+          <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0 bg-[hsl(var(--product-image-bg))] rounded-lg overflow-hidden">
             {primaryImage ? (
               <OptimizedImage
                 src={getSupabaseImageUrl(primaryImage.image_url)}
@@ -91,10 +91,9 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 <span className="text-xs">No image</span>
               </div>
             )}
-            {/* Sale badge */}
             {hasDiscount && (
               <div className="absolute top-2 left-2 z-10">
-                <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
+                <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-2 py-1">
                   SALE
                 </span>
               </div>
@@ -105,16 +104,13 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
             <div>
               {product.categories && (
-                <span className="inline-block text-xs text-primary font-medium mb-1">
+                <span className="inline-block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                   {product.categories.name}
                 </span>
               )}
-              <h3 className="font-semibold text-sm sm:text-base text-foreground line-clamp-2 mb-1">
+              <h3 className="font-medium text-sm sm:text-base text-foreground line-clamp-2 mb-1">
                 {product.name}
               </h3>
-              {product.sku && (
-                <p className="text-xs text-muted-foreground mb-2">SKU: {product.sku}</p>
-              )}
               {product.short_description && (
                 <p className="text-xs text-muted-foreground line-clamp-2 hidden sm:block">
                   {product.short_description}
@@ -126,7 +122,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
               <div className="flex items-center gap-2">
                 {!hidePricing ? (
                   <>
-                    <span className="text-base sm:text-lg font-bold text-sale">
+                    <span className="text-base sm:text-lg font-bold text-foreground">
                       R{product.price.toFixed(2)}
                     </span>
                     {hasDiscount && product.compare_at_price && (
@@ -140,7 +136,6 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 )}
               </div>
 
-              {/* Actions */}
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -156,10 +151,10 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 {isInStock && (
                   <Button
                     size="sm"
-                    className="bg-sale hover:bg-sale-hover text-sale-foreground font-semibold rounded-full h-8 px-4"
+                    className="bg-foreground hover:bg-foreground/90 text-background font-medium h-8 px-4 text-xs"
                     onClick={handleAddToCart}
                   >
-                    <ShoppingCart className="h-4 w-4 sm:mr-2" />
+                    <ShoppingCart className="h-3.5 w-3.5 sm:mr-1.5" />
                     <span className="hidden sm:inline">Add</span>
                   </Button>
                 )}
@@ -171,26 +166,17 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
     );
   }
 
-  // Grid View - New Design matching the catalog image
+  // Grid View - Clean Decofurn-inspired design
   return (
-    <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl w-full">
+    <Card className="group overflow-hidden border border-border/40 bg-white hover:shadow-md transition-all duration-300 rounded-none w-full">
       <Link to={productUrl} className="block">
-        {/* Image Section with Corner Badges */}
-        <div className="relative bg-[#F5F5F0] aspect-square overflow-hidden">
-          {/* Top Left Badge - SALE only */}
+        {/* Image Section - Clean, minimal */}
+        <div className="relative bg-[hsl(var(--product-image-bg))] aspect-square overflow-hidden">
+          {/* Sale badge - Top left only */}
           {hasDiscount && (
             <div className="absolute top-3 left-3 z-10">
-              <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
-                SALE
-              </span>
-            </div>
-          )}
-
-          {/* Top Right Badge - Category */}
-          {product.categories && (
-            <div className="absolute top-3 right-3 z-10">
-              <span className="inline-block bg-info text-info-foreground text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md uppercase truncate max-w-[100px]">
-                {product.categories.name}
+              <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-2.5 py-1 uppercase tracking-wider">
+                Sale
               </span>
             </div>
           )}
@@ -214,34 +200,12 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             )}
           </div>
 
-          {/* Bottom Left Badge - SKU */}
-          {product.sku && (
-            <div className="absolute bottom-3 left-3 z-10">
-              <span className="inline-block bg-muted-foreground text-background text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
-                {product.sku}
-              </span>
-            </div>
-          )}
-
-          {/* Bottom Right Badge - Price */}
-          <div className="absolute bottom-3 right-3 z-10">
-            {!hidePricing ? (
-              <span className="inline-block bg-sale text-sale-foreground text-sm font-bold px-4 py-2 rounded-full shadow-md">
-                R{product.price.toFixed(2)}
-              </span>
-            ) : (
-              <span className="inline-block bg-muted-foreground text-background text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
-                Quote
-              </span>
-            )}
-          </div>
-
-          {/* Wishlist Button - Shows on hover */}
+          {/* Wishlist button - Top right, visible on hover */}
           <Button
             variant="ghost"
             size="icon"
-            className={`absolute top-12 right-3 h-8 w-8 bg-white/90 hover:bg-white shadow-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 ${
-              inWishlist ? 'text-red-500 hover:text-red-600 opacity-100' : 'text-muted-foreground hover:text-foreground'
+            className={`absolute top-3 right-3 h-8 w-8 bg-white/90 hover:bg-white shadow-sm rounded-full z-20 transition-opacity duration-200 ${
+              inWishlist ? 'text-red-500 hover:text-red-600 opacity-100' : 'text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100'
             }`}
             onClick={handleToggleWishlist}
             disabled={loading}
@@ -251,32 +215,56 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
 
           {/* Out of Stock Overlay */}
           {!isInStock && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-              <span className="bg-white text-gray-800 text-xs font-bold px-4 py-2 rounded-full shadow-lg">
+            <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
+              <span className="bg-foreground text-background text-xs font-semibold px-4 py-2 uppercase tracking-wider">
                 Out of Stock
               </span>
             </div>
           )}
         </div>
 
-        {/* Product Name Section */}
-        <div className="p-4 bg-white border-t border-gray-100">
-          <h3 className="font-semibold text-sm text-center text-foreground line-clamp-2 min-h-[2.5rem] uppercase tracking-wide">
+        {/* Product Info - Below image */}
+        <div className="p-4 space-y-2">
+          {/* Category */}
+          {product.categories && (
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              {product.categories.name}
+            </span>
+          )}
+
+          {/* Product Name */}
+          <h3 className="font-medium text-sm text-foreground line-clamp-2 min-h-[2.5rem] leading-tight">
             {product.name}
           </h3>
 
-          {/* Quick Add to Cart - Shows on hover */}
+          {/* Price */}
+          <div className="flex items-center gap-2">
+            {!hidePricing ? (
+              <>
+                <span className={`text-sm font-bold ${hasDiscount ? 'text-sale' : 'text-foreground'}`}>
+                  R{product.price.toFixed(2)}
+                </span>
+                {hasDiscount && product.compare_at_price && (
+                  <span className="text-xs text-muted-foreground line-through">
+                    R{product.compare_at_price.toFixed(2)}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">Request Quote</span>
+            )}
+          </div>
+
+          {/* Add to Cart - Always visible */}
           {isInStock && (
-            <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <Button
-                size="sm"
-                className="w-full bg-sale hover:bg-sale-hover text-sale-foreground font-semibold rounded-full"
-                onClick={handleAddToCart}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Add to Cart
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              className="w-full bg-foreground hover:bg-foreground/90 text-background font-medium text-xs uppercase tracking-wider h-9 rounded-none mt-1"
+              onClick={handleAddToCart}
+            >
+              <ShoppingCart className="h-3.5 w-3.5 mr-2" />
+              Add to Cart
+            </Button>
           )}
         </div>
       </Link>
