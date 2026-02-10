@@ -118,71 +118,65 @@ export const OptimizedCategoryGrid = () => {
 
   return (
     <ErrorBoundary>
-      <section className="py-16 sm:py-20 lg:py-24 bg-muted/30">
+      <section className="py-16 sm:py-20 lg:py-24 bg-white">
         <div className="container mx-auto px-6 sm:px-8">
-          {/* Section Header */}
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10 sm:mb-12">
-            <div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">
-                Shop by Category
-              </h2>
-              <p className="text-muted-foreground text-sm sm:text-base max-w-md">
-                Explore our curated collections for every room in your home
-              </p>
-            </div>
-            <Link to="/categories" className="hidden sm:block">
-              <Button variant="ghost" className="group text-sm font-medium">
-                All Categories
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
+          {/* Section Header - Centered Decofurn style */}
+          <div className="text-center mb-10 sm:mb-14">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3">
+              Shop by Category
+            </h2>
+            <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto mb-6">
+              Explore our curated collections for every room in your home
+            </p>
+            <div className="w-12 h-0.5 bg-secondary mx-auto" />
           </div>
 
-          {/* Category Grid - Modern Card Layout */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          {/* Category Grid - Clean card layout */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
             {categories.map((category) => (
               <Link
                 key={category.id}
                 to={`/categories/${category.slug}`}
-                className="group relative block overflow-hidden rounded-xl bg-background aspect-[4/3] shadow-sm hover:shadow-lg transition-all duration-300"
+                className="group relative block overflow-hidden bg-background aspect-[4/3] transition-all duration-300"
               >
                 {/* Category Image */}
                 {category.image_url ? (
                   <img
                     src={category.image_url}
                     alt={category.name}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     loading="lazy"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/5" />
+                  <div className="absolute inset-0 bg-muted" />
                 )}
 
-                {/* Overlay Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-300" />
 
-                {/* Content */}
-                <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-5">
-                  <h3 className="font-semibold text-white text-base sm:text-lg mb-1 group-hover:translate-y-0 transition-transform">
+                {/* Content - Centered */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                  <h3 className="font-bold text-white text-sm sm:text-base lg:text-lg uppercase tracking-wider mb-1">
                     {category.name}
                   </h3>
-                  <p className="text-white/80 text-xs sm:text-sm">
-                    {category.product_count} {category.product_count === 1 ? 'product' : 'products'}
+                  <p className="text-white/70 text-xs">
+                    {category.product_count} {category.product_count === 1 ? 'item' : 'items'}
                   </p>
-                </div>
-
-                {/* Hover Arrow */}
-                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-                  <ArrowRight className="w-4 h-4 text-white" />
+                  {/* Underline on hover */}
+                  <div className="w-0 group-hover:w-8 h-0.5 bg-white mt-2 transition-all duration-300" />
                 </div>
               </Link>
             ))}
           </div>
 
-          {/* Mobile CTA */}
-          <div className="mt-10 text-center sm:hidden">
+          {/* CTA - Centered */}
+          <div className="mt-10 sm:mt-14 text-center">
             <Link to="/categories">
-              <Button variant="outline" size="lg" className="w-full max-w-xs">
+              <Button
+                variant="outline"
+                size="lg"
+                className="px-10 py-6 text-sm font-semibold uppercase tracking-wider border-foreground text-foreground hover:bg-foreground hover:text-background transition-all"
+              >
                 View All Categories
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
