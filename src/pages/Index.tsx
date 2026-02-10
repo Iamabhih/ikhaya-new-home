@@ -6,7 +6,7 @@ import { OptimizedCategoryGrid } from "@/components/home/OptimizedCategoryGrid";
 import { Newsletter } from "@/components/home/Newsletter";
 import { PromotionalBanners } from "@/components/home/PromotionalBanners";
 import { ValueProposition } from "@/components/home/ValueProposition";
-import { RoomCategories } from "@/components/home/RoomCategories";
+
 import { MobileSafeComponent } from "@/components/common/MobileSafeComponent";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { Suspense, useEffect } from "react";
@@ -45,11 +45,6 @@ const Index = () => {
           <Suspense fallback={<UniversalLoading size="lg" className="py-20" />}>
             <OptimizedCategoryGrid />
           </Suspense>
-        </MobileSafeComponent>
-
-        {/* Shop by Room - Lifestyle sections */}
-        <MobileSafeComponent name="Room Categories">
-          <RoomCategories />
         </MobileSafeComponent>
 
         {/* Featured Products */}
