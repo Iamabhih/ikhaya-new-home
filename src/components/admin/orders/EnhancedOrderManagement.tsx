@@ -13,13 +13,13 @@ import { useRoles } from "@/hooks/useRoles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrderRealtime } from "@/hooks/useOrderRealtime";
 import { cn } from "@/lib/utils";
-import { 
-  Search, 
-  Filter, 
-  Package, 
-  Truck, 
-  CheckCircle, 
-  Clock, 
+import {
+  Search,
+  Filter,
+  Package,
+  Truck,
+  CheckCircle,
+  Clock,
   AlertCircle,
   Eye,
   Send,
@@ -28,7 +28,9 @@ import {
   LayoutGrid,
   List,
   BarChart3,
-  Settings
+  Settings,
+  CreditCard,
+  ShoppingBag
 } from "lucide-react";
 import { OrderDetailModal } from "./OrderDetailModal";
 import { BulkOrderActions } from "./BulkOrderActions";
@@ -53,6 +55,10 @@ interface Order {
   fulfillment_status: string;
   priority: string;
   total_amount: number;
+  subtotal?: number;
+  shipping_amount?: number;
+  payment_status?: string | null;
+  payment_method?: string | null;
   created_at: string;
   updated_at: string;
   tags: string[];
@@ -71,8 +77,31 @@ interface Order {
     product_name: string;
     quantity: number;
     unit_price: number;
+    total_price?: number;
   }>;
 }
+
+const getPaymentStatusColor = (status: string | null | undefined) => {
+  switch (status) {
+    case "completed": return "bg-green-100 text-green-800 border-green-200";
+    case "processing": return "bg-blue-100 text-blue-800 border-blue-200";
+    case "pending": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "failed": return "bg-red-100 text-red-800 border-red-200";
+    case "refunded": return "bg-purple-100 text-purple-800 border-purple-200";
+    default: return "bg-gray-100 text-gray-600 border-gray-200";
+  }
+};
+
+const getPaymentMethodShort = (method: string | null | undefined) => {
+  switch (method) {
+    case "stripe": return "Card";
+    case "payfast": return "PayFast";
+    case "payflex": return "PayFlex";
+    case "eft": return "EFT";
+    case "cod": return "COD";
+    default: return null;
+  }
+};
 
 export const EnhancedOrderManagement = () => {
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
@@ -113,6 +142,10 @@ export const EnhancedOrderManagement = () => {
           fulfillment_status,
           priority,
           total_amount,
+          subtotal,
+          shipping_amount,
+          payment_status,
+          payment_method,
           created_at,
           updated_at,
           tracking_number,
@@ -579,7 +612,7 @@ export const EnhancedOrderManagement = () => {
                         />
                         
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium">{order.order_number}</span>
                             <OrderStatusBadge status={order.status} />
                             <OrderRiskBadge order={order} />
@@ -589,8 +622,20 @@ export const EnhancedOrderManagement = () => {
                                 {order.fulfillment_status}
                               </span>
                             </div>
+                            {order.payment_status && (
+                              <Badge className={cn("text-[10px] gap-1", getPaymentStatusColor(order.payment_status))}>
+                                <CreditCard className="h-3 w-3" />
+                                {order.payment_status}
+                                {getPaymentMethodShort(order.payment_method) && (
+                                  <span className="opacity-70">({getPaymentMethodShort(order.payment_method)})</span>
+                                )}
+                              </Badge>
+                            )}
                             {order.priority === 'urgent' && (
                               <Badge variant="destructive">Urgent</Badge>
+                            )}
+                            {order.priority === 'high' && (
+                              <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[10px]">High</Badge>
                             )}
                             {order.tags && order.tags.length > 0 && (
                               <div className="flex gap-1">
@@ -607,10 +652,20 @@ export const EnhancedOrderManagement = () => {
                               </div>
                             )}
                           </div>
-                          
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <span>{order.email || 'Guest'}</span>
-                            <span>R{order.total_amount.toFixed(2)}</span>
+                            <span className="font-medium text-foreground">R{order.total_amount.toFixed(2)}</span>
+                            {(order.shipping_amount ?? 0) > 0 && (
+                              <span className="flex items-center gap-0.5 text-xs">
+                                <Truck className="h-3 w-3" />
+                                R{order.shipping_amount?.toFixed(2)}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-0.5 text-xs">
+                              <ShoppingBag className="h-3 w-3" />
+                              {order.order_items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0} items
+                            </span>
                             <span>{new Date(order.created_at).toLocaleDateString()}</span>
                           </div>
                         </div>
