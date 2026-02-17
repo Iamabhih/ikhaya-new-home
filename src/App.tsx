@@ -67,6 +67,7 @@ const AdminFulfillment = lazy(() => import("./pages/admin/AdminFulfillment"));
 const AdminGiftCards = lazy(() => import("./pages/admin/AdminGiftCards"));
 const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
 const AdminAbandonedCart = lazy(() => import("./pages/admin/AdminAbandonedCart"));
+const AdminCampaigns = lazy(() => import("./pages/admin/AdminCampaigns"));
 
 // Loading fallback for lazy-loaded components
 const PageLoader = () => (
@@ -154,6 +155,7 @@ function App() {
                  <Route path="/admin/gift-cards" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminGiftCards /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/blog" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminBlog /></Suspense></AdminProtectedRoute>} />
                  <Route path="/admin/abandoned-cart" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminAbandonedCart /></Suspense></AdminProtectedRoute>} />
+                 <Route path="/admin/campaigns" element={<AdminProtectedRoute><Suspense fallback={<PageLoader />}><AdminCampaigns /></Suspense></AdminProtectedRoute>} />
 
                   {/* SuperAdmin only routes - lazy loaded */}
                   <Route path="/admin/users" element={<AdminProtectedRoute requireSuperAdmin={true}><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminProtectedRoute>} />

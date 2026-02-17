@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { 
-  BarChart3, 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  CreditCard, 
-  RotateCcw, 
-  Settings, 
+import {
+  BarChart3,
+  Package,
+  ShoppingCart,
+  Users,
+  CreditCard,
+  RotateCcw,
+  Settings,
   Home,
   Crown,
   Shield,
@@ -17,7 +17,8 @@ import {
   Zap,
   FileText,
   ScrollText,
-  PackageCheck
+  PackageCheck,
+  Flame
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/hooks/useRoles";
@@ -82,10 +83,15 @@ const adminRoutes = [
     url: "/admin/order-recovery", 
     icon: Package 
   },
-  { 
-    title: "Homepage", 
-    url: "/admin/homepage", 
-    icon: Home 
+  {
+    title: "Campaigns",
+    url: "/admin/campaigns",
+    icon: Flame
+  },
+  {
+    title: "Homepage",
+    url: "/admin/homepage",
+    icon: Home
   },
   { 
     title: "Production", 
