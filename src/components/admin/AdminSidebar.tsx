@@ -185,13 +185,8 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
   };
 
   if (!isAdmin() && !isManager()) {
-    console.log(`[AdminSidebar] Access denied - User: ${user?.email}, Roles:`, roles);
-    console.log(`[AdminSidebar] isAdmin(): ${isAdmin()}, isManager(): ${isManager()}`);
     return null;
   }
-
-  console.log(`[AdminSidebar] Rendering sidebar for user: ${user?.email}, Roles:`, roles);
-  console.log(`[AdminSidebar] isAdmin(): ${isAdmin()}, isManager(): ${isManager()}, isSuperAdmin(): ${isSuperAdmin()}`);
 
   return (
     <div className={cn(
@@ -224,7 +219,7 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-8">
+      <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto overscroll-contain">
         {/* Admin/Manager Routes */}
         <div className="space-y-2">
           {!collapsed && (
@@ -232,10 +227,7 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
               {isManager() && !isAdmin() ? 'Manager Access' : 'Core Management'}
             </h3>
           )}
-          {(isManager() && !isAdmin() ? managerRoutes : adminRoutes).map((route) => {
-            console.log(`[AdminSidebar] Rendering route: ${route.url} for user with roles:`, roles);
-            console.log(`[AdminSidebar] isManager(): ${isManager()}, isAdmin(): ${isAdmin()}`);
-            return (
+          {(isManager() && !isAdmin() ? managerRoutes : adminRoutes).map((route) => (
               <NavLink
                 key={route.url}
                 to={route.url}
@@ -255,8 +247,7 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
                 )} />
                 {!collapsed && <span className="truncate">{route.title}</span>}
               </NavLink>
-            );
-          })}
+          ))}
         </div>
 
         {/* SuperAdmin Routes */}

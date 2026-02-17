@@ -37,7 +37,7 @@ const AdminPaymentSettings = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') { // Not found error is OK
-        console.error('Error loading payment settings:', error);
+        toast({ title: "Failed to load settings", description: error.message, variant: "destructive" });
         return;
       }
 
@@ -51,8 +51,8 @@ const AdminPaymentSettings = () => {
           enabled: data.is_enabled
         });
       }
-    } catch (error) {
-      console.error('Error loading payment settings:', error);
+    } catch {
+      toast({ title: "Failed to load settings", description: "Could not connect to the server.", variant: "destructive" });
     }
   };
 

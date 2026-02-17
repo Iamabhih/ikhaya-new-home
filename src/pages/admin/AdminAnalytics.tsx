@@ -3,7 +3,6 @@ import { PremiumRealTimeMetrics } from "@/components/admin/analytics/PremiumReal
 import { OrdersMetrics } from "@/components/admin/orders/OrdersMetrics";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { AdvancedAnalyticsDashboard } from "@/components/admin/analytics/AdvancedAnalyticsDashboard";
 import { CartAbandonmentDashboard } from "@/components/admin/CartAbandonmentDashboard";
 

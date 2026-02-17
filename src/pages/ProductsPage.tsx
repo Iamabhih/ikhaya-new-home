@@ -104,18 +104,6 @@ const ProductsPage = () => {
       settings?.hide_products_without_images
     ],
     queryFn: async () => {
-      console.log('Fetching products with filters:', {
-        searchQuery,
-        categories: facetedFilters.categories || [],
-        brands: facetedFilters.brands || [],
-        priceRange,
-        inStock: facetedFilters.inStock || false,
-        sortBy,
-        page: shouldLoadAll ? 'all' : currentPage,
-        loadAll: shouldLoadAll,
-        hideWithoutImages: settings?.hide_products_without_images
-      });
-
       let query = supabase
         .from('products')
         .select(`
@@ -230,7 +218,6 @@ const ProductsPage = () => {
   const useVirtualization = shouldLoadAll && totalCount > 50;
 
   const handleSearch = (query: string) => {
-    console.log('Search query:', query);
     setSearchQuery(query);
     setCurrentPage(1);
     
@@ -242,9 +229,6 @@ const ProductsPage = () => {
       newParams.delete('search');
     }
     setSearchParams(newParams);
-    
-    // Force refresh of query by updating query key dependencies
-    console.log('Search params updated:', newParams.toString());
   };
 
   const handleFiltersChange = (filters: {
@@ -254,7 +238,6 @@ const ProductsPage = () => {
     priceRanges?: string[];
     inStock?: boolean;
   }) => {
-    console.log('Filters changed:', filters);
     setFacetedFilters(filters);
     setCurrentPage(1);
   };

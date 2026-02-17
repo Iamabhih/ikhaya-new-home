@@ -362,6 +362,30 @@ body.pwa-mode .main-content {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/*
+ * Global Touch Scrolling Fix
+ * ===================================================
+ * Ensures all scrollable containers work smoothly on mobile
+ * This covers all admin modals, dropdowns, and scroll areas
+ */
+
+/* Any element with overflow-y-auto or overflow-auto gets momentum scrolling on iOS */
+@media (hover: none) and (pointer: coarse) {
+  [class*="overflow-y-auto"],
+  [class*="overflow-auto"],
+  [style*="overflow-y: auto"],
+  [style*="overflow: auto"] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Ensure max-h containers with overflow can scroll properly */
+  [class*="max-h-"][class*="overflow"] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
 /* PWA header adjustments */
 body.pwa-mode header {
   top: env(safe-area-inset-top);

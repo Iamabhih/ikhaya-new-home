@@ -56,21 +56,15 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
   }, [currentImageIndex]);
 
   const goToPrevious = () => {
-    console.log('Previous clicked, current index:', currentImageIndex, 'total images:', sortedImages.length);
-    setCurrentImageIndex((prev) => {
-      const newIndex = prev === 0 ? sortedImages.length - 1 : prev - 1;
-      console.log('Moving to index:', newIndex);
-      return newIndex;
-    });
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? sortedImages.length - 1 : prev - 1
+    );
   };
 
   const goToNext = () => {
-    console.log('Next clicked, current index:', currentImageIndex, 'total images:', sortedImages.length);
-    setCurrentImageIndex((prev) => {
-      const newIndex = prev === sortedImages.length - 1 ? 0 : prev + 1;
-      console.log('Moving to index:', newIndex);
-      return newIndex;
-    });
+    setCurrentImageIndex((prev) =>
+      prev === sortedImages.length - 1 ? 0 : prev + 1
+    );
   };
 
   const handleZoomIn = () => {
@@ -226,7 +220,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
                 View product images in fullscreen mode. Use navigation controls to browse through images.
               </DialogDescription>
             </VisuallyHidden>
-            <div className="relative w-full h-[95vh] flex items-center justify-center">
+            <div className="relative w-full h-[95vh] h-[95dvh] flex items-center justify-center">
               {/* Close button */}
               <Button
                 variant="ghost"

@@ -141,21 +141,6 @@ const CartPage = () => {
 
       <main className="container mx-auto px-4 py-6 md:py-8 -mt-4 md:-mt-8 relative z-10">
 
-        {/* DEBUG INFO - Remove in production */}
-        {process.env.NODE_ENV === 'development' && items.length > 0 && (
-          <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
-            <h3 className="font-bold mb-2">Debug Info (development only):</h3>
-            <p className="text-sm">First product keys: {Object.keys(items[0]?.product || {}).join(', ')}</p>
-            {items[0]?.product && (
-              <>
-                <p className="text-sm mt-1">Short description: "{items[0].product.short_description || 'NULL/EMPTY'}"</p>
-                <p className="text-sm mt-1">Description: "{(items[0].product as any).description || 'NULL/EMPTY'}"</p>
-                <p className="text-sm mt-1">Using description: "{getProductDescription(items[0].product) || 'NONE'}"</p>
-              </>
-            )}
-          </div>
-        )}
-
         {!items || items.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingBag className="mx-auto h-24 w-24 text-muted-foreground mb-4" />
@@ -353,7 +338,7 @@ const CartPage = () => {
               }).filter(Boolean)}
             </div>
 
-            <div className="bg-card border border-border/50 rounded-lg p-4 lg:p-6 h-fit lg:sticky lg:top-4">
+            <div className="bg-card border border-border/50 rounded-lg p-4 lg:p-6 h-fit lg:sticky lg:top-20">
               <h2 className="text-lg lg:text-xl font-semibold mb-4">Order Summary</h2>
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm lg:text-base">

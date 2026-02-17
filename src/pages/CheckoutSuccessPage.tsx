@@ -26,18 +26,10 @@ const CheckoutSuccessPage = () => {
       const amount = searchParams.get('amount_gross');
       const orderNumber = searchParams.get('m_payment_id'); // This is our order reference
       
-      console.log('PayFast return parameters:', {
-        paymentId,
-        merchantId,
-        amount,
-        orderNumber
-      });
-
       // If no order number, try to get it from session storage
       let orderRef = orderNumber;
       if (!orderRef) {
         orderRef = sessionStorage.getItem('currentOrderRef');
-        console.log('Order ref from session:', orderRef);
       }
 
       // Log arrival at success page

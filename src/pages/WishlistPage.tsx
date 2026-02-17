@@ -20,11 +20,6 @@ const WishlistPage = () => {
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
   
-  console.log('[WishlistPage] Rendering with:', { 
-    wishlistItemsCount: wishlistItems.length, 
-    userId: user?.id || 'guest' 
-  });
-  
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['wishlist-products', wishlistItems, settings?.hide_products_without_images],
     queryFn: async () => {
