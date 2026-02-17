@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MaintenanceBanner } from "@/components/common/MaintenanceBanner";
 import { OptimizedFeaturedProducts } from "@/components/home/OptimizedFeaturedProducts";
+import { CampaignSection } from "@/components/home/CampaignSection";
 import { OptimizedCategoryGrid } from "@/components/home/OptimizedCategoryGrid";
 import { Newsletter } from "@/components/home/Newsletter";
 import { PromotionalBanners } from "@/components/home/PromotionalBanners";
@@ -47,7 +48,14 @@ const Index = () => {
           </Suspense>
         </MobileSafeComponent>
 
-        {/* Featured Products */}
+        {/* Campaigns */}
+        <MobileSafeComponent name="Campaigns">
+          <Suspense fallback={<UniversalLoading size="lg" className="py-20" />}>
+            <CampaignSection />
+          </Suspense>
+        </MobileSafeComponent>
+
+        {/* Featured Products (fallback when no campaigns are active) */}
         <MobileSafeComponent name="Featured Products">
           <Suspense fallback={<UniversalLoading size="lg" className="py-20" />}>
             <OptimizedFeaturedProducts />
