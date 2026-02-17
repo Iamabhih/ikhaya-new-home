@@ -74,6 +74,9 @@ const AdminFulfillment = () => {
       queryClient.invalidateQueries({ queryKey: ['fulfillment-orders'] });
       setSelectedOrders([]);
     },
+    onError: (error: Error) => {
+      toast({ title: "Failed to fulfill orders", description: error.message, variant: "destructive" });
+    },
   });
 
   // Mark as shipped mutation
@@ -81,7 +84,7 @@ const AdminFulfillment = () => {
     mutationFn: async (orderIds: string[]) => {
       const { error } = await supabase
         .from('orders')
-        .update({ 
+        .update({
           fulfillment_status: 'shipped',
           status: 'shipped',
           shipped_at: new Date().toISOString()
@@ -93,6 +96,9 @@ const AdminFulfillment = () => {
       toast({ title: "Orders marked as shipped" });
       queryClient.invalidateQueries({ queryKey: ['fulfillment-orders'] });
       setSelectedOrders([]);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to ship orders", description: error.message, variant: "destructive" });
     },
   });
 

@@ -56,8 +56,8 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
           text: product.short_description || product.name,
           url: window.location.href,
         });
-      } catch (error) {
-        console.log('Error sharing:', error);
+      } catch {
+        // Share API not supported or cancelled - silently ignore
       }
     } else {
       // Fallback: copy to clipboard

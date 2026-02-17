@@ -10,8 +10,6 @@ export const OptimizedCategoryGrid = () => {
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories-optimized-home'],
     queryFn: async () => {
-      console.log('Fetching featured categories for homepage');
-
       const { data: featuredData, error: featuredError } = await supabase
         .from('homepage_featured_categories')
         .select(`

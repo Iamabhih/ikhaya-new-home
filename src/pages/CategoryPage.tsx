@@ -138,11 +138,9 @@ const CategoryPage = () => {
 
   // Handlers
   const handleSearch = (query: string) => {
-    console.log('Category search query:', query);
     setSearchQuery(query);
     setCurrentPage(1);
-    
-    // Always update URL to reflect search state  
+
     const newParams = new URLSearchParams(searchParams);
     if (query.trim()) {
       newParams.set('search', query.trim());
@@ -150,9 +148,6 @@ const CategoryPage = () => {
       newParams.delete('search');
     }
     setSearchParams(newParams);
-    
-    // Log for debugging
-    console.log('Category search params updated:', newParams.toString());
   };
 
   const handleSortChange = (newSort: string) => {

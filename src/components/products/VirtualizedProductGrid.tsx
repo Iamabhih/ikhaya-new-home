@@ -29,35 +29,34 @@ interface VirtualizedProductGridProps {
 export const VirtualizedProductGrid = ({
   products,
   isLoading,
-  containerHeight = 600,
-  itemHeight = 350
+  containerHeight: propHeight,
+  itemHeight: propItemHeight
 }: VirtualizedProductGridProps) => {
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const [columnsPerRow, setColumnsPerRow] = useState(4);
+
+  // Responsive container and item heights
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const containerHeight = propHeight ?? (viewportWidth < 640 ? 500 : viewportWidth < 1024 ? 550 : 600);
+  const itemHeight = propItemHeight ?? (viewportWidth < 480 ? 280 : viewportWidth < 640 ? 300 : 350);
 
   // Calculate columns based on container width
   useEffect(() => {
     const updateColumns = () => {
       if (!scrollElementRef.current) return;
-      
+
       const containerWidth = scrollElementRef.current.clientWidth;
-      
-      // Calculate columns based on screen width and minimum card width
-      const minCardWidth = 280; // Minimum card width in pixels
-      const gap = 24; // Gap between cards in pixels
-      
-      let columns = Math.floor((containerWidth + gap) / (minCardWidth + gap));
-      
-      // Apply responsive breakpoints
-      if (containerWidth < 480) columns = Math.min(columns, 1); // xs
-      else if (containerWidth < 640) columns = Math.min(columns, 2); // sm
-      else if (containerWidth < 768) columns = Math.min(columns, 2); // md
-      else if (containerWidth < 1024) columns = Math.min(columns, 3); // lg
-      else if (containerWidth < 1280) columns = Math.min(columns, 3); // xl
-      else if (containerWidth < 1536) columns = Math.min(columns, 4); // 2xl
-      else columns = Math.min(columns, 5); // larger screens
-      
-      columns = Math.max(1, Math.min(columns, 5)); // Ensure between 1-5 columns
+
+      // Responsive column calculation
+      let columns: number;
+      if (containerWidth < 375) columns = 1;
+      else if (containerWidth < 640) columns = 2;
+      else if (containerWidth < 768) columns = 2;
+      else if (containerWidth < 1024) columns = 3;
+      else if (containerWidth < 1280) columns = 3;
+      else if (containerWidth < 1536) columns = 4;
+      else columns = 5;
+
       setColumnsPerRow(columns);
     };
 
