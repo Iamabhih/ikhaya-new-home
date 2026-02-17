@@ -635,6 +635,125 @@ export type Database = {
           },
         ]
       }
+      campaign_products: {
+        Row: {
+          campaign_id: string
+          campaign_price: number | null
+          created_at: string
+          discount_percentage: number | null
+          display_order: number
+          id: string
+          is_active: boolean
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          campaign_price?: number | null
+          created_at?: string
+          discount_percentage?: number | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          campaign_price?: number | null
+          created_at?: string
+          discount_percentage?: number | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_products_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "clean_product_performance"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "campaign_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_performance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          badge_text: string | null
+          banner_image_url: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          end_date: string | null
+          id: string
+          is_active: boolean
+          name: string
+          start_date: string | null
+          text_color: string | null
+          theme: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          badge_text?: string | null
+          banner_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          start_date?: string | null
+          text_color?: string | null
+          theme?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          badge_text?: string | null
+          banner_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          start_date?: string | null
+          text_color?: string | null
+          theme?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cart_abandonment_campaigns: {
         Row: {
           campaign_type: string

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔧 Campaign System Activation (Feb 17, 2026)
+
+- **Fixed:** Regenerated Supabase types to include `campaigns` and `campaign_products` tables
+- **Result:** Resolved 15+ TypeScript build errors in `CampaignManagement.tsx` and `CampaignSection.tsx`
+- **Note:** Database tables and RLS policies were already created; only the types file was out of sync
+
 ### 🎉 MAJOR UPDATE: E-Commerce Feature Implementation (Dec 24, 2025)
 
 **Shopify Parity Improved: 63% → 85% (+22 points)**
