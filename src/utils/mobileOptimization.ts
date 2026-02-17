@@ -31,26 +31,37 @@ export const isPWAMode = (): boolean => {
 
 // Track scroll position for body scroll lock
 let scrollPosition = 0;
+let lockCount = 0;
 
 // Lock body scroll (for modals, mobile menus)
+// Uses ref-counting so nested locks/unlocks don't interfere
 export const lockBodyScroll = (): void => {
   if (typeof document === 'undefined') return;
 
+  lockCount++;
+  if (lockCount > 1) return; // Already locked
+
   // Save current scroll position
-  scrollPosition = window.pageYOffset;
+  scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
   document.documentElement.style.setProperty('--scroll-position', `-${scrollPosition}px`);
   document.body.classList.add('scroll-locked');
+  // Set top to maintain visual position while body is fixed
+  document.body.style.top = `-${scrollPosition}px`;
 };
 
 // Unlock body scroll and restore position
 export const unlockBodyScroll = (): void => {
   if (typeof document === 'undefined') return;
 
+  lockCount = Math.max(0, lockCount - 1);
+  if (lockCount > 0) return; // Still locked by another caller
+
   document.body.classList.remove('scroll-locked');
+  document.body.style.top = '';
   document.documentElement.style.removeProperty('--scroll-position');
 
-  // Restore scroll position
-  window.scrollTo(0, scrollPosition);
+  // Restore scroll position using instant behavior to avoid visual jump
+  window.scrollTo({ top: scrollPosition, behavior: 'instant' as ScrollBehavior });
 };
 
 // Check if body scroll is locked
@@ -106,8 +117,9 @@ export const applyMobileOptimizations = (): void => {
   }
 };
 
+// Breakpoints match tailwind.config.ts screens
 export const getMobileBreakpoint = (width: number): 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' => {
-  if (width < 480) return 'xs';
+  if (width < 375) return 'xs';
   if (width < 640) return 'sm';
   if (width < 768) return 'md';
   if (width < 1024) return 'lg';

@@ -55,7 +55,7 @@ export const PromotionalBanners = () => {
 
   if (loading) {
     return (
-      <section className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] bg-muted/30">
+      <section className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] bg-muted/30 -mt-12 xs:-mt-14 sm:-mt-16">
         <div className="absolute inset-0 flex items-center justify-center">
           <UniversalLoading variant="spinner" size="lg" />
         </div>
@@ -70,7 +70,7 @@ export const PromotionalBanners = () => {
   const currentBanner = banners[currentIndex];
 
   return (
-    <section className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden">
+    <section className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden -mt-12 xs:-mt-14 sm:-mt-16">
       {/* Main Banner */}
       <div className="absolute inset-0 transition-opacity duration-700">
         {/* Background Image */}

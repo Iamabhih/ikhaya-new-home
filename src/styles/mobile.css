@@ -108,9 +108,10 @@
     overflow-x: hidden;
   }
 
-  /* Fix for fixed header content offset on mobile */
+  /* Fix for fixed header content offset on mobile
+     Header heights: h-12 (3rem) default, xs:h-14 (3.5rem), sm:h-16 (4rem) */
   .page-content {
-    padding-top: 3.5rem; /* Match header height on mobile */
+    padding-top: 3rem;
   }
 
   /* Ensure cards and containers don't cause horizontal overflow */
@@ -120,11 +121,30 @@
   }
 }
 
+/* Responsive page-content offset at xs breakpoint */
+@media (min-width: 375px) and (max-width: 639px) {
+  .page-content {
+    padding-top: 3.5rem; /* Match xs header h-14 */
+  }
+}
+
 /* Fix iOS Safari address bar issues */
 @supports (-webkit-touch-callout: none) {
   /* iOS only */
   .full-height {
     min-height: -webkit-fill-available;
+  }
+
+  /* Prevent iOS rubber-banding causing layout glitches */
+  html {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  body {
+    overflow: auto;
+    height: 100%;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Ensure scrolling works in standalone PWA mode */
