@@ -68,7 +68,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
 
   return (
     <div
-      className="md:hidden border-t bg-background max-h-[calc(100vh-3.5rem)] overflow-y-auto overscroll-contain scrollable"
+      className="md:hidden border-t bg-background max-h-[calc(100vh-3rem)] xs:max-h-[calc(100vh-3.5rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain scrollable"
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <nav className="container mx-auto px-4 py-4">

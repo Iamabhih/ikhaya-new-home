@@ -13,9 +13,11 @@
   min-height: -webkit-fill-available; /* iOS Safari fallback */
   margin: 0;
   padding: 0;
-  /* Enable natural scrolling */
+  /* Prevent horizontal overflow while allowing vertical scroll
+     Note: overflow-x:hidden + overflow-y:visible is invalid per CSS spec
+     (browsers treat overflow-y as auto), so use auto explicitly */
   overflow-x: hidden;
-  overflow-y: visible;
+  overflow-y: auto;
   /* Prevent content from causing horizontal scroll */
   max-width: 100vw;
 }

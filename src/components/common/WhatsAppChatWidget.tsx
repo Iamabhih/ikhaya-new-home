@@ -39,10 +39,10 @@ export const WhatsAppChatWidget = ({ message = DEFAULT_MESSAGE }: WhatsAppChatWi
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
-      {/* Chat tooltip */}
+    <div className="fixed bottom-4 right-3 xs:bottom-5 xs:right-4 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2 xs:gap-3" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      {/* Chat tooltip - hidden on very small screens to avoid overflow */}
       <div
-        className={`bg-white rounded-full shadow-lg px-4 py-2 flex items-center gap-2 transition-all duration-300 ${
+        className={`hidden xs:flex bg-white rounded-full shadow-lg px-3 py-1.5 xs:px-4 xs:py-2 items-center gap-2 transition-all duration-300 ${
           showTooltip ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none"
         }`}
       >
@@ -59,19 +59,19 @@ export const WhatsAppChatWidget = ({ message = DEFAULT_MESSAGE }: WhatsAppChatWi
         onClick={handleClick}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        className="relative h-14 w-14 rounded-full bg-[#25D366] hover:bg-[#128C7E] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
+        className="relative h-12 w-12 xs:h-14 xs:w-14 rounded-full bg-[#25D366] hover:bg-[#128C7E] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
         aria-label="Chat on WhatsApp"
       >
         {/* Pulse ring animation */}
         {pulseActive && (
           <>
             <span className="absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75 animate-ping"></span>
-            <span className="absolute inline-flex h-16 w-16 rounded-full bg-[#25D366]/30 animate-pulse"></span>
+            <span className="absolute inline-flex h-14 w-14 xs:h-16 xs:w-16 rounded-full bg-[#25D366]/30 animate-pulse"></span>
           </>
         )}
 
         {/* Icon */}
-        <MessageCircle className="h-7 w-7 text-white relative z-10" fill="white" />
+        <MessageCircle className="h-6 w-6 xs:h-7 xs:w-7 text-white relative z-10" fill="white" />
 
         {/* Online indicator badge */}
         <span className="absolute -top-1 -right-1 flex h-4 w-4 z-20">

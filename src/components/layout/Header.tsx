@@ -79,7 +79,7 @@ export const Header = () => {
     setAuthModalOpen(false);
   };
   return <>
-      <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/30 bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/90 transition-all duration-300 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/30 bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/90 transition-all duration-300 shadow-sm" id="site-header">
         <div className="container mx-auto px-2 sm:px-4 lg:px-6 max-w-[100vw]">
           <div className="flex h-12 xs:h-14 sm:h-16 items-center justify-between gap-1 xs:gap-2 sm:gap-4 min-w-0">
             
@@ -267,9 +267,12 @@ export const Header = () => {
         {mobileMenuOpen && <MobileNav user={user} isAdmin={isAdmin() || isManager()} onAuthClick={() => setAuthModalOpen(true)} onSignOut={signOut} onClose={() => setMobileMenuOpen(false)} />}
       </header>
 
+      {/* Spacer to offset fixed header - matches responsive header heights */}
+      <div className="h-12 xs:h-14 sm:h-16 w-full flex-shrink-0" aria-hidden="true" />
+
       {/* Auth Modal */}
       <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} onAuthSuccess={handleAuthSuccess} />
-      
+
       {/* Background Removal Status */}
       <BackgroundRemovalStatus />
     </>;

@@ -8,7 +8,7 @@ export const Footer = () => {
           {/* Brand Section */}
           <div className="space-y-6 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start">
-              <img src="/lovable-uploads/goc-ozz-group.png" alt="OZZ Group of Companies" className="h-64 w-auto" />
+              <img src="/lovable-uploads/goc-ozz-group.png" alt="OZZ Group of Companies" className="h-32 xs:h-40 sm:h-48 md:h-64 w-auto" />
             </div>
             <div className="space-y-2 text-center md:text-left">
               <p className="text-white/90 font-bold text-sm tracking-wide uppercase">Your Trusted</p>

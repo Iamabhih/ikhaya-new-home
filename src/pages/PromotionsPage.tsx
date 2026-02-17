@@ -114,7 +114,7 @@ const PromotionsPage = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-16 flex items-center justify-center min-h-[50vh]">
+        <main className="flex items-center justify-center min-h-[50vh]">
           <LoadingSpinner />
         </main>
         <Footer />
@@ -126,7 +126,7 @@ const PromotionsPage = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-16 container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 py-8">
           <StandardBreadcrumbs items={breadcrumbItems} />
           <div className="text-center py-12">
             <h1 className="text-3xl font-bold mb-4">Promotions</h1>
@@ -254,7 +254,7 @@ const PromotionsPage = () => {
       <meta property="og:description" content={pageDescription} />
 
       <Header />
-      <main className="pt-16 pb-8">
+      <main className="pb-8">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
           <StandardBreadcrumbs items={breadcrumbItems} />
 
