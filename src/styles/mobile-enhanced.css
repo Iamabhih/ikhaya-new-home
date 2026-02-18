@@ -334,8 +334,7 @@
 }
 
 .mobile-modal-content {
-  max-height: calc(100vh - 2rem);
-  max-height: calc(100dvh - 2rem);
+  max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
@@ -450,6 +449,17 @@ body.touch-device .no-pull-refresh {
  * Scroll Container Utilities
  * ===================================================
  */
+
+/* Reusable scrollable-touch utility for any scrollable container */
+.scrollable-touch {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Touch manipulation utility - disables double-tap zoom delay */
+.touch-manipulation {
+  touch-action: manipulation;
+}
 
 /* Smooth scrolling container */
 .smooth-scroll {

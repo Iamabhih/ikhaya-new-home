@@ -161,7 +161,7 @@ export const AutocompleteSearch = ({
       </div>
 
       {isOpen && (
-        <Card className="absolute top-full left-0 right-0 mt-1 z-50 max-h-96 overflow-y-auto">
+        <Card className="absolute top-full left-0 right-0 mt-1 z-50 max-h-96 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
           <CardContent className="p-0">
             {/* Search Suggestions */}
             {suggestions.length > 0 && (

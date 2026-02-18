@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Maximize2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
@@ -9,6 +9,7 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Badge } from "@/components/ui/badge";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { getSupabaseImageUrl } from "@/utils/imageUtils";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 interface ProductImage {
   id: string;
@@ -55,17 +56,30 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
     setImagePosition({ x: 0, y: 0 });
   }, [currentImageIndex]);
 
-  const goToPrevious = () => {
+  const goToPrevious = useCallback(() => {
     setCurrentImageIndex((prev) =>
       prev === 0 ? sortedImages.length - 1 : prev - 1
     );
-  };
+  }, [sortedImages.length]);
 
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     setCurrentImageIndex((prev) =>
       prev === sortedImages.length - 1 ? 0 : prev + 1
     );
-  };
+  }, [sortedImages.length]);
+
+  // Touch swipe for inline gallery
+  const gallerySwipe = useSwipeGesture({
+    onSwipeLeft: goToNext,
+    onSwipeRight: goToPrevious,
+  });
+
+  // Touch swipe for fullscreen (only when not zoomed)
+  const fullscreenSwipe = useSwipeGesture({
+    onSwipeLeft: zoomLevel === 1 ? goToNext : undefined,
+    onSwipeRight: zoomLevel === 1 ? goToPrevious : undefined,
+    onSwipeDown: zoomLevel === 1 ? () => setIsFullscreen(false) : undefined,
+  });
 
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.5, 3));
@@ -116,7 +130,10 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
     }>
       <div className="space-y-4">
         {/* Main Image */}
-        <div className="relative aspect-square overflow-hidden rounded-2xl bg-[hsl(var(--product-image-bg))] shadow-xl group">
+        <div
+          className="relative aspect-square overflow-hidden rounded-2xl bg-[hsl(var(--product-image-bg))] shadow-xl group touch-manipulation"
+          {...gallerySwipe}
+        >
           <div onClick={() => setIsFullscreen(true)} className="cursor-zoom-in">
             <OptimizedImage
               key={currentImage.id}
@@ -184,7 +201,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
 
         {/* Thumbnail Gallery */}
         {sortedImages.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide overscroll-x-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
             {sortedImages.map((image, index) => (
               <button
                 key={image.id}
@@ -213,14 +230,18 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
 
         {/* Fullscreen Modal */}
         <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95">
+          <DialogContent className="max-w-[95vw] max-h-[95dvh] max-h-[95vh] p-0 bg-black/95 overflow-hidden">
             <VisuallyHidden>
               <DialogTitle>Product Image Gallery - {productName}</DialogTitle>
               <DialogDescription>
                 View product images in fullscreen mode. Use navigation controls to browse through images.
               </DialogDescription>
             </VisuallyHidden>
-            <div className="relative w-full h-[95vh] h-[95dvh] flex items-center justify-center">
+            <div
+              className="relative w-full max-h-[95dvh] max-h-[95vh] flex items-center justify-center touch-manipulation"
+              style={{ height: 'min(95dvh, 95vh)' }}
+              {...fullscreenSwipe}
+            >
               {/* Close button */}
               <Button
                 variant="ghost"
@@ -286,12 +307,29 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               )}
 
               {/* Main fullscreen image */}
-              <div 
-                className="w-full h-full flex items-center justify-center overflow-hidden cursor-move"
+              <div
+                className="w-full h-full flex items-center justify-center overflow-hidden cursor-move touch-manipulation"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                onTouchStart={(e) => {
+                  if (zoomLevel > 1 && e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    setIsDragging(true);
+                    setDragStart({ x: touch.clientX - imagePosition.x, y: touch.clientY - imagePosition.y });
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (isDragging && zoomLevel > 1 && e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    setImagePosition({
+                      x: touch.clientX - dragStart.x,
+                      y: touch.clientY - dragStart.y,
+                    });
+                  }
+                }}
+                onTouchEnd={() => setIsDragging(false)}
               >
                 <img
                   ref={imageRef}
