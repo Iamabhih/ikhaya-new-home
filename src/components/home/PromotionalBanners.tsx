@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tables } from "@/integrations/supabase/types";
 import { UniversalLoading } from "@/components/ui/universal-loading";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 type PromotionalBanner = Tables<"promotional_banners">;
 
@@ -45,13 +46,18 @@ export const PromotionalBanners = () => {
     }
   };
 
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     setCurrentIndex(prev => (prev + 1) % banners.length);
-  };
+  }, [banners.length]);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     setCurrentIndex(prev => (prev - 1 + banners.length) % banners.length);
-  };
+  }, [banners.length]);
+
+  const bannerSwipe = useSwipeGesture({
+    onSwipeLeft: nextSlide,
+    onSwipeRight: prevSlide,
+  });
 
   if (loading) {
     return (
@@ -70,7 +76,10 @@ export const PromotionalBanners = () => {
   const currentBanner = banners[currentIndex];
 
   return (
-    <section className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden -mt-12 xs:-mt-14 sm:-mt-16">
+    <section
+      className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden -mt-12 xs:-mt-14 sm:-mt-16 touch-manipulation"
+      {...bannerSwipe}
+    >
       {/* Main Banner */}
       <div className="absolute inset-0 transition-opacity duration-700">
         {/* Background Image */}
