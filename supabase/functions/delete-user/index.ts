@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -74,11 +73,7 @@ serve(async (req) => {
     console.log(`[delete-user] Deleting user ${userId} requested by ${caller.id}`);
 
     // 1. Nullify user_id on orders (preserve orders, remove user link)
-    const { error: ordersError } = await supabase
-      .from("orders")
-      .update({ user_id: null })
-      .eq("user_id", userId);
-    if (ordersError) console.error("[delete-user] orders update error:", ordersError);
+    await supabase.from("orders").update({ user_id: null }).eq("user_id", userId);
 
     // 2. Delete user_roles
     await supabase.from("user_roles").delete().eq("user_id", userId);
@@ -101,10 +96,10 @@ serve(async (req) => {
     // 5. Delete wishlist items
     await supabase.from("wishlist_items").delete().eq("user_id", userId);
 
-    // 6. Delete pending orders
+    // 6. Unlink pending orders
     await supabase.from("pending_orders").update({ user_id: null }).eq("user_id", userId);
 
-    // 7. Delete the profile (this may cascade to auth.users via FK)
+    // 7. Delete the profile
     await supabase.from("profiles").delete().eq("id", userId);
 
     // 8. Delete auth user (requires service role)
