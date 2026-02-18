@@ -74,7 +74,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   if (viewMode === "list") {
     return (
       <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-lg w-full">
-        <Link to={productUrl} className="flex flex-row gap-4 p-4">
+        <Link to={productUrl} className="flex flex-row gap-4 p-4 touch-manipulation">
           {/* Image */}
           <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0 bg-[hsl(var(--product-image-bg))] rounded-lg overflow-hidden">
             {primaryImage ? (
@@ -169,7 +169,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
   // Grid View - Clean Decofurn-inspired design
   return (
     <Card className="group overflow-hidden border border-border/40 bg-white hover:shadow-md transition-all duration-300 rounded-none w-full">
-      <Link to={productUrl} className="block">
+      <Link to={productUrl} className="block touch-manipulation">
         {/* Image Section - Clean, minimal */}
         <div className="relative bg-[hsl(var(--product-image-bg))] aspect-square overflow-hidden">
           {/* Sale badge - Top left only */}

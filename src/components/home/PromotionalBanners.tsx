@@ -177,18 +177,23 @@ export const PromotionalBanners = () => {
           </button>
 
           {/* Slide Indicators - Bottom left, minimal */}
-          <div className="absolute bottom-8 left-6 sm:left-8 lg:left-12 flex items-center gap-2 z-20">
+          <div className="absolute bottom-8 left-6 sm:left-8 lg:left-12 flex items-center z-20">
             {banners.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
-                className={`h-1 rounded-full transition-all duration-300 ${
-                  index === currentIndex
-                    ? 'w-8 bg-white'
-                    : 'w-2 bg-white/40 hover:bg-white/60'
-                }`}
                 aria-label={`Go to slide ${index + 1}`}
-              />
+                aria-current={index === currentIndex ? "true" : undefined}
+                className="flex items-center justify-center px-1.5 py-5"
+              >
+                <span
+                  className={`block h-1 rounded-full transition-all duration-300 ${
+                    index === currentIndex
+                      ? 'w-8 bg-white'
+                      : 'w-2 bg-white/40 hover:bg-white/60'
+                  }`}
+                />
+              </button>
             ))}
           </div>
         </>

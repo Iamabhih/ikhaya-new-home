@@ -135,9 +135,10 @@
     min-height: -webkit-fill-available;
   }
 
-  /* Prevent iOS rubber-banding causing layout glitches */
+  /* Prevent iOS rubber-banding causing layout glitches
+     Note: overflow:hidden removed — it blocked all page scrolling on iOS.
+     body { overflow: auto } handles scroll correctly. */
   html {
-    overflow: hidden;
     height: 100%;
   }
 

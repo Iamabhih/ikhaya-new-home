@@ -56,6 +56,20 @@
     <meta name="twitter:description" content="Your trusted partner for wholesale homeware, kitchenware, and household products.">
     <meta name="twitter:image" content="https://kauostzhxqoxggwqgtym.supabase.co/storage/v1/object/public/site-images//OZZ-logo-transparent-1-1.png">
 
+    <!-- Fix 9: Pre-calculate viewport height BEFORE React mounts to prevent layout flash on mobile.
+         Sets --vh CSS variable synchronously so banners/hero sections render correctly on first paint. -->
+    <script>
+      (function(){
+        var vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', vh + 'px');
+        // Re-calculate on resize (handles mobile address bar show/hide)
+        window.addEventListener('resize', function() {
+          var vh = window.innerHeight * 0.01;
+          document.documentElement.style.setProperty('--vh', vh + 'px');
+        });
+      })();
+    </script>
+
     <!-- Critical CSS inline for instant loading -->
     <style>
       /* Critical loading styles */

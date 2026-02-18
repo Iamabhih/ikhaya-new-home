@@ -206,7 +206,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               <button
                 key={image.id}
                 onClick={() => setCurrentImageIndex(index)}
-                className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-3 transition-all duration-200 ${
+                className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-3 transition-all duration-200 touch-manipulation ${
                   index === currentImageIndex 
                     ? 'border-primary shadow-lg scale-105' 
                     : 'border-transparent hover:border-border/50 hover:scale-102'
@@ -309,12 +309,15 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
               {/* Main fullscreen image */}
               <div
                 className="w-full h-full flex items-center justify-center overflow-hidden cursor-move touch-manipulation"
+                style={{ touchAction: zoomLevel > 1 ? 'none' : 'pan-y' }}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
                 onTouchStart={(e) => {
                   if (zoomLevel > 1 && e.touches.length === 1) {
+                    // Stop propagation so fullscreenSwipe doesn't fire when zoomed
+                    e.stopPropagation();
                     const touch = e.touches[0];
                     setIsDragging(true);
                     setDragStart({ x: touch.clientX - imagePosition.x, y: touch.clientY - imagePosition.y });
@@ -322,6 +325,7 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
                 }}
                 onTouchMove={(e) => {
                   if (isDragging && zoomLevel > 1 && e.touches.length === 1) {
+                    e.stopPropagation();
                     const touch = e.touches[0];
                     setImagePosition({
                       x: touch.clientX - dragStart.x,
@@ -329,7 +333,10 @@ export const ProductImageGallery = ({ images, productName }: ProductImageGallery
                     });
                   }
                 }}
-                onTouchEnd={() => setIsDragging(false)}
+                onTouchEnd={(e) => {
+                  if (zoomLevel > 1) e.stopPropagation();
+                  setIsDragging(false);
+                }}
               >
                 <img
                   ref={imageRef}
