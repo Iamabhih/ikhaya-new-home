@@ -28,6 +28,7 @@ interface AudioProviderProps {
 
 export const AudioProvider = ({ children }: AudioProviderProps) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fadingRef = useRef(false); // Guard: prevents race condition when mute fires mid-fade
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(() => {
     const saved = localStorage.getItem('ozz-audio-muted');
@@ -90,11 +91,13 @@ export const AudioProvider = ({ children }: AudioProviderProps) => {
   const startFadeOut = (duration: number = 3000) => {
     if (!audioRef.current) return;
     
+    fadingRef.current = true;
     const startVolume = audioRef.current.volume;
     const startTime = Date.now();
     
     const fade = () => {
-      if (!audioRef.current) return;
+      // Bail out if mute was toggled or fade was cancelled mid-flight
+      if (!fadingRef.current || !audioRef.current) return;
       
       const elapsed = Date.now() - startTime;
       const progress = elapsed / duration;
@@ -105,6 +108,7 @@ export const AudioProvider = ({ children }: AudioProviderProps) => {
       } else {
         audioRef.current.volume = 0;
         audioRef.current.pause();
+        fadingRef.current = false;
       }
     };
     
@@ -143,6 +147,8 @@ export const AudioProvider = ({ children }: AudioProviderProps) => {
   };
 
   const toggleMute = () => {
+    // Cancel any in-progress fade so it doesn't fight with the mute state
+    fadingRef.current = false;
     setIsMuted(prev => !prev);
   };
 

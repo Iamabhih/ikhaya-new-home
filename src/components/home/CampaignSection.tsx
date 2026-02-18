@@ -142,7 +142,7 @@ const CampaignProductCard = ({
   return (
     <Link
       to={`/products/${product.slug}`}
-      className="group relative flex flex-col bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+      className="group relative flex flex-col bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 touch-manipulation"
     >
       {/* Discount Badge */}
       {discountPct != null && discountPct > 0 && (

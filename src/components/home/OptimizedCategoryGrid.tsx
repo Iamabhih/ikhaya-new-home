@@ -10,9 +10,11 @@ export const OptimizedCategoryGrid = () => {
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories-optimized-home'],
     queryFn: async () => {
+      // Check for featured categories first
       const { data: featuredData, error: featuredError } = await supabase
         .from('homepage_featured_categories')
         .select(`
+          display_order,
           categories:category_id(
             id,
             name,
@@ -30,37 +32,36 @@ export const OptimizedCategoryGrid = () => {
       }
 
       if (featuredData && featuredData.length > 0) {
-        const categoriesWithCounts = await Promise.all(
-          featuredData.map(async (item) => {
+        // Extract category IDs from featured list
+        const categoryIds = featuredData
+          .map((item) => item.categories?.id)
+          .filter(Boolean) as string[];
+
+        // Single aggregated query for product counts across all featured categories
+        const { data: countData } = await supabase
+          .from('products')
+          .select('category_id')
+          .in('category_id', categoryIds)
+          .eq('is_active', true);
+
+        const countMap: Record<string, number> = {};
+        (countData || []).forEach((p) => {
+          if (p.category_id) countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
+        });
+
+        return featuredData
+          .map((item) => {
             const category = item.categories;
             if (!category) return null;
-
-            const { count } = await supabase
-              .from('products')
-              .select('*', { count: 'exact', head: true })
-              .eq('category_id', category.id)
-              .eq('is_active', true);
-
-            return {
-              ...category,
-              product_count: count || 0
-            };
+            return { ...category, product_count: countMap[category.id] || 0 };
           })
-        );
-
-        return categoriesWithCounts.filter(Boolean);
+          .filter(Boolean);
       }
 
+      // Fallback: all active categories (single query with aggregated count)
       const { data, error } = await supabase
         .from('categories')
-        .select(`
-          id,
-          name,
-          slug,
-          description,
-          image_url,
-          sort_order
-        `)
+        .select('id, name, slug, description, image_url, sort_order')
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
         .limit(8);
@@ -70,22 +71,24 @@ export const OptimizedCategoryGrid = () => {
         throw error;
       }
 
-      const categoriesWithCounts = await Promise.all(
-        (data || []).map(async (category) => {
-          const { count } = await supabase
-            .from('products')
-            .select('*', { count: 'exact', head: true })
-            .eq('category_id', category.id)
-            .eq('is_active', true);
+      const categoryIds = (data || []).map((c) => c.id);
 
-          return {
-            ...category,
-            product_count: count || 0
-          };
-        })
-      );
+      // Single aggregated count query — replaces N separate queries
+      const { data: countData } = await supabase
+        .from('products')
+        .select('category_id')
+        .in('category_id', categoryIds)
+        .eq('is_active', true);
 
-      return categoriesWithCounts;
+      const countMap: Record<string, number> = {};
+      (countData || []).forEach((p) => {
+        if (p.category_id) countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
+      });
+
+      return (data || []).map((category) => ({
+        ...category,
+        product_count: countMap[category.id] || 0,
+      }));
     },
     staleTime: 600000,
     gcTime: 1200000,
@@ -135,7 +138,7 @@ export const OptimizedCategoryGrid = () => {
               <Link
                 key={category.id}
                 to={`/categories/${category.slug}`}
-                className="group relative block overflow-hidden bg-background aspect-[4/3] transition-all duration-300"
+                className="group relative block overflow-hidden bg-background aspect-[4/3] transition-all duration-300 touch-manipulation"
               >
                 {/* Category Image */}
                 {category.image_url ? (

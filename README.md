@@ -2,6 +2,8 @@
 
 A modern, full-stack e-commerce platform built with React, TypeScript, and Supabase. Features a complete admin dashboard, payment processing with PayFast, and a responsive user interface.
 
+> **System Status (Feb 18, 2026):** Comprehensive mobile/UX audit completed — 14 issues resolved including iOS scroll conflicts, touch gesture conflicts, N+1 database queries, audio race conditions, cart session deduplication, ARIA accessibility, and 44px tap targets. See `CHANGELOG.md` for full details.
+
 ## 🚀 Live Demo
 
 **Production URL**: [View Live Application](https://lovable.dev/projects/9c0a23d3-ead5-4224-9937-e979356b1411)

@@ -69,7 +69,7 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
   return (
     <div
       className="md:hidden border-t bg-background max-h-[calc(100vh-3rem)] xs:max-h-[calc(100vh-3.5rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain scrollable"
-      style={{ WebkitOverflowScrolling: 'touch' }}
+      style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
     >
       <nav className="container mx-auto px-4 py-4">
         <div className="space-y-2">
@@ -164,10 +164,10 @@ export const MobileNav = ({ user, isAdmin, onAuthClick, onSignOut, onClose }: Mo
                 onAuthClick();
                 onClose();
               }}
-              variant="ghost"
-              className="w-full justify-start px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+              variant="default"
+              className="w-full justify-center px-3 py-3 text-sm font-semibold"
             >
-              <User className="h-5 w-5 mr-3 flex-shrink-0" />
+              <User className="h-5 w-5 mr-2 flex-shrink-0" />
               Sign In
             </Button>
           )}

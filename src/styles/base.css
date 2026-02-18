@@ -221,6 +221,8 @@
     height: -webkit-fill-available;
     /* Prevent any horizontal scroll at document level */
     overflow-x: hidden;
+    /* Fix iOS rubber-band overscroll background bleed (Fix 13) */
+    background-color: hsl(var(--background));
   }
 
   /* Enhanced body styling for cross-browser consistency */

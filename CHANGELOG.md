@@ -7,7 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔧 Comprehensive Mobile & UX Audit — All 14 Fixes (Feb 18, 2026)
+
+**14 issues identified and resolved across mobile UX, gestures, performance, accessibility, and logic.**
+
+#### Fix 1 — iOS Scroll Conflict (`mobile.css`)
+- Removed aggressive `html { overflow: hidden }` from iOS `@supports` block — was blocking all page scroll on iOS
+- Replaced with safe `html { height: 100% }` — body-level scroll handles the rest
+
+#### Fix 2 — Gallery Touch Conflict (`ProductImageGallery.tsx`)
+- Added `e.stopPropagation()` to inner div's `onTouchStart/Move/End` when `zoomLevel > 1`
+- Added `style={{ touchAction: zoomLevel > 1 ? 'none' : 'pan-y' }}` to prevent browser routing events to swipe handler while zoomed
+- Eliminates conflict between drag-when-zoomed and swipe-to-navigate gestures
+
+#### Fix 3 — MobileNav Overscroll (`MobileNav.tsx`)
+- Added `style={{ overscrollBehavior: 'contain' }}` directly to root div — ensures containment regardless of body class
+
+#### Fix 4 — touch-manipulation on Cards (`ProductCard.tsx`, `CampaignSection.tsx`, `OptimizedCategoryGrid.tsx`)
+- Added `touch-manipulation` class to all interactive `<Link>` elements to eliminate 300ms tap delay on mobile
+- Also added to gallery thumbnail `<button>` elements
+
+#### Fix 5 — Banner Indicator Tap Targets (`PromotionalBanners.tsx`)
+- Wrapped each indicator button with `py-5` padding to create 44px invisible tap zone
+- Visual dot appearance (h-1, w-2/w-8) is unchanged
+
+#### Fix 6 — Audio Fade Race Condition (`AudioContext.tsx`)
+- Added `fadingRef = useRef(false)` guard
+- Fade `requestAnimationFrame` loop bails early if `fadingRef.current` becomes false
+- `toggleMute()` now sets `fadingRef.current = false` to cancel any in-progress fade
+
+#### Fix 7 — WhatsApp Widget Cart/Checkout Overlap (`WhatsAppChatWidget.tsx`, `App.tsx`)
+- Widget now uses `useLocation()` to detect `/cart` and `/checkout` routes
+- Adds extra bottom offset on those routes to clear the sticky checkout button
+- Moved widget render inside `<BrowserRouter>` in `App.tsx` to enable `useLocation`
+
+#### Fix 8 — N+1 Query Eliminated (`OptimizedCategoryGrid.tsx`)
+- Replaced per-category `count` queries with a single `products` query using `.in('category_id', ids)`
+- Reduces 9+ network round trips to 2 (one for categories, one for all counts)
+
+#### Fix 9 — Viewport Height Flash (`index.html`)
+- Added synchronous inline `<script>` before React mounts that sets `--vh` CSS variable
+- Also adds `resize` listener to recalculate on mobile address bar show/hide
+- Prevents banner/hero layout jump on first paint on mobile
+
+#### Fix 10 — Cart Session Duplication (`CartContext.tsx`)
+- Removed re-export of `useEnhancedCart` from `EnhancedCartProvider`
+- `CartContext.tsx` now sources exclusively from `@/hooks/useEnhancedCart`
+- Stops double `cart_session_id` creation and double `visibilitychange`/`beforeunload` listeners
+
+#### Fix 11 — ARIA `aria-current` on Banners (`PromotionalBanners.tsx`)
+- Added `aria-current={index === currentIndex ? "true" : undefined}` to each indicator button
+- Screen readers can now identify the active slide
+
+#### Fix 12 — Mobile Sign In CTA (`MobileNav.tsx`)
+- Changed Sign In button from `variant="ghost"` to `variant="default"` with centered, full-width styling
+- Makes sign-in clearly visible as a call-to-action in the mobile menu
+
+#### Fix 13 — iOS Rubber-Band Background (`base.css`)
+- Added `background-color: hsl(var(--background))` to the `html` rule
+- Overscroll bounce now reveals the themed background instead of a white flash
+
+#### Fix 14 — Documentation (this entry)
+
+---
+
 ### 🔧 Campaign System Activation (Feb 17, 2026)
+
 
 - **Fixed:** Regenerated Supabase types to include `campaigns` and `campaign_products` tables
 - **Result:** Resolved 15+ TypeScript build errors in `CampaignManagement.tsx` and `CampaignSection.tsx`

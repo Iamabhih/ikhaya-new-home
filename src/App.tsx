@@ -102,9 +102,9 @@ function App() {
                 <TooltipProvider>
                 <Toaster />
                 <SecurityMonitor />
-                <WhatsAppChatWidget />
                 <BrowserRouter>
               <ScrollToTop />
+              <WhatsAppChatWidget />
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />
