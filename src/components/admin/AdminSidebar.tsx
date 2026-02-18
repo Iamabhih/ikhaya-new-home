@@ -190,7 +190,8 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
 
   return (
     <div className={cn(
-      "flex flex-col bg-card border-r border-border h-full transition-all duration-300 shadow-sm",
+      "flex flex-col bg-card border-r border-border transition-all duration-300 shadow-sm",
+      "lg:sticky lg:top-0 lg:h-screen lg:self-start",
       collapsed ? "w-16" : "w-72"
     )}>
       {/* Header */}
@@ -219,7 +220,7 @@ export const AdminSidebar = ({ collapsed = false, onToggle }: AdminSidebarProps)
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto overscroll-contain">
+      <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto">
         {/* Admin/Manager Routes */}
         <div className="space-y-2">
           {!collapsed && (

@@ -73,15 +73,25 @@ const getPaymentMethodLabel = (method: string | null) => {
 
 const formatAddress = (address: any) => {
   if (!address) return null;
-  const parts = [
-    address.name,
-    address.street,
-    address.suburb,
-    address.city,
-    address.postal_code,
-    address.country,
-  ].filter(Boolean);
-  return parts;
+  // Handle both address formats:
+  // Checkout format: {firstName, lastName, phone, address, city, postalCode, province}
+  // Legacy format:   {name, street, suburb, city, postal_code, country}
+  const name = address.name ||
+    (address.firstName || address.lastName
+      ? `${address.firstName || ""} ${address.lastName || ""}`.trim()
+      : null);
+  const street = address.street || address.address || null;
+  const suburb = address.suburb || null;
+  const city = address.city || null;
+  const postalCode = address.postal_code || address.postalCode || null;
+  const region = address.country || address.province || null;
+  const parts = [name, street, suburb, city, postalCode, region].filter(Boolean);
+  return parts.length > 0 ? parts : null;
+};
+
+const getAddressPhone = (address: any): string | null => {
+  if (!address) return null;
+  return address.phone || null;
 };
 
 const copyToClipboard = (text: string) => {
@@ -233,12 +243,16 @@ export const OrderDetailModal = ({
     });
   };
 
-  const shippingAddr = formatAddress(
-    typeof o.shipping_address === "string" ? JSON.parse(o.shipping_address) : o.shipping_address
-  );
-  const billingAddr = formatAddress(
-    typeof o.billing_address === "string" ? JSON.parse(o.billing_address) : o.billing_address
-  );
+  const rawShipping = typeof o.shipping_address === "string"
+    ? (() => { try { return JSON.parse(o.shipping_address); } catch { return null; } })()
+    : o.shipping_address;
+  const rawBilling = typeof o.billing_address === "string"
+    ? (() => { try { return JSON.parse(o.billing_address); } catch { return null; } })()
+    : o.billing_address;
+
+  const shippingAddr = formatAddress(rawShipping);
+  const billingAddr = formatAddress(rawBilling);
+  const customerPhone = getAddressPhone(rawBilling) || getAddressPhone(rawShipping);
 
   const subtotal = o.subtotal ?? o.total_amount;
   const shippingAmount = o.shipping_amount ?? 0;
@@ -435,25 +449,28 @@ export const OrderDetailModal = ({
                     <p className="text-sm font-medium">
                       {o.profiles?.first_name || o.profiles?.last_name
                         ? `${o.profiles?.first_name || ""} ${o.profiles?.last_name || ""}`.trim()
+                        : rawBilling?.firstName || rawBilling?.lastName
+                        ? `${rawBilling?.firstName || ""} ${rawBilling?.lastName || ""}`.trim()
                         : billingAddr?.[0] || "Guest Customer"}
                     </p>
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground">Email</label>
-                    <p className="text-sm">{o.profiles?.email || o.email || "No email provided"}</p>
+                    <p className="text-sm">{o.profiles?.email || o.email || rawBilling?.email || "No email provided"}</p>
                   </div>
-                  {o.user_id && (
+                  {customerPhone && (
                     <div>
-                      <label className="text-xs text-muted-foreground">Account</label>
-                      <Badge variant="outline" className="text-xs">Registered</Badge>
+                      <label className="text-xs text-muted-foreground">Phone</label>
+                      <p className="text-sm">{customerPhone}</p>
                     </div>
                   )}
-                  {!o.user_id && (
-                    <div>
-                      <label className="text-xs text-muted-foreground">Account</label>
-                      <Badge variant="secondary" className="text-xs">Guest</Badge>
-                    </div>
-                  )}
+                  <div>
+                    <label className="text-xs text-muted-foreground">Account</label>
+                    {o.user_id
+                      ? <Badge variant="outline" className="text-xs">Registered</Badge>
+                      : <Badge variant="secondary" className="text-xs">Guest</Badge>
+                    }
+                  </div>
                   {o.source_channel && (
                     <div>
                       <label className="text-xs text-muted-foreground">Source</label>

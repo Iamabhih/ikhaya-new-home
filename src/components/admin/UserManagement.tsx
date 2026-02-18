@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Search, UserPlus, Edit, Shield } from "lucide-react";
+import { Search, UserPlus, Edit, Shield, Trash2, AlertTriangle } from "lucide-react";
 import { validateEmail, validateName } from "@/utils/validation";
 import type { AppRole } from "@/hooks/useRoles";
 
@@ -34,6 +34,9 @@ export const UserManagement = () => {
   const [selectedRole, setSelectedRole] = useState<AppRole | "all">("all");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   // Fetch users with their roles
   const { data: users, isLoading } = useQuery({
@@ -146,6 +149,43 @@ export const UserManagement = () => {
       toast.error(`Failed to remove role: ${error.message}`);
     },
   });
+
+  // Delete user mutation (calls Edge Function with service role)
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      setDeletingUserId(userId);
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User deleted successfully');
+      setDeleteConfirmOpen(false);
+      setUserToDelete(null);
+    },
+    onError: (error: any) => {
+      console.error('Error deleting user:', error);
+      toast.error(`Failed to delete user: ${error.message}`);
+    },
+    onSettled: () => {
+      setDeletingUserId(null);
+    },
+  });
+
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (userToDelete) {
+      deleteUserMutation.mutate(userToDelete.id);
+    }
+  };
 
   const validateUserForm = (user: Partial<User>): boolean => {
     const errors: string[] = [];
@@ -299,8 +339,8 @@ export const UserManagement = () => {
                     <div className="flex gap-2">
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => setEditingUser(user)}
                           >
@@ -311,7 +351,7 @@ export const UserManagement = () => {
                           <DialogHeader>
                             <DialogTitle>Edit User</DialogTitle>
                           </DialogHeader>
-                          <EditUserForm 
+                          <EditUserForm
                             user={editingUser}
                             onSave={handleUpdateUser}
                             onAssignRole={handleAssignRole}
@@ -321,6 +361,15 @@ export const UserManagement = () => {
                           />
                         </DialogContent>
                       </Dialog>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                        onClick={() => handleDeleteClick(user)}
+                        disabled={deletingUserId === user.id}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -329,6 +378,49 @@ export const UserManagement = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete User Account
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertDescription>
+                This action is <strong>permanent</strong> and cannot be undone. The user's account
+                and all associated data (roles, cart, loyalty points) will be deleted.
+                Their orders will be retained but unlinked from this account.
+              </AlertDescription>
+            </Alert>
+            {userToDelete && (
+              <p className="text-sm">
+                User: <strong>{userToDelete.first_name} {userToDelete.last_name}</strong>{" "}
+                ({userToDelete.email})
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => { setDeleteConfirmOpen(false); setUserToDelete(null); }}
+                disabled={deleteUserMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDelete}
+                disabled={deleteUserMutation.isPending}
+              >
+                {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
