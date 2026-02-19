@@ -154,8 +154,15 @@ export const UserManagement = () => {
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       setDeletingUserId(userId);
+      // Explicitly fetch session token to guarantee it is attached even if the
+      // supabase client's internal session hasn't fully hydrated yet.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authHeaders = sessionData.session?.access_token
+        ? { Authorization: `Bearer ${sessionData.session.access_token}` }
+        : undefined;
       const { data, error } = await supabase.functions.invoke('delete-user', {
         body: { userId },
+        headers: authHeaders,
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

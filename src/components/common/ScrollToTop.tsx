@@ -19,6 +19,11 @@ export const ScrollToTop = () => {
     // container (can happen in certain iOS / PWA CSS configurations)
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+
+    // Also target #root — in some CSS configurations (e.g. overflow set on the
+    // React root div) this is the actual scroll container.
+    const root = document.getElementById('root');
+    if (root) root.scrollTop = 0;
   }, [pathname]);
 
   return null;
