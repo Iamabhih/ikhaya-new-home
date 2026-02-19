@@ -12,7 +12,7 @@ export const AdminLayout = ({ children, hideHeader = false }: AdminLayoutProps) 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="bg-gray-50/50">
       {!hideHeader && <Header />}
 
       <div className="flex flex-col lg:flex-row">
