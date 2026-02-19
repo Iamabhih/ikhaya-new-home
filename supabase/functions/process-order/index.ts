@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -281,18 +280,41 @@ serve(async (req) => {
       orderNumber: orderResult.order_number
     });
 
-    // Send confirmation email (non-critical - don't fail if it errors)
+    // Send confirmation email via send-email function (non-critical - don't fail if it errors)
     try {
-      const { error: emailError } = await supabase.functions.invoke('send-order-confirmation', {
+      const customerName = `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || 'Valued Customer';
+      const { error: emailError } = await supabase.functions.invoke('send-email', {
         body: {
-          orderNumber: orderResult.order_number,
-          customerEmail: formData.email,
-          orderId: orderResult.order_id
+          type: 'order-confirmation',
+          to: formData.email,
+          data: {
+            customerName,
+            orderNumber: orderResult.order_number,
+            orderId: orderResult.order_id,
+            items: (cartData.items || []).map((item: any) => ({
+              name: item.product?.name || item.name || 'Unknown Product',
+              quantity: item.quantity || 1,
+              price: item.product?.price || item.price || 0,
+              total: (item.product?.price || item.price || 0) * (item.quantity || 1),
+            })),
+            subtotal,
+            shipping: shippingAmount,
+            total: pendingOrder.total_amount,
+            shippingAddress: {
+              name: `${addressData.firstName} ${addressData.lastName}`.trim(),
+              address: addressData.address,
+              city: addressData.city,
+              postalCode: addressData.postalCode,
+              province: addressData.province,
+            },
+          }
         }
       });
 
       if (emailError) {
         console.error('Email send failed (non-critical):', emailError);
+      } else {
+        console.log('Order confirmation email sent to:', formData.email);
       }
     } catch (emailError) {
       console.error('Email service error (non-critical):', emailError);

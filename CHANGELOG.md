@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔒 Full System Stabilisation Audit — 23 Issues Resolved (Feb 19, 2026)
+
+**Critical fixes, edge function modernisation, database security hardening, and consistency cleanup.**
+
+#### Critical Fix — Order Confirmation Emails Were Broken (`process-order`)
+- Replaced non-existent `send-order-confirmation` function call with correct `send-email` invocation
+- Email now sends full confirmation payload: customer name, order items, totals, shipping address
+- Every successful PayFast payment now correctly triggers a confirmation email to the customer
+
+#### Edge Function Modernisation — 7 Functions Updated
+- Replaced deprecated `import { serve } from "https://deno.land/std@0.168.0/http/server.ts"` pattern
+- All 7 functions now use `Deno.serve(async (req: Request) => {...})` — no import needed
+- Functions updated: `process-order`, `payfast-webhook`, `reconcile-payment`, `get-shipping-rates`, `manage-api-key`, `create-shipment`, `analytics-stream`
+
+#### Database Security — `SET search_path = public` on 7 Functions
+- Added pinned `search_path` to prevent search-path injection attacks on:
+  `handle_updated_at`, `update_campaigns_updated_at`, `update_updated_at_column`,
+  `update_product_stock(uuid, integer)`, `search_products`, `generate_quote_number`, `set_quote_number`
+
+#### Database Security — RLS Policy Hardening on 8 Tables
+- Replaced overly-permissive `USING (true)` ALL policies with scoped access:
+  - `auth_rate_limits`: anon INSERT + service_role UPDATE/DELETE
+  - `batch_progress`: authenticated/service_role only
+  - `cart_analytics_snapshots`: service_role writes, authenticated reads
+  - `cart_sessions`: anon INSERT, own-user UPDATE
+  - `customer_engagement_metrics`: service_role manages, users read own
+  - `enhanced_cart_tracking`: anon INSERT, service_role UPDATE/DELETE
+  - `processing_sessions`: service_role only
+  - `order_status_history`: authenticated + service_role
+
+#### Consistency Fix — `tracking_company` Column Reference (`send-order-notification`)
+- Removed invalid `order.tracking_company` reference (column does not exist on `orders` table)
+- Now sources carrier name from `metadata.tracking_company` passed at call-time, falls back to 'ShipLogic'
+
+#### Structural Fix — `App.tsx` JSX Cleanup
+- Moved `<Toaster />` and `<SecurityMonitor />` inside `<BrowserRouter>` — both now have full router context
+- Standardised 2-space indentation throughout the component tree
+
+#### Known Dashboard-Only Items (Require Manual Action in Supabase)
+- **OTP expiry too long** → Auth > Settings > OTP expiry (reduce to ≤ 1 hour)
+- **Leaked password protection disabled** → Auth > Settings > Enable HaveIBeenPwned check
+- **Postgres version has patches** → Infrastructure > Upgrade Postgres
+
+
+
 ### 🔧 Comprehensive Mobile & UX Audit — All 14 Fixes (Feb 18, 2026)
 
 **14 issues identified and resolved across mobile UX, gestures, performance, accessibility, and logic.**

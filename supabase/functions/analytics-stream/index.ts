@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -18,7 +17,7 @@ const PING_INTERVAL = 30000; // 30 seconds
 const CLIENT_TIMEOUT = 90000; // 90 seconds
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   const { headers } = req;
   const upgradeHeader = headers.get("upgrade") || "";
 
