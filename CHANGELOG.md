@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fix — Trader Application Approval: null user_id hard-fail (Feb 19, 2026)
+
+#### Root Cause
+The live `approve_trader_application` DB function was overwritten with a broken version that called `RAISE EXCEPTION 'Application not found or user_id is null'` when `user_id IS NULL`. The trader application form explicitly allows guest submissions (`user_id: user?.id || null`), so every guest application was permanently blocked from approval.
+
+#### Fix — DB function rewritten (migration)
+- `approve_trader_application` now gracefully handles null `user_id`
+- Tries email-based lookup in `profiles` as fallback (catches applicants who later sign up)
+- Marks application as `approved` regardless of whether a user account exists
+- Only assigns `wholesale` role in `user_roles` if a matching user account is found
+- No longer hard-fails — removed the broken exception block
+
+#### Fix — TraderApplications UI
+- Applications with no linked account now show an **"No Account"** badge in the table row and detail dialog
+- The approval dialog shows an amber warning banner explaining the wholesale role cannot be auto-assigned until the applicant registers with their email
+- Approve button label changes to "Approve (No Account)" vs "Approve & Assign Role" based on user_id presence
+
 ### 🐛 DEFINITIVE Fix — getClaims Auth + Scroll Root Causes (Feb 19, 2026)
 
 #### Fix 1 — `delete-user` 401: `auth.getUser()` failing in Deno edge runtime
