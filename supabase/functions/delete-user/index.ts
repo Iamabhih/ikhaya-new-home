@@ -19,22 +19,34 @@ Deno.serve(async (req: Request) => {
 
     // Verify the calling user is a superadmin
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Use getClaims() for local JWT verification — no network call needed
+    // This is the correct approach for Supabase Edge Functions
+    const token = authHeader.replace("Bearer ", "");
     const callerClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user: caller }, error: authError } = await callerClient.auth.getUser();
-    if (authError || !caller) {
+    const { data: claimsData, error: authError } = await callerClient.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
+      console.error("[delete-user] getClaims error:", authError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const callerId = claimsData.claims.sub as string;
+    if (!callerId) {
+      return new Response(JSON.stringify({ error: "Unauthorized: no user id in token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -44,7 +56,7 @@ Deno.serve(async (req: Request) => {
     const { data: callerRoles } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id);
+      .eq("user_id", callerId);
 
     const isSuperAdmin = callerRoles?.some((r: any) => r.role === "superadmin");
     if (!isSuperAdmin) {
@@ -63,14 +75,14 @@ Deno.serve(async (req: Request) => {
     }
 
     // Prevent self-deletion
-    if (userId === caller.id) {
+    if (userId === callerId) {
       return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`[delete-user] Deleting user ${userId} requested by ${caller.id}`);
+    console.log(`[delete-user] Deleting user ${userId} requested by ${callerId}`);
 
     // 1. Nullify user_id on orders (preserve orders, remove user link)
     await supabase.from("orders").update({ user_id: null }).eq("user_id", userId);
@@ -99,14 +111,10 @@ Deno.serve(async (req: Request) => {
     // 6. Unlink pending orders
     await supabase.from("pending_orders").update({ user_id: null }).eq("user_id", userId);
 
-    // 7. Delete product_imports — this table had no ON DELETE rule (defaults to
-    //    RESTRICT) so it blocked auth.admin.deleteUser() when a user had import
-    //    records.  Explicitly remove them here; the migration also adds ON DELETE
-    //    CASCADE as a database-level safety net.
+    // 7. Delete product_imports
     await supabase.from("product_imports").delete().eq("user_id", userId);
 
     // 8. Nullify security_audit_log user references — preserve compliance logs
-    //    but remove the FK reference so deleteUser() is not blocked.
     await supabase
       .from("security_audit_log")
       .update({ user_id: null })
@@ -141,7 +149,7 @@ Deno.serve(async (req: Request) => {
     // 14. Delete the profile
     await supabase.from("profiles").delete().eq("id", userId);
 
-    // 10. Delete auth user (requires service role)
+    // 15. Delete auth user (requires service role)
     const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId);
     if (deleteAuthError) {
       console.error("[delete-user] auth.admin.deleteUser error:", deleteAuthError);
