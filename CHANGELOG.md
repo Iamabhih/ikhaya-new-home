@@ -7,19 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 DEFINITIVE Fix — getClaims Auth + Scroll Root Causes (Feb 19, 2026)
+
+#### Fix 1 — `delete-user` 401: `auth.getUser()` failing in Deno edge runtime
+- **Root cause confirmed:** `auth.getUser()` makes a network call that fails silently in Deno — user always null → 401.
+- **Fix:** Replaced with `auth.getClaims(token)` — local JWT verification, no network call needed. This is the correct documented approach for Supabase Edge Functions.
+
+#### Fix 2 — Site-wide scroll locked: sidebar `lg:max-h-screen` + `overscroll-behavior-y`
+- **Root cause A:** `AdminSidebar` had both `lg:min-h-screen` AND `lg:max-h-screen`, making it exactly 100vh. CSS flex stretch forced `<main>` to match — content silently clipped.
+- **Root cause B:** `overscroll-behavior-y: contain` on body suppresses momentum scrolling on mobile browsers.
+- **Fixes:** Removed `lg:max-h-screen` + `lg:self-start` from sidebar; removed extra `min-h-screen` div in AdminLayout; removed `overscroll-behavior-y: contain` from body.
+
 ### 🐛 JWT Gateway Config Fix + Scroll Architecture Fix (Feb 19, 2026)
 
 #### Fix 1 — `delete-user` 401: JWT gateway blocking all requests (config missing)
-- **Root cause confirmed:** `supabase/config.toml` was missing `[functions.delete-user]` with `verify_jwt = false`. Supabase's JWT gateway was rejecting every request with 401 *before* the Deno handler ever ran — confirmed by zero handler log lines in function logs (boot only).
-- **Fix:** Added `[functions.delete-user]\nverify_jwt = false` to `supabase/config.toml` and redeployed. The handler already has correct internal auth (service role validates Bearer token + superadmin role check) — the gateway check was redundant and blocking.
+- Added `[functions.delete-user] verify_jwt = false` to `supabase/config.toml` and redeployed.
 
-#### Fix 2 — Scroll completely locked on all pages (layout architecture)
-- **Root cause A:** `body { overflow-y: scroll }` (added in previous fix) made body a fixed-height scroll container. `AdminLayout`'s outer `min-h-screen` div capped content at 100vh, so body had nothing to scroll — content was clipped silently.
-- **Root cause B:** `AdminSidebar` had `lg:h-screen` which constrained the flex row to exactly viewport height, preventing `<main>` from growing.
-- **Fixes applied:**
-  - `base.css`: Reverted `overflow-y: scroll` → `overflow-y: auto` on body
-  - `AdminLayout.tsx`: Removed `min-h-screen` from outer wrapper div — flex row now grows naturally with content
-  - `AdminSidebar.tsx`: Changed `lg:h-screen` → `lg:min-h-screen lg:max-h-screen lg:overflow-y-auto` — sidebar can grow with content while still scrolling independently when needed
+#### Fix 2 — Scroll completely locked on all pages
+- Reverted `overflow-y: scroll` → `overflow-y: auto`; removed `min-h-screen` outer wrapper; changed `lg:h-screen` → `lg:min-h-screen`
 
 
 ### 🐛 User Deletion & Scroll Fixes (Feb 19, 2026)

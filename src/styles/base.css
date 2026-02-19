@@ -256,9 +256,8 @@
 
     /* Enhanced scrolling for all mobile browsers */
     -webkit-overflow-scrolling: touch;
-    /* Allow overscroll on Y axis for pull-to-refresh but prevent bounce */
+    /* Prevent horizontal overscroll bounce */
     overscroll-behavior-x: none;
-    overscroll-behavior-y: contain;
 
     /* Optimize touch scrolling - use manipulation to allow both pan directions + pinch
        while disabling double-tap zoom (prevents 300ms delay on mobile) */

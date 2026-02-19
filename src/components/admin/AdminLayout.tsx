@@ -27,13 +27,11 @@ export const AdminLayout = ({ children, hideHeader = false }: AdminLayoutProps) 
           "transition-all duration-300",
           "w-full lg:w-auto"
         )}>
-          <div className="min-h-screen">
-            <div className="bg-card px-2 xs:px-4 sm:px-6 py-3 xs:py-4">
+          <div className="bg-card px-2 xs:px-4 sm:px-6 py-3 xs:py-4">
               <div className="max-w-none">
                 {children}
               </div>
             </div>
-          </div>
         </main>
       </div>
     </div>
