@@ -99,10 +99,23 @@ Deno.serve(async (req: Request) => {
     // 6. Unlink pending orders
     await supabase.from("pending_orders").update({ user_id: null }).eq("user_id", userId);
 
-    // 7. Delete the profile
+    // 7. Delete product_imports — this table had no ON DELETE rule (defaults to
+    //    RESTRICT) so it blocked auth.admin.deleteUser() when a user had import
+    //    records.  Explicitly remove them here; the migration also adds ON DELETE
+    //    CASCADE as a database-level safety net.
+    await supabase.from("product_imports").delete().eq("user_id", userId);
+
+    // 8. Nullify security_audit_log user references — preserve compliance logs
+    //    but remove the FK reference so deleteUser() is not blocked.
+    await supabase
+      .from("security_audit_log")
+      .update({ user_id: null })
+      .eq("user_id", userId);
+
+    // 9. Delete the profile
     await supabase.from("profiles").delete().eq("id", userId);
 
-    // 8. Delete auth user (requires service role)
+    // 10. Delete auth user (requires service role)
     const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId);
     if (deleteAuthError) {
       console.error("[delete-user] auth.admin.deleteUser error:", deleteAuthError);
