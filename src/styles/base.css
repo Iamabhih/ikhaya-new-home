@@ -215,10 +215,11 @@
   /* Enable smooth scrolling globally (only when not reduced motion) */
   html {
     scroll-behavior: smooth;
-    /* Prevent overscroll bounce on iOS while allowing normal scroll */
-    overscroll-behavior-y: contain;
     /* Prevent any horizontal scroll at document level */
     overflow-x: hidden;
+    /* NOTE: overscroll-behavior-y is set on body only — applying it on both
+       html and body creates conflicting scroll container contexts on iOS Safari,
+       interfering with momentum scrolling. */
     /* Fix iOS rubber-band overscroll background bleed */
     background-color: hsl(var(--background));
     /* NOTE: Do NOT set a fixed height on html. height:-webkit-fill-available

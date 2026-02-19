@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 User Deletion & Scroll Fixes (Feb 19, 2026)
+
+#### Fix 1 — Admin User Deletion Was Completely Broken (`delete-user`)
+- Added cleanup for 13 previously missing tables before `auth.admin.deleteUser()` call
+- **Critical:** 4 tables with `NOT NULL user_id` (`customer_addresses`, `email_preferences`, `report_configurations`, `wishlists`) were blocking Postgres from completing the deletion — all 4 now explicitly deleted
+- Nullable user references preserved for audit trail: `analytics_events`, `application_logs`, `customer_engagement_metrics`, `email_logs`, `product_reviews`, `quotes`, `return_requests`, `reviews`, `trader_applications` — all nullified before auth user removal
+- Function redeployed to Supabase after fix
+
+#### Fix 2 — Site Scroll Issues (iOS Safari & cross-browser)
+- Removed `overscroll-behavior-y: contain` from `html` in `base.css` — having it on both `html` and `body` created conflicting scroll container contexts on iOS Safari
+- Added `overscroll-behavior: none` to the iOS-specific `@supports (-webkit-touch-callout: none)` block in `mobile.css` — correctly prevents overscroll bounce on iOS without breaking momentum scroll
+- Desktop and non-iOS behaviour unchanged
+
 ### 🔒 Full System Stabilisation Audit — 23 Issues Resolved (Feb 19, 2026)
+
 
 **Critical fixes, edge function modernisation, database security hardening, and consistency cleanup.**
 
