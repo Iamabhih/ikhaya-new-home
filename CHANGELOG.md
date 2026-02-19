@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 User Deletion 401 Fix & Scroll Improvements (Feb 19, 2026)
+
+#### Fix 1 — `delete-user` always returned 401 (root cause found)
+- **Root cause A:** Edge function was importing `@supabase/supabase-js@2.7.1` (2022). `auth.getUser()` with a passed Authorization header was unreliable in this version — user was always null, triggering 401. Bumped to `@2.39.3`.
+- **Root cause B:** `supabase.functions.invoke()` could be called before the client's internal session hydrated (race condition in `AuthProvider`). Fixed in `UserManagement.tsx` by explicitly calling `supabase.auth.getSession()` and passing the token directly in the `Authorization` header.
+- Both fixes applied; function redeployed.
+
+#### Fix 2 — Scroll: `overflow-y: auto` → `overflow-y: scroll` on body
+- `auto` can cause iOS Safari to treat `body` as a clipping container inconsistently, which breaks `window.scrollTo()` in `ScrollToTop`.
+- Changed to `scroll` which always establishes a scroll container but lets `window` remain the natural scroll target when body has no fixed height.
+- `ScrollToTop` now also resets `#root` scroll position as an additional fallback for CSS configurations where the React root div is the scroll container.
+
 ### 🐛 User Deletion & Scroll Fixes (Feb 19, 2026)
 
 #### Fix 1 — Admin User Deletion Was Completely Broken (`delete-user`)

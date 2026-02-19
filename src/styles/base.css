@@ -240,7 +240,11 @@
 
     /* Prevent horizontal scroll on all browsers */
     overflow-x: hidden;
-    overflow-y: auto;
+    /* Use 'scroll' not 'auto' — 'auto' can cause iOS Safari to treat body as
+       a clipping container inconsistently, breaking window.scrollTo() in
+       ScrollToTop. 'scroll' always establishes a scroll container but lets the
+       window remain the natural scroll target on iOS when body has no fixed height. */
+    overflow-y: scroll;
     width: 100%;
     min-height: 100vh;
     min-height: -webkit-fill-available;
