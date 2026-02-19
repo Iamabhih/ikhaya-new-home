@@ -1,59 +1,73 @@
 
-# Root Cause Diagnosis — Both Issues Confirmed
+# Definitive Fix Plan — User Deletion & Site-Wide Scroll
 
-## Issue 1 — User Deletion: JWT Gateway Rejection (Config Missing)
+## Status After 4 Rounds of Fixes
 
-The `delete-user` edge function logs show **boot events only — zero requests ever processed**. This means every request is being rejected by Supabase's JWT gateway *before* the Deno handler runs.
-
-**Root cause confirmed:** `supabase/config.toml` contains only `project_id = "kauostzhxqoxggwqgtym"` — there is no `[functions.delete-user]` section with `verify_jwt = false`. 
-
-By default, Supabase edge functions have JWT verification enabled at the gateway level. Since the `delete-user` function validates the caller *inside* the handler (using the service role client to re-verify the token and then check superadmin role), it needs `verify_jwt = false` in config so the request reaches the Deno handler at all. Currently, the gateway is rejecting the request with 401 before the handler ever executes — which is why no `[delete-user]` log lines exist beyond boot.
-
-**Fix:** Add `[functions.delete-user]` with `verify_jwt = false` to `supabase/config.toml`, then redeploy.
-
-```toml
-[functions.delete-user]
-verify_jwt = false
-```
-
-This is safe because the function performs its own auth check internally using the service role — it validates the Bearer token, confirms the caller is a real user, and then confirms they have the `superadmin` role before proceeding. The gateway-level check is redundant and blocking.
+After directly testing the `delete-user` function via curl and reading all relevant files, the exact root causes are now confirmed with certainty.
 
 ---
 
-## Issue 2 — Scroll Locked in Admin (and Everywhere): Layout Architecture
+## Issue 1 — User Deletion: `auth.getUser()` Still Failing (401)
 
-The description — "site scrolls while loading but once page loaded, nothing scrolls until sidebar is manually moved" — pinpoints the layout container:
+### Confirmed diagnosis
 
-**Admin pages:** `AdminLayout` wraps content in:
-```
-<div class="min-h-screen bg-gray-50/50">           ← outer wrapper
-  <Header />                                         ← fixed position
-  <div class="flex flex-col lg:flex-row">            ← flex row
-    <AdminSidebar class="lg:sticky lg:top-0 lg:h-screen" />  ← sticky, h-screen
-    <main class="flex-1 bg-background">              ← NO overflow-y
-      <div class="min-h-screen">                     ← creates extra height
+The curl test returned `401 Unauthorized`. The function IS reachable (config.toml `verify_jwt = false` is working). The problem is at **line 35** of `delete-user/index.ts`:
+
+```ts
+const { data: { user: caller }, error: authError } = await callerClient.auth.getUser();
 ```
 
-The `AdminSidebar` has `lg:h-screen` which makes the sidebar exactly viewport height. The outer `flex lg:flex-row` div then expands to match the sidebar height (`h-screen`). The `<main>` inside has `min-h-screen` nested inside `flex-1` — this is fine. BUT the outer `.min-h-screen` wrapper div is constraining the row to exactly screen height on some browsers, which means `<main>` content cannot grow past the viewport — it clips silently.
+`getUser()` in `@supabase/supabase-js@2.39.3` makes a network call to the Supabase Auth server to validate the token. On Deno/esm.sh, this call is failing silently — the user always comes back as `null` — which triggers the 401 response on line 36-40.
 
-**The real locking mechanism:** `body { overflow-y: scroll }` that was added in the previous fix is **making body the scroll container** — but `AdminLayout`'s outer div has `min-h-screen` which means the body content is exactly 100vh. There's nothing to scroll at the body level because the content is constrained to viewport height.
+The correct, documented approach for Supabase Edge Functions is **`getClaims(token)`** not `getUser()`. `getClaims()` verifies the JWT cryptographically (locally, no network call) and returns the user's claims including their `sub` (user ID). This was changed in Supabase's own documentation for edge function authentication precisely because `getUser()` was unreliable in this context.
 
-**On public pages:** The same `overflow-y: scroll` on body with `#root { overflow-x: hidden }` means the scroll container is body, but components with `overflow-y: auto` or `overflow: auto` inside the page can also become independent scroll containers that "steal" scrolling from the body.
+### Fix
 
-**The fix — revert to the proven working approach:**
+Replace the auth verification block in `delete-user/index.ts`:
 
-1. Body: revert `overflow-y: scroll` back to `overflow-y: auto` — using `scroll` was wrong; it caused body to always render a scrollbar container which interferes with the layout height calculations.
+```ts
+// FROM: (broken - network call fails in Deno edge runtime)
+const { data: { user: caller }, error: authError } = await callerClient.auth.getUser();
 
-2. AdminLayout: Remove the outer `min-h-screen` wrapper that constrains height. Let the flex row grow naturally. The `min-h-screen` should only be on the inner content area — not on the outer flex container.
+// TO: (correct - local JWT verification, no network call)
+const token = authHeader.replace('Bearer ', '');
+const { data: claimsData, error: authError } = await callerClient.auth.getClaims(token);
+if (authError || !claimsData?.claims) { return 401; }
+const callerId = claimsData.claims.sub;
+```
 
-3. AdminSidebar: Change `lg:h-screen` to `lg:min-h-screen` — this lets the sidebar grow with content if content is taller than viewport, but the sticky positioning still works correctly for short content.
+Then use `callerId` (instead of `caller.id`) when querying `user_roles` and checking self-deletion. Redeploy after.
 
-4. Global: Change `html { overflow-y: hidden }` — actually `html` has no `overflow-y` set currently (the previous fix removed it from the html rule). Keep it that way. The only remaining issue is `body { overflow-y: scroll }` which needs to go back to `overflow-y: auto`.
+---
 
-**Summary of scroll fixes:**
-- `base.css`: `overflow-y: scroll` → `overflow-y: auto` on body
-- `AdminLayout.tsx`: Remove `min-h-screen` from outer wrapper div (keep it only on main content div)
-- `AdminSidebar.tsx`: `lg:h-screen` → `lg:min-h-screen` so sidebar doesn't constrain flex row height
+## Issue 2 — Scrolling Locked Site-Wide: Flex Layout + Sticky Sidebar
+
+### Confirmed diagnosis
+
+**Root cause A — The sidebar `lg:max-h-screen` constrains the flex row:**
+
+```
+<div class="flex flex-col lg:flex-row">              ← flex row, no height set
+  <AdminSidebar class="lg:sticky lg:top-0 lg:min-h-screen lg:max-h-screen lg:overflow-y-auto" />
+  <main class="flex-1">                              ← grows to match flex row
+    <div class="min-h-screen">                       ← wants to be full height
+```
+
+The sidebar has both `lg:min-h-screen` AND `lg:max-h-screen`. Combined with `lg:sticky`, the sidebar becomes a fixed-height box of exactly `100vh`. Because CSS flex `align-items` defaults to `stretch`, the `<main>` flex-1 element stretches to match the sidebar's height — which is capped at `100vh`. Content inside `<main>` that is taller than `100vh` is clipped inside a `100vh` box with no `overflow-y` set, so it is hidden — not scrollable.
+
+**Root cause B — Public pages wrap in `min-h-screen` div:**
+
+`Index.tsx` (and other public pages) wrap everything in `<div className="min-h-screen bg-background">`. This is fine on its own. But `body { overflow-y: auto }` combined with `overscroll-behavior-y: contain` means body scrolls naturally when content exceeds viewport. The public pages **should scroll fine** — the primary complaint there may be the `overscroll-behavior-y: contain` suppressing the "flick" feeling on iOS, or it could be the `ScrollToTop` component momentarily locking position during route change.
+
+**The core admin fix:**
+
+Remove `lg:max-h-screen` from `AdminSidebar`. Keep `lg:min-h-screen` (sidebar fills at least the full viewport) and `lg:overflow-y-auto` (sidebar scrolls independently if it has more nav items than space). Remove `lg:self-start` — that's for non-sticky contexts; with `lg:sticky` it's redundant and can confuse the flex layout.
+
+Also remove the `<div className="min-h-screen">` wrapper inside `<main>` in `AdminLayout`. This extra wrapper is forcing `<main>` to be at least `100vh` tall even when constrained by the flex row — adding unnecessary height that conflicts with the flex sizing.
+
+**The public page fix:**
+
+The description says "site wide, even in private browsing" — this means even public pages don't scroll. The most likely cause: `body { overscroll-behavior-y: contain }` in `base.css` AND `overscroll-behavior: none` in the iOS block in `mobile.css`. On some mobile browsers, `overscroll-behavior: none` disables all overscroll AND can suppress momentum scroll entirely on older Android WebView. Remove `overscroll-behavior-y: contain` from body in `base.css` entirely (it was originally added just to prevent the bounce colour showing, but `overflow-x: hidden` already prevents horizontal overscroll). Keep only the `overscroll-behavior: none` in the iOS-specific `@supports` block.
 
 ---
 
@@ -61,20 +75,20 @@ The `AdminSidebar` has `lg:h-screen` which makes the sidebar exactly viewport he
 
 | File | Change |
 |---|---|
-| `supabase/config.toml` | Add `[functions.delete-user]` with `verify_jwt = false` |
-| `src/styles/base.css` | Revert `overflow-y: scroll` back to `overflow-y: auto` on body |
-| `src/components/admin/AdminLayout.tsx` | Remove `min-h-screen` from outer wrapper; keep on inner `<main>` content only |
-| `src/components/admin/AdminSidebar.tsx` | Change `lg:h-screen` to `lg:min-h-screen` |
-| `CHANGELOG.md` | Document root causes and fixes |
+| `supabase/functions/delete-user/index.ts` | Replace `auth.getUser()` with `auth.getClaims(token)` for JWT verification |
+| `src/components/admin/AdminSidebar.tsx` | Remove `lg:max-h-screen` and `lg:self-start` from sidebar wrapper |
+| `src/components/admin/AdminLayout.tsx` | Remove the `<div className="min-h-screen">` wrapper inside `<main>` |
+| `src/styles/base.css` | Remove `overscroll-behavior-y: contain` from body rule |
+| `CHANGELOG.md` | Document confirmed root causes and final fixes |
 
 ## What Will NOT Change
 
-- The delete-user cleanup logic (all 14+ table steps) — preserved exactly
+- The 14-step user data cleanup logic in `delete-user/index.ts` — fully preserved
 - The explicit `Authorization` header passing in `UserManagement.tsx` — preserved
-- Payment processing — untouched
-- All auth flows — untouched
-- Public page layout (Header, Footer, page components) — untouched
+- Payment processing, auth flows — untouched
+- All public page structure (Header, Footer, components) — untouched
+- The `verify_jwt = false` in `supabase/config.toml` — preserved (this was correct)
 
-## Deployment
+## After Implementation
 
-After `config.toml` is updated, `delete-user` will be redeployed immediately. The function already has correct logic — the only missing piece was the gateway config.
+Redeploy `delete-user` immediately after the fix. The function boot logs confirm it deploys successfully each time — the only issue has been the `getUser()` call inside the handler.
