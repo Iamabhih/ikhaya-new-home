@@ -24,7 +24,9 @@ import {
   Eye,
   RefreshCw,
   FileText,
-  Briefcase
+  Briefcase,
+  AlertTriangle,
+  UserX
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -294,6 +296,12 @@ export const TraderApplications = () => {
                               {app.vat_number && (
                                 <div className="text-xs text-muted-foreground">VAT: {app.vat_number}</div>
                               )}
+                              {!app.user_id && (
+                                <Badge variant="outline" className="mt-1 text-xs gap-1 border-amber-500 text-amber-600">
+                                  <UserX className="h-3 w-3" />
+                                  No Account
+                                </Badge>
+                              )}
                             </TableCell>
                             <TableCell className="hidden md:table-cell">
                               <div className="text-sm font-medium">{app.contact_person}</div>
@@ -369,8 +377,34 @@ export const TraderApplications = () => {
               {/* Status Banner */}
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="text-sm text-muted-foreground">Status:</span>
-                {getStatusBadge(selectedApplication.status)}
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(selectedApplication.status)}
+                  {!selectedApplication.user_id && (
+                    <Badge variant="outline" className="gap-1 border-amber-500 text-amber-600">
+                      <UserX className="h-3 w-3" />
+                      No Account
+                    </Badge>
+                  )}
+                </div>
               </div>
+
+              {/* Guest application warning */}
+              {!selectedApplication.user_id && selectedApplication.status === 'pending' && (
+                <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-200 bg-amber-50">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-amber-800">Guest Application — No Linked Account</p>
+                    <p className="text-sm text-amber-700">
+                      This applicant submitted without signing in. Approving will mark the application as approved,
+                      but the <strong>wholesale role cannot be auto-assigned</strong> until they create an account
+                      using the email: <strong>{selectedApplication.email}</strong>
+                    </p>
+                    <p className="text-xs text-amber-600">
+                      Once they register with that email, the role can be assigned manually via User Management.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Company Info */}
               <div className="space-y-3">
@@ -547,7 +581,7 @@ export const TraderApplications = () => {
                   disabled={approveMutation.isPending}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Approve
+                  {selectedApplication.user_id ? 'Approve & Assign Role' : 'Approve (No Account)'}
                 </Button>
               </>
             )}
