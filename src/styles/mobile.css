@@ -141,6 +141,9 @@
      working on every iOS browser. Let the window be the natural scroll target. */
   body {
     -webkit-overflow-scrolling: touch;
+    /* Prevent iOS overscroll bounce without blocking normal page scroll.
+       Applied here (iOS-specific block only) to avoid conflicts on other browsers. */
+    overscroll-behavior: none;
   }
 
   /* PWA standalone: same approach — natural window scroll, no fixed heights */

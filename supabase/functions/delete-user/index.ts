@@ -112,7 +112,33 @@ Deno.serve(async (req: Request) => {
       .update({ user_id: null })
       .eq("user_id", userId);
 
-    // 9. Delete the profile
+    // 9. Delete customer_addresses (NOT NULL user_id — BLOCKS auth deletion if skipped)
+    await supabase.from("customer_addresses").delete().eq("user_id", userId);
+
+    // 10. Delete email_preferences (NOT NULL user_id — BLOCKS auth deletion if skipped)
+    await supabase.from("email_preferences").delete().eq("user_id", userId);
+
+    // 11. Delete report_configurations (NOT NULL user_id — BLOCKS auth deletion if skipped)
+    await supabase.from("report_configurations").delete().eq("user_id", userId);
+
+    // 12. Delete wishlists (NOT NULL user_id — cascade handles wishlist_items)
+    await supabase.from("wishlists").delete().eq("user_id", userId);
+
+    // 13. Nullify nullable user_id references (preserve data records)
+    await supabase.from("analytics_events").update({ user_id: null }).eq("user_id", userId);
+    await supabase.from("application_logs").update({ user_id: null }).eq("user_id", userId);
+    await supabase
+      .from("customer_engagement_metrics")
+      .update({ user_id: null })
+      .eq("user_id", userId);
+    await supabase.from("email_logs").update({ user_id: null }).eq("user_id", userId);
+    await supabase.from("product_reviews").update({ user_id: null }).eq("user_id", userId);
+    await supabase.from("quotes").update({ user_id: null }).eq("user_id", userId);
+    await supabase.from("return_requests").update({ user_id: null }).eq("user_id", userId);
+    await supabase.from("reviews").update({ user_id: null }).eq("user_id", userId);
+    await supabase.from("trader_applications").update({ user_id: null }).eq("user_id", userId);
+
+    // 14. Delete the profile
     await supabase.from("profiles").delete().eq("id", userId);
 
     // 10. Delete auth user (requires service role)
