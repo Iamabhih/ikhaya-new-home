@@ -1,126 +1,109 @@
 
-# Full System Stabilisation — Concurrent Implementation
+# Audit Findings: User Deletion Broken & Scroll Issues
 
-## What Is Being Fixed
+## Root Cause 1 — User Deletion Failing
 
-This implements all remaining audit findings identified in the previous plan review. Payment processing is **fully preserved** — the PayFast → webhook → process-order chain is kept intact; only the deprecated `serve()` import and the broken email function name are corrected.
+The `delete-user` edge function is deployed and correct in its logic, but it is **not deployed** in Supabase (no logs exist for it in the edge function logs). Additionally, the function handles most tables but is **missing cleanup for 8 tables** that have `user_id` columns. If any of these tables have rows for the user being deleted AND have a `NOT NULL` user_id constraint or a RESTRICT foreign key, `auth.admin.deleteUser()` will fail with a 500 error.
 
----
+**Tables NOT handled in the current `delete-user` function that have `user_id` columns:**
 
-## Critical Fix: `process-order` Sends Confirmation Email to Non-Existent Function
-
-**Current broken code (line 286):**
-```
-supabase.functions.invoke('send-order-confirmation', {...})
-```
-`send-order-confirmation` does not exist. Every successful payment silently fails to send a confirmation email.
-
-**Fix:** Replace with the correct call to `send-email` with `type: 'order-confirmation'`, mapping the pending order's cart items, customer name, totals, and address into the payload that `generateOrderConfirmationHtml()` already expects.
-
-**Payment flow is NOT changed.** The PayFast form submission, webhook receiver, retry logic, and `create_order_transaction` RPC call are all preserved exactly.
-
----
-
-## Edge Functions — `Deno.serve()` Modernisation
-
-Replace deprecated `import { serve } from "https://deno.land/std@0.168.0/http/server.ts"` + `serve(async (req) => {` with `Deno.serve(async (req: Request) => {` (no import needed) in 5 functions:
-
-| Function | Current | Fixed |
+| Table | `user_id` Nullable? | Risk Level |
 |---|---|---|
-| `process-order` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
-| `payfast-webhook` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
-| `reconcile-payment` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
-| `get-shipping-rates` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
-| `manage-api-key` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
-| `create-shipment` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
-| `analytics-stream` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
+| `analytics_events` | YES | Low (service role can nullify) |
+| `application_logs` | YES | Low (nullify) |
+| `customer_addresses` | **NO** | HIGH — will block deletion |
+| `customer_engagement_metrics` | YES | Medium |
+| `email_logs` | YES | Low |
+| `email_preferences` | **NO** | HIGH — will block deletion |
+| `product_reviews` | YES | Low |
+| `quotes` | YES | Medium |
+| `report_configurations` | **NO** | HIGH — will block deletion |
+| `return_requests` | YES | Low |
+| `reviews` | YES | Low |
+| `trader_applications` | YES | Medium |
+| `wishlists` | **NO** | HIGH — will block deletion |
 
-`send-email`, `send-order-notification`, `send-recovery-email` already use `std@0.190.0` — these are left unchanged.
+The 4 tables with `NOT NULL` user_id (`customer_addresses`, `email_preferences`, `report_configurations`, `wishlists`) will **directly block** `auth.admin.deleteUser()` because Postgres cannot set those FK references to null — so the auth deletion fails.
 
-**Note for `analytics-stream`:** This is a WebSocket function. `Deno.serve()` is fully compatible with `Deno.upgradeWebSocket()` — no functional change.
+**Also critical:** The edge function was added via GitHub PR/commit but may not have been deployed yet via Supabase. The edge function logs show **no invocations of `delete-user` ever**, which confirms it has never been successfully called.
 
----
-
-## `send-order-notification` — Remove Invalid `tracking_company` Column Reference
-
-**Issue:** Line 248 references `order.tracking_company` but the `orders` table has no such column. This produces `undefined` silently in the shipment email template.
-
-**Fix:** The `generateShipmentEmail` function already wraps this in a conditional `${order.tracking_company ? ...}` — because it evaluates to `undefined`, it simply renders nothing. The safest fix is to source it from `metadata` (which is passed when the function is called from the admin panel fulfillment flow) instead of `order.tracking_company`. Change:
-```
-${order.tracking_company ? `<p><strong>Carrier:</strong> ${order.tracking_company}</p>` : ''}
-```
-To:
-```
-${(metadata?.tracking_company || order.tracking_number) ? `<p><strong>Carrier:</strong> ${metadata?.tracking_company || 'ShipLogic'}</p>` : ''}
-```
+**Fix:**
+1. Add cleanup for all 8 missing tables in `delete-user/index.ts` — delete rows for tables with `NOT NULL` constraints (`customer_addresses`, `email_preferences`, `report_configurations`, `wishlists`) and nullify for nullable ones
+2. Redeploy the function
 
 ---
 
-## Database Migration — Security Hardening
+## Root Cause 2 — Site Scroll Issues
 
-### Part 1: Add `SET search_path = public` to 4 functions that are missing it
+After the previous audits, the CSS scroll situation is now as follows:
 
-The linter flagged `function_search_path_mutable` for functions without pinned search paths. The following still need it:
+**Current state (after previous audit fixes):**
+- `mobile.css` — `overflow: hidden` on `html` was removed ✅ (previous fix applied)
+- `base.css` — `html` has `overflow-x: hidden` + `overscroll-behavior-y: contain`, body has `overflow-y: auto` ✅
+- `App.css` — `#root` has only `overflow-x: hidden`, no `overflow-y` (correct) ✅
+- `index.html` — `--vh` pre-calculated ✅
 
-- `handle_updated_at` (trigger function, no SET search_path)
-- `update_campaigns_updated_at` (trigger function, no SET search_path)
-- `update_updated_at_column` (trigger function, no SET search_path)
-- `update_product_stock` (older single-argument overload, no SET search_path)
-- `search_products` (STABLE function, no SET search_path)
-- `generate_quote_number` (no SET search_path)
-- `set_quote_number` (no SET search_path)
+**Remaining scroll problem identified:** The `PromotionalBanners` component uses `-mt-12 xs:-mt-14 sm:-mt-16` negative margin to extend the hero under the fixed header. The `Index.tsx` renders `<Header />` which outputs both the fixed header AND a spacer `<div className="h-12 xs:h-14 sm:h-16">`. The banner then applies a matching negative margin to cancel the spacer. This is structurally correct.
 
-Migration SQL:
-```sql
-ALTER FUNCTION public.handle_updated_at() SET search_path = public;
-ALTER FUNCTION public.update_campaigns_updated_at() SET search_path = public;
-ALTER FUNCTION public.update_updated_at_column() SET search_path = public;
-ALTER FUNCTION public.update_product_stock(uuid, integer) SET search_path = public;
-ALTER FUNCTION public.search_products(text, uuid, numeric, numeric, boolean, integer, integer) SET search_path = public;
-ALTER FUNCTION public.generate_quote_number() SET search_path = public;
-ALTER FUNCTION public.set_quote_number() SET search_path = public;
+**The actual scroll problem** is in `mobile.css` at line 98-109:
+```css
+@media screen and (max-width: 768px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+  main {
+    overflow-y: visible;
+    overflow-x: hidden;
+  }
 ```
 
-### Part 2: Tighten Permissive RLS Policies on Tracking/Batch Tables
+The `main { overflow-y: visible }` on mobile is fine by itself, BUT there is a second issue: `base.css` sets `body { overflow-y: auto }` and `overscroll-behavior-y: contain`. On iOS Safari, when `body` is the scroll container (which it is after the audit fixes), `overscroll-behavior-y: contain` **prevents pull-to-refresh but also interferes with momentum scrolling** in some iOS versions when combined with `-webkit-overflow-scrolling: touch`.
 
-Tables with `USING (true)` on ALL or UPDATE operations that should be restricted. The fix narrows write access to service-role callers only (which is how these tables are written to — exclusively from edge functions using the service role key):
+**The specific remaining problem:**
+- `body { overscroll-behavior-y: contain }` in `base.css` — on older iOS Safari this can suppress momentum scroll (the "flick and glide" feel)
+- `html { overscroll-behavior-y: contain }` — double-applying this on both `html` and `body` is redundant and can cause conflicts
 
-- `auth_rate_limits` — drop ALL `USING (true)`, add INSERT for anon + UPDATE/DELETE for service role
-- `batch_progress` — restrict to authenticated + service role
-- `cart_analytics_snapshots` — restrict writes to service role
-- `cart_sessions` — restrict UPDATE to authenticated users owning the session
-- `customer_engagement_metrics` — restrict to service role
-- `enhanced_cart_tracking` — restrict to authenticated + service role
-- `processing_sessions` — restrict to service role
-- `order_status_history` — restrict writes to authenticated (admin check exists in app layer)
+**Fix:**
+- Remove `overscroll-behavior-y: contain` from `html` in `base.css` (keep it only on `body` — that's sufficient)
+- Add `overscroll-behavior: none` specifically for iOS in the `@supports (-webkit-touch-callout: none)` block in `mobile.css` — this is the correct iOS-specific pattern
+- The `ScrollToTop` component uses `window.scrollTo({ top: 0, behavior: 'instant' })` plus direct `scrollTop = 0` on both `documentElement` and `body` — this is correct and should work
 
 ---
 
-## `App.tsx` — JSX Indentation Cleanup
+## What Will Be Fixed
 
-The JSX nesting is functionally correct but uses mixed 2-space/4-space indentation and has `<Toaster />` and `<SecurityMonitor />` outside `<BrowserRouter>`. Fix: move them inside `<BrowserRouter>` and standardise indentation throughout. `<WhatsAppChatWidget />` is already correctly placed inside `<BrowserRouter>` from the previous audit.
+### Fix A — `delete-user` edge function: Add missing table cleanups
 
----
+Add these steps **before** the `auth.admin.deleteUser()` call in `supabase/functions/delete-user/index.ts`:
 
-## Documentation Updates
+```
+Step 10a: DELETE customer_addresses WHERE user_id = userId
+Step 10b: DELETE email_preferences WHERE user_id = userId  
+Step 10c: DELETE report_configurations WHERE user_id = userId
+Step 10d: DELETE wishlists WHERE user_id = userId (cascade will handle wishlist_items)
+Step 10e: Nullify analytics_events.user_id WHERE user_id = userId
+Step 10f: Nullify application_logs.user_id WHERE user_id = userId
+Step 10g: Nullify customer_engagement_metrics.user_id WHERE user_id = userId
+Step 10h: Nullify email_logs.user_id WHERE user_id = userId
+Step 10i: Nullify product_reviews.user_id WHERE user_id = userId (preserve reviews)
+Step 10j: Nullify quotes.user_id WHERE user_id = userId (preserve quotes for records)
+Step 10k: Nullify return_requests.user_id WHERE user_id = userId (preserve for records)
+Step 10l: Nullify reviews.user_id WHERE user_id = userId
+Step 10m: Nullify trader_applications.user_id WHERE user_id = userId (preserve apps for records)
+```
 
-- `CHANGELOG.md`: Add new entry documenting all fixes in this session
-- `README.md`: Update system status, note the 7 linter warnings that remain as dashboard-only items (OTP expiry, leaked password protection, Postgres version)
+Then redeploy the function.
 
----
+### Fix B — CSS scroll: Remove duplicate `overscroll-behavior-y` on `html`
 
-## What Is Preserved — Payment Processing Guarantee
+In `base.css`, remove `overscroll-behavior-y: contain` from the `html` rule — it is only needed on `body`. Having it on both `html` and `body` creates conflicting scroll container contexts on iOS Safari.
 
-| Component | Status |
-|---|---|
-| PayFast form submission (no signature) | PRESERVED — architectural constraint respected |
-| PayFast webhook → process-order chain | PRESERVED — only serve() import updated |
-| 3-retry logic in payfast-webhook | PRESERVED |
-| `create_order_transaction` RPC call | PRESERVED |
-| Payment settings (merchant_id, key, passphrase) | PRESERVED |
-| Pending order 48-hour expiry | PRESERVED |
-| Reconciliation function logic | PRESERVED — only serve() updated |
-| Admin email notifications on payment failures | PRESERVED |
+In `mobile.css`, within the `@supports (-webkit-touch-callout: none)` iOS block, explicitly set `body { overscroll-behavior: none; }` to fully disable iOS overscroll bounce (which was the original intent but was previously achieved via the aggressive `overflow: hidden` which broke scrolling entirely).
+
+### Fix C — CHANGELOG and README update
+
+Document these two fixes in `CHANGELOG.md`.
 
 ---
 
@@ -128,17 +111,15 @@ The JSX nesting is functionally correct but uses mixed 2-space/4-space indentati
 
 | File | Change |
 |---|---|
-| `supabase/functions/process-order/index.ts` | `Deno.serve()` + fix email to call `send-email` correctly |
-| `supabase/functions/payfast-webhook/index.ts` | `Deno.serve()` only |
-| `supabase/functions/reconcile-payment/index.ts` | `Deno.serve()` only |
-| `supabase/functions/get-shipping-rates/index.ts` | `Deno.serve()` only |
-| `supabase/functions/manage-api-key/index.ts` | `Deno.serve()` only |
-| `supabase/functions/create-shipment/index.ts` | `Deno.serve()` only |
-| `supabase/functions/analytics-stream/index.ts` | `Deno.serve()` only |
-| `supabase/functions/send-order-notification/index.ts` | Fix `tracking_company` reference |
-| `src/App.tsx` | JSX indentation cleanup |
-| `CHANGELOG.md` | Document this audit session |
-| `README.md` | Update system status |
-| **DB Migration** | `SET search_path` on 7 functions + tighten 8 RLS policies |
+| `supabase/functions/delete-user/index.ts` | Add 13 missing table cleanups before `auth.admin.deleteUser()` |
+| `src/styles/base.css` | Remove `overscroll-behavior-y: contain` from `html` rule |
+| `src/styles/mobile.css` | Add `overscroll-behavior: none` to iOS `@supports` body rule |
+| `CHANGELOG.md` | Document fixes |
 
-All deployed functions will be redeployed automatically after changes.
+## What Will NOT Change
+
+- Payment processing — untouched
+- Auth flows — untouched
+- The existing delete steps (orders, user_roles, cart, loyalty, wishlist_items, pending_orders, product_imports, security_audit_log, profiles) — preserved and extended
+- All admin functionality other than user deletion — untouched
+- Database schema — no migrations needed (using service role to bypass RLS)
