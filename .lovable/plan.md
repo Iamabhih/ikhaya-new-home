@@ -1,219 +1,144 @@
 
-# Complete Simultaneous Audit Fix Implementation
+# Full System Stabilisation — Concurrent Implementation
 
-## Overview
+## What Is Being Fixed
 
-All 14 audit fixes will be implemented simultaneously across 13 files. Every change is surgical — nothing that currently works will be broken. The fixes are grouped by file below with exact details of every change.
+This implements all remaining audit findings identified in the previous plan review. Payment processing is **fully preserved** — the PayFast → webhook → process-order chain is kept intact; only the deprecated `serve()` import and the broken email function name are corrected.
 
 ---
 
-## Files & Changes
+## Critical Fix: `process-order` Sends Confirmation Email to Non-Existent Function
 
-### 1. `index.html`
-**Fix 9 — Pre-load `--vh` variable before React mounts**
+**Current broken code (line 286):**
+```
+supabase.functions.invoke('send-order-confirmation', {...})
+```
+`send-order-confirmation` does not exist. Every successful payment silently fails to send a confirmation email.
 
-Add an inline `<script>` tag in the `<head>` (before `</head>`) that sets the `--vh` CSS custom property immediately, eliminating the viewport height flash on mobile load. This runs synchronously before React paints anything.
+**Fix:** Replace with the correct call to `send-email` with `type: 'order-confirmation'`, mapping the pending order's cart items, customer name, totals, and address into the payload that `generateOrderConfirmationHtml()` already expects.
 
-```js
-(function(){
-  var vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--vh', vh + 'px');
-})();
+**Payment flow is NOT changed.** The PayFast form submission, webhook receiver, retry logic, and `create_order_transaction` RPC call are all preserved exactly.
+
+---
+
+## Edge Functions — `Deno.serve()` Modernisation
+
+Replace deprecated `import { serve } from "https://deno.land/std@0.168.0/http/server.ts"` + `serve(async (req) => {` with `Deno.serve(async (req: Request) => {` (no import needed) in 5 functions:
+
+| Function | Current | Fixed |
+|---|---|---|
+| `process-order` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
+| `payfast-webhook` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
+| `reconcile-payment` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
+| `get-shipping-rates` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
+| `manage-api-key` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
+| `create-shipment` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
+| `analytics-stream` | `serve(...)` from std@0.168 | `Deno.serve(...)` |
+
+`send-email`, `send-order-notification`, `send-recovery-email` already use `std@0.190.0` — these are left unchanged.
+
+**Note for `analytics-stream`:** This is a WebSocket function. `Deno.serve()` is fully compatible with `Deno.upgradeWebSocket()` — no functional change.
+
+---
+
+## `send-order-notification` — Remove Invalid `tracking_company` Column Reference
+
+**Issue:** Line 248 references `order.tracking_company` but the `orders` table has no such column. This produces `undefined` silently in the shipment email template.
+
+**Fix:** The `generateShipmentEmail` function already wraps this in a conditional `${order.tracking_company ? ...}` — because it evaluates to `undefined`, it simply renders nothing. The safest fix is to source it from `metadata` (which is passed when the function is called from the admin panel fulfillment flow) instead of `order.tracking_company`. Change:
+```
+${order.tracking_company ? `<p><strong>Carrier:</strong> ${order.tracking_company}</p>` : ''}
+```
+To:
+```
+${(metadata?.tracking_company || order.tracking_number) ? `<p><strong>Carrier:</strong> ${metadata?.tracking_company || 'ShipLogic'}</p>` : ''}
 ```
 
-Also add `html { background-color: hsl(var(--background)); }` to the existing critical CSS `<style>` block to fix iOS rubber-band overscroll background bleed (Fix 13).
-
 ---
 
-### 2. `src/styles/mobile.css`
-**Fix 1 — Remove aggressive iOS scroll lock**
+## Database Migration — Security Hardening
 
-The current `@supports (-webkit-touch-callout: none)` block sets `html { overflow: hidden; height: 100%; }` — this is the root cause of iOS scroll breaking. Replace with a safe version:
+### Part 1: Add `SET search_path = public` to 4 functions that are missing it
 
-- Change `html { overflow: hidden; height: 100%; }` → `html { height: 100%; }` (remove `overflow: hidden`)
-- Keep `body { overflow: auto; height: 100%; -webkit-overflow-scrolling: touch; }` unchanged — this is correct
+The linter flagged `function_search_path_mutable` for functions without pinned search paths. The following still need it:
 
-This single removal unblocks iOS scrolling without affecting anything else.
+- `handle_updated_at` (trigger function, no SET search_path)
+- `update_campaigns_updated_at` (trigger function, no SET search_path)
+- `update_updated_at_column` (trigger function, no SET search_path)
+- `update_product_stock` (older single-argument overload, no SET search_path)
+- `search_products` (STABLE function, no SET search_path)
+- `generate_quote_number` (no SET search_path)
+- `set_quote_number` (no SET search_path)
 
----
-
-### 3. `src/styles/base.css`
-**Fix 13 — iOS rubber-band background colour**
-
-Add `background-color: hsl(var(--background));` to the `html` rule so overscroll bounce reveals the app background colour instead of white/transparent flash.
-
----
-
-### 4. `src/components/products/ProductImageGallery.tsx`
-**Fix 2 — Resolve zoom/swipe touch conflict**
-
-The fullscreen modal inner `div` has raw `onTouchStart/Move/End` handlers that run simultaneously with `fullscreenSwipe` on the outer container. The conflict occurs at `zoomLevel === 1` when both try to handle the same touch.
-
-Changes:
-- Add `e.stopPropagation()` to the inner div's `onTouchStart` when `zoomLevel > 1` so drag events don't bubble up to `fullscreenSwipe`
-- Conditionally apply `touch-action: none` to the inner image div when `zoomLevel > 1` to prevent the browser passing the event to the swipe handler
-- Add `touch-manipulation` class explicitly to the thumbnail `<button>` elements to remove 300ms tap delay (Fix 4 for this component)
-
----
-
-### 5. `src/components/layout/MobileNav.tsx`
-**Fix 3 — Fix overscroll containment + Fix 12 — Sign In CTA**
-
-Two changes:
-
-**Fix 3:** The root `<div>` already has `overscroll-contain` in the className but the `mobile-enhanced.css` only applies `.scrollable` to `body.touch-device` elements. Add `style={{ overscrollBehavior: 'contain' }}` directly to the root div so it applies regardless of the body class.
-
-**Fix 12:** Change the "Sign In" button from `variant="ghost"` to `variant="default"` with `w-full` styling so it is a clear, prominent CTA in the mobile menu. This is the only sign-in affordance on mobile for non-logged-in users.
-
----
-
-### 6. `src/components/layout/Header.tsx`
-**Fix 3 — scroll lock unmount safety (already exists)**
-
-Reading the code: Header already has the correct `useEffect` cleanup for `unlockBodyScroll` on unmount:
-```js
-return () => { unlockBodyScroll(); };
-```
-This fix is already implemented. No change needed here.
-
----
-
-### 7. `src/components/home/PromotionalBanners.tsx`
-**Fix 5 — 44px tap targets for slide indicators + Fix 11 — `aria-current`**
-
-The indicator dots are `h-1 w-2/w-8` — only 4px tall. Fix:
-
-- Wrap each indicator `<button>` with `py-5` padding (adds 20px top/bottom) to create a 44px invisible tap area while the visual dot stays `h-1`
-- Add `aria-current={index === currentIndex ? "true" : undefined}` to each indicator button
-
-The active indicator grows from `w-2` to `w-8` on selection — this UX is preserved exactly.
-
----
-
-### 8. `src/components/home/OptimizedCategoryGrid.tsx`
-**Fix 8 — Eliminate N+1 product count queries**
-
-Currently: fetches categories → then fires one `count` query per category in `Promise.all` = 9 round trips for 8 categories.
-
-Replace with a single aggregated query using Supabase's relational count syntax:
-
-```ts
-.from('categories')
-.select('id, name, slug, description, image_url, sort_order, products!category_id(count)')
-.eq('is_active', true)
+Migration SQL:
+```sql
+ALTER FUNCTION public.handle_updated_at() SET search_path = public;
+ALTER FUNCTION public.update_campaigns_updated_at() SET search_path = public;
+ALTER FUNCTION public.update_updated_at_column() SET search_path = public;
+ALTER FUNCTION public.update_product_stock(uuid, integer) SET search_path = public;
+ALTER FUNCTION public.search_products(text, uuid, numeric, numeric, boolean, integer, integer) SET search_path = public;
+ALTER FUNCTION public.generate_quote_number() SET search_path = public;
+ALTER FUNCTION public.set_quote_number() SET search_path = public;
 ```
 
-This returns the product count as a nested `products` array with length. Map it to `product_count`. Apply same pattern to the `homepage_featured_categories` branch. Reduces 9 network calls to 1.
+### Part 2: Tighten Permissive RLS Policies on Tracking/Batch Tables
+
+Tables with `USING (true)` on ALL or UPDATE operations that should be restricted. The fix narrows write access to service-role callers only (which is how these tables are written to — exclusively from edge functions using the service role key):
+
+- `auth_rate_limits` — drop ALL `USING (true)`, add INSERT for anon + UPDATE/DELETE for service role
+- `batch_progress` — restrict to authenticated + service role
+- `cart_analytics_snapshots` — restrict writes to service role
+- `cart_sessions` — restrict UPDATE to authenticated users owning the session
+- `customer_engagement_metrics` — restrict to service role
+- `enhanced_cart_tracking` — restrict to authenticated + service role
+- `processing_sessions` — restrict to service role
+- `order_status_history` — restrict writes to authenticated (admin check exists in app layer)
 
 ---
 
-### 9. `src/components/common/WhatsAppChatWidget.tsx`
-**Fix 7 — Route-aware positioning on Cart/Checkout**
+## `App.tsx` — JSX Indentation Cleanup
 
-Import `useLocation` from `react-router-dom`. Detect `/cart` and `/checkout` routes. When on those routes, add extra bottom margin (`mb-20 sm:mb-24`) so the widget clears the sticky checkout button that appears at the bottom of those pages on mobile.
-
-This requires the widget to be inside the `BrowserRouter`. Currently it is rendered in `App.tsx` **outside** `<BrowserRouter>` (line 105 is before line 106). 
-
-**Important:** Move `<WhatsAppChatWidget />` to inside `<BrowserRouter>` so `useLocation` works. It can sit just inside `<BrowserRouter>` before `<ScrollToTop />`.
+The JSX nesting is functionally correct but uses mixed 2-space/4-space indentation and has `<Toaster />` and `<SecurityMonitor />` outside `<BrowserRouter>`. Fix: move them inside `<BrowserRouter>` and standardise indentation throughout. `<WhatsAppChatWidget />` is already correctly placed inside `<BrowserRouter>` from the previous audit.
 
 ---
 
-### 10. `src/App.tsx`
-**Fix 7 (cont) — Move WhatsAppChatWidget inside BrowserRouter**
+## Documentation Updates
 
-Move `<WhatsAppChatWidget />` from its current position outside `<BrowserRouter>` (line 105) to inside `<BrowserRouter>` after `<ScrollToTop />` (line 107). This is a one-line move that enables `useLocation` to work in the widget.
-
----
-
-### 11. `src/contexts/AudioContext.tsx`
-**Fix 6 — Add fade guard ref to prevent race condition**
-
-Add `const fadingRef = useRef(false)` to the provider. In `startFadeOut`:
-- Set `fadingRef.current = true` before the `requestAnimationFrame` loop
-- Inside the `fade` function, check `if (!fadingRef.current) return;` at the top of each frame
-- Set `fadingRef.current = false` when the fade ends (calls `pause()`)
-
-In `toggleMute`:
-- Set `fadingRef.current = false` to stop any in-progress fade when user manually mutes
-
-This prevents the scenario where muting mid-fade causes audible volume fluctuation.
+- `CHANGELOG.md`: Add new entry documenting all fixes in this session
+- `README.md`: Update system status, note the 7 linter warnings that remain as dashboard-only items (OTP expiry, leaked password protection, Postgres version)
 
 ---
 
-### 12. `src/components/products/ProductCard.tsx` (and other cards)
-**Fix 4 — touch-manipulation on interactive cards**
+## What Is Preserved — Payment Processing Guarantee
 
-The product card root is a `<Link>` inside a `<Card>`. While `body { touch-action: manipulation }` is set globally in `base.css`, children with explicit scroll containers can reset this.
-
-Add `touch-manipulation` Tailwind class to:
-- The root `<Link>` in `ProductCard.tsx`
-- The `<Link>` wrappers in `OptimizedCategoryGrid.tsx` (already checked — these are `<Link>` elements that will also benefit from the category grid refactor)
-- The `CampaignProductCard` `<Link>` in `CampaignSection.tsx`
-
----
-
-### 13. `src/contexts/CartContext.tsx` + `src/components/cart/EnhancedCartProvider.tsx`
-**Fix 10 — Resolve cart provider duplication**
-
-The audit identified that both `EnhancedCartProvider` and `useEnhancedCart` hook create a `cart_session_id`, listen to `visibilitychange`/`beforeunload`, and track cart analytics independently.
-
-**Safe approach** — do NOT delete `EnhancedCartProvider.tsx` (it may be imported elsewhere). Instead:
-
-- Verify `EnhancedCartProvider` is NOT in `App.tsx` as a wrapper — confirmed, it is not
-- Update `CartContext.tsx` to only export `useEnhancedCart` from the hook (`@/hooks/useEnhancedCart`), removing the re-export from `EnhancedCartProvider`
-- The `EnhancedCartProvider` is only used in `CartContext.tsx` as a re-export, so cleaning the re-export effectively deduplicates it
-
-This stops double session ID creation and double abandonment tracking without deleting any files.
+| Component | Status |
+|---|---|
+| PayFast form submission (no signature) | PRESERVED — architectural constraint respected |
+| PayFast webhook → process-order chain | PRESERVED — only serve() import updated |
+| 3-retry logic in payfast-webhook | PRESERVED |
+| `create_order_transaction` RPC call | PRESERVED |
+| Payment settings (merchant_id, key, passphrase) | PRESERVED |
+| Pending order 48-hour expiry | PRESERVED |
+| Reconciliation function logic | PRESERVED — only serve() updated |
+| Admin email notifications on payment failures | PRESERVED |
 
 ---
 
-### 14. `CHANGELOG.md` + `README.md`
-**Fix 14 — Document the audit**
+## Files to Modify
 
-Add a new entry to `CHANGELOG.md` under `[Unreleased]` documenting all 14 fixes from this audit session with date (Feb 18, 2026).
+| File | Change |
+|---|---|
+| `supabase/functions/process-order/index.ts` | `Deno.serve()` + fix email to call `send-email` correctly |
+| `supabase/functions/payfast-webhook/index.ts` | `Deno.serve()` only |
+| `supabase/functions/reconcile-payment/index.ts` | `Deno.serve()` only |
+| `supabase/functions/get-shipping-rates/index.ts` | `Deno.serve()` only |
+| `supabase/functions/manage-api-key/index.ts` | `Deno.serve()` only |
+| `supabase/functions/create-shipment/index.ts` | `Deno.serve()` only |
+| `supabase/functions/analytics-stream/index.ts` | `Deno.serve()` only |
+| `supabase/functions/send-order-notification/index.ts` | Fix `tracking_company` reference |
+| `src/App.tsx` | JSX indentation cleanup |
+| `CHANGELOG.md` | Document this audit session |
+| `README.md` | Update system status |
+| **DB Migration** | `SET search_path` on 7 functions + tighten 8 RLS policies |
 
-Update `README.md` system status section to reflect the completed audit.
-
----
-
-## Implementation Order (all simultaneous)
-
-Since all fixes are in independent files with no cross-dependencies (except the WhatsApp widget move in App.tsx which pairs with the widget file), all can be written in one pass:
-
-```text
-Pass 1 — CSS/HTML (no React deps):
-  index.html              → Fix 9, Fix 13 (critical CSS)
-  mobile.css              → Fix 1 (iOS overflow)
-  base.css                → Fix 13 (overscroll bg)
-
-Pass 2 — Components:
-  ProductImageGallery.tsx → Fix 2, Fix 4
-  MobileNav.tsx           → Fix 3, Fix 12
-  PromotionalBanners.tsx  → Fix 5, Fix 11
-  OptimizedCategoryGrid.tsx → Fix 8 (N+1 query)
-  WhatsAppChatWidget.tsx  → Fix 7 (route-aware)
-  ProductCard.tsx         → Fix 4
-  CampaignSection.tsx     → Fix 4
-
-Pass 3 — Contexts/Hooks:
-  AudioContext.tsx        → Fix 6
-  CartContext.tsx         → Fix 10
-
-Pass 4 — App wiring:
-  App.tsx                 → Move WhatsApp widget inside Router
-
-Pass 5 — Docs:
-  CHANGELOG.md            → Fix 14
-  README.md               → Fix 14
-```
-
-## What Will NOT Change
-
-- All Supabase queries (except OptimizedCategoryGrid which gets fewer, better ones)
-- All routing logic
-- All authentication flows
-- All admin functionality
-- All payment/checkout logic
-- All existing TypeScript types
-- The `EnhancedCartProvider.tsx` file itself (not deleted — only its re-export is removed from CartContext)
-- Header.tsx scroll lock (already correct — no change needed)
+All deployed functions will be redeployed automatically after changes.
