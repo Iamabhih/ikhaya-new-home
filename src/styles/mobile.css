@@ -135,29 +135,18 @@
     min-height: -webkit-fill-available;
   }
 
-  /* Prevent iOS rubber-banding causing layout glitches
-     Note: overflow:hidden removed — it blocked all page scrolling on iOS.
-     body { overflow: auto } handles scroll correctly. */
-  html {
-    height: 100%;
-  }
-
+  /* iOS scroll fix: keep smooth momentum scrolling but do NOT set fixed heights
+     or overflow:auto on html/body. Doing so turns the body into its own scroll
+     container so window.scrollTo() (used by ScrollToTop on route change) stops
+     working on every iOS browser. Let the window be the natural scroll target. */
   body {
-    overflow: auto;
-    height: 100%;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Ensure scrolling works in standalone PWA mode */
+  /* PWA standalone: same approach — natural window scroll, no fixed heights */
   @media (display-mode: standalone) {
     body {
-      overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-    }
-
-    #root {
-      overflow-y: auto;
-      height: 100%;
     }
   }
 }

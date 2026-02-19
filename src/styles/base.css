@@ -217,12 +217,15 @@
     scroll-behavior: smooth;
     /* Prevent overscroll bounce on iOS while allowing normal scroll */
     overscroll-behavior-y: contain;
-    /* Fix for iOS Safari 100vh issue */
-    height: -webkit-fill-available;
     /* Prevent any horizontal scroll at document level */
     overflow-x: hidden;
-    /* Fix iOS rubber-band overscroll background bleed (Fix 13) */
+    /* Fix iOS rubber-band overscroll background bleed */
     background-color: hsl(var(--background));
+    /* NOTE: Do NOT set a fixed height on html. height:-webkit-fill-available
+       combined with overflow-x:hidden (which upgrades overflow-y to auto) turns
+       html into a fixed-height scroll container, breaking window.scrollTo() on
+       iOS. The iOS address-bar height issue is handled via min-height on body
+       and #root instead. */
   }
 
   /* Enhanced body styling for cross-browser consistency */
