@@ -245,7 +245,7 @@ function generateShipmentEmail(order: any, customerName: string, metadata: any):
             <div class="tracking-info">
               <h3>Tracking Information</h3>
               <p><strong>Tracking Number:</strong> ${order.tracking_number}</p>
-              ${order.tracking_company ? `<p><strong>Carrier:</strong> ${order.tracking_company}</p>` : ''}
+              ${(metadata?.tracking_company) ? `<p><strong>Carrier:</strong> ${metadata.tracking_company}</p>` : '<p><strong>Carrier:</strong> ShipLogic</p>'}
               ${order.estimated_delivery_date ? `<p><strong>Expected Delivery:</strong> ${new Date(order.estimated_delivery_date).toLocaleDateString()}</p>` : ''}
             </div>
           ` : ''}
