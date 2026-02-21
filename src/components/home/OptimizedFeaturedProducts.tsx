@@ -100,10 +100,11 @@ export const OptimizedFeaturedProducts = () => {
   }
 
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-muted/30">
+    <section className="py-16 sm:py-20 lg:py-24 bg-accent/30">
       <div className="container mx-auto px-6 sm:px-8">
-        {/* Section Header - Decofurn style centered */}
+        {/* Section Header */}
         <div className="text-center mb-10 sm:mb-14">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-secondary mb-3 block">Curated for You</span>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3">
             Featured Products
           </h2>
