@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fix — Order Payment Status & Metrics (Feb 21, 2026)
+
+#### Issue 1 — Payment status never updated after successful PayFast payment (Critical)
+- **Root cause:** `process-order` edge function called `create_order_transaction()` which hardcodes `payment_status = 'pending'`, but never updated it to `paid` after success
+- **Fix:** Added `UPDATE orders SET payment_status = 'paid', payment_reference, payment_data` after successful order creation in `process-order/index.ts`
+- **Data fix:** Backfilled 2 existing orders (`IKH-1771075308590-33EF2D3E`, `IKH-1769430403649-58C64943`) to `payment_status = 'paid'`
+
+#### Issue 2 — OrdersTable hardcoded "Paid" badge
+- **Root cause:** Payment column always rendered `<Badge>Paid</Badge>` regardless of actual `payment_status`
+- **Fix:** Now reads `order.payment_status` dynamically with color-coded badges (green/paid, yellow/pending, red/failed, purple/refunded)
+
+#### Issue 3 — OrdersMetrics showed fake trend percentages
+- **Root cause:** Hardcoded strings like `+12.3%`, `+8.7%`, `+5.2%` were never calculated from real data
+- **Fix:** Now computes actual 30-day vs previous 30-day period-over-period trends with up/down indicators
+
+#### Issue 4 — Pagination broken in EnhancedOrderManagement
+- **Root cause:** Query missing `{ count: 'exact' }` so `totalCount` was always `0`
+- **Fix:** Added `{ count: 'exact' }` to the select options
+
 ### 🐛 Fix — Trader Application Approval: null user_id hard-fail (Feb 19, 2026)
 
 #### Root Cause

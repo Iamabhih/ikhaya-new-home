@@ -185,8 +185,21 @@ export const OrdersTable = ({
               </TableCell>
               
               <TableCell onClick={() => onViewOrder(order.id)}>
-                <Badge variant="outline" className="text-xs">
-                  Paid
+                <Badge 
+                  variant="outline" 
+                  className={`text-xs ${
+                    order.payment_status === 'paid' || order.payment_status === 'completed'
+                      ? 'bg-green-100 text-green-800 border-green-200'
+                      : order.payment_status === 'pending'
+                      ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                      : order.payment_status === 'failed'
+                      ? 'bg-red-100 text-red-800 border-red-200'
+                      : order.payment_status === 'refunded'
+                      ? 'bg-purple-100 text-purple-800 border-purple-200'
+                      : ''
+                  }`}
+                >
+                  {(order.payment_status || 'pending').charAt(0).toUpperCase() + (order.payment_status || 'pending').slice(1)}
                 </Badge>
               </TableCell>
               

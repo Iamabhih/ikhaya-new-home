@@ -275,9 +275,27 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log('Order created successfully:', orderResult.order_id);
+
+    // Update payment status to paid after successful order creation
+    const { error: paymentUpdateError } = await supabase
+      .from('orders')
+      .update({
+        payment_status: 'paid',
+        payment_reference: paymentData?.pf_payment_id || null,
+        payment_data: paymentData || null,
+      })
+      .eq('id', orderResult.order_id);
+
+    if (paymentUpdateError) {
+      console.error('Failed to update payment status (non-critical):', paymentUpdateError);
+    } else {
+      console.log('Payment status updated to paid for order:', orderResult.order_id);
+    }
+
     await logPaymentEvent('order_created', {
       orderId: orderResult.order_id,
-      orderNumber: orderResult.order_number
+      orderNumber: orderResult.order_number,
+      paymentStatusUpdated: !paymentUpdateError
     });
 
     // Send confirmation email via send-email function (non-critical - don't fail if it errors)
