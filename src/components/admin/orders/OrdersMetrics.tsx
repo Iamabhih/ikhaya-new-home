@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Package, Clock, CheckCircle, AlertCircle, DollarSign } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { TrendingUp, TrendingDown, Package, Clock, DollarSign } from "lucide-react";
 
 export const OrdersMetrics = () => {
   const { data: metrics, isLoading } = useQuery({
@@ -14,47 +14,39 @@ export const OrdersMetrics = () => {
       if (error) throw error;
 
       const today = new Date();
-      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
       const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const twoMonthsAgo = new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-      const todayOrders = orders.filter(o => 
-        new Date(o.created_at).toDateString() === today.toDateString()
-      );
-      
-      const weekOrders = orders.filter(o => 
-        new Date(o.created_at) >= weekAgo
-      );
+      const currentMonthOrders = orders.filter(o => new Date(o.created_at) >= monthAgo);
+      const previousMonthOrders = orders.filter(o => {
+        const d = new Date(o.created_at);
+        return d >= twoMonthsAgo && d < monthAgo;
+      });
 
-      const monthOrders = orders.filter(o => 
-        new Date(o.created_at) >= monthAgo
-      );
-
-      const pendingOrders = orders.filter(o => 
-        ['pending', 'confirmed'].includes(o.status)
-      );
-
-      const processingOrders = orders.filter(o => 
-        o.status === 'processing'
-      );
-
-      const fulfilledOrders = orders.filter(o => 
-        o.status === 'delivered'
-      );
+      const pendingOrders = orders.filter(o => ['pending', 'confirmed'].includes(o.status));
 
       const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-      const monthRevenue = monthOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const currentRevenue = currentMonthOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const previousRevenue = previousMonthOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+
+      const calcTrend = (current: number, previous: number) => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / previous) * 100;
+      };
 
       return {
         totalOrders: orders.length,
-        todayOrders: todayOrders.length,
-        weekOrders: weekOrders.length,
-        monthOrders: monthOrders.length,
+        currentMonthOrders: currentMonthOrders.length,
+        previousMonthOrders: previousMonthOrders.length,
         pendingOrders: pendingOrders.length,
-        processingOrders: processingOrders.length,
-        fulfilledOrders: fulfilledOrders.length,
         totalRevenue,
-        monthRevenue,
-        avgOrderValue: orders.length > 0 ? totalRevenue / orders.length : 0
+        currentRevenue,
+        previousRevenue,
+        avgOrderValue: orders.length > 0 ? totalRevenue / orders.length : 0,
+        currentAvg: currentMonthOrders.length > 0 ? currentRevenue / currentMonthOrders.length : 0,
+        previousAvg: previousMonthOrders.length > 0 ? previousRevenue / previousMonthOrders.length : 0,
+        ordersTrend: calcTrend(currentMonthOrders.length, previousMonthOrders.length),
+        revenueTrend: calcTrend(currentRevenue, previousRevenue),
       };
     },
   });
@@ -76,34 +68,47 @@ export const OrdersMetrics = () => {
 
   if (!metrics) return null;
 
+  const formatTrend = (value: number) => {
+    const sign = value >= 0 ? '+' : '';
+    return `${sign}${value.toFixed(1)}%`;
+  };
+
   const metricCards = [
     {
       title: "Total Orders",
       value: metrics.totalOrders.toLocaleString(),
-      subtitle: `${metrics.monthOrders} this month`,
+      subtitle: `${metrics.currentMonthOrders} this month`,
       icon: Package,
-      trend: "+12.3%"
+      trend: formatTrend(metrics.ordersTrend),
+      trendUp: metrics.ordersTrend >= 0,
     },
     {
       title: "Awaiting Fulfillment",
       value: metrics.pendingOrders.toLocaleString(),
       subtitle: "Orders to process",
       icon: Clock,
-      trend: metrics.pendingOrders > 10 ? "High" : "Normal"
+      trend: metrics.pendingOrders > 10 ? "High" : "Normal",
+      trendUp: metrics.pendingOrders <= 10,
     },
     {
       title: "Total Revenue",
       value: `R${metrics.totalRevenue.toLocaleString()}`,
-      subtitle: `R${metrics.monthRevenue.toLocaleString()} this month`,
+      subtitle: `R${metrics.currentRevenue.toLocaleString()} this month`,
       icon: DollarSign,
-      trend: "+8.7%"
+      trend: formatTrend(metrics.revenueTrend),
+      trendUp: metrics.revenueTrend >= 0,
     },
     {
       title: "Avg Order Value",
       value: `R${metrics.avgOrderValue.toFixed(2)}`,
-      subtitle: "Per order",
+      subtitle: `R${metrics.currentAvg.toFixed(2)} this month`,
       icon: TrendingUp,
-      trend: "+5.2%"
+      trend: formatTrend(
+        metrics.previousAvg === 0
+          ? (metrics.currentAvg > 0 ? 100 : 0)
+          : ((metrics.currentAvg - metrics.previousAvg) / metrics.previousAvg) * 100
+      ),
+      trendUp: metrics.currentAvg >= metrics.previousAvg,
     }
   ];
 
@@ -126,7 +131,10 @@ export const OrdersMetrics = () => {
                 </div>
                 <div className="flex flex-col items-end">
                   <Icon className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs text-green-600 font-medium mt-2">
+                  <span className={`text-xs font-medium mt-2 flex items-center gap-0.5 ${
+                    metric.trendUp ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {metric.trendUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                     {metric.trend}
                   </span>
                 </div>

@@ -163,7 +163,7 @@ export const EnhancedOrderManagement = () => {
             unit_price,
             total_price
           )
-        `)
+        `, { count: 'exact' })
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
       // Apply search filter
