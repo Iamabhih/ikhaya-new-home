@@ -119,10 +119,11 @@ export const OptimizedCategoryGrid = () => {
 
   return (
     <ErrorBoundary>
-      <section className="py-16 sm:py-20 lg:py-24 bg-white">
+      <section className="py-16 sm:py-20 lg:py-24 bg-background">
         <div className="container mx-auto px-6 sm:px-8">
-          {/* Section Header - Centered Decofurn style */}
+          {/* Section Header */}
           <div className="text-center mb-10 sm:mb-14">
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-secondary mb-3 block">Collections</span>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3">
               Shop by Category
             </h2>
@@ -132,13 +133,13 @@ export const OptimizedCategoryGrid = () => {
             <div className="w-12 h-0.5 bg-secondary mx-auto" />
           </div>
 
-          {/* Category Grid - Clean card layout */}
+          {/* Category Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
             {categories.map((category) => (
               <Link
                 key={category.id}
                 to={`/categories/${category.slug}`}
-                className="group relative block overflow-hidden bg-background aspect-[4/3] transition-all duration-300 touch-manipulation"
+                className="group relative block overflow-hidden rounded-xl bg-background aspect-[4/3] transition-all duration-500 touch-manipulation shadow-modern-sm hover:shadow-modern-lg"
               >
                 {/* Category Image */}
                 {category.image_url ? (
@@ -152,19 +153,19 @@ export const OptimizedCategoryGrid = () => {
                   <div className="absolute inset-0 bg-muted" />
                 )}
 
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-300" />
+                {/* Overlay - gradient from bottom */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-black/70 transition-all duration-500" />
 
-                {/* Content - Centered */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                  <h3 className="font-bold text-white text-sm sm:text-base lg:text-lg uppercase tracking-wider mb-1">
+                {/* Content - Bottom aligned */}
+                <div className="absolute inset-0 flex flex-col items-center justify-end text-center p-4 pb-5">
+                  <h3 className="font-bold text-white text-sm sm:text-base lg:text-lg uppercase tracking-wider mb-1 drop-shadow-md">
                     {category.name}
                   </h3>
-                  <p className="text-white/70 text-xs">
+                  <p className="text-white/80 text-xs">
                     {category.product_count} {category.product_count === 1 ? 'item' : 'items'}
                   </p>
                   {/* Underline on hover */}
-                  <div className="w-0 group-hover:w-8 h-0.5 bg-white mt-2 transition-all duration-300" />
+                  <div className="w-0 group-hover:w-10 h-0.5 bg-secondary mt-2.5 transition-all duration-500 rounded-full" />
                 </div>
               </Link>
             ))}

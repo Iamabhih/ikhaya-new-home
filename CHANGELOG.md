@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🎨 UI — Homepage Aesthetic Polish (Feb 21, 2026)
+- **ValueProposition:** Added warm secondary-colored icons, subtle gradient background, hover states on each feature
+- **Category Grid:** Added rounded corners (`rounded-xl`), bottom-gradient overlay, shadow transitions, secondary-colored hover underlines
+- **Featured Products:** Added "Curated for You" label, warm `accent/30` background instead of flat `muted/30`
+- **Newsletter:** Replaced hardcoded `#1a1a1a` with semantic `bg-primary`/`text-primary-foreground`, added decorative blurred orbs, mail icon, secondary-colored CTA button with glow
+- **Footer:** Migrated all hardcoded `text-white` / `bg-[#1a1a1a]` to semantic tokens (`primary`, `primary-foreground`)
+- **No functionality changed** — all business logic, forms, and data flows untouched
+
+
 ### 🐛 Fix — Order Payment Status & Metrics (Feb 21, 2026)
 
 #### Issue 1 — Payment status never updated after successful PayFast payment (Critical)
