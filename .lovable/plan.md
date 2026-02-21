@@ -1,126 +1,39 @@
 
-# Trader Application Approval — Full Root Cause Audit
+# Order Management & Analytics — Comprehensive Fix Plan
 
-## What Was Found
+## Issues Found
 
-### Problem 1 — The `approve_trader_application` DB function is WRONG (the currently active version)
+### Issue 1 — Payment Status Never Updates After Successful Payment (Critical)
 
-The **currently live DB function** (shown in the `<supabase-info>` context) is a DIFFERENT, BROKEN version from what the migration file shows. The live version is:
+When PayFast sends a `COMPLETE` webhook, the `process-order` edge function calls `create_order_transaction()` which hardcodes `payment_status = 'pending'`. After the order is created successfully, the function never updates `payment_status` to `paid` or stores the `payment_data` from PayFast.
 
-```sql
-SELECT user_id INTO app_user_id
-FROM trader_applications
-WHERE id = application_id;
+**Evidence:** 2 of 4 orders in the database have `payment_status: pending` and `payment_data: null` despite being successfully paid via PayFast and progressed to `processing` or `completed` status.
 
-IF app_user_id IS NULL THEN
-  RAISE EXCEPTION 'Application not found or user_id is null';
-END IF;
-```
+**Fix:** After `create_order_transaction()` succeeds in `process-order/index.ts`, add an UPDATE to set `payment_status = 'paid'`, `payment_reference` to the PayFast payment ID, and `payment_data` to the full PayFast response. Also fix existing orders with a data migration.
 
-This version **hard-fails if `user_id` is null**. But there is only ONE application in the database, and its `user_id` IS null — because the person who submitted the form was **not logged in** (or the form allowed guest submission, which it does: `user_id: user?.id || null`).
+### Issue 2 — OrdersTable Hardcodes "Paid" Badge
 
-The ORIGINAL migration had the correct logic:
-```sql
--- If user_id exists, update their profile and assign wholesale role
-IF app_record.user_id IS NOT NULL THEN
-  -- only then assign role
-END IF;
-```
+In `OrdersTable.tsx` line 188-190, the Payment column always shows a hardcoded "Paid" badge regardless of the actual `payment_status` value. This means cancelled, pending, and failed orders all incorrectly show as "Paid".
 
-Somewhere after the initial migration, the function was overwritten with a bad version that requires `user_id` to never be null — but the table design and form both explicitly allow null `user_id` for guest/unauthenticated applicants.
+**Fix:** Replace the hardcoded badge with the actual `payment_status` value from the order, using proper color coding.
 
-### Problem 2 — Guest applications can never be approved (design gap)
+### Issue 3 — OrdersMetrics Shows Fake Trend Percentages
 
-Even if the function didn't hard-fail, a guest application with `user_id = NULL` cannot have a wholesale role assigned — because `user_roles` requires a `user_id`. The current flow has **no way to link a guest application to an actual account**.
+`OrdersMetrics.tsx` displays hardcoded strings like `+12.3%`, `+8.7%`, `+5.2%` as trend data. These are not calculated from real data.
 
-The correct solution: when approving an application where `user_id IS NULL`, look up the `profiles` table by **email** to find if a matching account exists, and use that. If no account exists, mark the application as approved without assigning a role (and optionally show an admin warning).
+**Fix:** Calculate actual period-over-period trends by comparing current 30-day metrics to the previous 30-day period.
 
-### Problem 3 — The form allows unauthenticated/guest submissions that are then unactionable
+### Issue 4 — Order Query Missing Total Count for Pagination
 
-The `TraderApplicationForm` submits with `user_id: user?.id || null`. The form is accessible to guests, but there's nothing preventing submissions that cannot be actioned. This is a UX and data quality issue.
+The `EnhancedOrderManagement` query uses `.range()` but does not include `{ count: 'exact' }` in the select options. This means `totalCount` is always `0` and pagination never shows.
 
----
+**Fix:** Add `{ count: 'exact' }` to the query head option.
 
-## Confirmed Data State
+### Issue 5 — Existing Orders Need Payment Data Backfill
 
-- **1 application in DB**: `E Concepts ZA PTY LTD` — `user_id: null`, `status: pending`
-- **No matching profile** found for `exceptionlconceptsza@gmail.com` — so there is no account to link to even with email lookup
-- The `app_role` enum has: `customer`, `wholesale`, `admin`, `superadmin`, `manager`
+The 2 orders with `payment_status: pending` that were actually paid need to be corrected.
 
----
-
-## The Fix — 3 Parts
-
-### Fix 1 — Rewrite `approve_trader_application` DB function (migration)
-
-Replace the broken live function with one that:
-1. Does NOT hard-fail when `user_id IS NULL`
-2. Tries email-based lookup if `user_id IS NULL` (finds profile by application email)
-3. Marks the application approved regardless
-4. Only assigns the wholesale role if a user account is found (by `user_id` or by email)
-5. Returns useful info about what happened
-
-```sql
-CREATE OR REPLACE FUNCTION public.approve_trader_application(
-  application_id UUID,
-  admin_notes TEXT DEFAULT NULL
-)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  app_record RECORD;
-  resolved_user_id UUID;
-BEGIN
-  IF NOT (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'superadmin'::app_role)) THEN
-    RAISE EXCEPTION 'Only admins can approve applications';
-  END IF;
-
-  SELECT * INTO app_record FROM trader_applications WHERE id = application_id;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Application not found';
-  END IF;
-
-  -- Try to resolve user: first by user_id, then by email lookup
-  resolved_user_id := app_record.user_id;
-  IF resolved_user_id IS NULL THEN
-    SELECT id INTO resolved_user_id FROM profiles WHERE email = app_record.email LIMIT 1;
-  END IF;
-
-  UPDATE trader_applications
-  SET
-    status = 'approved',
-    reviewed_by = auth.uid(),
-    reviewed_at = now(),
-    review_notes = admin_notes,
-    updated_at = now()
-  WHERE id = application_id;
-
-  -- Only assign role if we found a user account
-  IF resolved_user_id IS NOT NULL THEN
-    INSERT INTO user_roles (user_id, role)
-    VALUES (resolved_user_id, 'wholesale'::app_role)
-    ON CONFLICT (user_id, role) DO NOTHING;
-  END IF;
-END;
-$$;
-```
-
-### Fix 2 — Update `TraderApplications.tsx` to show a warning for null user_id applications
-
-When displaying applications with `user_id = null`, show an informational badge so admins understand approving will not auto-assign a role (the applicant needs to create an account first). This is purely a UI improvement — no DB changes needed.
-
-Add:
-- A "No Account" badge on the row and detail view when `user_id` is null
-- An informational note in the approval dialog: "This applicant has no linked account. Approving will mark the application as approved, but the wholesale role cannot be assigned until they sign up with the email: `[email]`"
-- The approve button still works — it approves the application status
-
-### Fix 3 — Update CHANGELOG.md
-
-Document what was found and fixed.
+**Fix:** Update the 2 affected orders to `payment_status: 'paid'` since they were successfully processed through PayFast.
 
 ---
 
@@ -128,14 +41,49 @@ Document what was found and fixed.
 
 | File | Change |
 |---|---|
-| Database (migration) | Rewrite `approve_trader_application` to handle null `user_id` gracefully with email fallback |
-| `src/components/admin/TraderApplications.tsx` | Show "No Account" badge for null user_id; add warning in approval dialog |
-| `CHANGELOG.md` | Document root cause and fix |
+| `supabase/functions/process-order/index.ts` | After successful order creation, UPDATE orders to set `payment_status = 'paid'`, `payment_reference`, and `payment_data` |
+| `src/components/admin/orders/OrdersTable.tsx` | Replace hardcoded "Paid" badge with actual `payment_status` value and color coding |
+| `src/components/admin/orders/OrdersMetrics.tsx` | Calculate real trend percentages by comparing to previous period |
+| `src/components/admin/orders/EnhancedOrderManagement.tsx` | Add `{ count: 'exact' }` to order query for working pagination |
+| `CHANGELOG.md` | Document all fixes |
+
+## Data Fix
+
+Update the 2 existing orders that have `payment_status: pending` but were successfully paid:
+- `IKH-1771075308590-33EF2D3E` (status: processing)
+- `IKH-1769430403649-58C64943` (status: completed)
+
+Both should have `payment_status = 'paid'`.
 
 ## What Will NOT Change
 
-- The `trader_applications` table schema — it correctly allows null `user_id`
-- The `TraderApplicationForm` submission logic — guest applications remain allowed
-- The `reject_trader_application` function — it works fine (rejection doesn't need a user account)
-- All other admin functionality — untouched
-- All payment, order, auth flows — untouched
+- PayFast webhook handler — it correctly passes data to process-order
+- `create_order_transaction()` DB function — it correctly creates orders atomically
+- The `OrderDetailModal` — it already reads `payment_status` dynamically and displays it properly
+- The `EnhancedOrderManagement` list view — it already reads `payment_status` from the order and shows dynamic badges
+- All payment flows, auth, and checkout — untouched
+- Analytics dashboard (`AdvancedAnalyticsDashboard`) — already well-implemented with real data
+
+## Technical Details
+
+### process-order fix (after line 281):
+```typescript
+// Update payment status to paid after successful order creation
+await supabase
+  .from('orders')
+  .update({
+    payment_status: 'paid',
+    payment_reference: paymentData?.pf_payment_id || null,
+    payment_data: paymentData || null,
+  })
+  .eq('id', orderResult.order_id);
+```
+
+### OrdersTable payment badge fix:
+Replace the hardcoded `<Badge>Paid</Badge>` with dynamic status reading `order.payment_status`, using color-coded badges (green for paid/completed, yellow for pending, red for failed).
+
+### OrdersMetrics trend calculation:
+Compare current 30-day totals against previous 30-day totals to compute real percentage changes instead of displaying fake hardcoded values.
+
+### Pagination fix:
+Change the query from `.select(...)` to `.select(..., { count: 'exact' })` so `count` is returned and pagination controls work.
