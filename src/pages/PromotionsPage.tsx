@@ -192,12 +192,11 @@ const PromotionsPage = () => {
         )}
 
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{promotion.download_count || 0} downloads</span>
-            {promotion.file_size && (
+          {promotion.file_size && (
+            <div className="flex justify-end text-sm text-muted-foreground">
               <span>{(promotion.file_size / 1024 / 1024).toFixed(1)} MB</span>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button
