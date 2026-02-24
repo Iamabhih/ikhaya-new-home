@@ -100,18 +100,22 @@ export const OptimizedFeaturedProducts = () => {
   }
 
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-accent/30">
+    <section className="py-16 sm:py-20 lg:py-24 bg-gradient-to-b from-accent/40 via-accent/20 to-background border-t border-border/30">
       <div className="container mx-auto px-6 sm:px-8">
         {/* Section Header */}
         <div className="text-center mb-10 sm:mb-14">
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-secondary mb-3 block">Curated for You</span>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text-brand mb-3">
             Featured Products
           </h2>
-          <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto mb-6">
+          <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto mb-4">
             Handpicked selection of quality homeware for every room in your home
           </p>
-          <div className="w-12 h-0.5 bg-secondary mx-auto" />
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <div className="h-px w-16 bg-secondary/40" />
+            <div className="w-1.5 h-1.5 rounded-full bg-secondary" />
+            <div className="h-px w-16 bg-secondary/40" />
+          </div>
         </div>
 
         {/* Product Grid */}
@@ -125,9 +129,8 @@ export const OptimizedFeaturedProducts = () => {
         <div className="mt-10 sm:mt-14 text-center">
           <Link to="/products">
             <Button
-              variant="outline"
               size="lg"
-              className="px-10 py-6 text-sm font-semibold uppercase tracking-wider border-foreground text-foreground hover:bg-foreground hover:text-background transition-all"
+              className="px-10 py-6 text-sm font-semibold uppercase tracking-wider bg-foreground text-background hover:bg-foreground/90 border-none transition-all"
             >
               View All Products
               <ArrowRight className="ml-2 h-4 w-4" />

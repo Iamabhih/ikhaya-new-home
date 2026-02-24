@@ -103,6 +103,8 @@ export const PromotionalBanners = () => {
                 : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'
           }}
         />
+        {/* Bottom vignette for stronger text separation */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/20 to-transparent pointer-events-none z-10" />
       </div>
 
       {/* Content */}
@@ -112,7 +114,7 @@ export const PromotionalBanners = () => {
             {/* Badge */}
             {currentBanner.subtitle && (
               <span
-                className="inline-block text-xs sm:text-sm font-medium tracking-widest uppercase mb-4 sm:mb-6 opacity-90"
+                className="inline-block text-xs sm:text-sm font-medium tracking-widest uppercase mb-4 sm:mb-6 opacity-90 border border-white/30 rounded-full px-4 py-1 bg-white/10 backdrop-blur-sm"
                 style={{ color: currentBanner.text_color || '#ffffff' }}
               >
                 {currentBanner.subtitle}
@@ -147,7 +149,7 @@ export const PromotionalBanners = () => {
               <Link to={currentBanner.button_url}>
                 <Button
                   size="lg"
-                  className="px-8 sm:px-12 py-6 sm:py-7 text-sm sm:text-base font-semibold uppercase tracking-wider bg-white text-slate-900 hover:bg-slate-100 shadow-lg transition-all duration-300 hover:shadow-xl"
+                  className="px-8 sm:px-12 py-6 sm:py-7 text-sm sm:text-base font-semibold uppercase tracking-wider bg-white text-slate-900 hover:bg-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
                 >
                   {currentBanner.button_text}
                 </Button>
@@ -155,6 +157,12 @@ export const PromotionalBanners = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Scroll indicator */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 hidden sm:flex">
+        <div className="w-px h-8 bg-gradient-to-b from-white/50 to-transparent animate-pulse-soft" />
+        <span className="text-white/50 text-2xs uppercase tracking-[0.2em]">Scroll</span>
       </div>
 
       {/* Navigation - Only show if multiple banners */}
