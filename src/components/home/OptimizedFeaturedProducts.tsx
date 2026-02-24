@@ -127,12 +127,12 @@ export const OptimizedFeaturedProducts = () => {
 
         {/* CTA - Centered */}
         <div className="mt-10 sm:mt-14 text-center">
-          <Link to="/products">
+          <Link to="/featured">
             <Button
               size="lg"
               className="px-10 py-6 text-sm font-semibold uppercase tracking-wider bg-foreground text-background hover:bg-foreground/90 border-none transition-all"
             >
-              View All Products
+              View All Featured Products
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>

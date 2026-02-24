@@ -42,6 +42,8 @@ import NotFound from "./pages/NotFound";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
+import CampaignProductsPage from "./pages/CampaignProductsPage";
+import FeaturedProductsPage from "./pages/FeaturedProductsPage";
 
 // Admin pages - lazy loaded (only downloaded when accessed)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -129,6 +131,8 @@ function App() {
                       <Route path="/track-order" element={<GuestOrderTrackingPage />} />
                       <Route path="/blog" element={<BlogPage />} />
                       <Route path="/blog/:slug" element={<BlogPostPage />} />
+                      <Route path="/campaigns/:id" element={<CampaignProductsPage />} />
+                      <Route path="/featured" element={<FeaturedProductsPage />} />
 
                       {/* Protected routes */}
                       <Route path="/account" element={<AccountPage />} />
