@@ -52,7 +52,7 @@ export const ResponsiveContainer = ({
   };
 
   return (
-    <div className={`container mx-auto px-4 ${getMaxWidthClass()} ${className}`}>
+    <div className={`container mx-auto px-3 sm:px-4 ${getMaxWidthClass()} ${className}`}>
       {children}
     </div>
   );

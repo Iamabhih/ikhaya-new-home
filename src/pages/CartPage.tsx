@@ -300,7 +300,7 @@ const CartPage = () => {
                             size="icon"
                             onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                             disabled={item.quantity <= 1}
-                            className="h-9 w-9"
+                            className="h-10 w-10"
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
@@ -308,7 +308,7 @@ const CartPage = () => {
                             type="number"
                             value={item.quantity || 1}
                             onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                            className="w-16 text-center h-9"
+                            className="w-16 text-center h-10"
                             min="1"
                             max="99"
                           />
@@ -316,7 +316,7 @@ const CartPage = () => {
                             variant="outline"
                             size="icon"
                             onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                            className="h-9 w-9"
+                            className="h-10 w-10"
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
@@ -327,7 +327,7 @@ const CartPage = () => {
                           size="icon"
                           onClick={() => removeFromCart(item.id)}
                           title="Remove item"
-                          className="text-destructive hover:text-destructive h-9 w-9"
+                          className="text-destructive hover:text-destructive h-10 w-10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

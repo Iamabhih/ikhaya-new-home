@@ -119,7 +119,7 @@ export const OrderSummary = ({
           
           <Separator />
           
-          <div className="flex justify-between font-semibold text-lg">
+          <div className="flex justify-between font-semibold text-base sm:text-lg">
             <span>Total</span>
             <span>R{finalTotal.toFixed(2)}</span>
           </div>

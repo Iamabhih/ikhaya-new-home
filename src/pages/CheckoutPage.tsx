@@ -125,7 +125,7 @@ const CheckoutPage = () => {
         {/* Security & Trust Badges */}
         <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mb-8">
           <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-center">
               <div className="flex flex-col items-center gap-2">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                   <Lock className="w-6 h-6 text-primary" />
@@ -171,7 +171,7 @@ const CheckoutPage = () => {
           {/* Checkout Form */}
           <div className="lg:col-span-2">
             <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg">
-              <CardContent className="p-8">
+              <CardContent className="p-4 sm:p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <CreditCard className="w-6 h-6 text-primary" />
                   <h2 className="text-2xl font-bold">Payment Details</h2>
