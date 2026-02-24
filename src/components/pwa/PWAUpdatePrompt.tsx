@@ -1,12 +1,33 @@
+import { useRef } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 
 export const PWAUpdatePrompt = () => {
+  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
+    onRegistered(registration) {
+      if (!registration) return;
+
+      // Hourly check — catches users who leave a tab open for a long time
+      intervalRef.current = setInterval(() => registration.update(), 60 * 60 * 1000);
+
+      // Visibility check — fires when the user switches back to this tab
+      const onVisible = () => {
+        if (document.visibilityState === 'visible') registration.update();
+      };
+      document.addEventListener('visibilitychange', onVisible);
+
+      // Cleanup on SW unregistration (rare, but correct)
+      registration.addEventListener('updatefound', () => {
+        clearInterval(intervalRef.current);
+        document.removeEventListener('visibilitychange', onVisible);
+      });
+    },
     onRegisterError(error) {
       console.error('SW registration error', error);
     },
