@@ -12,8 +12,8 @@ export const Footer = () => {
         style={{ backgroundImage: 'radial-gradient(hsl(32 80% 50%) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
       />
 
-      <div className="container mx-auto px-4 lg:px-6 py-16 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+      <div className="container mx-auto px-4 lg:px-6 py-8 sm:py-12 lg:py-16 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 md:gap-12">
           {/* Brand Section */}
           <div className="space-y-6 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start">
@@ -33,7 +33,7 @@ export const Footer = () => {
                 href="https://facebook.com/homeware.ikhaya"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"
+                className="w-11 h-11 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"
               >
                 <Facebook className="h-4 w-4" />
               </a>
@@ -41,7 +41,7 @@ export const Footer = () => {
                 href="https://instagram.com/homeware.ikhaya"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"
+                className="w-11 h-11 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"
               >
                 <Instagram className="h-4 w-4" />
               </a>
@@ -49,7 +49,7 @@ export const Footer = () => {
                 href="https://tiktok.com/@ikhayahomestore"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"
+                className="w-11 h-11 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M19.321 5.562c-.799-.505-1.338-1.36-1.338-2.349v-.276h-3.275v11.67c0 1.917-1.555 3.473-3.473 3.473s-3.473-1.556-3.473-3.473 1.555-3.473 3.473-3.473c.351 0 .69.053 1.009.151v-3.367c-.316-.042-.641-.064-.969-.064-3.584 0-6.49 2.906-6.49 6.49s2.906 6.491 6.49 6.491 6.49-2.907 6.49-6.491v-5.622c1.417 1.016 3.151 1.614 5.018 1.614v-3.275c-1.206 0-2.306-.42-3.162-1.115-.42-.34-.782-.766-1.05-1.255-.268-.489-.4-1.022-.4-1.555z" />
@@ -122,7 +122,7 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Section */}
-        <div className="border-t border-secondary/20 mt-12 pt-8 text-center">
+        <div className="border-t border-secondary/20 mt-8 sm:mt-12 pt-6 sm:pt-8 text-center">
           <p className="text-sm text-primary-foreground/50">
             © 2025 OZZ Cash & Carry. All rights reserved.
           </p>

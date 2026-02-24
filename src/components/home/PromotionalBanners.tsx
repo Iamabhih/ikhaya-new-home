@@ -55,7 +55,7 @@ export const PromotionalBanners = () => {
 
   if (loading) {
     return (
-      <section className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] bg-muted/30 -mt-12 xs:-mt-14 sm:-mt-16">
+      <section className="relative w-full h-[50vh] xs:h-[55vh] sm:h-[70vh] lg:h-[80vh] bg-muted/30 -mt-12 xs:-mt-14 sm:-mt-16">
         <div className="absolute inset-0 flex items-center justify-center">
           <UniversalLoading variant="spinner" size="lg" />
         </div>
@@ -71,7 +71,7 @@ export const PromotionalBanners = () => {
 
   return (
     <section
-      className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden -mt-12 xs:-mt-14 sm:-mt-16 touch-manipulation"
+      className="relative w-full h-[50vh] xs:h-[55vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden -mt-12 xs:-mt-14 sm:-mt-16 touch-manipulation"
       {...bannerSwipe}
     >
       {/* Main Banner */}
@@ -103,7 +103,7 @@ export const PromotionalBanners = () => {
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-center">
-        <div className="container mx-auto px-6 sm:px-8 lg:px-12">
+        <div className="container mx-auto px-4 sm:px-8 lg:px-12">
           <div className="max-w-2xl">
             {/* Badge */}
             {currentBanner.subtitle && (
@@ -118,7 +118,7 @@ export const PromotionalBanners = () => {
             {/* Title */}
             {currentBanner.title && (
               <h1
-                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] mb-4 sm:mb-6"
+                className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] mb-4 sm:mb-6"
                 style={{
                   color: currentBanner.text_color || '#ffffff',
                   fontFamily: (currentBanner as any).title_font_family || 'inherit'
@@ -131,7 +131,7 @@ export const PromotionalBanners = () => {
             {/* Description */}
             {currentBanner.description && (
               <p
-                className="text-base sm:text-lg md:text-xl opacity-90 mb-6 sm:mb-8 max-w-xl leading-relaxed"
+                className="text-sm sm:text-lg md:text-xl opacity-90 mb-6 sm:mb-8 max-w-sm sm:max-w-xl leading-relaxed"
                 style={{ color: currentBanner.text_color || '#ffffff' }}
               >
                 {currentBanner.description}
@@ -143,7 +143,7 @@ export const PromotionalBanners = () => {
               <Link to={currentBanner.button_url}>
                 <Button
                   size="lg"
-                  className="px-8 sm:px-12 py-6 sm:py-7 text-sm sm:text-base font-semibold uppercase tracking-wider bg-white text-slate-900 hover:bg-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+                  className="px-6 sm:px-12 py-5 sm:py-7 text-xs sm:text-base font-semibold uppercase tracking-wider bg-white text-slate-900 hover:bg-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
                 >
                   {currentBanner.button_text}
                 </Button>
@@ -186,7 +186,7 @@ export const PromotionalBanners = () => {
                 onClick={() => setCurrentIndex(index)}
                 aria-label={`Go to slide ${index + 1}`}
                 aria-current={index === currentIndex ? "true" : undefined}
-                className="flex items-center justify-center px-1.5 py-5"
+                className="flex items-center justify-center p-3"
               >
                 <span
                   className={`block h-1 rounded-full transition-all duration-300 ${

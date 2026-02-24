@@ -123,7 +123,7 @@ export const Header = () => {
                       {isManager() && !isAdmin() ? 'Manager' : 'Admin'}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-56 max-w-[90vw]">
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="w-full">
                         <BarChart3 className="h-4 w-4 mr-2" />
@@ -236,7 +236,7 @@ export const Header = () => {
                       <User className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuContent align="end" className="w-48 max-w-[90vw]">
                     <DropdownMenuItem asChild>
                       <Link to="/account" className="w-full">My Account</Link>
                     </DropdownMenuItem>

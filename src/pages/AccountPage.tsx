@@ -69,7 +69,7 @@ const AccountPage = () => {
         </Breadcrumb>
         
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">My Account</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">My Account</h1>
           <p className="text-muted-foreground">Welcome back, {displayName}!</p>
         </div>
 
@@ -173,7 +173,7 @@ const AccountPage = () => {
             </div>
 
             {/* Guest Order Lookup Section */}
-            <div className="mt-12 max-w-4xl mx-auto">
+            <div className="mt-8 sm:mt-12 max-w-4xl mx-auto">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold mb-2">Order Lookup for Guests</h2>
                 <p className="text-muted-foreground">
