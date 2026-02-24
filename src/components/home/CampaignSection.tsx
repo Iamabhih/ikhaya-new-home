@@ -75,17 +75,17 @@ const CountdownTimer = ({ endDate, accentColor }: { endDate: string; accentColor
       <Clock className="h-4 w-4 opacity-80" />
       <div className="flex gap-2">
         {[
-          { value: timeLeft.days, label: "D" },
-          { value: timeLeft.hours, label: "H" },
-          { value: timeLeft.minutes, label: "M" },
-          { value: timeLeft.seconds, label: "S" },
+          { value: timeLeft.days, label: "Days" },
+          { value: timeLeft.hours, label: "Hrs" },
+          { value: timeLeft.minutes, label: "Min" },
+          { value: timeLeft.seconds, label: "Sec" },
         ].map((unit) => (
           <div
             key={unit.label}
-            className="flex flex-col items-center min-w-[40px] rounded-lg px-2 py-1"
+            className="flex flex-col items-center min-w-[48px] rounded-lg px-2 py-1.5"
             style={{ backgroundColor: `${accentColor}30` }}
           >
-            <span className="text-lg font-bold leading-tight tabular-nums">
+            <span className="text-2xl font-bold leading-tight tabular-nums">
               {String(unit.value).padStart(2, "0")}
             </span>
             <span className="text-[9px] uppercase tracking-wider opacity-70">{unit.label}</span>
@@ -142,7 +142,8 @@ const CampaignProductCard = ({
   return (
     <Link
       to={`/products/${product.slug}`}
-      className="group relative flex flex-col bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 touch-manipulation"
+      className="group relative flex flex-col bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 touch-manipulation border-t-[3px]"
+      style={{ borderTopColor: accentColor }}
     >
       {/* Discount Badge */}
       {discountPct != null && discountPct > 0 && (
@@ -357,7 +358,7 @@ export const CampaignSection = () => {
               {/* Campaign Header */}
               <div className="text-center mb-10 sm:mb-14">
                 {/* Badge */}
-                <div className="inline-flex items-center gap-2 mb-4">
+                <div className="inline-flex items-center gap-2 mb-6">
                   <span
                     className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
                     style={{ backgroundColor: campaign.accent_color, color: "#fff" }}
@@ -388,12 +389,12 @@ export const CampaignSection = () => {
 
                 {/* Decorative line */}
                 <div className="flex items-center justify-center gap-3 mt-5">
-                  <div className="h-px w-12 opacity-30" style={{ backgroundColor: campaign.text_color }} />
+                  <div className="h-px w-20 opacity-30" style={{ backgroundColor: campaign.text_color }} />
                   <div
-                    className="w-2 h-2 rounded-full"
+                    className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: campaign.accent_color }}
                   />
-                  <div className="h-px w-12 opacity-30" style={{ backgroundColor: campaign.text_color }} />
+                  <div className="h-px w-20 opacity-30" style={{ backgroundColor: campaign.text_color }} />
                 </div>
               </div>
 

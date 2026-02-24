@@ -107,24 +107,38 @@ export const Newsletter = () => {
     <section className="relative py-16 sm:py-20 lg:py-24 bg-primary text-primary-foreground overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-secondary/10 blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-secondary/5 blur-3xl" />
+        <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-secondary/20 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-secondary/10 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-secondary/5" />
       </div>
 
       <div className="container mx-auto px-6 sm:px-8 relative z-10">
         <div className="max-w-xl mx-auto text-center">
           {/* Icon */}
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-secondary/15 mb-6">
-            <Mail className="w-6 h-6 text-secondary" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-gradient mb-6">
+            <Mail className="w-7 h-7 text-white" />
           </div>
 
           {/* Header */}
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3">
             Stay In The Loop
           </h2>
-          <p className="text-primary-foreground/60 mb-8 text-sm sm:text-base max-w-md mx-auto">
+          <p className="text-primary-foreground/60 mb-5 text-sm sm:text-base max-w-md mx-auto">
             Be the first to know about new arrivals, exclusive deals, and home decor inspiration.
           </p>
+
+          {/* Benefit micro-pills */}
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
+            {["Exclusive deals", "New arrivals", "Unsubscribe anytime"].map((text) => (
+              <span
+                key={text}
+                className="inline-flex items-center gap-1.5 text-xs text-primary-foreground/60 border border-primary-foreground/25 rounded-full px-3 py-1"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-secondary flex-shrink-0" />
+                {text}
+              </span>
+            ))}
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -135,7 +149,7 @@ export const Newsletter = () => {
                 placeholder="First Name"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                className="h-12 bg-primary-foreground/5 border-primary-foreground/15 text-primary-foreground placeholder:text-primary-foreground/40 focus:bg-primary-foreground/10 focus:border-primary-foreground/30 rounded-lg"
+                className="h-12 bg-primary-foreground/5 border-primary-foreground/25 text-primary-foreground placeholder:text-primary-foreground/40 focus:bg-primary-foreground/10 focus:border-primary-foreground/30 rounded-lg"
                 disabled={loading}
               />
               <Input
@@ -143,7 +157,7 @@ export const Newsletter = () => {
                 placeholder="Last Name"
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                className="h-12 bg-primary-foreground/5 border-primary-foreground/15 text-primary-foreground placeholder:text-primary-foreground/40 focus:bg-primary-foreground/10 focus:border-primary-foreground/30 rounded-lg"
+                className="h-12 bg-primary-foreground/5 border-primary-foreground/25 text-primary-foreground placeholder:text-primary-foreground/40 focus:bg-primary-foreground/10 focus:border-primary-foreground/30 rounded-lg"
                 disabled={loading}
               />
             </div>
@@ -156,7 +170,7 @@ export const Newsletter = () => {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
-                className="h-12 bg-primary-foreground/5 border-primary-foreground/15 text-primary-foreground placeholder:text-primary-foreground/40 focus:bg-primary-foreground/10 focus:border-primary-foreground/30 rounded-lg"
+                className="h-12 bg-primary-foreground/5 border-primary-foreground/25 text-primary-foreground placeholder:text-primary-foreground/40 focus:bg-primary-foreground/10 focus:border-primary-foreground/30 rounded-lg"
                 disabled={loading}
               />
               <Input
@@ -164,7 +178,7 @@ export const Newsletter = () => {
                 placeholder="Mobile Number"
                 value={formData.mobile}
                 onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                className="h-12 bg-primary-foreground/5 border-primary-foreground/15 text-primary-foreground placeholder:text-primary-foreground/40 focus:bg-primary-foreground/10 focus:border-primary-foreground/30 rounded-lg"
+                className="h-12 bg-primary-foreground/5 border-primary-foreground/25 text-primary-foreground placeholder:text-primary-foreground/40 focus:bg-primary-foreground/10 focus:border-primary-foreground/30 rounded-lg"
                 disabled={loading}
               />
             </div>
@@ -204,7 +218,7 @@ export const Newsletter = () => {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full sm:w-auto h-12 px-10 bg-secondary text-secondary-foreground hover:bg-secondary-glow font-semibold uppercase tracking-wider text-sm rounded-lg shadow-glow transition-all duration-300"
+              className="w-full sm:w-auto h-12 px-10 bg-secondary text-secondary-foreground hover:bg-secondary-glow font-semibold uppercase tracking-wider text-sm rounded-lg shadow-glow hover:shadow-glow transition-all duration-300 hover:scale-105"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

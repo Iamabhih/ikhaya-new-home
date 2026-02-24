@@ -124,13 +124,17 @@ export const OptimizedCategoryGrid = () => {
           {/* Section Header */}
           <div className="text-center mb-10 sm:mb-14">
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-secondary mb-3 block">Collections</span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text-brand mb-3">
               Shop by Category
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto mb-6">
+            <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto mb-4">
               Explore our curated collections for every room in your home
             </p>
-            <div className="w-12 h-0.5 bg-secondary mx-auto" />
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <div className="h-px w-16 bg-secondary/40" />
+              <div className="w-1.5 h-1.5 rounded-full bg-secondary" />
+              <div className="h-px w-16 bg-secondary/40" />
+            </div>
           </div>
 
           {/* Category Grid */}
@@ -139,7 +143,7 @@ export const OptimizedCategoryGrid = () => {
               <Link
                 key={category.id}
                 to={`/categories/${category.slug}`}
-                className="group relative block overflow-hidden rounded-xl bg-background aspect-[4/3] transition-all duration-500 touch-manipulation shadow-modern-sm hover:shadow-modern-lg"
+                className="group relative block overflow-hidden rounded-xl bg-background aspect-[4/3] transition-all duration-500 touch-manipulation shadow-modern-sm hover:shadow-modern-lg hover:-translate-y-1 border border-white/0 hover:border-secondary/30"
               >
                 {/* Category Image */}
                 {category.image_url ? (
@@ -161,11 +165,11 @@ export const OptimizedCategoryGrid = () => {
                   <h3 className="font-bold text-white text-sm sm:text-base lg:text-lg uppercase tracking-wider mb-1 drop-shadow-md">
                     {category.name}
                   </h3>
-                  <p className="text-white/80 text-xs">
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs mt-1">
                     {category.product_count} {category.product_count === 1 ? 'item' : 'items'}
-                  </p>
+                  </span>
                   {/* Underline on hover */}
-                  <div className="w-0 group-hover:w-10 h-0.5 bg-secondary mt-2.5 transition-all duration-500 rounded-full" />
+                  <div className="w-0 group-hover:w-12 h-0.5 bg-secondary mt-2.5 transition-all duration-500 rounded-full" />
                 </div>
               </Link>
             ))}
@@ -175,9 +179,8 @@ export const OptimizedCategoryGrid = () => {
           <div className="mt-10 sm:mt-14 text-center">
             <Link to="/categories">
               <Button
-                variant="outline"
                 size="lg"
-                className="px-10 py-6 text-sm font-semibold uppercase tracking-wider border-foreground text-foreground hover:bg-foreground hover:text-background transition-all"
+                className="px-10 py-6 text-sm font-semibold uppercase tracking-wider bg-secondary text-secondary-foreground hover:bg-secondary-glow border-none shadow-glow hover:shadow-glow transition-all"
               >
                 View All Categories
                 <ArrowRight className="ml-2 h-4 w-4" />
