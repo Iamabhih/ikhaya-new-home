@@ -101,9 +101,9 @@ export const OrderHistory = () => {
                 to={`/orders/${order.id}`}
                 className="block border rounded-lg p-4 hover:border-primary/50 hover:bg-muted/50 transition-colors"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono font-medium">{order.order_number}</span>
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-medium text-sm">{order.order_number}</span>
                     <Badge className={statusColors[order.status] || 'bg-gray-100'}>
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </Badge>

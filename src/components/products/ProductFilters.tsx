@@ -30,13 +30,13 @@ export const ProductFilters = ({
   onSortChange,
 }: ProductFiltersProps) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <Label className="text-sm font-medium mb-3 block">Category</Label>
+        <Label className="text-sm font-medium mb-2 sm:mb-3 block">Category</Label>
         <div className="space-y-2">
           <Button
             variant={!selectedCategory ? "default" : "outline"}
-            className="w-full justify-start"
+            className="w-full justify-start min-h-[44px]"
             onClick={() => onCategoryChange(null)}
           >
             All Categories
@@ -45,7 +45,7 @@ export const ProductFilters = ({
             <Button
               key={category.id}
               variant={selectedCategory === category.id ? "default" : "outline"}
-              className="w-full justify-start"
+              className="w-full justify-start min-h-[44px]"
               onClick={() => onCategoryChange(category.id)}
             >
               {category.name}
@@ -55,7 +55,7 @@ export const ProductFilters = ({
       </div>
 
       <div>
-        <Label className="text-sm font-medium mb-3 block">Price Range</Label>
+        <Label className="text-sm font-medium mb-2 sm:mb-3 block">Price Range</Label>
         <div className="px-2">
           <Slider
             value={priceRange}
@@ -73,9 +73,9 @@ export const ProductFilters = ({
       </div>
 
       <div>
-        <Label className="text-sm font-medium mb-3 block">Sort By</Label>
+        <Label className="text-sm font-medium mb-2 sm:mb-3 block">Sort By</Label>
         <Select value={sortBy} onValueChange={onSortChange}>
-          <SelectTrigger>
+          <SelectTrigger className="h-11">{/* min 44px touch target */}
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

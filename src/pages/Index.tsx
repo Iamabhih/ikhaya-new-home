@@ -33,7 +33,7 @@ const Index = () => {
       <main>
         {/* Hero Banner - Full viewport hero */}
         <MobileSafeComponent name="Hero Banner">
-          <Suspense fallback={<div className="h-[60vh] sm:h-[70vh] lg:h-[80vh] bg-muted/30 animate-pulse" />}>
+          <Suspense fallback={<div className="h-[50vh] xs:h-[55vh] sm:h-[70vh] lg:h-[80vh] bg-muted/30 animate-pulse" />}>
             <PromotionalBanners />
           </Suspense>
         </MobileSafeComponent>

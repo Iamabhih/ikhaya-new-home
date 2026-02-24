@@ -316,9 +316,9 @@ const ProductsPage = () => {
           {/* Main Content */}
           <div className="flex-1">
             {/* Results Header */}
-            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mb-8">
-              <div className="p-6">
-                <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
+            <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mb-4 sm:mb-8">
+              <div className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-3 sm:gap-4">
                   <div className="flex items-center gap-3">
                     {/* Mobile Filter Button */}
                     <Sheet>
@@ -346,7 +346,7 @@ const ProductsPage = () => {
 
                     {/* Sort */}
                     <Select value={sortBy} onValueChange={setSortBy}>
-                      <SelectTrigger className="w-48 bg-white/70 backdrop-blur-sm border-primary/20">
+                      <SelectTrigger className="w-36 sm:w-48 bg-white/70 backdrop-blur-sm border-primary/20">{/* responsive width */}
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-white/95 backdrop-blur-md">

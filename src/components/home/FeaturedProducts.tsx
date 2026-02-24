@@ -41,9 +41,9 @@ export const FeaturedProducts = () => {
 
   if (isLoading) {
     return (
-      <section className="py-16 bg-muted/30">
+      <section className="py-10 sm:py-16 bg-muted/30">
         <ResponsiveContainer>
-          <h2 className="text-3xl font-bold text-center mb-12">Featured Products</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">Featured Products</h2>
           <ResponsiveGrid variant="standard">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
@@ -57,9 +57,9 @@ export const FeaturedProducts = () => {
   return (
     <section className="py-16 bg-muted/30">
       <ResponsiveContainer>
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Featured Products</h2>
-          <p className="text-muted-foreground text-lg">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Featured Products</h2>
+          <p className="text-muted-foreground text-base sm:text-lg">
             Discover our handpicked selection of premium homeware
           </p>
         </div>

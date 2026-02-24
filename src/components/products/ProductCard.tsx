@@ -140,7 +140,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 rounded-full ${
+                  className={`h-9 w-9 rounded-full ${
                     inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'
                   }`}
                   onClick={handleToggleWishlist}
@@ -151,7 +151,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 {isInStock && (
                   <Button
                     size="sm"
-                    className="bg-foreground hover:bg-foreground/90 text-background font-medium h-8 px-4 text-xs"
+                    className="bg-foreground hover:bg-foreground/90 text-background font-medium h-9 px-4 text-xs"
                     onClick={handleAddToCart}
                   >
                     <ShoppingCart className="h-3.5 w-3.5 sm:mr-1.5" />
@@ -204,7 +204,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           <Button
             variant="ghost"
             size="icon"
-            className={`absolute top-3 right-3 h-8 w-8 bg-white/90 hover:bg-white shadow-sm rounded-full z-20 transition-opacity duration-200 ${
+            className={`absolute top-3 right-3 h-9 w-9 bg-white/90 hover:bg-white shadow-sm rounded-full z-20 transition-opacity duration-200 ${
               inWishlist ? 'text-red-500 hover:text-red-600 opacity-100' : 'text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100'
             }`}
             onClick={handleToggleWishlist}
