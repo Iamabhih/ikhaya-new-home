@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Minus, Plus, ShoppingCart, Share2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Heart, Minus, Plus, ShoppingCart, Share2, Truck, RotateCcw, ShieldCheck, Star } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
-import { StarRating } from "@/components/reviews/StarRating";
 
 interface ProductInfoProps {
   product: {
@@ -29,20 +29,17 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist, loading } = useWishlist();
-  
+
   const hasDiscount = product.compare_at_price && product.compare_at_price > product.price;
-  const discountPercentage = hasDiscount 
+  const discountPercentage = hasDiscount
     ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)
     : 0;
   const inWishlist = isInWishlist(product.id);
+  const isInStock = product.stock_quantity && Number(product.stock_quantity) > 0;
+  const isLowStock = isInStock && Number(product.stock_quantity) <= 5;
 
-  const incrementQuantity = () => {
-    setQuantity(prev => prev + 1);
-  };
-
-  const decrementQuantity = () => {
-    setQuantity(prev => Math.max(1, prev - 1));
-  };
+  const incrementQuantity = () => setQuantity(prev => prev + 1);
+  const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
   const handleAddToCart = () => {
     addToCart({ productId: product.id, quantity });
@@ -57,155 +54,200 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
           url: window.location.href,
         });
       } catch {
-        // Share API not supported or cancelled - silently ignore
+        // cancelled or unsupported — silently ignore
       }
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
     }
   };
 
   return (
-    <div className="space-y-8 sticky top-8">
+    <div className="space-y-6 sticky top-8">
       {/* Category */}
       {product.categories && (
-        <p className="text-xs font-bold text-secondary hover:text-secondary-glow mb-0.5 sm:mb-1 uppercase tracking-widest transition-colors duration-300 drop-shadow-sm text-center">
+        <p className="text-xs font-semibold text-secondary uppercase tracking-widest">
           {product.categories.name}
         </p>
       )}
 
-      {/* Title */}
-      <div className="space-y-3">
-        <h1 className="font-bold text-4xl lg:text-5xl text-center bg-gradient-to-r from-primary/15 via-primary-glow/10 to-secondary/15 rounded-lg px-6 py-4 text-primary hover:scale-[1.02] hover:shadow-glow hover:from-primary/25 hover:via-primary-glow/20 hover:to-secondary/25 transition-all duration-300 leading-tight tracking-tight">
-          {product.name}
-        </h1>
-        
-        {/* Rating */}
-        {product.average_rating && (
-          <div className="flex items-center gap-3">
-            <StarRating rating={product.average_rating} readonly />
-            <span className="text-sm text-muted-foreground">
-              {product.average_rating.toFixed(1)} out of 5
-            </span>
-          </div>
-        )}
-      </div>
+      {/* Product Title */}
+      <h1 className="text-3xl lg:text-4xl xl:text-[2.6rem] font-bold text-foreground leading-tight tracking-tight">
+        {product.name}
+      </h1>
 
-      {/* Price */}
+      {/* Rating */}
+      {product.average_rating && (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`h-4 w-4 ${
+                  star <= Math.round(product.average_rating)
+                    ? "fill-secondary text-secondary"
+                    : "fill-muted text-muted-foreground"
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {product.average_rating.toFixed(1)}
+            {product.review_count ? ` (${product.review_count} review${product.review_count !== 1 ? "s" : ""})` : ""}
+          </span>
+        </div>
+      )}
+
+      <Separator />
+
+      {/* Price Block */}
       <div className="space-y-2">
-        <div className="flex items-baseline gap-4 justify-center">
-          <span className="text-4xl font-bold text-primary bg-gradient-to-r from-primary/10 to-secondary/10 px-4 py-2 rounded-lg">
+        <div className="flex items-baseline gap-3 flex-wrap">
+          <span className="text-3xl font-bold text-foreground">
             R{product.price.toFixed(2)}
           </span>
           {hasDiscount && (
-            <span className="text-2xl text-premium-muted line-through">
+            <span className="text-xl text-muted-foreground line-through">
               R{product.compare_at_price.toFixed(2)}
             </span>
           )}
+          {hasDiscount && (
+            <Badge variant="destructive" className="text-xs font-bold px-2 py-0.5 uppercase tracking-wider">
+              Save {discountPercentage}%
+            </Badge>
+          )}
         </div>
         {hasDiscount && (
-          <Badge variant="destructive" className="text-sm font-medium mx-auto block w-fit">
-            Save {discountPercentage}% (R{(product.compare_at_price - product.price).toFixed(2)})
-          </Badge>
+          <p className="text-sm text-muted-foreground">
+            You save{" "}
+            <span className="font-semibold text-sale">
+              R{(product.compare_at_price - product.price).toFixed(2)}
+            </span>
+          </p>
         )}
       </div>
 
       {/* Short Description */}
       {product.short_description && (
-        <div className="space-y-2">
-          <p className="text-lg text-premium leading-relaxed text-center">
-            {product.short_description}
-          </p>
-        </div>
+        <p className="text-base text-muted-foreground leading-relaxed">
+          {product.short_description}
+        </p>
       )}
 
-      {/* Stock Status & SKU */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-center">
-        <Badge 
-          variant={(product.stock_quantity && Number(product.stock_quantity) > 0) ? "default" : "destructive"}
-          className="w-fit text-sm font-medium px-3 py-1"
-        >
-          {product.stock_quantity && Number(product.stock_quantity) > 0
-            ? `✓ ${product.stock_quantity} in stock` 
-            : '✗ Out of stock'
-          }
-        </Badge>
+      {/* Stock & SKU */}
+      <div className="flex flex-wrap items-center gap-3">
+        {isInStock ? (
+          <Badge
+            variant="outline"
+            className="border-green-200 bg-green-50 text-green-700 text-xs font-semibold px-3 py-1"
+          >
+            {isLowStock
+              ? `Only ${product.stock_quantity} left`
+              : "In Stock"}
+          </Badge>
+        ) : (
+          <Badge variant="destructive" className="text-xs font-semibold px-3 py-1">
+            Out of Stock
+          </Badge>
+        )}
         {product.sku && (
-          <span className="text-sm text-premium font-mono bg-gradient-to-r from-secondary/10 to-primary/10 px-3 py-1 rounded-md">
+          <span className="text-xs text-muted-foreground font-mono bg-muted/50 px-2 py-1 rounded">
             SKU: {product.sku}
           </span>
         )}
       </div>
 
-      {/* Quantity & Actions Section */}
-      <div className="space-y-6 pt-4 border-t border-border/50">
+      <Separator />
+
+      {/* Quantity + Actions */}
+      <div className="space-y-4">
         {/* Quantity Selector */}
-        <div className="flex items-center gap-6">
-          <span className="font-medium text-base">Quantity</span>
-          <div className="flex items-center border-2 rounded-lg overflow-hidden">
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium text-foreground w-16">Quantity</span>
+          <div className="flex items-center border border-border rounded-lg overflow-hidden shadow-sm">
             <Button
               variant="ghost"
               size="icon"
               onClick={decrementQuantity}
               disabled={quantity <= 1}
-              className="h-12 w-12 rounded-none hover:bg-muted"
+              className="h-10 w-10 rounded-none hover:bg-muted border-r border-border"
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="h-3.5 w-3.5" />
             </Button>
-            <span className="px-6 py-3 min-w-[4rem] text-center font-medium bg-muted/50">
+            <span className="px-5 py-2 min-w-[3.5rem] text-center text-sm font-semibold bg-background">
               {quantity}
             </span>
             <Button
               variant="ghost"
               size="icon"
               onClick={incrementQuantity}
-              className="h-12 w-12 rounded-none hover:bg-muted"
+              className="h-10 w-10 rounded-none hover:bg-muted border-l border-border"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="space-y-3">
-          <Button 
-            size="lg" 
-            className="w-full h-14 text-lg font-medium"
+        <div className="flex gap-3">
+          <Button
+            size="lg"
+            className="flex-1 h-12 text-sm font-semibold uppercase tracking-wider"
             onClick={handleAddToCart}
-            disabled={!product.stock_quantity || Number(product.stock_quantity) <= 0}
+            disabled={!isInStock}
           >
-            <ShoppingCart className="h-5 w-5 mr-3" />
-            {product.stock_quantity && Number(product.stock_quantity) > 0 ? 'Add to Cart' : 'Out of Stock'}
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            {isInStock ? "Add to Cart" : "Out of Stock"}
           </Button>
-          
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="flex-1 h-12"
-              onClick={() => toggleWishlist(product.id)}
-              disabled={loading}
-            >
-              <Heart className={`h-5 w-5 mr-2 ${inWishlist ? 'fill-current text-destructive' : ''}`} />
-              {inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
-            </Button>
-            
-            <Button variant="outline" size="lg" className="h-12 px-4" onClick={handleShare}>
-              <Share2 className="h-5 w-5" />
-            </Button>
-          </div>
+
+          <Button
+            variant="outline"
+            size="lg"
+            className={`h-12 w-12 p-0 border-border ${inWishlist ? "text-destructive border-destructive/30 bg-destructive/5" : ""}`}
+            onClick={() => toggleWishlist(product.id)}
+            disabled={loading}
+            title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <Heart className={`h-4 w-4 ${inWishlist ? "fill-current" : ""}`} />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="lg"
+            className="h-12 w-12 p-0 border-border"
+            onClick={handleShare}
+            title="Share this product"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Trust Signals */}
+      <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
+        <div className="flex items-start gap-3 text-sm text-muted-foreground">
+          <Truck className="h-4 w-4 mt-0.5 flex-shrink-0 text-foreground/60" />
+          <span>Free delivery on orders over R1,000</span>
+        </div>
+        <div className="flex items-start gap-3 text-sm text-muted-foreground">
+          <RotateCcw className="h-4 w-4 mt-0.5 flex-shrink-0 text-foreground/60" />
+          <span>Easy 30-day returns & exchanges</span>
+        </div>
+        <div className="flex items-start gap-3 text-sm text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 mt-0.5 flex-shrink-0 text-foreground/60" />
+          <span>Secure checkout — your data is protected</span>
         </div>
       </div>
 
       {/* Description */}
       {product.description && (
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-bold text-primary mb-3 text-center">Description</h3>
-          <div className="prose prose-sm max-w-none">
-            <p className="text-premium leading-relaxed whitespace-pre-line">
-              {product.description}
-            </p>
-          </div>
+        <div className="pt-2">
+          <Separator className="mb-5" />
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">
+            Description
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+            {product.description}
+          </p>
         </div>
       )}
     </div>

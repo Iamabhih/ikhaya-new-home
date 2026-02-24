@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, Heart, Clock, Tag } from "lucide-react";
+import { ShoppingCart, Heart, Clock, Tag, Flame, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEnhancedCart } from "@/hooks/useEnhancedCart";
 import { useWishlistContext } from "@/contexts/WishlistContext";
@@ -109,18 +109,32 @@ export const CampaignProductCard = ({
   if (!product) return null;
 
   const inWishlist = isInWishlist(product.id);
-  const isInStock = (product.stock_quantity || 0) > 0;
+  const stockQty = product.stock_quantity || 0;
+  const isInStock = stockQty > 0;
+  const isLowStock = isInStock && stockQty <= 5;
   const hidePricing = settings?.hide_pricing === true;
 
+  // Effective price: campaign_price if set, otherwise regular product price
   const effectivePrice = item.campaign_price ?? product.price;
   const originalPrice = product.price;
-  const hasDiscount =
-    item.campaign_price != null && item.campaign_price < originalPrice;
+  const comparePrice = product.compare_at_price;
+
+  // Has discount if campaign_price is set AND lower than original price,
+  // OR if product has a compare_at_price (regular sale) and no campaign_price overrides it
+  const hasCampaignDiscount = item.campaign_price != null && item.campaign_price < originalPrice;
+  const hasRegularSale = item.campaign_price == null && comparePrice != null && comparePrice > originalPrice;
+  const hasDiscount = hasCampaignDiscount || hasRegularSale;
+
+  // Reference price to calculate % off from
+  const referencePrice = hasCampaignDiscount ? originalPrice : (hasRegularSale ? comparePrice! : null);
+
   const discountPct =
     item.discount_percentage ??
-    (hasDiscount
-      ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100)
+    (hasDiscount && referencePrice
+      ? Math.round(((referencePrice - effectivePrice) / referencePrice) * 100)
       : null);
+
+  const saveAmount = hasDiscount && referencePrice ? referencePrice - effectivePrice : 0;
 
   const sortedImages =
     product.product_images?.sort(
@@ -148,16 +162,33 @@ export const CampaignProductCard = ({
       className="group relative flex flex-col bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 touch-manipulation border-t-[3px]"
       style={{ borderTopColor: accentColor }}
     >
-      {/* Discount Badge */}
-      {discountPct != null && discountPct > 0 && (
-        <div
-          className="absolute top-3 left-3 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full text-white text-xs font-bold shadow-lg"
-          style={{ backgroundColor: accentColor }}
-        >
-          <Tag className="h-3 w-3" />
-          -{discountPct}%
-        </div>
-      )}
+      {/* Badges row — discount takes priority; fall back to SALE for compare_at_price */}
+      <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
+        {discountPct != null && discountPct > 0 ? (
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-white text-[11px] font-bold shadow-md uppercase tracking-wide"
+            style={{ backgroundColor: accentColor }}
+          >
+            <Tag className="h-3 w-3" />
+            -{discountPct}%
+          </span>
+        ) : hasDiscount ? (
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-white text-[11px] font-bold shadow-md uppercase tracking-wide bg-sale"
+          >
+            <Flame className="h-3 w-3" />
+            Sale
+          </span>
+        ) : null}
+
+        {/* Low stock warning badge */}
+        {isLowStock && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/90 text-white shadow-sm">
+            <AlertCircle className="h-2.5 w-2.5" />
+            Low Stock
+          </span>
+        )}
+      </div>
 
       {/* Wishlist */}
       <button
@@ -214,40 +245,44 @@ export const CampaignProductCard = ({
           {product.name}
         </h3>
 
-        {/* Price Section — highlighted for sale items */}
+        {/* Price Section */}
         <div
-          className={`mt-auto pt-2 border-t border-border/10 ${hasDiscount ? 'rounded-lg px-2 pb-2 -mx-1' : ''}`}
-          style={hasDiscount ? { backgroundColor: `${accentColor}10`, borderLeft: `3px solid ${accentColor}` } : undefined}
+          className={`mt-auto pt-2 border-t border-border/10 ${hasDiscount ? "rounded-lg px-2 pb-2 -mx-1" : ""}`}
+          style={
+            hasDiscount
+              ? { backgroundColor: `${accentColor}10`, borderLeft: `3px solid ${accentColor}` }
+              : undefined
+          }
         >
           {!hidePricing ? (
             <>
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2 flex-wrap">
                 <span
-                  className={`text-foreground ${hasDiscount ? 'text-xl font-black' : 'text-lg font-bold'}`}
+                  className={`text-foreground ${hasDiscount ? "text-xl font-black" : "text-lg font-bold"}`}
                   style={hasDiscount ? { color: accentColor } : undefined}
                 >
                   R{effectivePrice.toFixed(2)}
                 </span>
-                {hasDiscount && (
+                {hasDiscount && referencePrice && (
                   <span className="text-sm text-muted-foreground line-through">
-                    R{originalPrice.toFixed(2)}
+                    R{referencePrice.toFixed(2)}
                   </span>
                 )}
-                {hasDiscount && discountPct && (
+                {discountPct && discountPct > 0 && (
                   <span
-                    className="text-xs font-semibold text-white px-1.5 py-0.5 rounded ml-auto"
+                    className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded ml-auto"
                     style={{ backgroundColor: accentColor }}
                   >
                     -{discountPct}%
                   </span>
                 )}
               </div>
-              {hasDiscount && (
+              {hasDiscount && saveAmount > 0 && (
                 <p
                   className="text-[10px] font-semibold uppercase tracking-wider mt-0.5"
                   style={{ color: accentColor }}
                 >
-                  Save R{(originalPrice - effectivePrice).toFixed(2)}
+                  Save R{saveAmount.toFixed(2)}
                 </p>
               )}
             </>
