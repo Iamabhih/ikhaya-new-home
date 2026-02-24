@@ -30,7 +30,7 @@ export const Footer = () => {
             {/* Social Links */}
             <div className="flex space-x-4 justify-center md:justify-start">
               <a
-                href="https://facebook.com/homeware.ikhaya"
+                href="https://facebook.com/ozzcashcarry"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-11 h-11 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"
@@ -38,7 +38,7 @@ export const Footer = () => {
                 <Facebook className="h-4 w-4" />
               </a>
               <a
-                href="https://instagram.com/homeware.ikhaya"
+                href="https://instagram.com/ozzcashandcarry"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-11 h-11 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"
@@ -46,7 +46,7 @@ export const Footer = () => {
                 <Instagram className="h-4 w-4" />
               </a>
               <a
-                href="https://tiktok.com/@ikhayahomestore"
+                href="https://tiktok.com/@ozzcashcarry"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-11 h-11 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"
