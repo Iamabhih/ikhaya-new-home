@@ -165,9 +165,6 @@ export const OptimizedCategoryGrid = () => {
                   <h3 className="font-bold text-white text-sm sm:text-base lg:text-lg uppercase tracking-wider mb-1 drop-shadow-md">
                     {category.name}
                   </h3>
-                  <span className="inline-block px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs mt-1">
-                    {category.product_count} {category.product_count === 1 ? 'item' : 'items'}
-                  </span>
                   {/* Underline on hover */}
                   <div className="w-0 group-hover:w-12 h-0.5 bg-secondary mt-2.5 transition-all duration-500 rounded-full" />
                 </div>

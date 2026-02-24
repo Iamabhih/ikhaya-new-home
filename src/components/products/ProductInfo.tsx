@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Heart, Minus, Plus, ShoppingCart, Share2, Truck, RotateCcw, ShieldCheck, Star } from "lucide-react";
+import { Heart, Minus, Plus, ShoppingCart, Share2, Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 
@@ -74,28 +74,6 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
       <h1 className="text-3xl lg:text-4xl xl:text-[2.6rem] font-bold text-foreground leading-tight tracking-tight">
         {product.name}
       </h1>
-
-      {/* Rating */}
-      {product.average_rating && (
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`h-4 w-4 ${
-                  star <= Math.round(product.average_rating)
-                    ? "fill-secondary text-secondary"
-                    : "fill-muted text-muted-foreground"
-                }`}
-              />
-            ))}
-          </div>
-          <span className="text-sm text-muted-foreground">
-            {product.average_rating.toFixed(1)}
-            {product.review_count ? ` (${product.review_count} review${product.review_count !== 1 ? "s" : ""})` : ""}
-          </span>
-        </div>
-      )}
 
       <Separator />
 
