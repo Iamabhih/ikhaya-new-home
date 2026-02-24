@@ -46,7 +46,7 @@ export const Footer = () => {
                 <Instagram className="h-4 w-4" />
               </a>
               <a
-                href="https://tiktok.com/@ozzcashcarry"
+                href="https://tiktok.com/@ozzcashandcarry"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-11 h-11 border border-primary-foreground/20 rounded-full flex items-center justify-center text-primary-foreground/60 hover:bg-secondary hover:border-secondary hover:text-white transition-all duration-300"

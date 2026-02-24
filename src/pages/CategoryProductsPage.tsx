@@ -217,18 +217,7 @@ const CategoryProductsPage = () => {
         {/* Results Header */}
         <Card className="border-0 bg-white/50 backdrop-blur-sm shadow-lg mb-8">
           <div className="p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Search className="h-5 w-5 text-primary" />
-                </div>
-                {searchQuery && (
-                  <p className="text-sm text-muted-foreground">
-                    Search results for "{searchQuery}"
-                  </p>
-                )}
-              </div>
-              
+            <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
               <div className="flex items-center gap-3">
                 {/* Sort */}
                 <Select value={sortBy} onValueChange={handleSortChange}>

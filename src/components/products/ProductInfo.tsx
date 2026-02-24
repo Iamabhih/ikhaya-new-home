@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Heart, Minus, Plus, ShoppingCart, Share2, Truck, RotateCcw, ShieldCheck } from "lucide-react";
+import { Heart, Minus, Plus, ShoppingCart, Share2, RotateCcw, ShieldCheck } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 
@@ -202,10 +202,6 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
 
       {/* Trust Signals */}
       <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
-        <div className="flex items-start gap-3 text-sm text-muted-foreground">
-          <Truck className="h-4 w-4 mt-0.5 flex-shrink-0 text-foreground/60" />
-          <span>Free delivery on orders over R1,000</span>
-        </div>
         <div className="flex items-start gap-3 text-sm text-muted-foreground">
           <RotateCcw className="h-4 w-4 mt-0.5 flex-shrink-0 text-foreground/60" />
           <span>Easy 30-day returns & exchanges</span>
