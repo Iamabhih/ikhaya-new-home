@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'robots.txt'],
       manifest: {
         name: 'OZZ Cash & Carry',
@@ -69,7 +69,19 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Exclude admin-only lazy chunks — regular shoppers never need them precached
+        globIgnores: [
+          '**/Admin*.js',
+          '**/SuperAdmin*.js',
+          '**/CartAbandonment*.js',
+          '**/MasterImage*.js',
+          '**/calendar-*.js',
+          '**/react-beautiful-dnd*.js',
+        ],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB limit to accommodate large bundles
+        cleanupOutdatedCaches: true,  // remove stale caches from old deployments
+        skipWaiting: false,           // activation is controlled by the in-app update prompt
+        clientsClaim: true,           // new SW claims all tabs immediately once activated
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/kauostzhxqoxggwqgtym\.supabase\.co\/storage\/.*/i,

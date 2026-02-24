@@ -13,6 +13,7 @@ import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { WhatsAppChatWidget } from "@/components/common/WhatsAppChatWidget";
 import { ScrollToTop } from "@/components/common/ScrollToTop";
+import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import "./App.css";
 
 // Public pages - loaded immediately
@@ -107,6 +108,7 @@ function App() {
                     <SecurityMonitor />
                     <ScrollToTop />
                     <WhatsAppChatWidget />
+                    <PWAUpdatePrompt />
                     <Routes>
                       {/* Public routes */}
                       <Route path="/" element={<Index />} />
