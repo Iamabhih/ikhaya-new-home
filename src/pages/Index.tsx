@@ -38,9 +38,6 @@ const Index = () => {
           </Suspense>
         </MobileSafeComponent>
 
-        {/* Value Proposition Strip */}
-        <ValueProposition />
-
         {/* Campaigns */}
         <MobileSafeComponent name="Campaigns">
           <Suspense fallback={<UniversalLoading size="lg" className="py-20" />}>
@@ -54,6 +51,9 @@ const Index = () => {
             <OptimizedCategoryGrid />
           </Suspense>
         </MobileSafeComponent>
+
+        {/* Value Proposition Strip */}
+        <ValueProposition />
 
         {/* Featured Products (fallback when no campaigns are active) */}
         <MobileSafeComponent name="Featured Products">
