@@ -41,17 +41,17 @@ const Index = () => {
         {/* Value Proposition Strip */}
         <ValueProposition />
 
-        {/* Shop by Category */}
-        <MobileSafeComponent name="Category Grid">
-          <Suspense fallback={<UniversalLoading size="lg" className="py-20" />}>
-            <OptimizedCategoryGrid />
-          </Suspense>
-        </MobileSafeComponent>
-
         {/* Campaigns */}
         <MobileSafeComponent name="Campaigns">
           <Suspense fallback={<UniversalLoading size="lg" className="py-20" />}>
             <CampaignSection />
+          </Suspense>
+        </MobileSafeComponent>
+
+        {/* Shop by Category */}
+        <MobileSafeComponent name="Category Grid">
+          <Suspense fallback={<UniversalLoading size="lg" className="py-20" />}>
+            <OptimizedCategoryGrid />
           </Suspense>
         </MobileSafeComponent>
 

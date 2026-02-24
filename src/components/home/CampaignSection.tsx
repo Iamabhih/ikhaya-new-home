@@ -177,16 +177,19 @@ export const CampaignSection = () => {
                 </div>
               </div>
 
-              {/* Product Grid — show up to 8 on homepage */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                {campaign.campaign_products.slice(0, 8).map((item: CampaignProduct) => (
-                  <CampaignProductCard
-                    key={item.id}
-                    item={item}
-                    accentColor={campaign.accent_color}
-                    textColor={campaign.text_color}
-                  />
-                ))}
+              {/* Product Marquee — horizontal scrolling carousel */}
+              <div className="overflow-hidden -mx-6 sm:-mx-8">
+                <div className="flex w-max animate-marquee hover:[animation-play-state:paused]">
+                  {[...campaign.campaign_products, ...campaign.campaign_products].map((item: CampaignProduct, index: number) => (
+                    <div key={`${item.id}-${index}`} className="flex-shrink-0 w-56 sm:w-64 px-3">
+                      <CampaignProductCard
+                        item={item}
+                        accentColor={campaign.accent_color}
+                        textColor={campaign.text_color}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* CTA */}
