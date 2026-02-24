@@ -4,7 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { StandardBreadcrumbs } from "@/components/common/StandardBreadcrumbs";
 import { ArrowRight } from "lucide-react";
 const CategoriesPage = () => {
   const {
@@ -27,17 +27,9 @@ const CategoriesPage = () => {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-secondary/30 to-background py-16">
         <div className="container mx-auto px-4">
-          <Breadcrumb className="mb-6">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">Home</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Categories</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <div className="mb-6">
+            <StandardBreadcrumbs items={[{ label: "Home", href: "/" }, { label: "Categories", isActive: true }]} />
+          </div>
           
           <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">

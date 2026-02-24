@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -10,13 +11,24 @@ import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 type PromotionalBanner = Tables<"promotional_banners">;
 
 export const PromotionalBanners = () => {
-  const [banners, setBanners] = useState<PromotionalBanner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchBanners();
-  }, []);
+  const { data: banners = [], isLoading: loading } = useQuery({
+    queryKey: ["promotional-banners"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("promotional_banners")
+        .select("*")
+        .eq("is_active", true)
+        .or(`start_date.is.null,start_date.lte.${new Date().toISOString()}`)
+        .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`)
+        .order("position");
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 300000,
+    gcTime: 600000,
+  });
 
   useEffect(() => {
     if (banners.length > 1) {
@@ -27,24 +39,6 @@ export const PromotionalBanners = () => {
     }
     return undefined;
   }, [banners.length]);
-
-  const fetchBanners = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("promotional_banners")
-        .select("*")
-        .eq("is_active", true)
-        .or(`start_date.is.null,start_date.lte.${new Date().toISOString()}`)
-        .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`)
-        .order("position");
-      if (error) throw error;
-      setBanners(data || []);
-    } catch (error) {
-      console.error("Error fetching promotional banners:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const nextSlide = useCallback(() => {
     setCurrentIndex(prev => (prev + 1) % banners.length);
