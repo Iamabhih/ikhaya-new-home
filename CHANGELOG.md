@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes — Build Errors (Feb 24, 2026)
+- **delete-user edge function:** Replaced unsupported `getClaims()` with `getUser()` for JWT verification (pinned SDK `@2.39.3` lacks `getClaims`)
+- **CampaignProductsPage:** Fixed TypeScript `SelectQueryError` on nested `product_images` join by casting through `unknown`
+
 ### 🎨 UI — Homepage Aesthetic Polish (Feb 21, 2026)
 - **ValueProposition:** Added warm secondary-colored icons, subtle gradient background, hover states on each feature
 - **Category Grid:** Added rounded corners (`rounded-xl`), bottom-gradient overlay, shadow transitions, secondary-colored hover underlines

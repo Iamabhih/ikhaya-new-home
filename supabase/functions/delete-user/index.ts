@@ -26,31 +26,22 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Use getClaims() for local JWT verification — no network call needed
-    // This is the correct approach for Supabase Edge Functions
-    const token = authHeader.replace("Bearer ", "");
     const callerClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: claimsData, error: authError } = await callerClient.auth.getClaims(token);
-    if (authError || !claimsData?.claims) {
-      console.error("[delete-user] getClaims error:", authError);
+    const { data: { user: caller }, error: authError } = await callerClient.auth.getUser();
+    if (authError || !caller) {
+      console.error("[delete-user] getUser error:", authError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const callerId = claimsData.claims.sub as string;
-    if (!callerId) {
-      return new Response(JSON.stringify({ error: "Unauthorized: no user id in token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const callerId = caller.id;
 
     // Check caller has superadmin role
     const { data: callerRoles } = await supabase

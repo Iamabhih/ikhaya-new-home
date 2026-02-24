@@ -74,7 +74,7 @@ const CampaignProductsPage = () => {
           (a: any, b: any) => (a.display_order || 0) - (b.display_order || 0)
         );
 
-      return { ...data, campaign_products: filteredProducts } as Campaign;
+      return { ...data, campaign_products: filteredProducts } as unknown as Campaign;
     },
     staleTime: 300000,
   });
