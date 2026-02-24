@@ -214,30 +214,43 @@ export const CampaignProductCard = ({
           {product.name}
         </h3>
 
-        {/* Price Section — enhanced */}
-        <div className="mt-auto pt-2 border-t border-border/10">
+        {/* Price Section — highlighted for sale items */}
+        <div
+          className={`mt-auto pt-2 border-t border-border/10 ${hasDiscount ? 'rounded-lg px-2 pb-2 -mx-1' : ''}`}
+          style={hasDiscount ? { backgroundColor: `${accentColor}10`, borderLeft: `3px solid ${accentColor}` } : undefined}
+        >
           {!hidePricing ? (
-            <div className="flex items-baseline gap-2">
-              <span
-                className="text-lg font-bold text-foreground"
-                style={hasDiscount ? { color: accentColor } : undefined}
-              >
-                R{effectivePrice.toFixed(2)}
-              </span>
-              {hasDiscount && (
-                <span className="text-sm text-muted-foreground line-through">
-                  R{originalPrice.toFixed(2)}
-                </span>
-              )}
-              {hasDiscount && discountPct && (
+            <>
+              <div className="flex items-baseline gap-2">
                 <span
-                  className="text-xs font-semibold text-white px-1.5 py-0.5 rounded ml-auto"
-                  style={{ backgroundColor: accentColor }}
+                  className={`text-foreground ${hasDiscount ? 'text-xl font-black' : 'text-lg font-bold'}`}
+                  style={hasDiscount ? { color: accentColor } : undefined}
                 >
-                  -{discountPct}%
+                  R{effectivePrice.toFixed(2)}
                 </span>
+                {hasDiscount && (
+                  <span className="text-sm text-muted-foreground line-through">
+                    R{originalPrice.toFixed(2)}
+                  </span>
+                )}
+                {hasDiscount && discountPct && (
+                  <span
+                    className="text-xs font-semibold text-white px-1.5 py-0.5 rounded ml-auto"
+                    style={{ backgroundColor: accentColor }}
+                  >
+                    -{discountPct}%
+                  </span>
+                )}
+              </div>
+              {hasDiscount && (
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-wider mt-0.5"
+                  style={{ color: accentColor }}
+                >
+                  Save R{(originalPrice - effectivePrice).toFixed(2)}
+                </p>
               )}
-            </div>
+            </>
           ) : (
             <span className="text-xs text-muted-foreground uppercase tracking-wider">
               Request Quote

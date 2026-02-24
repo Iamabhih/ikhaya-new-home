@@ -152,7 +152,7 @@ const CampaignProductsPage = () => {
           />
         </div>
 
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="container mx-auto px-6 sm:px-8 relative z-10">
           <div
             className="mb-6"
             style={{ color: `${campaign.text_color}99` }}
@@ -198,6 +198,13 @@ const CampaignProductsPage = () => {
               {campaign.campaign_products.length !== 1 ? "s" : ""} in this
               campaign
             </p>
+
+            {/* Decorative line — matches homepage CampaignSection */}
+            <div className="flex items-center justify-center gap-3 mt-5">
+              <div className="h-px w-20 opacity-30" style={{ backgroundColor: campaign.text_color }} />
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: campaign.accent_color }} />
+              <div className="h-px w-20 opacity-30" style={{ backgroundColor: campaign.text_color }} />
+            </div>
           </div>
         </div>
       </section>
