@@ -219,8 +219,8 @@ export const CampaignProductCard = ({
           {!hidePricing ? (
             <div className="flex items-baseline gap-2">
               <span
-                className="text-lg font-bold"
-                style={{ color: hasDiscount ? accentColor : "inherit" }}
+                className="text-lg font-bold text-foreground"
+                style={hasDiscount ? { color: accentColor } : undefined}
               >
                 R{effectivePrice.toFixed(2)}
               </span>
