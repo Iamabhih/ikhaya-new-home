@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔐 Feature — Google & Apple Sign-In (Feb 25, 2026)
+- **AuthPage + AuthModal:** Added "Sign in with Google" and "Sign in with Apple" OAuth buttons
+- Uses `supabase.auth.signInWithOAuth()` with proper redirect handling
+- Styled with brand-consistent outline buttons and official provider SVG icons
+- **Requires:** Google Cloud Console OAuth credentials + Apple Developer credentials configured in Supabase Dashboard (Auth > Providers)
+
+### 🎨 CSS Fix — Invalid Tailwind Opacity Values (Feb 25, 2026)
+- **Header.tsx:** Fixed `bg-white/97` → `/95`, `bg-white/92` → `/90` (Tailwind requires multiples of 5)
+- **ProductCard.tsx & ProductActions.tsx:** Fixed `bg-sale/8` → `/10`, `bg-sale/12` → `/15`
+- Prevents silent CSS failures or build errors from non-standard opacity increments
+
 ### 🐛 Bug Fixes — Build Errors (Feb 24, 2026)
 - **delete-user edge function:** Replaced unsupported `getClaims()` with `getUser()` for JWT verification (pinned SDK `@2.39.3` lacks `getClaims`)
 - **CampaignProductsPage:** Fixed TypeScript `SelectQueryError` on nested `product_images` join by casting through `unknown`

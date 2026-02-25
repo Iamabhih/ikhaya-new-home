@@ -142,8 +142,8 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                   size="icon"
                   className={`h-9 w-9 rounded-full transition-colors ${
                     inWishlist
-                      ? 'text-sale bg-sale/8 hover:bg-sale/12'
-                      : 'text-muted-foreground hover:text-sale hover:bg-sale/8'
+                      ? 'text-sale bg-sale/10 hover:bg-sale/15'
+                      : 'text-muted-foreground hover:text-sale hover:bg-sale/10'
                   }`}
                   onClick={handleToggleWishlist}
                   disabled={loading}
