@@ -262,17 +262,17 @@ const ProductsPage = () => {
       <Header />
       
       {/* Hero Section - Mobile Enhanced */}
-      <section className="bg-gradient-to-b from-secondary/30 to-background py-8 xs:py-12 sm:py-16">
+      <section className="bg-gradient-to-b from-primary/6 to-background py-8 xs:py-12 sm:py-16">
         <div className="container mx-auto px-2 xs:px-4">
-          <StandardBreadcrumbs 
+          <StandardBreadcrumbs
             items={[
               { label: "Home", href: "/" },
               { label: "All Products", isActive: true }
-            ]} 
+            ]}
           />
 
           <div className="text-center max-w-4xl mx-auto mb-6 xs:mb-8">
-            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mb-4 xs:mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mb-4 xs:mb-6 gradient-text-brand">
               {searchQuery ? `Search Results` : 'All Products'}
             </h1>
             <p className="text-muted-foreground text-sm xs:text-base sm:text-lg md:text-xl leading-relaxed mb-6 xs:mb-8 px-2">

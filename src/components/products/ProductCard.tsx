@@ -70,18 +70,18 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
     toggleWishlist(product.id);
   };
 
-  // List View
+  /* ─── List View ─────────────────────────────────────────── */
   if (viewMode === "list") {
     return (
-      <Card className="group overflow-hidden border border-border/30 bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-lg w-full">
+      <Card className="group overflow-hidden border border-border/40 bg-card shadow-card hover:shadow-premium transition-all duration-300 rounded-xl w-full">
         <Link to={productUrl} className="flex flex-row gap-4 p-4 touch-manipulation">
           {/* Image */}
-          <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0 bg-[hsl(var(--product-image-bg))] rounded-lg overflow-hidden">
+          <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0 bg-[hsl(var(--product-image-bg))] rounded-xl overflow-hidden">
             {primaryImage ? (
               <OptimizedImage
                 src={getSupabaseImageUrl(primaryImage.image_url)}
                 alt={primaryImage.alt_text || product.name}
-                className="w-full h-full object-contain p-2"
+                className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500"
                 lazy={true}
                 quality={85}
                 fallbackSrc="/placeholder.svg"
@@ -93,7 +93,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             )}
             {hasDiscount && (
               <div className="absolute top-2 left-2 z-10">
-                <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-2 py-1">
+                <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-2 py-1 rounded">
                   SALE
                 </span>
               </div>
@@ -104,11 +104,11 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
           <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
             <div>
               {product.categories && (
-                <span className="inline-block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                <span className="inline-block text-[10px] uppercase tracking-wider font-semibold text-secondary mb-1">
                   {product.categories.name}
                 </span>
               )}
-              <h3 className="font-medium text-sm sm:text-base text-foreground line-clamp-2 mb-1">
+              <h3 className="font-semibold text-sm sm:text-base text-foreground line-clamp-2 mb-1">
                 {product.name}
               </h3>
               {product.short_description && (
@@ -122,7 +122,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
               <div className="flex items-center gap-2">
                 {!hidePricing ? (
                   <>
-                    <span className="text-base sm:text-lg font-bold text-foreground">
+                    <span className={`text-base sm:text-lg font-bold ${hasDiscount ? 'text-sale' : 'text-foreground'}`}>
                       R{product.price.toFixed(2)}
                     </span>
                     {hasDiscount && product.compare_at_price && (
@@ -140,8 +140,10 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-9 w-9 rounded-full ${
-                    inWishlist ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-foreground'
+                  className={`h-9 w-9 rounded-full transition-colors ${
+                    inWishlist
+                      ? 'text-sale bg-sale/8 hover:bg-sale/12'
+                      : 'text-muted-foreground hover:text-sale hover:bg-sale/8'
                   }`}
                   onClick={handleToggleWishlist}
                   disabled={loading}
@@ -151,7 +153,8 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
                 {isInStock && (
                   <Button
                     size="sm"
-                    className="bg-foreground hover:bg-foreground/90 text-background font-medium h-9 px-4 text-xs"
+                    style={{ background: 'var(--brand-gradient)' }}
+                    className="text-white font-semibold h-9 px-4 text-xs rounded-lg border-0 hover:opacity-90 hover:shadow-glow transition-all"
                     onClick={handleAddToCart}
                   >
                     <ShoppingCart className="h-3.5 w-3.5 sm:mr-1.5" />
@@ -166,16 +169,16 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
     );
   }
 
-  // Grid View - Clean Decofurn-inspired design
+  /* ─── Grid View ──────────────────────────────────────────── */
   return (
-    <Card className="group overflow-hidden border border-border/40 bg-white hover:shadow-md transition-all duration-300 rounded-none w-full">
+    <Card className="group overflow-hidden border border-border/40 bg-card hover:shadow-premium hover:-translate-y-0.5 transition-all duration-300 rounded-xl w-full">
       <Link to={productUrl} className="block touch-manipulation">
-        {/* Image Section - Clean, minimal */}
-        <div className="relative bg-[hsl(var(--product-image-bg))] aspect-square overflow-hidden">
-          {/* Sale badge - Top left only */}
+        {/* Image Section */}
+        <div className="relative bg-[hsl(var(--product-image-bg))] aspect-square overflow-hidden rounded-t-xl">
+          {/* Sale badge */}
           {hasDiscount && (
             <div className="absolute top-3 left-3 z-10">
-              <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-2.5 py-1 uppercase tracking-wider">
+              <span className="inline-block bg-sale text-sale-foreground text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">
                 Sale
               </span>
             </div>
@@ -194,18 +197,20 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
               />
             ) : (
               <div className="flex flex-col items-center justify-center text-muted-foreground">
-                <div className="w-16 h-16 bg-muted rounded mb-2" />
-                <span className="text-sm">No image</span>
+                <div className="w-16 h-16 bg-muted rounded-lg mb-2" />
+                <span className="text-xs">No image</span>
               </div>
             )}
           </div>
 
-          {/* Wishlist button - Top right, visible on hover */}
+          {/* Wishlist button — top-right, appears on hover */}
           <Button
             variant="ghost"
             size="icon"
-            className={`absolute top-3 right-3 h-9 w-9 bg-white/90 hover:bg-white shadow-sm rounded-full z-20 transition-opacity duration-200 ${
-              inWishlist ? 'text-red-500 hover:text-red-600 opacity-100' : 'text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100'
+            className={`absolute top-3 right-3 h-9 w-9 bg-white/95 hover:bg-white shadow-sm rounded-full z-20 transition-all duration-200 ${
+              inWishlist
+                ? 'text-sale opacity-100'
+                : 'text-muted-foreground hover:text-sale opacity-0 group-hover:opacity-100'
             }`}
             onClick={handleToggleWishlist}
             disabled={loading}
@@ -215,25 +220,28 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
 
           {/* Out of Stock Overlay */}
           {!isInStock && (
-            <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
-              <span className="bg-foreground text-background text-xs font-semibold px-4 py-2 uppercase tracking-wider">
+            <div className="absolute inset-0 bg-background/75 flex items-center justify-center z-10 rounded-t-xl">
+              <span
+                className="text-xs font-bold px-4 py-2 rounded-lg uppercase tracking-wider text-white"
+                style={{ background: 'var(--brand-gradient)' }}
+              >
                 Out of Stock
               </span>
             </div>
           )}
         </div>
 
-        {/* Product Info - Below image */}
-        <div className="p-4 space-y-2">
+        {/* Product Info */}
+        <div className="p-3.5 space-y-1.5">
           {/* Category */}
           {product.categories && (
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            <span className="block text-[10px] uppercase tracking-widest font-semibold text-secondary">
               {product.categories.name}
             </span>
           )}
 
           {/* Product Name */}
-          <h3 className="font-medium text-sm text-foreground line-clamp-2 min-h-[2.5rem] leading-tight">
+          <h3 className="font-semibold text-sm text-foreground line-clamp-2 min-h-[2.5rem] leading-snug">
             {product.name}
           </h3>
 
@@ -255,11 +263,12 @@ export const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) =>
             )}
           </div>
 
-          {/* Add to Cart - Always visible */}
+          {/* Add to Cart */}
           {isInStock && (
             <Button
               size="sm"
-              className="w-full bg-foreground hover:bg-foreground/90 text-background font-medium text-xs uppercase tracking-wider h-9 rounded-none mt-1"
+              style={{ background: 'var(--brand-gradient)' }}
+              className="w-full text-white font-semibold text-xs uppercase tracking-wider h-9 rounded-lg mt-1 border-0 hover:opacity-90 hover:shadow-glow transition-all duration-200"
               onClick={handleAddToCart}
             >
               <ShoppingCart className="h-3.5 w-3.5 mr-2" />

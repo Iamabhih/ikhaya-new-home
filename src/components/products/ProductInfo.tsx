@@ -116,7 +116,7 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
         {isInStock ? (
           <Badge
             variant="outline"
-            className="border-green-200 bg-green-50 text-green-700 text-xs font-semibold px-3 py-1"
+            className="border-success/30 bg-success/10 text-success text-xs font-semibold px-3 py-1"
           >
             {isLowStock
               ? `Only ${product.stock_quantity} left`
@@ -169,7 +169,12 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
         <div className="flex gap-3">
           <Button
             size="lg"
-            className="flex-1 h-12 text-sm font-semibold uppercase tracking-wider"
+            style={isInStock ? { background: 'var(--brand-gradient)' } : undefined}
+            className={`flex-1 h-12 text-sm font-semibold uppercase tracking-wider border-0 ${
+              isInStock
+                ? 'text-white hover:opacity-90 hover:shadow-glow transition-all'
+                : 'bg-muted text-muted-foreground'
+            }`}
             onClick={handleAddToCart}
             disabled={!isInStock}
           >

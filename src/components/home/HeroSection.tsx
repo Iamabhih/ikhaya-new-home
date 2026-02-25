@@ -48,9 +48,13 @@ export const HeroSection = () => {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 md:mb-16 px-4 sm:px-0">
             <Link to="/products" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto px-6 sm:px-8 py-3 group text-sm sm:text-base">
+              <Button
+                size="lg"
+                style={{ background: 'var(--brand-gradient)' }}
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 group text-sm sm:text-base text-white border-0 hover:opacity-90 hover:shadow-glow transition-all"
+              >
                 <Home className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:rotate-12 transition-transform duration-300" />
-                Shop Now 
+                Shop Now
                 <ArrowRight className="ml-1.5 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
             </Link>

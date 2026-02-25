@@ -108,7 +108,7 @@ export const CartMigrationNotice = () => {
         
         {/* Success indicator */}
         {!isMigrating && items.length > 0 && (
-          <div className="flex items-center gap-2 mt-3 text-green-600">
+          <div className="flex items-center gap-2 mt-3 text-success">
             <CheckCircle className="h-4 w-4" />
             <span className="text-sm">Cart successfully synced!</span>
           </div>

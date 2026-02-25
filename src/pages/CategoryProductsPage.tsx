@@ -183,12 +183,12 @@ const CategoryProductsPage = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-secondary/30 to-background py-16">
+      <section className="bg-gradient-to-b from-primary/6 to-background py-16">
         <div className="container mx-auto px-4">
           <StandardBreadcrumbs items={breadcrumbItems} />
 
           <div className="text-center max-w-4xl mx-auto mb-8">
-            <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <h1 className="text-5xl font-bold mb-6 gradient-text-brand">
               {category.name}
             </h1>
             {category.description && (
