@@ -15,7 +15,7 @@ const PrivacyPage = () => {
       {/* Page Hero */}
       <section className="bg-brand-gradient py-16 sm:py-20 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-10 right-16 w-72 h-72 bg-white/8 rounded-full blur-3xl" />
+          <div className="absolute top-10 right-16 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-8 left-12 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
         </div>
         <div className="container mx-auto px-4 relative z-10">

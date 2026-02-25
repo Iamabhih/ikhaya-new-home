@@ -92,7 +92,7 @@ const FAQPage = () => {
       {/* Page Hero */}
       <section className="bg-brand-gradient py-16 sm:py-20 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-10 right-16 w-72 h-72 bg-white/8 rounded-full blur-3xl" />
+          <div className="absolute top-10 right-16 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-8 left-12 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
         </div>
         <div className="container mx-auto px-4 relative z-10">
@@ -108,7 +108,7 @@ const FAQPage = () => {
           </Breadcrumb>
           <div className="text-center max-w-3xl mx-auto text-white">
             <h1 className="text-4xl sm:text-5xl font-extrabold mb-5 tracking-tight">Frequently Asked Questions</h1>
-            <p className="text-lg sm:text-xl text-white/88 leading-relaxed">
+            <p className="text-lg sm:text-xl text-white/90 leading-relaxed">
               Find answers to common questions about shopping with OZZ Cash &amp; Carry.
               Can&apos;t find what you&apos;re looking for? Contact our customer service team.
             </p>

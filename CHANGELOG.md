@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🎨 CSS Fix — Invalid Tailwind Opacity Values (Feb 25, 2026)
 - **Header.tsx:** Fixed `bg-white/97` → `/95`, `bg-white/92` → `/90` (Tailwind requires multiples of 5)
 - **ProductCard.tsx & ProductActions.tsx:** Fixed `bg-sale/8` → `/10`, `bg-sale/12` → `/15`
-- Prevents silent CSS failures or build errors from non-standard opacity increments
+- **AboutPage, FAQPage:** Fixed `bg-white/8` → `/10`, `text-white/88` → `/90`
+- **TermsPage, ShippingPage, PrivacyPage:** Fixed `bg-white/8` → `/10`
+- Prevents silent CSS failures from non-standard opacity increments
 
 ### 🐛 Bug Fixes — Build Errors (Feb 24, 2026)
 - **delete-user edge function:** Replaced unsupported `getClaims()` with `getUser()` for JWT verification (pinned SDK `@2.39.3` lacks `getClaims`)
