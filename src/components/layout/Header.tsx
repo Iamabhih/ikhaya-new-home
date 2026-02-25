@@ -79,7 +79,7 @@ export const Header = () => {
     setAuthModalOpen(false);
   };
   return <>
-      <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/30 bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/90 transition-all duration-300 shadow-sm" id="site-header">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/40 bg-white/97 backdrop-blur-md supports-[backdrop-filter]:bg-white/92 transition-all duration-300 shadow-sm" id="site-header">
         <div className="container mx-auto px-2 sm:px-4 lg:px-6 max-w-[100vw]">
           <div className="flex h-12 xs:h-14 sm:h-16 items-center justify-between gap-1 xs:gap-2 sm:gap-4 min-w-0">
             
@@ -205,7 +205,7 @@ export const Header = () => {
             <form onSubmit={handleSearch} className="hidden sm:flex items-center flex-1 max-w-[200px] sm:max-w-xs lg:max-w-sm mx-1 sm:mx-2 lg:mx-4">
               <div className="relative w-full">
                 <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground" />
-                <Input placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-7 sm:pl-10 h-8 sm:h-9 lg:h-10 text-xs sm:text-sm border-border/60 bg-background/50 focus:bg-background transition-colors premium-input" />
+                <Input placeholder="Search products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-7 sm:pl-10 h-8 sm:h-9 lg:h-10 text-xs sm:text-sm border-border/50 bg-muted/40 focus:bg-background transition-colors premium-input rounded-full" />
               </div>
             </form>
 

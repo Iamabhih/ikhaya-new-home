@@ -11,28 +11,37 @@ const TermsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Terms of Service</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
 
-        <div className="space-y-8 max-w-4xl mx-auto">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
-            <p className="text-xl text-muted-foreground">
+      {/* Page Hero */}
+      <section className="bg-brand-gradient py-16 sm:py-20 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-10 right-16 w-72 h-72 bg-white/8 rounded-full blur-3xl" />
+          <div className="absolute bottom-8 left-12 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
+          <Breadcrumb className="mb-5">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/" className="text-white/75 hover:text-white transition-colors">Home</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-white">Terms of Service</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="text-center max-w-3xl mx-auto text-white">
+            <h1 className="text-4xl sm:text-5xl font-extrabold mb-5 tracking-tight">Terms of Service</h1>
+            <p className="text-lg sm:text-xl text-white/88 leading-relaxed">
               Please read these terms carefully before using our services.
             </p>
-            <p className="text-sm text-muted-foreground mt-4">
-              Last updated: {lastUpdated}
-            </p>
+            <p className="text-sm text-white/60 mt-3">Last updated: {lastUpdated}</p>
           </div>
+        </div>
+      </section>
+
+      <main className="container mx-auto px-4 py-12 sm:py-16 -mt-8 relative z-10">
+        <div className="space-y-8 max-w-4xl mx-auto">
+          <div />
 
           <Card>
             <CardHeader>
