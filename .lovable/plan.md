@@ -1,24 +1,62 @@
 
-# Fix Build Error — Invalid Tailwind Classes in premium.css
 
-## Root Cause
+# Fix CSS Commit Issues + Add Google & Apple Sign-In
 
-The build fails because `src/styles/premium.css` uses three Tailwind classes that don't exist:
+## Part 1: CSS Commit Verification
 
-1. **Line 17**: `bg-background/82` — Tailwind only supports opacity values in increments of 5 (e.g., `/80`, `/85`) or arbitrary values with bracket syntax (`/[0.82]`). `/82` is not valid.
-2. **Line 17**: `shadow-glass` — This shadow is not defined in `tailwind.config.ts`. The config has `glow`, `glow-secondary`, `premium`, `card`, but no `glass`.
-3. **Line 196**: `bg-primary/8` — Same issue. `/8` is not a valid Tailwind opacity. Should be `/5` or `/10`.
+Both CSS commits (`4e93883` white premium theme, `fb0ed4c` brand styling) are mostly correctly implemented. The theme variables in `base.css`, premium utilities in `premium.css`, product cards, hero section, and CTA buttons all look correct and consistent with the OZZ brand palette.
 
-## Fix
+However, there are **4 invalid Tailwind opacity values** introduced across those commits:
 
-| File | Line | Change |
+### Invalid Opacities Found
+
+| File | Invalid Class | Fix |
 |---|---|---|
-| `src/styles/premium.css` | 17 | Replace `@apply bg-background/82 border border-border/20 shadow-glass` with `@apply bg-background/80 border border-border/20 shadow-sm` |
-| `src/styles/premium.css` | 196 | Replace `bg-primary/8` with `bg-primary/10` |
+| `src/components/layout/Header.tsx` (line 82) | `bg-white/97` | `bg-white/95` |
+| `src/components/layout/Header.tsx` (line 82) | `bg-white/92` | `bg-white/90` |
+| `src/components/products/ProductCard.tsx` (lines 145-146) | `bg-sale/8`, `bg-sale/12` | `bg-sale/10`, `bg-sale/15` |
+| `src/components/products/ProductActions.tsx` (lines 25-26) | `bg-sale/8`, `bg-sale/12` | `bg-sale/10`, `bg-sale/15` |
 
-These are minimal, safe substitutions:
-- `bg-background/80` is the closest valid opacity to 82
-- `shadow-sm` provides a subtle shadow similar to what `shadow-glass` would do
-- `bg-primary/10` is the closest valid opacity to 8
+Tailwind only supports opacity in increments of 5 (e.g., /5, /10, /15, /20...). Values like /8, /12, /92, /97 are silently ignored or cause build errors.
 
-No other files change. No functionality impact — these are purely CSS utility class corrections.
+## Part 2: Google + Apple Sign-In
+
+Add OAuth buttons to both `AuthPage.tsx` and `AuthModal.tsx`.
+
+### Code Changes
+
+**`src/pages/AuthPage.tsx`**: Add a social sign-in section between the Tabs component and the Separator, with:
+- "Or continue with" divider
+- Google button (calls `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })`)
+- Apple button (same pattern with `provider: 'apple'`)
+- Styled with brand-consistent outline buttons and SVG icons
+
+**`src/components/auth/AuthModal.tsx`**: Add matching OAuth buttons below the Tabs component, same logic.
+
+### Manual Setup Required (by you, in external dashboards)
+
+Before the buttons will work, you must:
+
+1. **Google Cloud Console**: Create OAuth 2.0 credentials, set redirect URL to `https://kauostzhxqoxggwqgtym.supabase.co/auth/v1/callback`
+2. **Apple Developer Console**: Create Services ID with Sign In with Apple, set same redirect URL
+3. **Supabase Dashboard** (Auth > Providers): Enable Google and Apple, paste Client IDs and Secrets
+4. **Supabase URL Config**: Ensure redirect URLs include `https://ozz-home.lovable.app/**`
+
+## Files to Modify
+
+| File | Change |
+|---|---|
+| `src/components/layout/Header.tsx` | Fix `bg-white/97` to `/95`, `bg-white/92` to `/90` |
+| `src/components/products/ProductCard.tsx` | Fix `bg-sale/8` to `/10`, `bg-sale/12` to `/15` |
+| `src/components/products/ProductActions.tsx` | Fix `bg-sale/8` to `/10`, `bg-sale/12` to `/15` |
+| `src/pages/AuthPage.tsx` | Add Google + Apple OAuth buttons |
+| `src/components/auth/AuthModal.tsx` | Add Google + Apple OAuth buttons |
+| `CHANGELOG.md` | Document all changes |
+
+## What Will NOT Change
+
+- All theme variables in `base.css` and `premium.css` -- verified correct
+- Product card layout, image handling, cart/wishlist logic -- untouched
+- Hero section, category grid, footer -- untouched
+- All admin, checkout, payment flows -- untouched
+
