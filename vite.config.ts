@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
         name: 'OZZ Cash & Carry',
         short_name: 'OZZ',
         description: 'Your Trusted Partner - Wholesaler, Distributor, Manufacturer. Quality homeware products at wholesale prices.',
-        theme_color: '#9333ea',
+        theme_color: '#7c20b8',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',

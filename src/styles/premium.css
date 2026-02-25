@@ -1,21 +1,40 @@
-/* Premium utility classes for enhanced theming */
+/* =============================================================
+ * Premium Utilities — OZZ White Premium Theme
+ * Brand palette: Purple · Magenta · Green · Blue · Red
+ * ============================================================= */
 
-/* Glass morphism effects */
+/* ----------------------------------------------------------------
+ * Glass morphism
+ * -------------------------------------------------------------- */
 .glass {
-  @apply bg-glass-bg border border-glass-border;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
 }
 
 .glass-card {
-  @apply bg-background/80 border border-border/20 shadow-glass;
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  @apply bg-background/82 border border-border/20 shadow-glass;
+  backdrop-filter: blur(16px) saturate(200%);
+  -webkit-backdrop-filter: blur(16px) saturate(200%);
 }
 
-/* Premium hover effects */
+.glass-purple {
+  background: hsl(280 62% 38% / 0.08);
+  border: 1px solid hsl(280 62% 38% / 0.15);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+}
+
+/* ----------------------------------------------------------------
+ * Hover effects
+ * -------------------------------------------------------------- */
 .hover-lift {
-  @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-premium;
+  @apply transition-all duration-300;
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-premium);
 }
 
 .hover-glow {
@@ -26,28 +45,83 @@
   @apply transition-all duration-300 hover:shadow-glow-secondary;
 }
 
-/* Premium gradients */
+.hover-scale {
+  @apply transition-transform duration-200;
+}
+.hover-scale:hover {
+  transform: scale(1.03);
+}
+
+/* ----------------------------------------------------------------
+ * Gradient text utilities
+ * -------------------------------------------------------------- */
 .gradient-text-primary {
-  @apply bg-gradient-primary bg-clip-text text-transparent;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .gradient-text-secondary {
-  @apply bg-gradient-secondary bg-clip-text text-transparent;
+  background: var(--gradient-secondary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .gradient-text-brand {
-  @apply bg-brand-gradient bg-clip-text text-transparent;
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-/* Enhanced borders */
+.gradient-text-brand-full {
+  background: var(--brand-gradient-full);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ----------------------------------------------------------------
+ * Gradient borders (logo-inspired)
+ * -------------------------------------------------------------- */
 .border-gradient {
   position: relative;
   background: linear-gradient(var(--gradient-card)) padding-box,
               var(--brand-gradient) border-box;
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius);
 }
 
-/* Premium spacing and typography */
+.border-gradient-sm {
+  position: relative;
+  background: linear-gradient(hsl(var(--background)) 0 0) padding-box,
+              var(--brand-gradient) border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+/* ----------------------------------------------------------------
+ * Brand glow badge / tag
+ * -------------------------------------------------------------- */
+.badge-brand {
+  background: var(--brand-gradient);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.2em 0.65em;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+/* ----------------------------------------------------------------
+ * Section & spacing utilities
+ * -------------------------------------------------------------- */
 .premium-spacing {
   @apply space-y-6 lg:space-y-8;
 }
@@ -56,7 +130,6 @@
   @apply container mx-auto px-4 sm:px-6 lg:px-8;
 }
 
-/* Consistent section spacing across pages */
 .section-padding {
   @apply py-16 sm:py-20 lg:py-24;
 }
@@ -65,12 +138,31 @@
   @apply py-10 sm:py-12 lg:py-16;
 }
 
-/* Enhanced focus states */
+/* Page hero strip */
+.page-hero {
+  background: var(--gradient-hero);
+  @apply text-white py-14 sm:py-20 lg:py-24;
+}
+
+/* Subtle tinted section background */
+.section-tinted {
+  background: linear-gradient(180deg, hsl(270 20% 98%) 0%, hsl(0 0% 100%) 100%);
+}
+
+.section-brand-tint {
+  background: linear-gradient(135deg, hsl(280 62% 38% / 0.04) 0%, hsl(325 80% 50% / 0.03) 100%);
+}
+
+/* ----------------------------------------------------------------
+ * Focus / accessibility
+ * -------------------------------------------------------------- */
 .focus-premium {
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
 }
 
-/* Premium text styles */
+/* ----------------------------------------------------------------
+ * Typography
+ * -------------------------------------------------------------- */
 .text-premium {
   @apply text-foreground/90 leading-relaxed;
 }
@@ -79,28 +171,178 @@
   @apply text-muted-foreground/80;
 }
 
-/* Component-specific premium styles */
+.heading-display {
+  font-size: clamp(1.75rem, 4.5vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.heading-section {
+  font-size: clamp(1.35rem, 3.5vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+/* ----------------------------------------------------------------
+ * Navigation items
+ * -------------------------------------------------------------- */
 .premium-nav-item {
   @apply relative px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:text-primary hover:bg-primary/5;
 }
 
 .premium-nav-item.active {
-  @apply text-primary bg-primary/10;
+  @apply text-primary bg-primary/8;
 }
 
 .premium-nav-item::after {
-  @apply content-[''] absolute bottom-0 left-1/2 w-0 h-0.5 bg-primary transition-all duration-200 -translate-x-1/2;
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--brand-gradient);
+  border-radius: 2px;
+  transition: width 0.2s ease;
 }
 
 .premium-nav-item.active::after,
 .premium-nav-item:hover::after {
-  @apply w-full;
+  width: calc(100% - 1rem);
 }
 
+/* ----------------------------------------------------------------
+ * Form inputs
+ * -------------------------------------------------------------- */
 .premium-input {
   @apply border-input bg-background ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-200;
 }
 
 .premium-input:focus {
-  @apply border-primary shadow-glow;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12);
+}
+
+/* ----------------------------------------------------------------
+ * Card variants
+ * -------------------------------------------------------------- */
+.card-premium {
+  @apply bg-card border border-border/60 rounded-lg;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.card-premium:hover {
+  box-shadow: var(--shadow-premium);
+  transform: translateY(-2px);
+}
+
+.card-feature {
+  @apply bg-card border border-border/50 rounded-xl p-6;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.card-feature:hover {
+  box-shadow: var(--shadow-glow);
+  border-color: hsl(var(--primary) / 0.2);
+}
+
+/* ----------------------------------------------------------------
+ * Button enhancements
+ * -------------------------------------------------------------- */
+.btn-brand {
+  background: var(--brand-gradient);
+  @apply text-white font-semibold rounded-lg px-6 py-2.5 transition-all duration-200 hover:opacity-90 hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+}
+
+.btn-brand-outline {
+  background: transparent;
+  border: 1.5px solid transparent;
+  background-image: linear-gradient(hsl(var(--background)), hsl(var(--background))), var(--brand-gradient);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  @apply font-semibold rounded-lg px-6 py-2.5 transition-all duration-200;
+  color: hsl(var(--primary));
+}
+
+.btn-brand-outline:hover {
+  background-image: var(--brand-gradient), var(--brand-gradient);
+  background-clip: padding-box, border-box;
+  color: white;
+}
+
+/* ----------------------------------------------------------------
+ * Decorative accents
+ * -------------------------------------------------------------- */
+
+/* Coloured dot indicator */
+.dot-purple  { @apply inline-block w-2 h-2 rounded-full bg-primary; }
+.dot-magenta { @apply inline-block w-2 h-2 rounded-full bg-secondary; }
+.dot-green   { background: hsl(var(--brand-green)); @apply inline-block w-2 h-2 rounded-full; }
+.dot-blue    { background: hsl(var(--brand-blue));  @apply inline-block w-2 h-2 rounded-full; }
+
+/* Animated gradient underline */
+.underline-brand {
+  position: relative;
+  display: inline-block;
+}
+.underline-brand::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--brand-gradient);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+.underline-brand:hover::after,
+.underline-brand.active::after {
+  transform: scaleX(1);
+}
+
+/* Glowing ring for featured items */
+.ring-brand {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary) / 0.6);
+}
+
+/* ----------------------------------------------------------------
+ * Loading skeleton shimmer (brand-tinted)
+ * -------------------------------------------------------------- */
+.shimmer-brand {
+  background: linear-gradient(
+    90deg,
+    hsl(270 15% 96%) 25%,
+    hsl(280 40% 94%) 50%,
+    hsl(270 15% 96%) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
+/* ----------------------------------------------------------------
+ * Divider with gradient
+ * -------------------------------------------------------------- */
+.divider-brand {
+  height: 1px;
+  background: var(--brand-gradient);
+  border: none;
+  opacity: 0.25;
+  margin: 1.5rem 0;
+}
+
+.divider-brand-solid {
+  height: 2px;
+  background: var(--brand-gradient);
+  border: none;
+  border-radius: 2px;
 }

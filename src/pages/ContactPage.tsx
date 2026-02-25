@@ -79,7 +79,7 @@ const ContactPage = () => {
                     <Label htmlFor="message">Message</Label>
                     <Textarea id="message" rows={5} required />
                   </div>
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full btn-brand">
                     Send Message
                   </Button>
                 </form>
@@ -102,8 +102,8 @@ const ContactPage = () => {
                   <span>+27 31 332 7192</span>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <MessageCircle className="h-5 w-5 text-green-500" />
-                  <a href="https://wa.me/27726633544" target="_blank" rel="noopener noreferrer" className="hover:text-green-500 transition-colors">+27 72 663 3544 (WhatsApp)</a>
+                  <MessageCircle className="h-5 w-5 text-whatsapp" />
+                  <a href="https://wa.me/27726633544" target="_blank" rel="noopener noreferrer" className="hover:text-whatsapp transition-colors">+27 72 663 3544 (WhatsApp)</a>
                 </div>
                 <div className="flex items-center space-x-3">
                   <MapPin className="h-5 w-5 text-primary" />
