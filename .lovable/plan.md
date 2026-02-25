@@ -1,64 +1,24 @@
 
+# Fix Build Error — Invalid Tailwind Classes in premium.css
 
-# Fix Plan — Two Build Errors
+## Root Cause
 
-## Error 1: `getClaims` does not exist on `SupabaseAuthClient` (delete-user edge function)
+The build fails because `src/styles/premium.css` uses three Tailwind classes that don't exist:
 
-**Root cause:** `@supabase/supabase-js@2.39.3` does not have a `getClaims()` method. That API was introduced in a much later version. The function is pinned to `@2.39.3` via the import URL.
+1. **Line 17**: `bg-background/82` — Tailwind only supports opacity values in increments of 5 (e.g., `/80`, `/85`) or arbitrary values with bracket syntax (`/[0.82]`). `/82` is not valid.
+2. **Line 17**: `shadow-glass` — This shadow is not defined in `tailwind.config.ts`. The config has `glow`, `glow-secondary`, `premium`, `card`, but no `glass`.
+3. **Line 196**: `bg-primary/8` — Same issue. `/8` is not a valid Tailwind opacity. Should be `/5` or `/10`.
 
-**Fix:** Replace `getClaims(token)` with `getUser()`. The previous attempt switched away from `getUser()` because it was returning null — but that was likely caused by not passing the token correctly. The fix is to create the caller client with the Authorization header already set (which is already done on line 32-36), and then call `getUser()` which will use that header. This is the standard documented pattern for Supabase Edge Functions.
+## Fix
 
-In `supabase/functions/delete-user/index.ts`, replace lines 29-47:
+| File | Line | Change |
+|---|---|---|
+| `src/styles/premium.css` | 17 | Replace `@apply bg-background/82 border border-border/20 shadow-glass` with `@apply bg-background/80 border border-border/20 shadow-sm` |
+| `src/styles/premium.css` | 196 | Replace `bg-primary/8` with `bg-primary/10` |
 
-```typescript
-const callerClient = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-  { global: { headers: { Authorization: authHeader } } }
-);
+These are minimal, safe substitutions:
+- `bg-background/80` is the closest valid opacity to 82
+- `shadow-sm` provides a subtle shadow similar to what `shadow-glass` would do
+- `bg-primary/10` is the closest valid opacity to 8
 
-const { data: { user: caller }, error: authError } = await callerClient.auth.getUser();
-if (authError || !caller) {
-  console.error("[delete-user] getUser error:", authError);
-  return new Response(JSON.stringify({ error: "Unauthorized" }), {
-    status: 401,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-const callerId = caller.id;
-```
-
-Then update all references from `claimsData.claims.sub` to `callerId` (which is already the variable name used downstream).
-
----
-
-## Error 2: CampaignProductsPage type mismatch on `product_images`
-
-**Root cause:** The Supabase query on line 49 uses `product_images(...)` inside the `products:product_id(...)` select, but the generated types cannot resolve the relation `product_id -> product_images`. This produces a `SelectQueryError` type that is incompatible with the `CampaignProduct` interface.
-
-**Fix:** Cast through `unknown` on line 77:
-
-```typescript
-return { ...data, campaign_products: filteredProducts } as unknown as Campaign;
-```
-
-This is safe because the runtime data shape matches — the issue is purely a generated-types limitation with nested foreign-key joins.
-
----
-
-## Files to Modify
-
-| File | Change |
-|---|---|
-| `supabase/functions/delete-user/index.ts` | Replace `getClaims(token)` with `getUser()`, update variable references |
-| `src/pages/CampaignProductsPage.tsx` | Add `unknown` intermediate cast on line 77 |
-| `CHANGELOG.md` | Document the fixes |
-
-## What Will NOT Change
-
-- The 14-step user data cleanup logic in delete-user — fully preserved
-- Payment flows, order management, analytics — untouched
-- The CampaignProductCard component — untouched
-- All other edge functions — untouched
-
+No other files change. No functionality impact — these are purely CSS utility class corrections.
