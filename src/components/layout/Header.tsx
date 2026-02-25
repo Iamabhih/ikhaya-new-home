@@ -79,7 +79,7 @@ export const Header = () => {
     setAuthModalOpen(false);
   };
   return <>
-      <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/40 bg-white/97 backdrop-blur-md supports-[backdrop-filter]:bg-white/92 transition-all duration-300 shadow-sm" id="site-header">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/90 transition-all duration-300 shadow-sm" id="site-header">
         <div className="container mx-auto px-2 sm:px-4 lg:px-6 max-w-[100vw]">
           <div className="flex h-12 xs:h-14 sm:h-16 items-center justify-between gap-1 xs:gap-2 sm:gap-4 min-w-0">
             
