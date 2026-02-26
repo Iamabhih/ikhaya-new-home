@@ -283,7 +283,7 @@ export const PayfastPayment = ({
                 <span className="text-muted-foreground">
                   {formatProductName(item.product?.name || 'Item')} x{item.quantity}
                 </span>
-                <span>R {(item.product?.price * item.quantity).toFixed(2)}</span>
+                <span>R {((item.override_price ?? item.product?.price) * item.quantity).toFixed(2)}</span>
               </div>
             ))}
           </div>

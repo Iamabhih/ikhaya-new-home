@@ -44,7 +44,7 @@ export const useCart = () => {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['cart', user?.id, sessionId],
     queryFn: async () => {
-      const query = supabase
+      let query = supabase
         .from('cart_items')
         .select(`
           id,
@@ -68,9 +68,9 @@ export const useCart = () => {
         `);
 
       if (user) {
-        query.eq('user_id', user.id).is('session_id', null);
+        query = query.eq('user_id', user.id).is('session_id', null);
       } else {
-        query.eq('session_id', sessionId).is('user_id', null);
+        query = query.eq('session_id', sessionId).is('user_id', null);
       }
 
       const { data, error } = await query;
@@ -92,16 +92,41 @@ export const useCart = () => {
         throw new Error('Quantity must be greater than 0');
       }
 
+      // Client-side stock validation
+      const { data: productData, error: productError } = await supabase
+        .from('products')
+        .select('stock_quantity, name')
+        .eq('id', productId)
+        .single();
+
+      if (productError) {
+        console.error('Failed to check stock:', productError);
+      } else if (productData?.stock_quantity != null) {
+        // Check if item already exists in cart to account for existing quantity
+        let existingQty = 0;
+        const existingInCart = items.find(i => i.product_id === productId);
+        if (existingInCart) existingQty = existingInCart.quantity;
+
+        if (existingQty + quantity > productData.stock_quantity) {
+          const available = Math.max(0, productData.stock_quantity - existingQty);
+          throw new Error(
+            available > 0
+              ? `Only ${available} more of "${productData.name}" available (${productData.stock_quantity} in stock, ${existingQty} in cart)`
+              : `"${productData.name}" is out of stock`
+          );
+        }
+      }
+
       // Check if item already exists in cart
-      const existingQuery = supabase
+      let existingQuery = supabase
         .from('cart_items')
         .select('id, quantity')
         .eq('product_id', productId);
 
       if (user) {
-        existingQuery.eq('user_id', user.id).is('session_id', null);
+        existingQuery = existingQuery.eq('user_id', user.id).is('session_id', null);
       } else {
-        existingQuery.eq('session_id', sessionId).is('user_id', null);
+        existingQuery = existingQuery.eq('session_id', sessionId).is('user_id', null);
       }
 
       const { data: existingItems, error: fetchError } = await existingQuery;
@@ -225,12 +250,13 @@ export const useCart = () => {
   const clearCart = useMutation({
     mutationFn: async () => {
       console.log('Clearing cart for user:', user?.id, 'session:', sessionId);
-      const query = supabase.from('cart_items').delete();
+      
+      let query = supabase.from('cart_items').delete();
       
       if (user) {
-        query.eq('user_id', user.id).is('session_id', null);
+        query = query.eq('user_id', user.id).is('session_id', null);
       } else {
-        query.eq('session_id', sessionId).is('user_id', null);
+        query = query.eq('session_id', sessionId).is('user_id', null);
       }
 
       const { error } = await query;

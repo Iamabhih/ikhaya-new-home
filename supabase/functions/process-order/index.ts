@@ -313,12 +313,15 @@ Deno.serve(async (req: Request) => {
             customerName,
             orderNumber: orderResult.order_number,
             orderId: orderResult.order_id,
-            items: (cartData.items || []).map((item: any) => ({
-              name: item.product?.name || item.name || 'Unknown Product',
-              quantity: item.quantity || 1,
-              price: item.product?.price || item.price || 0,
-              total: (item.product?.price || item.price || 0) * (item.quantity || 1),
-            })),
+            items: (cartData.items || []).map((item: any) => {
+              const unitPrice = item.override_price ?? item.product?.price ?? item.price ?? 0;
+              return {
+                name: item.product?.name || item.name || 'Unknown Product',
+                quantity: item.quantity || 1,
+                price: unitPrice,
+                total: unitPrice * (item.quantity || 1),
+              };
+            }),
             subtotal,
             shipping: shippingAmount,
             total: pendingOrder.total_amount,

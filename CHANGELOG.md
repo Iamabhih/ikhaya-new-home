@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🛡️ Stability — Order & Cart Infrastructure Hardening (Feb 26, 2026)
+- **useCheckout.ts:** Fixed subtotal calculation to use `override_price ?? product.price` so campaign discounts are respected at checkout
+- **PayfastPayment.tsx:** Fixed line-item display to show campaign-discounted prices instead of original prices
+- **process-order edge function:** Fixed confirmation email to use `override_price` for line items, matching the actual amount charged
+- **useCart.ts:** Fixed Supabase query chaining bug in `clearCart`, `addToCart`, and cart fetch — filter methods now properly reassign the query builder
+- **useCart.ts:** Added client-side stock validation in `addToCart` — checks `stock_quantity` before allowing items to be added, with clear error messages
+
 ### 🔓 Feature — Manager Role Product Management (Feb 26, 2026)
 - **Route guard:** Added `allowManager` to `/admin/products` route so managers can access product management
 - **Sidebar navigation:** Added Products link to `managerRoutes` array in AdminSidebar
