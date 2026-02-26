@@ -23,17 +23,26 @@ interface ProductInfoProps {
       name: string;
     };
   };
+  campaignPrice?: number;
 }
 
-export const ProductInfo = ({ product }: ProductInfoProps) => {
+export const ProductInfo = ({ product, campaignPrice }: ProductInfoProps) => {
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist, loading } = useWishlist();
 
-  const hasDiscount = product.compare_at_price && product.compare_at_price > product.price;
+  // Use campaign price if provided and lower than regular price
+  const effectivePrice = campaignPrice != null && campaignPrice < product.price 
+    ? campaignPrice 
+    : product.price;
+  const hasCampaignPrice = campaignPrice != null && campaignPrice < product.price;
+
+  const hasDiscount = !hasCampaignPrice && product.compare_at_price && product.compare_at_price > product.price;
   const discountPercentage = hasDiscount
     ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)
-    : 0;
+    : hasCampaignPrice
+      ? Math.round(((product.price - campaignPrice!) / product.price) * 100)
+      : 0;
   const inWishlist = isInWishlist(product.id);
   const isInStock = product.stock_quantity && Number(product.stock_quantity) > 0;
   const isLowStock = isInStock && Number(product.stock_quantity) <= 5;
@@ -42,7 +51,9 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
   const handleAddToCart = () => {
-    addToCart({ productId: product.id, quantity });
+    // Pass overridePrice when there's a campaign discount
+    const overridePrice = hasCampaignPrice ? campaignPrice : undefined;
+    addToCart({ productId: product.id, quantity, overridePrice });
   };
 
   const handleShare = async () => {
@@ -81,24 +92,37 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
       <div className="space-y-2">
         <div className="flex items-baseline gap-3 flex-wrap">
           <span className="text-3xl font-bold text-foreground">
-            R{product.price.toFixed(2)}
+            R{effectivePrice.toFixed(2)}
           </span>
-          {hasDiscount && (
+          {hasCampaignPrice && (
             <span className="text-xl text-muted-foreground line-through">
-              R{product.compare_at_price.toFixed(2)}
+              R{product.price.toFixed(2)}
             </span>
           )}
-          {hasDiscount && (
+          {!hasCampaignPrice && hasDiscount && (
+            <span className="text-xl text-muted-foreground line-through">
+              R{product.compare_at_price!.toFixed(2)}
+            </span>
+          )}
+          {(hasCampaignPrice || hasDiscount) && discountPercentage > 0 && (
             <Badge variant="destructive" className="text-xs font-bold px-2 py-0.5 uppercase tracking-wider">
               Save {discountPercentage}%
             </Badge>
           )}
         </div>
-        {hasDiscount && (
+        {hasCampaignPrice && (
+          <p className="text-sm text-muted-foreground">
+            Campaign price — You save{" "}
+            <span className="font-semibold text-sale">
+              R{(product.price - campaignPrice!).toFixed(2)}
+            </span>
+          </p>
+        )}
+        {!hasCampaignPrice && hasDiscount && (
           <p className="text-sm text-muted-foreground">
             You save{" "}
             <span className="font-semibold text-sale">
-              R{(product.compare_at_price - product.price).toFixed(2)}
+              R{(product.compare_at_price! - product.price).toFixed(2)}
             </span>
           </p>
         )}

@@ -146,7 +146,9 @@ export const CampaignProductCard = ({
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product.id, 1, { ...product, price: effectivePrice });
+    // Pass overridePrice so the campaign price is stored in cart_items
+    const overridePrice = hasCampaignDiscount ? effectivePrice : undefined;
+    addToCart(product.id, 1, { ...product, price: effectivePrice, overridePrice });
     trackCartAdd(product.id, 1);
   };
 
@@ -158,7 +160,7 @@ export const CampaignProductCard = ({
 
   return (
     <Link
-      to={`/products/${product.slug}`}
+      to={`/products/${product.slug}${hasCampaignDiscount ? `?campaign=${item.campaign_price}` : ''}`}
       className="group relative flex flex-col bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 touch-manipulation border-t-[3px]"
       style={{ borderTopColor: accentColor }}
     >

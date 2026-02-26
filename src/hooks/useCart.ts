@@ -9,6 +9,7 @@ export interface CartItem {
   id: string;
   product_id: string;
   quantity: number;
+  override_price?: number | null;
   product: {
     id: string;
     name: string;
@@ -30,7 +31,6 @@ export const useCart = () => {
   const queryClient = useQueryClient();
   const { trackCartAdd, trackEvent } = useAnalytics();
   const [sessionId] = useState(() => {
-    // Handle SSR/hydration issues
     if (typeof window === 'undefined') return '';
     
     let id = localStorage.getItem('cart_session_id');
@@ -50,6 +50,7 @@ export const useCart = () => {
           id,
           product_id,
           quantity,
+          override_price,
           products!inner (
             id,
             name,
@@ -84,10 +85,9 @@ export const useCart = () => {
   });
 
   const addToCart = useMutation({
-    mutationFn: async ({ productId, quantity = 1 }: { productId: string; quantity?: number }) => {
-      console.log('Adding to cart:', { productId, quantity, userId: user?.id, sessionId });
+    mutationFn: async ({ productId, quantity = 1, overridePrice }: { productId: string; quantity?: number; overridePrice?: number | null }) => {
+      console.log('Adding to cart:', { productId, quantity, overridePrice, userId: user?.id, sessionId });
 
-      // Validate quantity
       if (quantity <= 0) {
         throw new Error('Quantity must be greater than 0');
       }
@@ -108,26 +108,33 @@ export const useCart = () => {
       if (fetchError) throw fetchError;
 
       if (existingItems && existingItems.length > 0) {
-        // Update existing item
         const existingItem = existingItems[0];
         const newQuantity = existingItem.quantity + quantity;
         
+        const updateData: any = { quantity: newQuantity };
+        // Update override_price if provided (campaign price should persist)
+        if (overridePrice !== undefined) {
+          updateData.override_price = overridePrice;
+        }
+        
         const { error } = await supabase
           .from('cart_items')
-          .update({ quantity: newQuantity })
+          .update(updateData)
           .eq('id', existingItem.id);
 
         if (error) throw error;
         console.log('Updated existing cart item:', existingItem.id, 'new quantity:', newQuantity);
         
-        // Track cart update
         trackCartAdd(productId, quantity);
       } else {
-        // Insert new item
         const insertData: any = {
           product_id: productId,
           quantity,
         };
+
+        if (overridePrice != null) {
+          insertData.override_price = overridePrice;
+        }
 
         if (user) {
           insertData.user_id = user.id;
@@ -142,9 +149,8 @@ export const useCart = () => {
           .insert(insertData);
 
         if (error) throw error;
-        console.log('Inserted new cart item');
+        console.log('Inserted new cart item with override_price:', overridePrice);
         
-        // Track new cart addition
         trackCartAdd(productId, quantity);
       }
     },
@@ -162,13 +168,11 @@ export const useCart = () => {
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
       console.log('Updating quantity:', { itemId, quantity });
       
-      // Validate inputs
       if (!itemId) {
         throw new Error('Item ID is required');
       }
       
       if (quantity <= 0) {
-        // Remove item if quantity is 0 or less
         const { error } = await supabase
           .from('cart_items')
           .delete()
@@ -237,7 +241,6 @@ export const useCart = () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
       toast.success("Cart cleared");
       
-      // Track cart clear event
       trackEvent({
         event_type: 'cart',
         event_name: 'cart_cleared',
@@ -250,18 +253,18 @@ export const useCart = () => {
     },
   });
 
-  // Calculate total with proper null checks
+  // Calculate total using override_price when available
   const total = items?.reduce((sum, item) => {
     if (!item?.product?.price || !item?.quantity) return sum;
-    return sum + (item.product.price * item.quantity);
+    const effectivePrice = item.override_price ?? item.product.price;
+    return sum + (effectivePrice * item.quantity);
   }, 0) || 0;
 
-  // Get cart item count
   const itemCount = items?.reduce((sum, item) => sum + (item?.quantity || 0), 0) || 0;
 
   return {
     items: items || [],
-    cartItems: items || [], // Add alias for compatibility
+    cartItems: items || [],
     isLoading,
     addToCart: addToCart.mutate,
     updateQuantity: updateQuantity.mutate,

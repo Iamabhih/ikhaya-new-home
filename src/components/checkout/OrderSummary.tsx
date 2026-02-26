@@ -54,15 +54,25 @@ export const OrderSummary = ({
       <CardContent className="space-y-4">
         {/* Cart Items */}
         <div className="space-y-3">
-          {items.map((item) => (
-            <div key={item.id} className="flex justify-between">
-              <div>
-                <div className="font-medium text-sm">{item.product.name}</div>
-                <div className="text-xs text-muted-foreground">Qty: {item.quantity}</div>
+          {items.map((item) => {
+            const effectivePrice = item.override_price ?? item.product.price;
+            return (
+              <div key={item.id} className="flex justify-between">
+                <div>
+                  <div className="font-medium text-sm">{item.product.name}</div>
+                  <div className="text-xs text-muted-foreground">Qty: {item.quantity}</div>
+                </div>
+                <div className="text-sm text-right">
+                  <span>R{(effectivePrice * item.quantity).toFixed(2)}</span>
+                  {item.override_price != null && item.override_price < item.product.price && (
+                    <div className="text-xs text-muted-foreground line-through">
+                      R{(item.product.price * item.quantity).toFixed(2)}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-sm">R{(item.product.price * item.quantity).toFixed(2)}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         
         <Separator />
