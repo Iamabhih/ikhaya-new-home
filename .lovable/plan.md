@@ -1,62 +1,64 @@
 
-# Fix Invalid Tailwind Opacity Values from CSS Commits
+# Fix Campaign Discount Prices Not Carrying Through
 
-## Summary
+## The Problem
 
-Both CSS commits (`4e93883` white premium theme, `fb0ed4c` brand styling) are fully reflected in the codebase -- all 20 audit items (brand gradient buttons, text-secondary categories, text-sale hearts, gradient-text-brand titles, bg-brand-gradient hero sections, text-success badges, btn-brand, text-whatsapp) are present and correct.
+There are **three breaks** in how campaign prices flow through the system:
 
-However, 7 invalid Tailwind opacity values were introduced across 5 page files. Tailwind only supports opacity in multiples of 5 (e.g., `/5, /10, /15, /80, /85, /90`). Non-standard values like `/8` and `/88` are silently ignored, meaning the intended visual effects (decorative blur circles, text opacity) are not rendering.
+1. **Product Detail Page**: When a user clicks a campaign product card, it navigates to `/products/{slug}`. The `ProductDetailPage` fetches the product directly from the `products` table, which only has the original price. There is no awareness of campaign pricing at all.
 
-## Changes Required
+2. **Cart Storage**: The `cart_items` database table has no column for storing a price override. When `CampaignProductCard` calls `addToCart(product.id, 1, { ...product, price: effectivePrice })`, the `effectivePrice` is only used for analytics tracking -- the actual cart item just stores `product_id` and `quantity`. When cart items are fetched, the price comes from joining with the `products` table (always the original price).
 
-| File | Line | Invalid | Replacement |
-|---|---|---|---|
-| `src/pages/AboutPage.tsx` | 54 | `bg-white/8` | `bg-white/10` |
-| `src/pages/AboutPage.tsx` | 55 | `bg-white/5` | Already valid -- no change |
-| `src/pages/AboutPage.tsx` | 70 | `text-white/88` | `text-white/90` |
-| `src/pages/FAQPage.tsx` | 95 | `bg-white/8` | `bg-white/10` |
-| `src/pages/FAQPage.tsx` | 96 | `bg-white/5` | Already valid -- no change |
-| `src/pages/FAQPage.tsx` | 111 | `text-white/88` | `text-white/90` |
-| `src/pages/TermsPage.tsx` | 18 | `bg-white/8` | `bg-white/10` |
-| `src/pages/ShippingPage.tsx` | 69 | `bg-white/8` | `bg-white/10` |
-| `src/pages/PrivacyPage.tsx` | 18 | `bg-white/8` | `bg-white/10` |
+3. **Checkout/Order Summary**: Both the `CartPage` and `OrderSummary` calculate totals using `item.product.price` from the products table join, so campaign discounts are lost. The `process-order` edge function also reads `item.product?.price` -- original price again.
 
-## Verification of All 20 Audit Items (All Present)
+## Solution
 
-1. `styles/base.css` -- `--primary: 280 62% 38%`, `--background: 0 0% 99%` -- PASS
-2. `tailwind.config.ts` -- `brand.{purple,magenta,green,blue,red,lavender}` -- PASS
-3. `styles/premium.css` -- `.btn-brand`, `.card-feature`, `.gradient-text-brand`, `.glass-purple`, `.section-brand-tint` -- PASS
-4. `layout/Header.tsx` -- `bg-white/95` glass header -- PASS (previously fixed from `/97`)
-5. `layout/Footer.tsx` -- `bg-foreground`, `gradient-text-brand` headings -- PASS
-6. `products/ProductCard.tsx` -- `rounded-xl`, brand gradient button, `text-secondary` category, `text-sale` heart -- PASS
-7. `products/ProductActions.tsx` -- `var(--brand-gradient)` button, `text-sale` wishlist -- PASS
-8. `products/ProductInfo.tsx` -- `text-success` badge, brand gradient Add to Cart -- PASS
-9. `home/OptimizedFeaturedProducts.tsx` -- `var(--brand-gradient)` CTA -- PASS
-10. `home/HeroSection.tsx` -- `var(--brand-gradient)` Shop Now -- PASS
-11. `pages/ProductsPage.tsx` -- `from-primary/6` hero, `gradient-text-brand` title -- PASS
-12. `pages/CategoryProductsPage.tsx` -- `from-primary/6` hero, `gradient-text-brand` title -- PASS
-13. `pages/AboutPage.tsx` -- `bg-brand-gradient` hero -- PASS
-14. `pages/FAQPage.tsx` -- `bg-brand-gradient` hero -- PASS
-15. `pages/ShippingPage.tsx` -- `bg-brand-gradient` hero -- PASS
-16. `pages/PrivacyPage.tsx` -- `bg-brand-gradient` hero -- PASS
-17. `pages/TermsPage.tsx` -- `bg-brand-gradient` hero -- PASS
-18. `pages/ContactPage.tsx` -- `text-whatsapp`, `btn-brand` submit -- PASS
-19. `pages/NotFound.tsx` -- `gradient-text-brand` 404 heading -- PASS
-20. `cart/CartMigrationNotice.tsx` -- `text-success` (no hardcoded green) -- PASS
+### Step 1: Add `override_price` column to `cart_items` table
 
-## What Will NOT Change
+Add a nullable `override_price` (numeric) column to `cart_items`. When null, the product's regular price applies. When set, it represents a campaign or promotional price override.
 
-- All brand gradient buttons, text colors, hero sections -- already correct
-- Component logic, routing, data fetching -- untouched
-- All admin, checkout, payment flows -- untouched
+### Step 2: Store campaign price when adding to cart
+
+Update `useCart.ts` so the `addToCart` mutation accepts an optional `overridePrice` parameter. When provided, it gets saved to the new `override_price` column in `cart_items`. Also update the cart query to select this column.
+
+Update `useEnhancedCart.ts` so `enhancedAddToCart` passes the override price from `productData` through to `useCart.addToCart`.
+
+### Step 3: Use override price in cart totals and display
+
+- **`useCart.ts`**: Change the total calculation to use `item.override_price ?? item.product.price`
+- **`CartPage.tsx`**: Display the override price when present (show campaign price with original crossed out)
+- **`OrderSummary.tsx`**: Same -- use override price for line item calculations
+
+### Step 4: Pass campaign price to product detail page
+
+Add URL query parameter support: when navigating from a campaign card, link to `/products/{slug}?campaign={campaignId}`. On the `ProductDetailPage`, if a `campaign` query param is present, fetch the campaign product data and display the campaign price instead of the regular price. The "Add to Cart" button on the detail page will also pass the override price.
+
+### Step 5: Update process-order edge function
+
+Change `unit_price` and `total_price` in the order items mapping to prefer `override_price` over `product.price`, so the correct discounted price is recorded in the order.
+
+### Step 6: Update CHANGELOG
+
+Document the campaign pricing fix.
 
 ## Files to Modify
 
 | File | Change |
 |---|---|
-| `src/pages/AboutPage.tsx` | Fix `bg-white/8` to `/10`, `text-white/88` to `/90` |
-| `src/pages/FAQPage.tsx` | Fix `bg-white/8` to `/10`, `text-white/88` to `/90` |
-| `src/pages/TermsPage.tsx` | Fix `bg-white/8` to `/10` |
-| `src/pages/ShippingPage.tsx` | Fix `bg-white/8` to `/10` |
-| `src/pages/PrivacyPage.tsx` | Fix `bg-white/8` to `/10` |
-| `CHANGELOG.md` | Document opacity fixes |
+| Database migration | Add `override_price` column to `cart_items` |
+| `src/hooks/useCart.ts` | Accept and store `overridePrice`, select it in query, use in totals |
+| `src/hooks/useEnhancedCart.ts` | Pass `productData.price` as `overridePrice` when provided |
+| `src/components/campaigns/CampaignProductCard.tsx` | Add `campaign` query param to product link |
+| `src/pages/ProductDetailPage.tsx` | Read `campaign` query param, fetch campaign price, pass to ProductInfo |
+| `src/components/products/ProductInfo.tsx` | Accept optional `campaignPrice` prop, display it, pass to addToCart |
+| `src/pages/CartPage.tsx` | Display override price with original crossed out |
+| `src/components/checkout/OrderSummary.tsx` | Use override price for line item totals |
+| `supabase/functions/process-order/index.ts` | Prefer `override_price` for unit/total price |
+| `CHANGELOG.md` | Document the fix |
+
+## What Will NOT Change
+
+- Campaign management admin UI -- untouched
+- Product catalog, categories, search -- untouched
+- Payment processing, webhooks -- untouched
+- All other cart functionality (wishlist, analytics, abandonment tracking) -- untouched
