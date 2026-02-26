@@ -28,7 +28,7 @@ export function useCheckout() {
     const navigate = useNavigate();
     
     // Calculate cart total
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    const subtotal = cartItems.reduce((sum, item) => sum + ((item.override_price ?? item.product.price) * item.quantity), 0);
     
     // Apply free delivery for orders over R400
     const deliveryFee = selectedDeliveryOption ? 
