@@ -1,56 +1,55 @@
 
+# Stability Fixes and Best Practices for Order and Product Management
 
-# Enable Manager Role for Product Management
+## Issues Found
 
-## Summary
+### 1. Campaign override_price NOT used in two checkout paths
+**Critical bug**: The campaign price fix was applied to `useCart.ts` and `OrderSummary.tsx`, but two other places still use `item.product.price` directly, ignoring `override_price`:
 
-Currently, users with the `manager` role are completely locked out of product management. Three layers need updating: routing, navigation, and database permissions.
+- **`useCheckout.ts` line 31**: `subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)` -- always uses original price
+- **`PayfastPayment.tsx` line 286**: `R {(item.product?.price * item.quantity).toFixed(2)}` -- display in PayFast summary shows original price
 
-## What's Broken
+### 2. Confirmation email uses original price in process-order
+**Bug**: The email line items (lines 316-321) use `item.product?.price` instead of `item.override_price ?? item.product?.price`. Customer receives email showing original price while they paid the campaign price.
 
-1. **Route guard**: `/admin/products` uses `<AdminProtectedRoute>` without `allowManager` -- managers get "Access Denied"
-2. **Sidebar navigation**: The `managerRoutes` array only includes Dashboard, Orders, Analytics, and Returns -- no Products link
-3. **Database RLS**: Managers can only SELECT from `products` and `product_images` -- they cannot insert, update, or delete
-4. **Image candidates**: The `product_image_candidates` table has no manager policy at all
+### 3. clearCart query missing await on filter chain
+**Potential bug**: In `useCart.ts` lines 228-234, the `clearCart` mutation builds a query with `.delete()` then conditionally adds `.eq()` filters, but the filter methods are called on the query variable without reassignment. In Supabase JS v2, filter methods return a new builder -- the original `query` variable is not mutated. This means the delete may execute without the user/session filter, potentially deleting ALL cart items.
 
-## Changes
+### 4. No stock validation on the client before add-to-cart
+Products can be added to cart regardless of available stock quantity -- the stock check only happens at order creation time. Users may fill a cart and discover at checkout that items are out of stock.
 
-### 1. Route access (src/App.tsx)
-- Add `allowManager` to the `/admin/products` route so managers can access the page
+## Plan
 
-### 2. Sidebar navigation (src/components/admin/AdminSidebar.tsx)
-- Add the Products route to `managerRoutes` so managers see the link in the sidebar
-- Optionally limit which tabs managers see (e.g., hide "Delete All Products", import scheduler) -- but this can be a follow-up
+### Step 1: Fix useCheckout.ts subtotal calculation
+Update line 31 to use `item.override_price ?? item.product.price` so the subtotal respects campaign discounts.
 
-### 3. Database RLS policies (migration)
-Add write policies for the manager role on three tables:
+### Step 2: Fix PayfastPayment.tsx display line items
+Update line 286 to use `item.override_price ?? item.product?.price` so the PayFast summary shows the correct discounted price.
 
-- **`products`**: Allow managers to INSERT, UPDATE, and DELETE
-- **`product_images`**: Allow managers to INSERT, UPDATE, and DELETE
-- **`product_image_candidates`**: Allow managers full access (ALL)
+### Step 3: Fix process-order email line items
+Update lines 316-321 in the edge function to prefer `override_price` over `product.price` in the email data, matching the order items mapping already done earlier in the same file.
 
-All policies will use the existing `has_role(auth.uid(), 'manager')` security definer function.
+### Step 4: Fix clearCart query chain in useCart.ts
+Rewrite the clearCart mutation to properly chain the query builder so filters are not lost. Use a proper chained approach instead of mutating a variable.
 
-### 4. Changelog update (CHANGELOG.md)
-Document the manager product access addition.
+### Step 5: Add client-side stock check in addToCart
+Before inserting/updating cart items, fetch the product's `stock_quantity` and validate the requested quantity does not exceed it. Show a user-friendly toast if stock is insufficient.
+
+### Step 6: Update CHANGELOG
+Document all stability fixes.
 
 ## Files to Modify
 
 | File | Change |
 |---|---|
-| `src/App.tsx` (line 145) | Add `allowManager` to products route |
-| `src/components/admin/AdminSidebar.tsx` (line 108-130) | Add Products to `managerRoutes` |
-| Database migration | Add manager write RLS policies for `products`, `product_images`, `product_image_candidates` |
-| `CHANGELOG.md` | Document manager product management access |
+| `src/hooks/useCheckout.ts` | Use override_price in subtotal calculation |
+| `src/components/checkout/PayfastPayment.tsx` | Use override_price in line item display |
+| `supabase/functions/process-order/index.ts` | Use override_price in email line items |
+| `src/hooks/useCart.ts` | Fix clearCart query chain; add stock validation |
+| `CHANGELOG.md` | Document fixes |
 
 ## What Will NOT Change
-
-- Admin/superadmin permissions -- untouched
-- Storage bucket policies -- already allow authenticated users
-- Product management UI components -- no changes needed, they work for any authorized user
-- Delete All Products, import tools -- remain visible (can be restricted later if desired)
-
-## Security Note
-
-The `manager` role will have full product CRUD. This is intentional since managers need to edit products, upload images, and manage inventory. Sensitive operations like user management, payment settings, and system settings remain restricted to superadmin only.
-
+- Product form, admin UI, product management -- untouched
+- Payment webhook processing -- untouched
+- RLS policies -- untouched
+- Cart analytics, wishlist, search -- untouched
