@@ -127,6 +127,11 @@ const managerRoutes = [
     url: "/admin/returns", 
     icon: RotateCcw 
   },
+  { 
+    title: "Products", 
+    url: "/admin/products", 
+    icon: Package 
+  },
 ];
 
 const superAdminRoutes = [

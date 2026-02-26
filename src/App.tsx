@@ -142,7 +142,7 @@ function App() {
 
                       {/* Admin routes - lazy loaded */}
                       <Route path="/admin" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></AdminProtectedRoute>} />
-                      <Route path="/admin/products" element={<AdminProtectedRoute><AdminLayout><Suspense fallback={<PageLoader />}><AdminProducts /></Suspense></AdminLayout></AdminProtectedRoute>} />
+                      <Route path="/admin/products" element={<AdminProtectedRoute allowManager><AdminLayout><Suspense fallback={<PageLoader />}><AdminProducts /></Suspense></AdminLayout></AdminProtectedRoute>} />
                       <Route path="/admin/orders" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminOrders /></Suspense></AdminProtectedRoute>} />
                       <Route path="/admin/analytics" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense></AdminProtectedRoute>} />
                       <Route path="/admin/returns" element={<AdminProtectedRoute allowManager><Suspense fallback={<PageLoader />}><AdminReturns /></Suspense></AdminProtectedRoute>} />

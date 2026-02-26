@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔓 Feature — Manager Role Product Management (Feb 26, 2026)
+- **Route guard:** Added `allowManager` to `/admin/products` route so managers can access product management
+- **Sidebar navigation:** Added Products link to `managerRoutes` array in AdminSidebar
+- **Database RLS:** Added INSERT, UPDATE, DELETE policies for manager role on `products`, `product_images`, and `product_image_candidates` tables
+- All policies use the existing `has_role(auth.uid(), 'manager')` security definer function
+
 ### 🐛 Fix — Campaign Discount Prices Not Carrying Through (Feb 26, 2026)
 - **Database:** Added `override_price` nullable numeric column to `cart_items` table
 - **useCart.ts:** `addToCart` now accepts optional `overridePrice` parameter, stores it in `cart_items.override_price`, and uses it for cart total calculation (`override_price ?? product.price`)
