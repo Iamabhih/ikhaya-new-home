@@ -877,6 +877,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          override_price: number | null
           product_id: string
           quantity: number
           session_id: string | null
@@ -887,6 +888,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          override_price?: number | null
           product_id: string
           quantity?: number
           session_id?: string | null
@@ -897,6 +899,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          override_price?: number | null
           product_id?: string
           quantity?: number
           session_id?: string | null

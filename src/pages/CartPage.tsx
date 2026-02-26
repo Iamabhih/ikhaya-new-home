@@ -198,7 +198,16 @@ const CartPage = () => {
                             </p>
                           )}
                           <p className="text-base font-medium mt-2">
-                            R{item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}
+                            {item.override_price != null && item.override_price < (item.product?.price || 0) ? (
+                              <>
+                                <span>R{Number(item.override_price).toFixed(2)}</span>
+                                <span className="text-sm text-muted-foreground line-through ml-2">
+                                  R{Number(item.product.price).toFixed(2)}
+                                </span>
+                              </>
+                            ) : (
+                              <>R{item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}</>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -228,7 +237,7 @@ const CartPage = () => {
                         <div className="flex items-center gap-3">
                           {item.quantity > 1 && (
                             <span className="text-sm text-muted-foreground">
-                              Total: R{(item.product.price * item.quantity).toFixed(2)}
+                              Total: R{((item.override_price ?? item.product.price) * item.quantity).toFixed(2)}
                             </span>
                           )}
                           <Button
@@ -284,10 +293,19 @@ const CartPage = () => {
                           </p>
                         )}
                         <p className="text-lg font-medium mt-2">
-                          R{item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}
+                          {(item as any).override_price != null && (item as any).override_price < (item.product?.price || 0) ? (
+                            <>
+                              <span>R{Number((item as any).override_price).toFixed(2)}</span>
+                              <span className="text-sm text-muted-foreground line-through ml-2">
+                                R{Number(item.product.price).toFixed(2)}
+                              </span>
+                            </>
+                          ) : (
+                            <>R{item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}</>
+                          )}
                           {item.quantity > 1 && (
                             <span className="text-sm text-muted-foreground font-normal">
-                              {' '}× {item.quantity} = R{(item.product.price * item.quantity).toFixed(2)}
+                              {' '}× {item.quantity} = R{(((item as any).override_price ?? item.product.price) * item.quantity).toFixed(2)}
                             </span>
                           )}
                         </p>

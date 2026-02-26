@@ -95,7 +95,9 @@ export const useEnhancedCart = () => {
   // Enhanced add to cart with analytics - memoized to prevent loops
   const enhancedAddToCart = useCallback(async (productId: string, quantity: number = 1, productData?: any) => {
     try {
-      cart.addToCart({ productId, quantity });
+      // Pass override price if productData contains a campaign/discounted price different from regular
+      const overridePrice = productData?.overridePrice ?? undefined;
+      cart.addToCart({ productId, quantity, overridePrice });
       
       // Track successful add to cart
       trackCartEvent.mutate({

@@ -1,5 +1,5 @@
 
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
@@ -17,6 +17,8 @@ import { useEffect } from "react";
 
 const ProductDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const campaignPriceParam = searchParams.get('campaign');
   const { settings } = useSiteSettings();
   const { trackProductView, trackEvent } = useAnalytics();
 
@@ -40,6 +42,35 @@ const ProductDetailPage = () => {
       return data;
     },
     enabled: !!slug,
+  });
+
+  // Fetch campaign price for this product if campaign query param is present
+  const { data: campaignPrice } = useQuery({
+    queryKey: ['campaign-price', product?.id, campaignPriceParam],
+    queryFn: async () => {
+      if (!product?.id || !campaignPriceParam) return null;
+      
+      // campaignPriceParam is the campaign_price value passed via URL
+      const price = parseFloat(campaignPriceParam);
+      if (!isNaN(price) && price > 0 && price < product.price) {
+        return price;
+      }
+      
+      // Fallback: check if product is in any active campaign
+      const { data } = await supabase
+        .from('campaign_products')
+        .select('campaign_price, campaigns!inner(is_active)')
+        .eq('product_id', product.id)
+        .eq('is_active', true)
+        .not('campaign_price', 'is', null)
+        .limit(1);
+      
+      if (data && data.length > 0 && data[0].campaign_price != null) {
+        return data[0].campaign_price as number;
+      }
+      return null;
+    },
+    enabled: !!product?.id && !!campaignPriceParam,
   });
 
   const { data: relatedProducts = [] } = useQuery({
@@ -191,7 +222,7 @@ const ProductDetailPage = () => {
           </div>
 
           {/* Right: Product Info */}
-          <ProductInfo product={product} />
+          <ProductInfo product={product} campaignPrice={campaignPrice ?? undefined} />
         </div>
 
         {/* Reviews */}

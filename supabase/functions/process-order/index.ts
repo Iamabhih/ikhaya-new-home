@@ -196,14 +196,18 @@ Deno.serve(async (req: Request) => {
           customer_notes: formData.notes || `Order processed via ${source}`,
           source_channel: 'web'
         },
-        p_order_items: (cartData.items || []).map((item: any) => ({
-          product_id: item.product?.id || item.productId,
-          product_name: item.product?.name || item.name || 'Unknown Product',
-          product_sku: item.product?.sku || item.sku || null,
-          quantity: item.quantity || 1,
-          unit_price: item.product?.price || item.price || 0,
-          total_price: (item.product?.price || item.price || 0) * (item.quantity || 1),
-        })),
+        p_order_items: (cartData.items || []).map((item: any) => {
+          // Prefer override_price (campaign/promo price) over regular product price
+          const unitPrice = item.override_price ?? item.product?.price ?? item.price ?? 0;
+          return {
+            product_id: item.product?.id || item.productId,
+            product_name: item.product?.name || item.name || 'Unknown Product',
+            product_sku: item.product?.sku || item.sku || null,
+            quantity: item.quantity || 1,
+            unit_price: unitPrice,
+            total_price: unitPrice * (item.quantity || 1),
+          };
+        }),
         p_pending_order_id: pendingOrder.id
       }
     );

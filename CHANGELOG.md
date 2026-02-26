@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fix — Campaign Discount Prices Not Carrying Through (Feb 26, 2026)
+- **Database:** Added `override_price` nullable numeric column to `cart_items` table
+- **useCart.ts:** `addToCart` now accepts optional `overridePrice` parameter, stores it in `cart_items.override_price`, and uses it for cart total calculation (`override_price ?? product.price`)
+- **useEnhancedCart.ts:** `enhancedAddToCart` now passes `productData.overridePrice` through to the cart hook
+- **CampaignProductCard.tsx:** Passes `overridePrice` when adding campaign-discounted items to cart; links to product detail with `?campaign={price}` query param
+- **ProductDetailPage.tsx:** Reads `?campaign` query param to display campaign price on the product detail page
+- **ProductInfo.tsx:** Accepts optional `campaignPrice` prop; shows campaign price with original crossed out; passes `overridePrice` to `addToCart`
+- **CartPage.tsx:** Displays override price with original price crossed out (mobile + desktop layouts)
+- **OrderSummary.tsx:** Uses `override_price ?? product.price` for line item totals; shows original price crossed out when discounted
+- **process-order edge function:** Prefers `override_price` over `product.price` for `unit_price` and `total_price` in order items
+
 ### 🔐 Feature — Google & Apple Sign-In (Feb 25, 2026)
 - **AuthPage + AuthModal:** Added "Sign in with Google" and "Sign in with Apple" OAuth buttons
 - Uses `supabase.auth.signInWithOAuth()` with proper redirect handling
