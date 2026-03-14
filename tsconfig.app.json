@@ -1,40 +1,34 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "moduleDetection": "force",
-    "noEmit": true,
     "jsx": "react-jsx",
-
-    /* Type Safety - Incremental Migration
-     * Current: Basic type checking enabled
-     * TODO: Enable these for full type safety:
-     * - "strict": true (enables all strict checks)
-     * - "strictNullChecks": true (null/undefined handling)
-     * - "noImplicitAny": true (explicit any types required)
-     */
-    "strict": false,
-    "noImplicitAny": false,
-
-    /* Safe Linting Options - Enabled */
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "noEmit": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true,
-
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "skipLibCheck": true,
+    "strict": false,
+    "target": "ES2020",
+    "useDefineForClassFields": true
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }
