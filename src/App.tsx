@@ -17,6 +17,7 @@ import "./App.css";
 
 // Public pages - loaded immediately
 import Index from "./pages/Index";
+import AccountSuspended from "./pages/AccountSuspended";
 import ProductsPage from "./pages/ProductsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import CategoriesPage from "./pages/CategoriesPage";
