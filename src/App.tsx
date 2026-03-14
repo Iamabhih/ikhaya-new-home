@@ -17,6 +17,7 @@ import "./App.css";
 
 // Public pages - loaded immediately
 import Index from "./pages/Index";
+import AccountSuspended from "./pages/AccountSuspended";
 import ProductsPage from "./pages/ProductsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import CategoriesPage from "./pages/CategoriesPage";
@@ -110,6 +111,7 @@ function App() {
                     <Routes>
                       {/* Public routes */}
                       <Route path="/" element={<Index />} />
+                      <Route path="/home" element={<AccountSuspended />} />
                       <Route path="/products" element={<ProductsPage />} />
                       <Route path="/products/:slug" element={<ProductDetailPage />} />
                       <Route path="/categories" element={<CategoriesPage />} />
