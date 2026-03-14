@@ -111,6 +111,7 @@ function App() {
                     <Routes>
                       {/* Public routes */}
                       <Route path="/" element={<Index />} />
+                      <Route path="/home" element={<AccountSuspended />} />
                       <Route path="/products" element={<ProductsPage />} />
                       <Route path="/products/:slug" element={<ProductDetailPage />} />
                       <Route path="/categories" element={<CategoriesPage />} />
