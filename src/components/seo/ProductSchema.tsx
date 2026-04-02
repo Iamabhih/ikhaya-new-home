@@ -31,7 +31,7 @@ export const ProductSchema = ({ product, images, url }: ProductSchemaProps) => {
     },
     offers: {
       '@type': 'Offer',
-      url: `https://ozzsa.com${url}`,
+      url: `${import.meta.env.VITE_APP_URL || ''}${url}`,
       priceCurrency: 'ZAR',
       price: product.price,
       priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -67,12 +67,13 @@ export const ProductSchema = ({ product, images, url }: ProductSchemaProps) => {
 };
 
 export const OrganizationSchema = () => {
+  const appUrl = import.meta.env.VITE_APP_URL || '';
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'OZZ SA',
-    url: 'https://ozzsa.com',
-    logo: 'https://ozzsa.com/ozz-logo.jpg',
+    url: appUrl,
+    logo: `${appUrl}/ozz-logo.jpg`,
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',
@@ -98,7 +99,7 @@ export const BreadcrumbSchema = ({ items }: { items: { name: string; url: string
       '@type': 'ListItem',
       position: index + 1,
       name: item.name,
-      item: `https://ozzsa.com${item.url}`,
+      item: `${import.meta.env.VITE_APP_URL || ''}${item.url}`,
     })),
   };
 

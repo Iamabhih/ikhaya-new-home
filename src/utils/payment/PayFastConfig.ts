@@ -40,12 +40,14 @@ export const getPayFastConfig = (dbSettings?: PayFastDBSettings) => {
     getReturnUrls: () => {
       const baseUrl = typeof window !== 'undefined'
         ? window.location.origin
-        : 'https://ikhayahomeware.online';
+        : (import.meta.env.VITE_APP_URL || 'http://localhost:8080');
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 
       return {
         return_url: `${baseUrl}/checkout-success`,
         cancel_url: `${baseUrl}/checkout?cancelled=true`,
-        notify_url: `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`,
+        notify_url: `${supabaseUrl}/functions/v1/payfast-webhook`,
       };
     }
   };

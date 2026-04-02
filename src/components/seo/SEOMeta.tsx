@@ -26,7 +26,7 @@ interface SEOMetaProps {
 
 const SITE_NAME = 'OZZ SA';
 const DEFAULT_DESCRIPTION = 'Shop premium products at OZZ SA. Quality items with fast delivery across South Africa.';
-const BASE_URL = 'https://ozzsa.com';
+const BASE_URL = import.meta.env.VITE_APP_URL || '';
 
 export const SEOMeta = ({
   title,

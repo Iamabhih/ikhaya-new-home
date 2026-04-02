@@ -95,7 +95,7 @@ const ContactPage = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Mail className="h-5 w-5 text-primary" />
-                  <span>queries@ozzsa.com</span>
+                  <span>{import.meta.env.VITE_CONTACT_EMAIL || 'queries@ozzsa.com'}</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Phone className="h-5 w-5 text-primary" />
@@ -138,7 +138,7 @@ const ContactPage = () => {
                   your orders, products, or general inquiries.
                 </p>
                 <p><strong>Response Time:</strong> Within 24 hours</p>
-                <p><strong>Support Email:</strong> queries@ozzsa.com</p>
+                <p><strong>Support Email:</strong> {import.meta.env.VITE_CONTACT_EMAIL || 'queries@ozzsa.com'}</p>
               </CardContent>
             </Card>
           </div>

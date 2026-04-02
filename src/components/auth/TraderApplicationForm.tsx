@@ -90,7 +90,7 @@ export const TraderApplicationForm = ({ trigger }: TraderApplicationFormProps) =
       const { error: emailError } = await supabase.functions.invoke("send-email", {
         body: {
           type: "admin-notification",
-          to: "queries@ozzsa.com",
+          to: import.meta.env.VITE_CONTACT_EMAIL || "queries@ozzsa.com",
           data: {
             type: "trader-application",
             subject: `New Trader Application - ${data.companyName}`,

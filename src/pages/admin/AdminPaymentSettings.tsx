@@ -330,7 +330,7 @@ const AdminPaymentSettings = () => {
                       <Label htmlFor="webhook-url">Webhook URL</Label>
                       <Input
                         id="webhook-url"
-                        value="https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook"
+                        value={`${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/payfast-webhook`}
                         disabled
                         className="bg-muted"
                       />

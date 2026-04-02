@@ -1,6 +1,6 @@
 /**
  * System Logging Utilities
- * For tracking changes and API requests between lovable.dev and Supabase
+ * For tracking system changes and API requests
  * 
  * Note: These are utility functions that log to console.
  * Database logging tables can be added later via migration if needed.
@@ -19,7 +19,7 @@ export type ChangeType =
   | 'manual_fix'
   | 'other';
 
-export type SourceSystem = 'lovable' | 'supabase' | 'manual' | 'automated';
+export type SourceSystem = 'external' | 'supabase' | 'manual' | 'automated';
 
 export interface SystemChangeLogParams {
   changeType: ChangeType;
@@ -35,7 +35,7 @@ export interface SystemChangeLogParams {
 
 /**
  * Log a system change (console-based logging)
- * Used for tracking changes from lovable.dev, migrations, config updates, etc.
+ * Used for tracking migrations, config updates, etc.
  */
 export async function logSystemChange(params: SystemChangeLogParams): Promise<string | null> {
   try {
@@ -74,7 +74,7 @@ export interface ApiRequestLogParams {
 
 /**
  * Log an API request for tracking and debugging (console-based)
- * Used to monitor requests between frontend, lovable.dev, and Supabase
+ * Used to monitor requests between frontend and Supabase
  */
 export async function logApiRequest(params: ApiRequestLogParams): Promise<string | null> {
   try {

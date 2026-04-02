@@ -17,12 +17,10 @@ export interface CorsOptions {
  */
 export function getCorsHeaders(options: CorsOptions = {}): HeadersInit {
   const isDev = Deno.env.get('ENVIRONMENT') === 'development';
-  const allowedOrigins = options.origin || [
-    'https://ikhayahomeware.online',
-    'https://www.ikhayahomeware.online',
-    'https://ozzsa.com',
-    'https://www.ozzsa.com',
-  ];
+  const envOrigins = Deno.env.get('ALLOWED_ORIGINS');
+  const allowedOrigins = options.origin || (envOrigins
+    ? envOrigins.split(',').map((o: string) => o.trim())
+    : ['http://localhost:8080']);
 
   const allowedMethods = options.methods || ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'];
   const allowedHeaders = options.headers || ['Content-Type', 'Authorization', 'X-Client-Info', 'apikey'];
