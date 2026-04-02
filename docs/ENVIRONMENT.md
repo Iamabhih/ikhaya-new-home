@@ -18,7 +18,7 @@ The following credentials are currently **HARDCODED** in source code and must be
 
 ## Required Environment Variables
 
-### Frontend (Lovable.dev / Vite)
+### Frontend (Hosting platform / Vite)
 
 Create a `.env` file in the project root:
 
@@ -30,11 +30,11 @@ VITE_PAYFAST_MERCHANT_KEY=u6ksewx8j6xzx     # Your merchant key
 # Note: Passphrase NOT needed in frontend (webhook only)
 
 # Supabase Configuration
-VITE_SUPABASE_URL=https://kauostzhxqoxggwqgtym.supabase.co
+VITE_SUPABASE_URL=https://your_project_id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_anon_key_here
 
 # Application
-VITE_SITE_URL=https://ikhayahomeware.online
+VITE_SITE_URL=https://yourdomain.com
 VITE_APP_ENV=production                      # 'development' or 'production'
 ```
 
@@ -50,14 +50,14 @@ PAYFAST_MERCHANT_ID=13644558
 PAYFAST_MERCHANT_KEY=u6ksewx8j6xzx
 
 # Supabase (automatically provided)
-SUPABASE_URL=https://kauostzhxqoxggwqgtym.supabase.co
+SUPABASE_URL=https://your_project_id.supabase.co
 SUPABASE_ANON_KEY=auto_provided
 SUPABASE_SERVICE_ROLE_KEY=auto_provided
 
 # Email (if using custom email service)
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
-SMTP_USER=noreply@ikhayahomeware.online
+SMTP_USER=noreply@yourdomain.com
 SMTP_PASS=your_smtp_password
 ```
 
@@ -86,9 +86,9 @@ git status
 # Should NOT show .env as modified/untracked
 ```
 
-### 2. Lovable.dev Configuration
+### 2. Hosting platform Configuration
 
-1. Go to your Lovable.dev project dashboard
+1. Go to your Hosting platform project dashboard
 2. Navigate to **Settings** → **Environment Variables**
 3. Add each `VITE_*` variable:
    - Key: `VITE_PAYFAST_MODE`
@@ -191,12 +191,12 @@ export const getPayFastConfig = () => {
     getReturnUrls: () => {
       const baseUrl = typeof window !== 'undefined'
         ? window.location.origin
-        : (import.meta.env.VITE_SITE_URL || 'https://ikhayahomeware.online');
+        : (import.meta.env.VITE_SITE_URL || 'https://yourdomain.com');
 
       return {
         return_url: `${baseUrl}/checkout-success`,
         cancel_url: `${baseUrl}/checkout?cancelled=true`,
-        notify_url: `https://kauostzhxqoxggwqgtym.supabase.co/functions/v1/payfast-webhook`,
+        notify_url: `https://your_project_id.supabase.co/functions/v1/payfast-webhook`,
       };
     }
   };
@@ -253,7 +253,7 @@ VITE_SUPABASE_URL=your_supabase_url_here
 VITE_SUPABASE_ANON_KEY=your_anon_key_here
 
 # Application
-VITE_SITE_URL=https://ikhayahomeware.online
+VITE_SITE_URL=https://yourdomain.com
 VITE_APP_ENV=production
 
 # DO NOT commit .env file to git!
@@ -268,7 +268,7 @@ After making changes:
 
 - [ ] `.env` file created with all variables
 - [ ] `.env` is in `.gitignore` (verify with `git status`)
-- [ ] Lovable.dev environment variables configured
+- [ ] Hosting platform environment variables configured
 - [ ] Supabase secrets configured
 - [ ] Deleted `/src/utils/payment/constants.ts`
 - [ ] Updated `PayFastConfig.ts` to use environment variables
@@ -320,7 +320,7 @@ grep -r "u6ksewx8j6xzx" --exclude-dir=node_modules --exclude-dir=.git .
 
 4. **Update Everywhere:**
    - Local `.env`
-   - Lovable.dev environment variables
+   - Hosting platform environment variables
    - Supabase secrets
    - Redeploy all services
 
@@ -344,7 +344,7 @@ grep -r "u6ksewx8j6xzx" --exclude-dir=node_modules --exclude-dir=.git .
    # .env is NOT pushed (in .gitignore)
    ```
 
-3. **Lovable.dev Auto-Deploy:**
+3. **Hosting platform Auto-Deploy:**
    - Reads environment variables from dashboard
    - Builds with VITE_* variables
 
@@ -376,7 +376,7 @@ grep -r "u6ksewx8j6xzx" --exclude-dir=node_modules --exclude-dir=.git .
 **Issue:** Environment variables not updating
 
 **Solution:**
-1. Lovable.dev: Trigger manual rebuild
+1. Hosting platform: Trigger manual rebuild
 2. Local: Restart dev server
 3. Supabase: Redeploy functions
 

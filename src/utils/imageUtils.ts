@@ -5,9 +5,7 @@
  * across the application.
  */
 
-// Import the Supabase URL from the client configuration
-// This ensures we have a single source of truth for the URL
-const SUPABASE_URL = "https://kauostzhxqoxggwqgtym.supabase.co";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 
 /**
  * Convert an image path to a full Supabase storage URL

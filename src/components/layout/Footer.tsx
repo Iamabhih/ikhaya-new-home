@@ -20,7 +20,7 @@ export const Footer = () => {
           {/* Brand Section */}
           <div className="space-y-6 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start">
-              <img src="/lovable-uploads/goc-ozz-group.png" alt="OZZ Group of Companies" className="h-32 xs:h-40 sm:h-48 md:h-64 w-auto" />
+              <img src="/uploads/goc-ozz-group.png" alt="OZZ Group of Companies" className="h-32 xs:h-40 sm:h-48 md:h-64 w-auto" />
             </div>
             <div className="space-y-2 text-center md:text-left">
               <p className="text-primary-foreground/90 font-bold text-sm tracking-wide uppercase">Your Trusted</p>
@@ -127,9 +127,9 @@ export const Footer = () => {
                 <MessageCircle className="h-4 w-4 group-hover:text-whatsapp transition-colors" />
                 <span>+27 72 663 3544 (WhatsApp)</span>
               </a>
-              <a href="mailto:queries@ozzsa.com" className="flex items-center space-x-2.5 text-sm text-primary-foreground/60 hover:text-primary-foreground transition-colors duration-200 group">
+              <a href={`mailto:${import.meta.env.VITE_CONTACT_EMAIL || 'queries@ozzsa.com'}`} className="flex items-center space-x-2.5 text-sm text-primary-foreground/60 hover:text-primary-foreground transition-colors duration-200 group">
                 <Mail className="h-4 w-4 group-hover:text-secondary transition-colors" />
-                <span>queries@ozzsa.com</span>
+                <span>{import.meta.env.VITE_CONTACT_EMAIL || 'queries@ozzsa.com'}</span>
               </a>
             </div>
           </div>

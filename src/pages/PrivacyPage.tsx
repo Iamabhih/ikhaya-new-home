@@ -217,7 +217,7 @@ const PrivacyPage = () => {
                 please contact us:
               </p>
               <div className="space-y-2 text-sm">
-                <p><strong>Email:</strong> queries@ozzsa.com</p>
+                <p><strong>Email:</strong> {import.meta.env.VITE_CONTACT_EMAIL || 'queries@ozzsa.com'}</p>
                 <p><strong>Phone:</strong> +27 31 332 7192</p>
                 <p><strong>Address:</strong> 40 Mazeppa & Gull Street, Durban, Kwa-Zulu Natal, 4001, South Africa</p>
               </div>

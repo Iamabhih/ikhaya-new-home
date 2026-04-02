@@ -11,7 +11,7 @@ const REQUIRED_ENV_VARS = [
 
 const OPTIONAL_ENV_VARS = [
   'VITE_APP_URL',
-  'VITE_SENTRY_DSN',
+  'VITE_CONTACT_EMAIL',
 ] as const;
 
 interface ValidationResult {

@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const APP_URL = Deno.env.get('APP_URL') || 'http://localhost:8080';
+
 // Brand colors and styles
 const brandStyles = {
   primary: '#9333ea',
@@ -53,9 +55,9 @@ const emailWrapper = (content: string, previewText?: string) => `
                 © ${new Date().getFullYear()} OZZ. All rights reserved.
               </p>
               <div style="margin-top:15px;">
-                <a href="https://ozzsa.com" style="color:${brandStyles.primary};text-decoration:none;font-size:12px;">Visit our website</a>
+                <a href="${APP_URL}" style="color:${brandStyles.primary};text-decoration:none;font-size:12px;">Visit our website</a>
                 <span style="color:${brandStyles.border};margin:0 10px;">|</span>
-                <a href="https://ozzsa.com/contact" style="color:${brandStyles.primary};text-decoration:none;font-size:12px;">Contact us</a>
+                <a href="${APP_URL}/contact" style="color:${brandStyles.primary};text-decoration:none;font-size:12px;">Contact us</a>
               </div>
             </td>
           </tr>
@@ -137,7 +139,7 @@ const generateOrderConfirmationHtml = (data: any) => {
     ` : ''}
 
     <div style="margin-top:30px;text-align:center;">
-      <a href="https://ozzsa.com/orders/${data.orderNumber}" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:14px 30px;border-radius:6px;font-weight:bold;">Track Your Order</a>
+      <a href="${APP_URL}/orders/${data.orderNumber}" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:14px 30px;border-radius:6px;font-weight:bold;">Track Your Order</a>
     </div>
   `, `Your order #${data.orderNumber} has been confirmed`);
 };
@@ -193,7 +195,7 @@ const generateOrderStatusHtml = (data: any) => {
     ` : ''}
 
     <div style="text-align:center;">
-      <a href="https://ozzsa.com/orders/${data.orderNumber}" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:14px 30px;border-radius:6px;font-weight:bold;">View Order Details</a>
+      <a href="${APP_URL}/orders/${data.orderNumber}" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:14px 30px;border-radius:6px;font-weight:bold;">View Order Details</a>
     </div>
   `, `Order #${data.orderNumber} - ${status.title}`);
 };
@@ -219,7 +221,7 @@ const generateWelcomeHtml = (data: any) => emailWrapper(`
   </div>
 
   <div style="text-align:center;">
-    <a href="https://ozzsa.com/products" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:14px 30px;border-radius:6px;font-weight:bold;">Start Shopping</a>
+    <a href="${APP_URL}/products" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:14px 30px;border-radius:6px;font-weight:bold;">Start Shopping</a>
   </div>
 `, 'Welcome to OZZ - Your account is ready!');
 
@@ -255,7 +257,7 @@ const generateAbandonedCartHtml = (data: any) => {
     ` : ''}
 
     <div style="text-align:center;">
-      <a href="https://ozzsa.com/cart" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:6px;font-weight:bold;font-size:16px;">Complete Your Purchase</a>
+      <a href="${APP_URL}/cart" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:6px;font-weight:bold;font-size:16px;">Complete Your Purchase</a>
     </div>
 
     <p style="margin:25px 0 0;text-align:center;color:${brandStyles.muted};font-size:13px;">
@@ -294,7 +296,7 @@ const generateAdminNotificationHtml = (data: any) => {
 
       ${data.actionUrl ? `
       <div style="text-align:center;margin-top:30px;">
-        <a href="https://ozzsa.com${data.actionUrl}" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:14px 30px;border-radius:6px;font-weight:bold;">${data.actionText || 'Review Application'}</a>
+        <a href="${APP_URL}${data.actionUrl}" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:14px 30px;border-radius:6px;font-weight:bold;">${data.actionText || 'Review Application'}</a>
       </div>
       ` : ''}
     `, 'New Trader Application - Review Required');
@@ -306,7 +308,7 @@ const generateAdminNotificationHtml = (data: any) => {
     
     ${data.actionUrl ? `
     <div style="margin-top:25px;">
-      <a href="https://ozzsa.com${data.actionUrl}" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;">${data.actionText || 'View Details'}</a>
+      <a href="${APP_URL}${data.actionUrl}" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;">${data.actionText || 'View Details'}</a>
     </div>
     ` : ''}
   `, data.subject || 'Admin Notification');

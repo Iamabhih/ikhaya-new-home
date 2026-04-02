@@ -7,6 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const APP_URL = Deno.env.get('APP_URL') || 'http://localhost:8080';
+const NOREPLY_EMAIL = Deno.env.get('NOREPLY_EMAIL') || 'noreply@example.com';
+
 const brandStyles = {
   primary: '#9333ea',
   secondary: '#DC3545',
@@ -56,7 +59,7 @@ const generateRecoveryEmailHtml = (body: string, discountCode?: string, discount
               ` : ''}
 
               <div style="text-align:center;margin-top:30px;">
-                <a href="https://ozzsa.com/cart" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:6px;font-weight:bold;font-size:16px;">Complete Your Purchase</a>
+                <a href="${APP_URL}/cart" style="display:inline-block;background-color:${brandStyles.primary};color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:6px;font-weight:bold;font-size:16px;">Complete Your Purchase</a>
               </div>
             </td>
           </tr>
@@ -70,9 +73,9 @@ const generateRecoveryEmailHtml = (body: string, discountCode?: string, discount
                 © ${new Date().getFullYear()} OZZ. All rights reserved.
               </p>
               <div style="margin-top:15px;">
-                <a href="https://ozzsa.com" style="color:${brandStyles.primary};text-decoration:none;font-size:12px;">Visit our website</a>
+                <a href="${APP_URL}" style="color:${brandStyles.primary};text-decoration:none;font-size:12px;">Visit our website</a>
                 <span style="color:${brandStyles.border};margin:0 10px;">|</span>
-                <a href="https://ozzsa.com/contact" style="color:${brandStyles.primary};text-decoration:none;font-size:12px;">Contact us</a>
+                <a href="${APP_URL}/contact" style="color:${brandStyles.primary};text-decoration:none;font-size:12px;">Contact us</a>
               </div>
             </td>
           </tr>
@@ -125,7 +128,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // Send the email
     const { data: emailResult, error: emailError } = await resend.emails.send({
-      from: "OZZ <noreply@ozzsa.com>",
+      from: `OZZ <${NOREPLY_EMAIL}>`,
       to: [to],
       subject: subject,
       html: html,

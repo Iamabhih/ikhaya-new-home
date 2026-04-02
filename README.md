@@ -4,10 +4,6 @@ A modern, full-stack e-commerce platform built with React, TypeScript, and Supab
 
 > **System Status (Feb 19, 2026):** Full stabilisation audit completed — 23 issues resolved across edge functions, database security, and code consistency. All 7 edge functions modernised to `Deno.serve()`. Order confirmation emails now working. 7 DB functions pinned with `SET search_path`. 8 RLS policies hardened. 3 items remain as manual Supabase dashboard actions (OTP expiry, leaked password protection, Postgres upgrade). See `CHANGELOG.md` for full details.
 
-## 🚀 Live Demo
-
-**Production URL**: [View Live Application](https://lovable.dev/projects/9c0a23d3-ead5-4224-9937-e979356b1411)
-
 ## 📋 Table of Contents
 
 - [Features](#features)
@@ -326,13 +322,7 @@ npm run type-check   # TypeScript type checking
 
 ## 🚀 Deployment
 
-### Lovable Platform
-1. Click "Publish" in Lovable editor
-2. Configure custom domain (paid plans)
-3. Set up SSL certificate
-4. Configure environment variables
-
-### Self-Hosting Options
+### Hosting Options
 1. **Vercel/Netlify**
    - Connect GitHub repository
    - Configure build settings
@@ -388,20 +378,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [PayFast Documentation](https://developers.payfast.co.za/)
 
 ### Community
-- [Lovable Discord](https://discord.com/channels/1119885301872070706/1280461670979993613)
 - [GitHub Issues](https://github.com/yourusername/yourrepo/issues)
 
 ### Professional Support
 For enterprise support and custom development, please contact our team.
-
----
-
-## 🔗 Quick Links
-
-- [Live Application](https://lovable.dev/projects/9c0a23d3-ead5-4224-9937-e979356b1411)
-- [Supabase Dashboard](https://supabase.com/dashboard/project/kauostzhxqoxggwqgtym)
-- [PayFast Dashboard](https://payfast.io)
-
----
-
-Built with ❤️ using [Lovable](https://lovable.dev)
